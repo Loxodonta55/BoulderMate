@@ -1,0 +1,405 @@
+import { Gym, GymMember, GradeScale, Sector, BoulderReference, GymRole, User } from '../types/gym';
+
+const GYMS_KEY = 'boulder_gyms_v1';
+const MEMBERS_KEY = 'boulder_gym_members_v1';
+const GRADE_SCALES_KEY = 'boulder_grade_scales_v1';
+const SECTORS_KEY = 'boulder_sectors_v1';
+const BOULDERS_KEY = 'boulder_routes_v1';
+
+// Default current user simulation (Boris / Admin)
+export const CURRENT_USER: User = {
+  id: 'user_boris_001',
+  name: 'Boris D.',
+  email: 'boris@boulderapp.ch'
+};
+
+// Helpers for localStorage with in-memory fallback
+let memoryGyms: Gym[] = [];
+let memoryMembers: GymMember[] = [];
+let memoryGradeScales: GradeScale[] = [];
+let memorySectors: Sector[] = [];
+let memoryBoulders: BoulderReference[] = [];
+
+function getStorage<T>(key: string, memoryFallback: T[]): T[] {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const data = window.localStorage.getItem(key);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.error(`Failed reading ${key} from localStorage`, e);
+    }
+  }
+  return [...memoryFallback];
+}
+
+function setStorage<T>(key: string, data: T[], setMemory: (val: T[]) => void): void {
+  setMemory([...data]);
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.error(`Failed writing ${key} to localStorage`, e);
+    }
+  }
+}
+
+export function resetAllGymData(): void {
+  memoryGyms = [];
+  memoryMembers = [];
+  memoryGradeScales = [];
+  memorySectors = [];
+  memoryBoulders = [];
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.removeItem(GYMS_KEY);
+    window.localStorage.removeItem(MEMBERS_KEY);
+    window.localStorage.removeItem(GRADE_SCALES_KEY);
+    window.localStorage.removeItem(SECTORS_KEY);
+    window.localStorage.removeItem(BOULDERS_KEY);
+  }
+}
+
+export function getGyms(): Gym[] {
+  return getStorage<Gym>(GYMS_KEY, memoryGyms);
+}
+
+export function ensureInitialGymData(): void {
+  const existing = getGyms();
+  if (existing.length === 0) {
+    const defaultGym = createGym({
+      name: 'Minimum Bouldern Zürich',
+      city: 'Zürich',
+      address: 'Flüelastrasse 31',
+      website: 'https://minimum.ch',
+      logo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=128&auto=format&fit=crop'
+    }, CURRENT_USER.id);
+
+    const s1 = createSector(defaultGym.id, CURRENT_USER.id, {
+      name: 'Wettkampfwand (Comp Wall)',
+      wall_photo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&auto=format&fit=crop',
+      sort_order: 1
+    });
+
+    const s2 = createSector(defaultGym.id, CURRENT_USER.id, {
+      name: 'Dachbereich & Cave',
+      wall_photo_url: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?w=1200&auto=format&fit=crop',
+      sort_order: 2
+    });
+
+    const scales = getGradeScales(defaultGym.id);
+    const yellowScale = scales[0]?.id || 's_yellow';
+    const blueScale = scales[2]?.id || 's_blue';
+    const redScale = scales[3]?.id || 's_red';
+
+    saveBoulders([
+      { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
+      { id: 'b_sample_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.42, status: 'active', name: 'Blaues Volumen-Problem' },
+      { id: 'b_sample_3', sector_id: s1.id, grade_scale_id: redScale, position_x: 0.74, position_y: 0.31, status: 'active', name: 'Rote Leiste' },
+      { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' }
+    ]);
+  }
+}
+
+export function saveGyms(gyms: Gym[]): void {
+  setStorage<Gym>(GYMS_KEY, gyms, val => { memoryGyms = val; });
+}
+
+export function getMembers(): GymMember[] {
+  return getStorage<GymMember>(MEMBERS_KEY, memoryMembers);
+}
+
+export function saveMembers(members: GymMember[]): void {
+  setStorage<GymMember>(MEMBERS_KEY, members, val => { memoryMembers = val; });
+}
+
+export function getGradeScales(gym_id?: string): GradeScale[] {
+  const all = getStorage<GradeScale>(GRADE_SCALES_KEY, memoryGradeScales);
+  return gym_id ? all.filter(g => g.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
+}
+
+export function saveGradeScales(scales: GradeScale[]): void {
+  setStorage<GradeScale>(GRADE_SCALES_KEY, scales, val => { memoryGradeScales = val; });
+}
+
+export function getSectors(gym_id?: string): Sector[] {
+  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  return gym_id ? all.filter(s => s.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
+}
+
+export function saveSectors(sectors: Sector[]): void {
+  setStorage<Sector>(SECTORS_KEY, sectors, val => { memorySectors = val; });
+}
+
+export function getBoulders(sector_id?: string): BoulderReference[] {
+  const all = getStorage<BoulderReference>(BOULDERS_KEY, memoryBoulders);
+  return sector_id ? all.filter(b => b.sector_id === sector_id) : all;
+}
+
+export function saveBoulders(boulders: BoulderReference[]): void {
+  setStorage<BoulderReference>(BOULDERS_KEY, boulders, val => { memoryBoulders = val; });
+}
+
+// User role check in gym
+export function getUserRoleInGym(gym_id: string, user_id: string): GymRole | null {
+  const members = getMembers();
+  const membership = members.find(m => m.gym_id === gym_id && m.user_id === user_id);
+  return membership ? membership.role : null;
+}
+
+export function isGymAdmin(gym_id: string, user_id: string): boolean {
+  return getUserRoleInGym(gym_id, user_id) === 'admin';
+}
+
+// AC-1: Ein eingeloggter Nutzer kann eine neue Halle mit Pflichtfeld `name` anlegen.
+// Der Ersteller erhält automatisch die Rolle `admin` in `gym_members`.
+export function createGym(
+  input: { name: string; address?: string; city?: string; logo_url?: string; website?: string },
+  user_id: string = CURRENT_USER.id
+): Gym {
+  if (!input.name || input.name.trim().length === 0) {
+    throw new Error('Hallenname ist ein Pflichtfeld.');
+  }
+
+  const gymId = 'gym_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  const now = new Date().toISOString();
+
+  const newGym: Gym = {
+    id: gymId,
+    name: input.name.trim(),
+    address: input.address?.trim() || undefined,
+    city: input.city?.trim() || undefined,
+    logo_url: input.logo_url?.trim() || undefined,
+    website: input.website?.trim() || undefined,
+    created_by: user_id,
+    created_at: now
+  };
+
+  const gyms = getGyms();
+  saveGyms([...gyms, newGym]);
+
+  // Assign admin role to creator (AC-1)
+  const member: GymMember = {
+    id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    gym_id: gymId,
+    user_id,
+    role: 'admin',
+    created_at: now
+  };
+
+  const members = getMembers();
+  saveMembers([...members, member]);
+
+  // Initialize with standard default grade scale for this gym (AC-2 convenience)
+  const defaultScales: Omit<GradeScale, 'id' | 'created_at'>[] = [
+    { gym_id: gymId, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
+    { gym_id: gymId, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
+    { gym_id: gymId, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Mittel', font_range_min: '6A', font_range_max: '6B+', sort_order: 3 },
+    { gym_id: gymId, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '6C', font_range_max: '7A+', sort_order: 4 },
+    { gym_id: gymId, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 5 },
+    { gym_id: gymId, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Extrem', font_range_min: '8A', font_range_max: '8B+', sort_order: 6 }
+  ];
+
+  setGymGradeScales(gymId, user_id, defaultScales);
+
+  return newGym;
+}
+
+// AC-2: Hallen-Admin kann das hallenspezifische Farbsystem anlegen und bearbeiten.
+export function setGymGradeScales(
+  gym_id: string,
+  user_id: string,
+  scales: Array<Omit<GradeScale, 'id' | 'created_at'> & { id?: string }>
+): GradeScale[] {
+  if (!isGymAdmin(gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen das Bewertungssystem konfigurieren.');
+  }
+
+  const now = new Date().toISOString();
+  const validated: GradeScale[] = scales.map((s, idx) => {
+    if (!s.color_name?.trim()) throw new Error('Jede Farbe benötigt einen color_name.');
+    if (!s.color_hex?.trim()) throw new Error('Jede Farbe benötigt einen color_hex Farbwert.');
+    if (!s.difficulty_label?.trim()) throw new Error('Jede Farbe benötigt ein difficulty_label.');
+    if (!s.font_range_min?.trim() || !s.font_range_max?.trim()) {
+      throw new Error('Jede Farbe benötigt font_range_min und font_range_max.');
+    }
+
+    return {
+      id: s.id || 'scale_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
+      gym_id,
+      color_name: s.color_name.trim(),
+      color_hex: s.color_hex.trim(),
+      difficulty_label: s.difficulty_label.trim(),
+      font_range_min: s.font_range_min.trim(),
+      font_range_max: s.font_range_max.trim(),
+      sort_order: s.sort_order !== undefined ? s.sort_order : idx + 1,
+      created_at: now
+    };
+  });
+
+  const all = getStorage<GradeScale>(GRADE_SCALES_KEY, memoryGradeScales);
+  const others = all.filter(s => s.gym_id !== gym_id);
+  saveGradeScales([...others, ...validated]);
+  return validated.sort((a, b) => a.sort_order - b.sort_order);
+}
+
+// AC-3: Sektoren erfordern `name` und ein valides `wall_photo_url`.
+export function createSector(
+  gym_id: string,
+  user_id: string,
+  input: { name: string; wall_photo_url: string; sort_order?: number }
+): Sector {
+  if (!isGymAdmin(gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Sektoren anlegen.');
+  }
+
+  if (!input.name || input.name.trim().length === 0) {
+    throw new Error('Sektorname ist ein Pflichtfeld.');
+  }
+
+  if (!input.wall_photo_url || input.wall_photo_url.trim().length === 0) {
+    throw new Error('Wandfoto (wall_photo_url) ist ein Pflichtfeld.');
+  }
+
+  const existingSectors = getSectors(gym_id);
+  const now = new Date().toISOString();
+
+  const newSector: Sector = {
+    id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    gym_id,
+    name: input.name.trim(),
+    wall_photo_url: input.wall_photo_url.trim(),
+    sort_order: input.sort_order !== undefined ? input.sort_order : existingSectors.length + 1,
+    created_at: now
+  };
+
+  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  saveSectors([...all, newSector]);
+  return newSector;
+}
+
+// AC-4: Sektoren können in ihrer Anzeigereihenfolge (sort_order) sortiert werden.
+export function reorderSectors(
+  gym_id: string,
+  user_id: string,
+  orderedSectorIds: string[]
+): Sector[] {
+  if (!isGymAdmin(gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Sektoren sortieren.');
+  }
+
+  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const gymSectors = all.filter(s => s.gym_id === gym_id);
+  const otherSectors = all.filter(s => s.gym_id !== gym_id);
+
+  const updatedGymSectors = gymSectors.map(sec => {
+    const newIndex = orderedSectorIds.indexOf(sec.id);
+    return {
+      ...sec,
+      sort_order: newIndex !== -1 ? newIndex + 1 : sec.sort_order
+    };
+  });
+
+  saveSectors([...otherSectors, ...updatedGymSectors]);
+  return updatedGymSectors.sort((a, b) => a.sort_order - b.sort_order);
+}
+
+// AC-5: Bei Aktualisierung des Sektor-Wandfotos bleiben bestehende relative
+// Boulder-Koordinaten (position_x, position_y als 0.0-1.0) unverändert erhalten.
+export function updateSectorWallPhoto(
+  sector_id: string,
+  user_id: string,
+  new_wall_photo_url: string
+): Sector {
+  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const sector = all.find(s => s.id === sector_id);
+  if (!sector) throw new Error('Sektor nicht gefunden.');
+
+  if (!isGymAdmin(sector.gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Wandfotos aktualisieren.');
+  }
+
+  if (!new_wall_photo_url || new_wall_photo_url.trim().length === 0) {
+    throw new Error('Neues Wandfoto (wall_photo_url) ist erforderlich.');
+  }
+
+  // Verify that all boulders belonging to this sector keep their exact position_x & position_y
+  const existingBoulders = getBoulders(sector_id);
+  const originalCoordinates = existingBoulders.map(b => ({
+    id: b.id,
+    x: b.position_x,
+    y: b.position_y
+  }));
+
+  sector.wall_photo_url = new_wall_photo_url.trim();
+  saveSectors(all);
+
+  // Assert coordinates remain untouched (AC-5 verification guarantee)
+  const currentBoulders = getBoulders(sector_id);
+  for (const orig of originalCoordinates) {
+    const cur = currentBoulders.find(b => b.id === orig.id);
+    if (cur && (cur.position_x !== orig.x || cur.position_y !== orig.y)) {
+      throw new Error(`Kritischer Fehler: Koordinaten von Boulder ${orig.id} wurden unerlaubt verändert!`);
+    }
+  }
+
+  return sector;
+}
+
+// AC-6: Sektoren mit aktiven Bouldern können nicht versehentlich gelöscht werden (Sicherheitsabfrage / Validierung).
+export function deleteSector(
+  sector_id: string,
+  user_id: string
+): boolean {
+  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const sector = all.find(s => s.id === sector_id);
+  if (!sector) return false;
+
+  if (!isGymAdmin(sector.gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Sektoren löschen.');
+  }
+
+  const boulders = getBoulders(sector_id);
+  const activeBoulders = boulders.filter(b => b.status === 'active');
+
+  if (activeBoulders.length > 0) {
+    throw new Error(
+      `Sektor "${sector.name}" kann nicht gelöscht werden, da er noch ${activeBoulders.length} aktive Boulder enthält. Bitte archiviere oder lösche diese zuerst.`
+    );
+  }
+
+  const remaining = all.filter(s => s.id !== sector_id);
+  saveSectors(remaining);
+  return true;
+}
+
+// AC-7: Kletterer können Hallen suchen und eine Übersicht aller Sektoren mit Wandfoto und aktiver Boulder-Anzahl einsehen.
+export function searchGymsWithSectors(query?: string): Array<Gym & { sectors: Array<Sector & { active_boulder_count: number }> }> {
+  const gyms = getGyms();
+  const sectors = getSectors();
+  const boulders = getBoulders();
+
+  const filteredGyms = query?.trim()
+    ? gyms.filter(g =>
+        g.name.toLowerCase().includes(query.toLowerCase().trim()) ||
+        (g.city && g.city.toLowerCase().includes(query.toLowerCase().trim())) ||
+        (g.address && g.address.toLowerCase().includes(query.toLowerCase().trim()))
+      )
+    : gyms;
+
+  return filteredGyms.map(gym => {
+    const gymSectors = sectors
+      .filter(s => s.gym_id === gym.id)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(sec => {
+        const activeCount = boulders.filter(b => b.sector_id === sec.id && b.status === 'active').length;
+        return {
+          ...sec,
+          active_boulder_count: activeCount
+        };
+      });
+
+    return {
+      ...gym,
+      sectors: gymSectors
+    };
+  });
+}
