@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Compass,
   Layers,
+  Wrench,
 } from 'lucide-react';
 
 interface UserProfileViewProps {
@@ -27,6 +28,7 @@ interface UserProfileViewProps {
   onProfileUpdated?: (newNickname: string, avatarUrl?: string) => void;
   onLogout?: () => void;
   onNavigateToWall?: () => void;
+  onOpenRoleGateway?: () => void;
 }
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
@@ -34,6 +36,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   onProfileUpdated,
   onLogout,
   onNavigateToWall,
+  onOpenRoleGateway,
 }) => {
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -121,14 +124,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   return (
     <div className="space-y-6 max-w-5xl mx-auto" data-testid="user-profile-view">
       {/* 1. Profile Header (AC-1) */}
-      <div className="p-6 rounded-2xl bg-[#181614] border border-[#38332e] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-6 rounded-none bg-[#1E1E1E] border border-[#333333] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          {/* Avatar */}
-          <div className="w-16 h-16 rounded-full bg-[#221f1c] border-2 border-[#d97706]/70 flex items-center justify-center overflow-hidden shadow-lg shrink-0">
+          {/* Avatar - SPEC-005: 0px square avatar */}
+          <div className="w-16 h-16 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center overflow-hidden shrink-0">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt={profile.nickname} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-2xl font-headline font-bold text-[#f59e0b]">
+              <span className="text-2xl font-mono font-bold text-[#F5F0E8]">
                 {profile.nickname.charAt(0).toUpperCase()}
               </span>
             )}
@@ -136,47 +139,61 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-headline uppercase tracking-wider text-[#f4efe6]" data-testid="profile-nickname">
+              <h1 className="text-xl sm:text-2xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]" data-testid="profile-nickname">
                 {profile.nickname}
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#221f1c] border border-[#38332e] text-[#a89f91]">
+              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
                 Mein Profil
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#a89f91] mt-1">
-              <Calendar className="w-3.5 h-3.5 text-[#d97706]" />
+            <div className="flex items-center gap-1.5 text-xs font-mono text-[#A89F91] mt-1">
+              <Calendar className="w-3.5 h-3.5 text-[#C9A96E]" />
               <span data-testid="profile-join-date">Mitglied seit {formattedJoinDate}</span>
             </div>
           </div>
         </div>
 
-        {/* Action: Settings Gear Button (AC-1, AC-7) */}
+        {/* Action: Settings Gear Button (AC-1, AC-7) & Workspace Switch */}
         <div className="flex items-center gap-2 self-end sm:self-center">
+          {onOpenRoleGateway && (
+            <button
+              type="button"
+              onClick={onOpenRoleGateway}
+              className="p-2.5 rounded-[2px] border border-[#333333] bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] transition flex items-center gap-1.5 text-xs font-mono"
+              aria-label="Arbeitsbereich wechseln"
+              data-testid="btn-profile-switch-workspace"
+              title="Arbeitsbereich wählen (Schrauber-Studio / Admin)"
+            >
+              <Wrench className="w-4 h-4 text-[#C9A96E]" />
+              <span className="hidden sm:inline">Bereich wechseln</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2.5 rounded-xl border border-[#38332e] bg-[#141210] hover:bg-[#221f1c] text-[#a89f91] hover:text-[#f4efe6] transition flex items-center gap-2 text-xs font-mono"
+            className="p-2.5 rounded-[2px] border border-[#333333] bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] transition flex items-center gap-2 text-xs font-mono"
             aria-label="Einstellungen"
             data-testid="btn-open-settings"
           >
-            <Settings className="w-4 h-4 text-[#d97706]" />
+            <Settings className="w-4 h-4 text-[#C9A96E]" />
             <span className="hidden sm:inline">Einstellungen</span>
           </button>
         </div>
       </div>
 
       {/* 2. Hallenfilter (AC-4) */}
-      <div className="p-3.5 rounded-xl bg-[#141210] border border-[#2a2622] flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-xs font-mono text-[#a89f91]">
-          <MapPin className="w-4 h-4 text-[#d97706]" />
-          <span className="font-bold text-[#d4cdc3]">Hallenfilter:</span>
-          <span className="hidden sm:inline text-[#78716c]">(Wirkt auf KPIs, Diagramm & Logbuch)</span>
+      <div className="p-3.5 rounded-none bg-[#1E1E1E] border border-[#333333] flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 text-xs font-mono text-[#A89F91]">
+          <MapPin className="w-4 h-4 text-[#C9A96E]" />
+          <span className="font-bold text-[#E8E0D4]">Hallenfilter:</span>
+          <span className="hidden sm:inline text-[#6B6358]">(Wirkt auf KPIs, Diagramm & Logbuch)</span>
         </div>
 
         <select
           value={selectedGymId}
           onChange={e => setSelectedGymId(e.target.value)}
-          className="px-3.5 py-1.5 rounded-xl bg-[#181614] border border-[#38332e] text-xs font-mono font-bold text-[#f4efe6] focus:outline-none focus:border-[#d97706] cursor-pointer shadow-sm"
+          className="px-3.5 py-1.5 rounded-none bg-[#121212] border border-[#333333] text-xs font-mono font-bold text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] cursor-pointer"
           data-testid="select-gym-filter"
         >
           <option value="all">Alle Hallen (Gesamtüberblick)</option>
@@ -198,28 +215,28 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       />
 
       {/* 5. Chronologisches Privates Logbuch (AC-5) */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-[#181614] border border-[#38332e] shadow-sm space-y-4" data-testid="private-logbook-section">
+      <div className="p-5 sm:p-6 rounded-none bg-[#1E1E1E] border border-[#333333] space-y-4" data-testid="private-logbook-section">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-headline uppercase tracking-wider text-[#f4efe6] flex items-center gap-2">
-              <Compass className="w-4 h-4 text-[#d97706]" />
+            <h3 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+              <Compass className="w-4 h-4 text-[#C9A96E]" />
               <span>Persönliches Logbuch ({logbook.length})</span>
             </h3>
-            <p className="text-[11px] font-mono text-[#a89f91]">
+            <p className="text-[11px] font-mono text-[#A89F91]">
               Chronologische Liste deiner Begehungen (nur für dich sichtbar)
             </p>
           </div>
-          <span className="text-xs font-mono text-[#78716c]">
+          <span className="text-xs font-mono text-[#6B6358]">
             Neueste zuerst
           </span>
         </div>
 
         {logbook.length === 0 ? (
-          <div className="py-8 px-4 text-center rounded-xl bg-[#121110] border border-[#2a2622] text-xs font-mono text-[#78716c]" data-testid="empty-logbook">
+          <div className="py-8 px-4 text-center rounded-none bg-[#121212] border border-[#333333] text-xs font-mono text-[#6B6358]" data-testid="empty-logbook">
             Noch keine Begehungen für diesen Filter vorhanden.
           </div>
         ) : (
-          <div className="divide-y divide-[#2a2622] rounded-xl bg-[#121110] border border-[#2a2622] overflow-hidden">
+          <div className="divide-y divide-[#333333] rounded-none bg-[#121212] border border-[#333333] overflow-hidden">
             {logbook.map(entry => {
               const isFlash = entry.type === 'flash';
               const isTop = entry.type === 'top';
@@ -229,35 +246,35 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 <div
                   key={entry.id}
                   onClick={() => handleOpenLogbookBoulder(entry)}
-                  className="p-3.5 sm:px-4 flex items-center justify-between hover:bg-[#181614] transition cursor-pointer group"
+                  className="p-3.5 sm:px-4 flex items-center justify-between hover:bg-[#1E1E1E] transition cursor-pointer group"
                   data-testid={`logbook-entry-${entry.id}`}
                   title="Tippen für Boulder-Detailansicht"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Grade Scale Color Badge */}
+                    {/* Grade Scale Color Badge - SPEC-005: 0px square badge */}
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center border border-black/40 shadow shrink-0"
+                      className="w-8 h-8 rounded-none flex items-center justify-center border border-black/40 shrink-0"
                       style={{ backgroundColor: entry.gradeScale.colorHex }}
                     >
-                      <span className="text-xs font-headline font-bold text-black drop-shadow-sm">
+                      <span className="text-xs font-mono font-bold text-black">
                         {entry.gradeScale.colorName?.[0] || 'B'}
                       </span>
                     </div>
 
                     <div className="truncate">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-[#f4efe6] group-hover:text-[#f59e0b] transition truncate">
+                        <span className="text-xs font-mono font-bold text-[#E8E0D4] group-hover:text-[#F5F0E8] transition truncate">
                           {entry.boulderName || `${entry.gradeScale.colorName} #${entry.boulderId.slice(-4)}`}
                         </span>
-                        <span className="text-[10px] font-mono text-[#78716c] hidden sm:inline">
+                        <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">
                           ({entry.gradeScale.difficultyLabel})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#a89f91] mt-0.5 truncate">
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#A89F91] mt-0.5 truncate">
                         <span>{entry.gymName}</span>
                         <span>•</span>
                         <span className="flex items-center gap-0.5">
-                          <Layers className="w-3 h-3 text-[#d97706]" />
+                          <Layers className="w-3 h-3 text-[#C9A96E]" />
                           {entry.sectorName}
                         </span>
                       </div>
@@ -268,20 +285,20 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                     {/* Ascent Style Badge */}
                     <div>
                       {isFlash && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#221f1c] text-[#f59e0b] border border-[#d97706]/40 flex items-center gap-1">
-                          <Zap className="w-3 h-3 fill-[#f59e0b] text-[#f59e0b]" />
+                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
+                          <Zap className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
                           <span className="hidden xs:inline">Flash</span>
                         </span>
                       )}
                       {isTop && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#221f1c] text-emerald-400 border border-emerald-600/40 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#4A5D3A] border border-[#4A5D3A]/50 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-[#4A5D3A]" />
                           <span className="hidden xs:inline">Top</span>
                         </span>
                       )}
                       {isProject && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-[#221f1c] text-sky-400 border border-sky-600/40 flex items-center gap-1">
-                          <Target className="w-3 h-3 text-sky-400" />
+                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#A89F91] border border-[#333333] flex items-center gap-1">
+                          <Target className="w-3 h-3 text-[#A89F91]" />
                           <span className="hidden xs:inline">Projekt</span>
                         </span>
                       )}
@@ -289,12 +306,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
                     {/* Formatted Date */}
                     <div className="text-right">
-                      <span className="text-[11px] font-mono text-[#a89f91]">
+                      <span className="text-[11px] font-mono text-[#A89F91]">
                         {formatLogbookDate(entry.createdAt)}
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-[#78716c] group-hover:text-[#f4efe6] transition" />
+                    <ChevronRight className="w-4 h-4 text-[#6B6358] group-hover:text-[#E8E0D4] transition" />
                   </div>
                 </div>
               );

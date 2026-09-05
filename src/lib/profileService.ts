@@ -6,9 +6,8 @@ import {
   ProfileData,
   GymGradeScale,
   WallBoulder,
-  Ascent,
 } from '../types/boulder';
-import { getAscents, STORAGE_KEY_ASCENTS, STORAGE_KEY_RATINGS } from './ratingAndAscentService';
+import { getAscents, deleteUserAscentsAndRatings } from './ratingAndAscentService';
 import { getWallBoulders, getSectors, getGradeScales, getGyms } from './batchBoulderService';
 
 export const STORAGE_KEY_PROFILES = 'boulderapp_profiles_v1';
@@ -142,31 +141,8 @@ export function deleteAccount(userId: string): void {
   const profiles = getProfiles().filter(p => p.id !== userId);
   setStorageItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
 
-  // 2. Remove user ascents
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const rawAscents = window.localStorage.getItem(STORAGE_KEY_ASCENTS);
-    if (rawAscents) {
-      try {
-        const ascents: Ascent[] = JSON.parse(rawAscents);
-        const filtered = ascents.filter(a => a.userId !== userId);
-        window.localStorage.setItem(STORAGE_KEY_ASCENTS, JSON.stringify(filtered));
-      } catch (e) {
-        console.error('Error deleting user ascents', e);
-      }
-    }
-
-    // 3. Remove user ratings
-    const rawRatings = window.localStorage.getItem(STORAGE_KEY_RATINGS);
-    if (rawRatings) {
-      try {
-        const ratings = JSON.parse(rawRatings);
-        const filtered = ratings.filter((r: { userId: string }) => r.userId !== userId);
-        window.localStorage.setItem(STORAGE_KEY_RATINGS, JSON.stringify(filtered));
-      } catch (e) {
-        console.error('Error deleting user ratings', e);
-      }
-    }
-  }
+  // 2. Remove user ascents and ratings
+  deleteUserAscentsAndRatings(userId);
 }
 
 /**

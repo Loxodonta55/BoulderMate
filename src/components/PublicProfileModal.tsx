@@ -30,17 +30,17 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200" data-testid="public-profile-modal">
-      <div className="w-full max-w-2xl bg-[#181614] border border-[#38332e] rounded-2xl shadow-2xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200" data-testid="public-profile-modal">
+      <div className="w-full max-w-2xl bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden my-4 flex flex-col max-h-[92vh]">
         {/* Header Bar */}
-        <div className="p-5 sm:p-6 border-b border-[#38332e] bg-[#141210] flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-[#333333] bg-[#1E1E1E] flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="w-14 h-14 rounded-full bg-[#221f1c] border-2 border-[#d97706]/60 flex items-center justify-center overflow-hidden shadow-lg shrink-0">
+            {/* Avatar - SPEC-005: 0px square avatar */}
+            <div className="w-14 h-14 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center overflow-hidden shrink-0">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={profile.nickname} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-xl font-headline font-bold text-[#f59e0b]">
+                <span className="text-xl font-mono font-bold text-[#F5F0E8]">
                   {profile.nickname.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -48,15 +48,15 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-headline uppercase tracking-wider text-[#f4efe6]">
+                <h2 className="text-lg sm:text-xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
                   {profile.nickname}
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#221f1c] border border-[#38332e] text-[#a89f91]">
+                <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
                   Kletterer
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-xs font-mono text-[#a89f91] mt-0.5">
-                <Calendar className="w-3.5 h-3.5 text-[#d97706]" />
+              <div className="flex items-center gap-1 text-xs font-mono text-[#A89F91] mt-0.5">
+                <Calendar className="w-3.5 h-3.5 text-[#C9A96E]" />
                 <span>Mitglied seit {formattedDate}</span>
               </div>
             </div>
@@ -66,7 +66,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-[#78716c] hover:text-[#f4efe6] hover:bg-[#221f1c] transition"
+            className="p-2 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
             aria-label="Schließen"
             data-testid="btn-close-public-profile"
           >
@@ -78,14 +78,14 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
           {/* Hallenfilter (AC-4) */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#a89f91]">
-              <MapPin className="w-3.5 h-3.5 text-[#d97706]" />
-              <span>Hallen-Filter:</span>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-[#A89F91]">
+              <MapPin className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span className="font-bold text-[#E8E0D4]">Hallen-Filter:</span>
             </div>
             <select
               value={selectedGymId}
               onChange={e => setSelectedGymId(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-[#121110] border border-[#38332e] text-xs font-mono text-[#f4efe6] focus:outline-none focus:border-[#d97706] cursor-pointer"
+              className="px-3 py-1.5 rounded-none bg-[#121212] border border-[#333333] text-xs font-mono text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] cursor-pointer"
               data-testid="select-gym-filter-public"
             >
               <option value="all">Alle Hallen (Gesamt)</option>
@@ -104,7 +104,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
           <GradeDistributionChart distribution={gradeDistribution} />
 
           {/* Notice: Logbook is strictly private and hidden here (AC-6) */}
-          <div className="p-3 rounded-xl bg-[#121110] border border-[#2a2622] text-center text-xs font-mono text-[#78716c]">
+          <div className="p-3 rounded-none bg-[#121212] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
             🔒 Das persönliche Logbuch dieses Kletterers ist privat.
           </div>
         </div>

@@ -88,11 +88,28 @@ Für jede Achse $A \in \{\text{Kraft}, \text{Technik}, \text{Balance}, \text{Koo
 $$\text{Wert}_A = \frac{W_{\text{setter}} \cdot \text{Initial}_A + \sum_{i=1}^N \text{User}_{i, A}}{W_{\text{setter}} + N}$$
 wobei $W_{\text{setter}} = 5$ als Basisgewicht der Schrauber-Wertung dient und $N$ die Anzahl der Community-Ratings ist.
 
-### UI / UX
-- **Header**: Großes Farb-Icon des Boulders, Name/Farbe, Hallen-Schwierigkeit, Font-Spanne, Sterne-Badge, Soft/Fair/Stiff Indikator.
-- **Radar-Chart**: Modernes Pentagon-Diagramm mit farbiger Fläche, Achsenbeschriftung 1–5.
-- **Action Bar**: Zwei Hauptbuttons: "Loggen" (Popup für Flash/Top/Projekt) und "Bewerten".
-- **Ascent-Feed**: Horizontale Avatar-Reihe oder kompakte Liste "Getoppt von ...".
+### UI / UX (Design System SPEC-005 Konform)
+- **Detail-Modal / View**:
+  - Solider Felsblock-Charakter (`0px` Radius, 1px Border `#333333`, Hintergrund `#1E1E1E`).
+  - Großzügiger Schwarzraum, keine überladenen Schachtelungen.
+- **Header**:
+  - Farb-Badge des Boulders als Quadrat (`0px` Radius) mit Space Mono Grade-Label.
+  - Name in Space Grotesk Bold Uppercase.
+  - Sterne in Sandstein-Gold (`#C9A96E`).
+  - Soft / Fair / Stiff Barometer in den erdigen SPEC-005 Tönen:
+    - Soft: Moos-Grün (`#4A5D3A`)
+    - Fair: Sandstein-Gold (`#C9A96E`)
+    - Stiff: Lehm-Rot (`#A0522D`)
+- **Radar-Chart**:
+  - Pentagon-Netz mit 1px Granit-Linien (`#333333`), Fläche in semitransparentem Kreide-Sandstein.
+  - Achsenbeschriftung in Space Mono.
+- **Action Bar**:
+  - Kantige Buttons (2px Radius), kein Farbverlauf.
+  - Primärbutton "Loggen" in Kreide-Weiß (`#F5F0E8`) mit schwarzer Schrift.
+  - Sekundärbutton "Bewerten" mit 1px Granit-Border (`#8B8680`).
+- **Ascent-Feed**:
+  - Quadratische Avatare (`0px` Radius, bewusst gegen den Kreis-Standard).
+  - Listeneinträge mit 1px subtiler Trennlinie `#333333`.
 
 ## Dependencies
 - Depends on: SPEC-001 (Gym & Sector), SPEC-002 (Boulders)

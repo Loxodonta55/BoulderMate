@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Boulder, BoulderInput, BoulderFilterOptions, GymMemberRole } from './types/boulder';
+import { Boulder, BoulderInput, BoulderFilterOptions, GymMemberRole, Gym } from './types/boulder';
 import {
   getStoredBoulders,
   createBoulder,
@@ -16,10 +16,14 @@ import { DataManagementModal } from './components/DataManagementModal';
 import { BatchBoulderWorkflow } from './components/BatchBoulderWorkflow';
 import { GymManagement } from './components/GymManagement';
 import { ensureInitialGymData } from './lib/gymStorage';
+import { getGyms } from './lib/batchBoulderService';
 import { ClimberSectorView } from './components/ClimberSectorView';
 import { UserProfileView } from './components/UserProfileView';
 import { getProfile } from './lib/profileService';
-import { Mountain, Plus, Database, Wrench, Compass, Layers, ArrowLeft, User } from 'lucide-react';
+import { AppMode, getUserRoleInfo } from './lib/roleService';
+import { RoleGatewayModal } from './components/RoleGatewayModal';
+import { LoginModal } from './components/LoginModal';
+import { Mountain, Plus, Database, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris' },
@@ -85,9 +89,13 @@ const SEED_DATA: BoulderInput[] = [
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'wall' | 'logbook' | 'profile'>('wall');
-  const [isSetterAreaOpen, setIsSetterAreaOpen] = useState(false);
-  const [setterTab, setSetterTab] = useState<'batch_setter' | 'gym_management'>('batch_setter');
-  const [userRole, setUserRole] = useState<GymMemberRole>('setter');
+  const [appMode, setAppMode] = useState<AppMode>('climber');
+  const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [hasChosenModeForUser, setHasChosenModeForUser] = useState<Record<string, boolean>>({});
+
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [activeGymId, setActiveGymId] = useState<string>('gym-6a-plus');
   const [boulders, setBoulders] = useState<Boulder[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBoulder, setEditingBoulder] = useState<Boulder | null>(null);
@@ -106,15 +114,61 @@ export const App: React.FC = () => {
   const currentClimber = AVAILABLE_CLIMBERS.find(c => c.id === climberId) || AVAILABLE_CLIMBERS[0];
   const activeNickname = climberNicknames[climberId] || getProfile(climberId).nickname || currentClimber.nickname;
 
+  // SPEC-000: Hallenbezogene Rollenermittlung (Gym Scoping)
+  const roleInfo = useMemo(() => getUserRoleInfo(climberId, activeGymId), [climberId, activeGymId]);
+
   const currentUser = useMemo(() => ({
     id: currentClimber.id,
     nickname: activeNickname,
-    role: userRole
-  }), [currentClimber.id, activeNickname, userRole]);
+    role: (roleInfo.isAdmin ? 'admin' : (roleInfo.isSetter ? 'setter' : 'member')) as GymMemberRole,
+    isPlatformAdmin: roleInfo.isPlatformAdmin
+  }), [currentClimber.id, activeNickname, roleInfo]);
+
+  // Step 1: Detect user privileges on login, user switch, or gym switch
+  useEffect(() => {
+    if (appMode === 'setter' && !roleInfo.canAccessSetterStudio) {
+      setAppMode('climber');
+    }
+    if (appMode === 'admin' && !roleInfo.canAccessAdminConsole) {
+      setAppMode('climber');
+    }
+
+    if (!roleInfo.canAccessSetterStudio && !roleInfo.canAccessAdminConsole) {
+      // Pure climber -> always climber panel
+      setAppMode('climber');
+      setIsRoleGatewayOpen(false);
+    } else {
+      // Privileged user -> open gateway modal if not yet chosen for this user
+      if (!hasChosenModeForUser[climberId]) {
+        setIsRoleGatewayOpen(true);
+      }
+    }
+  }, [climberId, activeGymId, roleInfo.canAccessSetterStudio, roleInfo.canAccessAdminConsole, appMode]);
+
+  const handleSelectMode = (mode: AppMode) => {
+    setAppMode(mode);
+    setHasChosenModeForUser(prev => ({ ...prev, [climberId]: true }));
+    setIsRoleGatewayOpen(false);
+  };
+
+  const refreshGyms = () => {
+    const all = getGyms();
+    setGyms(all);
+    return all;
+  };
 
   // Load boulders & initial gym data on mount
   useEffect(() => {
     ensureInitialGymData();
+    const loadedGyms = refreshGyms();
+    if (loadedGyms.length > 0) {
+      const sixAPlus = loadedGyms.find(g => g.id === 'gym-6a-plus' || g.name.toLowerCase().includes('6a'));
+      if (sixAPlus && (!activeGymId || !loadedGyms.some(g => g.id === activeGymId))) {
+        setActiveGymId(sixAPlus.id);
+      } else if (!loadedGyms.some(g => g.id === activeGymId)) {
+        setActiveGymId(loadedGyms[0].id);
+      }
+    }
     const loaded = getStoredBoulders();
     if (loaded.length === 0) {
       for (const item of SEED_DATA) {
@@ -128,6 +182,7 @@ export const App: React.FC = () => {
 
   const refreshData = () => {
     setBoulders(getStoredBoulders());
+    refreshGyms();
   };
 
   const handleSaveBoulder = (data: BoulderInput) => {
@@ -168,210 +223,358 @@ export const App: React.FC = () => {
   }, [boulders]);
 
   return (
-    <div className="min-h-screen bg-[#121110] text-[#f4efe6] flex flex-col font-sans rock-grain">
-      {/* Sleek, Clean Navigation Header */}
-      <header className="border-b border-[#2a2622] bg-[#161412]/95 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d97706] to-[#92400e] flex items-center justify-center text-[#121110] shadow-sm">
-              <Mountain className="w-4 h-4 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-headline uppercase tracking-wider text-[#f4efe6]">BoulderApp</span>
-                <span className="text-[10px] font-mono text-[#78716c] hidden sm:inline">• Minimum Zürich</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Focused Navigation (Kletterer-Fokus) */}
-          <nav className="flex items-center p-1 rounded-xl bg-[#121110] border border-[#2a2622]">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('wall');
-                setIsSetterAreaOpen(false);
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
-                !isSetterAreaOpen && activeTab === 'wall'
-                  ? 'bg-[#2a2520] text-[#f59e0b] border border-[#d97706]/40 shadow-sm font-bold'
-                  : 'text-[#a89f91] hover:text-[#f4efe6]'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Wand & Sektoren</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('logbook');
-                setIsSetterAreaOpen(false);
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
-                !isSetterAreaOpen && activeTab === 'logbook'
-                  ? 'bg-[#2a2520] text-[#f59e0b] border border-[#d97706]/40 shadow-sm font-bold'
-                  : 'text-[#a89f91] hover:text-[#f4efe6]'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Kletterer-Logbuch</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('profile');
-                setIsSetterAreaOpen(false);
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
-                !isSetterAreaOpen && activeTab === 'profile'
-                  ? 'bg-[#2a2520] text-[#f59e0b] border border-[#d97706]/40 shadow-sm font-bold'
-                  : 'text-[#a89f91] hover:text-[#f4efe6]'
-              }`}
-              data-testid="tab-profile"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Mein Profil</span>
-            </button>
-          </nav>
-
-          {/* Header Actions & Discreet Setter Area Toggle */}
-          <div className="flex items-center gap-2">
-            {!isSetterAreaOpen && (
-              <>
-                {/* Active Climber Switcher */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#121110] border border-[#2a2622] text-xs">
-                  <User className="w-3.5 h-3.5 text-[#d97706]" />
-                  <span className="text-[#78716c] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
-                  <select
-                    value={climberId}
-                    onChange={e => setClimberId(e.target.value)}
-                    className="bg-transparent text-[#f4efe6] font-mono font-bold focus:outline-none cursor-pointer text-xs"
-                    title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
-                  >
-                    {AVAILABLE_CLIMBERS.map(c => (
-                      <option key={c.id} value={c.id} className="bg-[#181614] text-[#f4efe6]">
-                        {c.nickname}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setEditingBoulder(null);
-                    setIsFormOpen(true);
-                  }}
-                  className="px-3 py-1.5 text-xs font-headline uppercase font-bold tracking-wider bg-[#d97706] hover:bg-[#b45309] text-[#121110] rounded-lg transition shadow flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Loggen</span>
-                </button>
-              </>
-            )}
-
-            {/* Unprominent Setter/Admin Switch */}
-            <button
-              type="button"
-              onClick={() => setIsSetterAreaOpen(!isSetterAreaOpen)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition flex items-center gap-1.5 border ${
-                isSetterAreaOpen
-                  ? 'bg-[#2a2520] text-[#f59e0b] border-[#d97706]/50 font-bold'
-                  : 'bg-[#121110] text-[#78716c] hover:text-[#d4cdc3] border-[#2a2622]'
-              }`}
-              title="Schrauber- und Hallen-Adminbereich einblenden"
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-[11px]">Schrauber</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Discreet Secondary Setter/Admin Bar (Only visible when toggled) */}
-      {isSetterAreaOpen && (
-        <div className="bg-[#181614] border-b border-[#2a2622] py-2 px-4 shadow-md animate-in slide-in-from-top-1 duration-150">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold text-[#d97706] uppercase tracking-widest flex items-center gap-1">
-                <Wrench className="w-3 h-3" /> Schrauber-Modus:
-              </span>
-              <div className="flex items-center p-0.5 rounded-lg bg-[#121110] border border-[#2a2622]">
-                <button
-                  type="button"
-                  onClick={() => setSetterTab('batch_setter')}
-                  className={`px-3 py-1 rounded text-xs font-headline uppercase tracking-wider transition ${
-                    setterTab === 'batch_setter'
-                      ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                      : 'text-[#a89f91] hover:text-[#f4efe6]'
-                  }`}
-                >
-                  Schrauber-Batch
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSetterTab('gym_management')}
-                  className={`px-3 py-1 rounded text-xs font-headline uppercase tracking-wider transition ${
-                    setterTab === 'gym_management'
-                      ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                      : 'text-[#a89f91] hover:text-[#f4efe6]'
-                  }`}
-                >
-                  Hallen & Sektoren (SPEC-001)
-                </button>
-              </div>
-            </div>
-
+    <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
+      {/* Mode-Specific Headers */}
+      {appMode === 'setter' ? (
+        /* Dedicated Schrauber-Studio Header */
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            {/* Studio Brand & Gym Switcher */}
             <div className="flex items-center gap-3">
-              {/* Role Simulator Pill */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#121110] border border-[#2a2622] text-xs">
-                <span className="text-[#78716c] text-[10px] uppercase font-mono">Rolle:</span>
-                <select
-                  value={userRole}
-                  onChange={e => setUserRole(e.target.value as GymMemberRole)}
-                  className="bg-transparent text-[#f4efe6] font-mono font-bold focus:outline-none cursor-pointer text-xs"
-                  title="Rolle für AC-1 Berechtigungstest wechseln"
-                >
-                  <option value="setter" className="bg-[#181614] text-[#f4efe6]">Schrauber (Setter)</option>
-                  <option value="admin" className="bg-[#181614] text-[#f4efe6]">Hallen-Admin</option>
-                  <option value="member" className="bg-[#181614] text-[#f4efe6]">Kletterer (Member)</option>
-                </select>
+              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
+                <Wrench className="w-4 h-4 stroke-[2]" />
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">
+                  Schrauber-Studio
+                </span>
+                {gyms.length > 0 && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
+                    <select
+                      value={activeGymId}
+                      onChange={(e) => setActiveGymId(e.target.value)}
+                      className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
+                      title="Aktive Boulderhalle wechseln"
+                      data-testid="studio-gym-select"
+                    >
+                      {gyms.map(g => (
+                        <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Studio Header Actions */}
+            <div className="flex items-center gap-2.5">
+              <span className="text-[11px] font-mono text-[#A89F91] hidden sm:inline">
+                Schrauber: <strong className="text-[#E8E0D4]">{currentUser.nickname}</strong>
+              </span>
 
               <button
                 type="button"
-                onClick={() => setIsSetterAreaOpen(false)}
-                className="text-[#a89f91] hover:text-[#f4efe6] font-mono text-[11px] flex items-center gap-1 transition"
+                onClick={() => setIsRoleGatewayOpen(true)}
+                className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition"
+                data-testid="studio-switch-workspace-btn"
+                title="Arbeitsbereich wechseln"
               >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Kletterer-Ansicht</span>
+                Bereich wechseln
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('climber')}
+                className="px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1.5"
+                data-testid="studio-back-to-climber-btn"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Kletterer-App</span>
               </button>
             </div>
           </div>
-        </div>
+        </header>
+      ) : appMode === 'admin' ? (
+        /* Dedicated Hallen-Admin Header */
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            {/* Admin Brand & Gym Switcher */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
+                <Building2 className="w-4 h-4 stroke-[2]" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">
+                  Hallen-Administration
+                </span>
+                {gyms.length > 0 && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
+                    <select
+                      value={activeGymId}
+                      onChange={(e) => setActiveGymId(e.target.value)}
+                      className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
+                      title="Aktive Boulderhalle wechseln"
+                      data-testid="admin-gym-select"
+                    >
+                      {gyms.map(g => (
+                        <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Admin Header Actions */}
+            <div className="flex items-center gap-2.5">
+              <span className="text-[11px] font-mono text-[#A89F91] hidden sm:inline">
+                Admin: <strong className="text-[#E8E0D4]">{currentUser.nickname}</strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('setter')}
+                className="px-2.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider font-bold bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] transition flex items-center gap-1"
+                data-testid="admin-to-setter-btn"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>Routen schrauben</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsRoleGatewayOpen(true)}
+                className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition"
+                data-testid="admin-switch-workspace-btn"
+                title="Arbeitsbereich wechseln"
+              >
+                Bereich wechseln
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('climber')}
+                className="px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1.5"
+                data-testid="admin-back-to-climber-btn"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Kletterer-App</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      ) : (
+        /* Sleek, Clean Climber Navigation Header (SPEC-005) */
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            {/* Brand & Gym Switcher */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
+                <Mountain className="w-4 h-4 stroke-[2]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">BoulderMate</span>
+                  {gyms.length > 0 && (
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
+                      <select
+                        value={activeGymId}
+                        onChange={(e) => setActiveGymId(e.target.value)}
+                        className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
+                        title="Aktive Boulderhalle wechseln"
+                        data-testid="header-gym-select"
+                      >
+                        {gyms.map(g => (
+                          <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                            {g.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Primary Focused Navigation (Kletterer-Fokus: 2 Haupt-Tabs Halle & Profil + Logbuch) */}
+            <nav className="flex items-center p-0.5 rounded-none bg-[#121212] border border-[#333333]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('wall')}
+                className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
+                  activeTab === 'wall'
+                    ? 'bg-[#2A2A2A] text-[#F5F0E8] border-b-2 border-[#F5F0E8] font-bold'
+                    : 'text-[#A89F91] hover:text-[#E8E0D4]'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Wand & Sektoren</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
+                  activeTab === 'profile'
+                    ? 'bg-[#2A2A2A] text-[#F5F0E8] border-b-2 border-[#F5F0E8] font-bold'
+                    : 'text-[#A89F91] hover:text-[#E8E0D4]'
+                }`}
+                data-testid="tab-profile"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Mein Profil</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('logbook')}
+                className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
+                  activeTab === 'logbook'
+                    ? 'bg-[#2A2A2A] text-[#F5F0E8] border-b-2 border-[#F5F0E8] font-bold'
+                    : 'text-[#6B6358] hover:text-[#A89F91]'
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Kletterer-Logbuch</span>
+              </button>
+            </nav>
+
+            {/* Header Actions */}
+            <div className="flex items-center gap-2">
+              {/* Active Climber Switcher */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
+                <User className="w-3.5 h-3.5 text-[#C9A96E]" />
+                <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
+                <select
+                  value={climberId}
+                  onChange={e => setClimberId(e.target.value)}
+                  className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
+                  title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
+                >
+                  {AVAILABLE_CLIMBERS.map(c => (
+                    <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                      {c.nickname}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Login / Profile Modal Trigger (SPEC-000) */}
+              <button
+                type="button"
+                onClick={() => setIsLoginModalOpen(true)}
+                className="px-2.5 py-1.5 rounded-[2px] bg-[#1E1E1E] hover:bg-[#2A2A2A] border border-[#333333] hover:border-[#F5F0E8] text-[#A89F91] hover:text-[#E8E0D4] text-xs font-mono flex items-center gap-1.5 transition"
+                title="Anmelden oder Konto verwalten (SPEC-000)"
+                data-testid="login-modal-btn"
+              >
+                <LogIn className="w-3.5 h-3.5 text-[#C9A96E]" />
+                <span className="hidden sm:inline">Login</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setEditingBoulder(null);
+                  setIsFormOpen(true);
+                }}
+                className="px-3 py-1.5 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Loggen</span>
+              </button>
+
+              {/* Discreet Privileged Workspace Switcher (Only visible for setters and admins!) */}
+              {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
+                <button
+                  type="button"
+                  onClick={() => setIsRoleGatewayOpen(true)}
+                  className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono transition flex items-center gap-1.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]"
+                  title="Arbeitsbereich wählen (Kletterer, Schrauber, Admin)"
+                  data-testid="climber-switch-workspace-btn"
+                >
+                  <Wrench className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <span className="hidden sm:inline">Bereich wechseln</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
       )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
-        {isSetterAreaOpen ? (
-          /* Schrauber- / Admin-Bereich */
-          setterTab === 'gym_management' ? (
-            <GymManagement />
-          ) : (
-            <BatchBoulderWorkflow currentRole={userRole} />
-          )
+        {appMode === 'setter' ? (
+          /* 1. Schrauber-Studio */
+          <BatchBoulderWorkflow
+            currentUserId={currentUser.id}
+            currentRole={roleInfo.isAdmin ? 'admin' : (roleInfo.isSetter ? 'setter' : 'member')}
+            activeGymId={activeGymId}
+            onSelectGym={(id) => {
+              setActiveGymId(id);
+              refreshGyms();
+            }}
+            onNavigateToGymManagement={() => {
+              setAppMode('admin');
+            }}
+          />
+        ) : appMode === 'admin' ? (
+          /* 2. Hallen-Administration */
+          <GymManagement
+            activeGymId={activeGymId}
+            onSelectGym={(id) => {
+              setActiveGymId(id);
+              refreshGyms();
+            }}
+            onNavigateToBatchSetter={(id) => {
+              if (id) setActiveGymId(id);
+              refreshGyms();
+              setAppMode('setter');
+            }}
+            onNavigateToClimberView={(id) => {
+              if (id) setActiveGymId(id);
+              refreshGyms();
+              setAppMode('climber');
+              setActiveTab('wall');
+            }}
+          />
         ) : activeTab === 'wall' ? (
-          /* Feature 1: Wand & Sektoren (Kletterer-Wandansicht) */
-          <ClimberSectorView currentUser={currentUser} />
+          /* 3. Kletterer-App: Wand & Sektoren */
+          <ClimberSectorView
+            currentUser={currentUser}
+            activeGymId={activeGymId}
+            onSelectGym={(id) => {
+              setActiveGymId(id);
+              refreshGyms();
+            }}
+            onNavigateToSetter={
+              roleInfo.canAccessSetterStudio
+                ? () => setAppMode('setter')
+                : undefined
+            }
+          />
+        ) : activeTab === 'profile' ? (
+          /* 3. Kletterer-App: Mein Profil & Statistiken */
+          <UserProfileView
+            currentUser={currentUser}
+            onProfileUpdated={(newNickname) => {
+              setClimberNicknames(prev => ({
+                ...prev,
+                [climberId]: newNickname
+              }));
+            }}
+            onLogout={() => {
+              setClimberId('user-boris');
+            }}
+            onNavigateToWall={() => setActiveTab('wall')}
+            onOpenRoleGateway={
+              (roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole)
+                ? () => setIsRoleGatewayOpen(true)
+                : undefined
+            }
+          />
         ) : (
           /* Feature 2: Persönliches Kletterer-Logbuch & Dashboard */
           <div className="space-y-6">
             <BoulderStatsBar stats={stats} />
 
             {isFormOpen && (
-              <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
                 <div className="w-full max-w-2xl my-8">
                   <BoulderForm
                     initialData={editingBoulder}
@@ -393,19 +596,19 @@ export const App: React.FC = () => {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-base font-headline uppercase tracking-wider text-[#f4efe6] flex items-center gap-2">
+                <h2 className="text-base font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
                   <span>Erfasste Routen</span>
-                  <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-[#221f1c] border border-[#38332e] text-[#a89f91]">
+                  <span className="px-2.5 py-0.5 rounded-none text-xs font-mono font-semibold bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
                     {filteredBoulders.length} von {boulders.length}
                   </span>
                 </h2>
 
                 <button
                   onClick={() => setIsDataModalOpen(true)}
-                  className="px-2.5 py-1 text-xs font-mono text-[#a89f91] hover:text-[#f4efe6] bg-[#1a1715] hover:bg-[#24201c] border border-[#2a2622] rounded-lg transition flex items-center gap-1.5"
+                  className="px-2.5 py-1 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1.5"
                   title="Datenverwaltung / Backup"
                 >
-                  <Database className="w-3.5 h-3.5 text-[#d97706]" />
+                  <Database className="w-3.5 h-3.5 text-[#C9A96E]" />
                   <span>Backup</span>
                 </button>
               </div>
@@ -429,13 +632,32 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Clean, quiet Footer */}
-      <footer className="border-t border-[#2a2622] bg-[#141210] py-5 text-center text-xs text-[#78716c] font-mono">
+      {/* Clean, quiet Footer (SPEC-005) */}
+      <footer className="border-t border-[#333333] bg-[#121212] py-5 text-center text-xs text-[#6B6358] font-mono">
         <div className="flex items-center justify-center gap-1.5">
-          <Mountain className="w-3.5 h-3.5 text-[#d97706]" />
-          <span>BOULDERAPP // SPEC-003: DETAILANSICHT, BEWERTUNGEN & LOGGING AKTIV</span>
+          <Mountain className="w-3.5 h-3.5 text-[#C9A96E]" />
+          <span>BOULDERMATE // SPEC-005 DESIGN SYSTEM AKTIV</span>
         </div>
       </footer>
+
+      {/* Role Gateway Modal (Step 1 after login / switch) */}
+      <RoleGatewayModal
+        isOpen={isRoleGatewayOpen}
+        nickname={currentUser.nickname}
+        roleInfo={roleInfo}
+        currentMode={appMode}
+        onSelectMode={handleSelectMode}
+        onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
+      />
+
+      {/* Login Modal (SPEC-000) */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onUserChanged={(user) => {
+          setClimberId(user.id);
+        }}
+      />
     </div>
   );
 };

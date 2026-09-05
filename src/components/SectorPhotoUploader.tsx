@@ -104,26 +104,26 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
       {/* Header & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <label className="text-xs font-headline uppercase tracking-wider text-[#d4cdc3] flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5 text-[#d97706]" />
+          <label className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5 text-[#C9A96E]" />
             <span>{label}</span>
-            {required && <span className="text-[#ea580c]">*</span>}
+            {required && <span className="text-[#A0522D]">*</span>}
           </label>
-          {helperText && <p className="text-[11px] text-[#78716c] font-mono mt-0.5">{helperText}</p>}
+          {helperText && <p className="text-[11px] text-[#6B6358] font-mono mt-0.5">{helperText}</p>}
         </div>
 
         {/* Tabs: Laptop vs URL */}
-        <div className="flex bg-[#121110] border border-[#2a2622] rounded-lg p-0.5 text-xs font-mono self-start sm:self-auto">
+        <div className="flex bg-[#121212] border border-[#333333] rounded-none p-0.5 text-xs font-mono self-start sm:self-auto">
           <button
             type="button"
             onClick={() => {
               setActiveMode('upload');
               setErrorMessage(null);
             }}
-            className={`px-3 py-1 rounded-md flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1 rounded-[2px] flex items-center gap-1.5 transition-all ${
               activeMode === 'upload'
-                ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                : 'text-[#a89f91] hover:text-[#f4efe6]'
+                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
+                : 'text-[#A89F91] hover:text-[#E8E0D4]'
             }`}
           >
             <Laptop className="w-3.5 h-3.5" />
@@ -135,10 +135,10 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
               setActiveMode('url');
               setErrorMessage(null);
             }}
-            className={`px-3 py-1 rounded-md flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1 rounded-[2px] flex items-center gap-1.5 transition-all ${
               activeMode === 'url'
-                ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                : 'text-[#a89f91] hover:text-[#f4efe6]'
+                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
+                : 'text-[#A89F91] hover:text-[#E8E0D4]'
             }`}
           >
             <LinkIcon className="w-3.5 h-3.5" />
@@ -149,7 +149,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#ea580c]/10 border border-[#ea580c]/40 text-[#ea580c] text-xs font-mono">
+        <div className="flex items-center gap-2 p-2.5 rounded-none bg-[#121212] border border-[#A0522D] text-[#A0522D] text-xs font-mono">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -157,8 +157,8 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
 
       {/* Preview if image is present */}
       {value ? (
-        <div className="relative rounded-xl border border-[#38332e] bg-[#141210] p-3 space-y-2.5">
-          <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden border border-[#2a2622] bg-[#0c0b0a] flex items-center justify-center">
+        <div className="relative rounded-none border border-[#333333] bg-[#1E1E1E] p-3 space-y-2.5">
+          <div className="relative aspect-[16/9] w-full rounded-none overflow-hidden border border-[#333333] bg-black flex items-center justify-center">
             <img
               src={value}
               alt="Sektor Wandfoto Vorschau"
@@ -166,15 +166,15 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
               onError={() => setErrorMessage('Bild konnte nicht angezeigt werden. Bitte überprüfe die Datei oder URL.')}
             />
             {/* Overlay badge */}
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[#181614]/90 border border-[#38332e] text-[10px] font-mono text-[#d4cdc3] backdrop-blur-sm flex items-center gap-1">
-              <Check className="w-3 h-3 text-[#d97706]" />
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-none bg-[#121212] border border-[#333333] text-[10px] font-mono text-[#E8E0D4] flex items-center gap-1">
+              <Check className="w-3 h-3 text-[#4A5D3A]" />
               {isBase64 ? 'Lokales Foto (Laptop)' : 'Web-URL'}
             </div>
           </div>
 
           {/* Details & Actions Bar */}
           <div className="flex items-center justify-between gap-2 pt-1">
-            <div className="text-[11px] font-mono text-[#a89f91] truncate">
+            <div className="text-[11px] font-mono text-[#A89F91] truncate">
               {lastProcessed ? (
                 <span>
                   Optimiert: {lastProcessed.width}×{lastProcessed.height}px ({formatBytes(lastProcessed.compressedSize)})
@@ -190,16 +190,16 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-2.5 py-1 text-xs font-mono text-[#d4cdc3] hover:text-[#f4efe6] bg-[#221f1c] hover:bg-[#2a2622] border border-[#38332e] rounded-lg transition flex items-center gap-1"
+                className="px-2.5 py-1 text-xs font-mono text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1"
                 title="Anderes Foto wählen"
               >
-                <RefreshCw className="w-3 h-3 text-[#d97706]" />
+                <RefreshCw className="w-3 h-3 text-[#C9A96E]" />
                 <span>Ändern</span>
               </button>
               <button
                 type="button"
                 onClick={handleClearPhoto}
-                className="px-2.5 py-1 text-xs font-mono text-[#ea580c] hover:text-[#f87171] bg-[#221f1c] hover:bg-[#2a2622] border border-[#38332e] rounded-lg transition flex items-center gap-1"
+                className="px-2.5 py-1 text-xs font-mono text-[#A0522D] hover:text-red-400 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1"
                 title="Foto entfernen"
               >
                 <X className="w-3 h-3" />
@@ -215,10 +215,10 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !isProcessing && fileInputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+          className={`relative border-2 border-dashed rounded-none p-6 text-center cursor-pointer transition-all ${
             isDragging
-              ? 'border-[#d97706] bg-[#d97706]/10 shadow-[0_0_15px_rgba(217,119,6,0.2)]'
-              : 'border-[#38332e] hover:border-[#a89f91] bg-[#181614]/70 hover:bg-[#1f1c19]'
+              ? 'border-[#F5F0E8] bg-[#2A2A2A]'
+              : 'border-[#333333] hover:border-[#8B8680] bg-[#121212] hover:bg-[#1E1E1E]'
           }`}
         >
           <input
@@ -230,7 +230,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
           />
 
           <div className="flex flex-col items-center justify-center space-y-2.5">
-            <div className="w-12 h-12 rounded-xl bg-[#221f1c] border border-[#38332e] flex items-center justify-center text-[#d97706]">
+            <div className="w-12 h-12 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
               {isProcessing ? (
                 <RefreshCw className="w-6 h-6 animate-spin" />
               ) : (
@@ -239,22 +239,22 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
             </div>
 
             <div className="space-y-1">
-              <p className="text-sm font-headline uppercase tracking-wide text-[#f4efe6]">
+              <p className="text-sm font-headline uppercase tracking-wide text-[#E8E0D4]">
                 {isProcessing ? 'Bild wird optimiert...' : 'Foto vom Laptop hier ablegen'}
               </p>
-              <p className="text-xs font-mono text-[#a89f91]">
-                oder <span className="text-[#d97706] underline underline-offset-2">Datei auswählen</span> (JPG, PNG, WebP bis 25 MB)
+              <p className="text-xs font-mono text-[#A89F91]">
+                oder <span className="text-[#C9A96E] underline underline-offset-2">Datei auswählen</span> (JPG, PNG, WebP bis 25 MB)
               </p>
             </div>
 
-            <p className="text-[10px] font-mono text-[#78716c]">
+            <p className="text-[10px] font-mono text-[#6B6358]">
               Wird automatisch auf eine optimale Wandkarten-Auflösung komprimiert.
             </p>
           </div>
         </div>
       ) : (
         /* URL Mode: Manual text input */
-        <div className="space-y-2 rounded-xl border border-[#38332e] bg-[#181614] p-3.5">
+        <div className="space-y-2 rounded-none border border-[#333333] bg-[#1E1E1E] p-3.5">
           <div className="flex gap-2">
             <input
               type="text"
@@ -267,19 +267,19 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
                   handleApplyUrl();
                 }
               }}
-              className="flex-1 bg-[#121110] border border-[#38332e] rounded-lg px-3 py-2 text-xs font-mono text-[#f4efe6] focus:outline-none focus:border-[#d97706]"
+              className="flex-1 bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs font-mono text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E]"
             />
             <button
               type="button"
               onClick={handleApplyUrl}
-              className="px-4 py-2 bg-[#d97706] hover:bg-[#b45309] text-[#121110] font-headline uppercase font-bold text-xs rounded-lg transition"
+              className="px-4 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs rounded-[2px] transition"
             >
               Übernehmen
             </button>
           </div>
 
-          <div className="pt-2 border-t border-[#2a2622]">
-            <span className="text-[11px] font-mono text-[#78716c] block mb-1.5">Schnellauswahl Demo-Fotos:</span>
+          <div className="pt-2 border-t border-[#333333]">
+            <span className="text-[11px] font-mono text-[#6B6358] block mb-1.5">Schnellauswahl Demo-Fotos:</span>
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -288,7 +288,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
                   setUrlInput(url);
                   onChange(url);
                 }}
-                className="px-2 py-1 text-[10px] font-mono rounded bg-[#221f1c] hover:bg-[#2a2622] border border-[#38332e] text-[#d4cdc3] hover:text-[#f4efe6] transition"
+                className="px-2 py-1 text-[10px] font-mono rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#E8E0D4] transition"
               >
                 🧗 Wettkampfwand
               </button>
@@ -299,7 +299,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
                   setUrlInput(url);
                   onChange(url);
                 }}
-                className="px-2 py-1 text-[10px] font-mono rounded bg-[#221f1c] hover:bg-[#2a2622] border border-[#38332e] text-[#d4cdc3] hover:text-[#f4efe6] transition"
+                className="px-2 py-1 text-[10px] font-mono rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#E8E0D4] transition"
               >
                 🧗 Dach & Höhle
               </button>

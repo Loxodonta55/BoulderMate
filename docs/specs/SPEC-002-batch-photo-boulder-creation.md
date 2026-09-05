@@ -63,14 +63,21 @@ CREATE INDEX idx_boulders_sector_status ON boulders(sector_id, status);
   - UPDATE: Ersteller oder Gym-Admin.
   - Veröffentlichungs-RPC: Eine atomare Datenbankfunktion `publish_boulder_batch(sector_id, draft_ids, archive_ids)` führt Veröffentlichung und Archivierung in einer einzigen Transaktion aus.
 
-### UI / UX
-- **Canvas / Bild-Interaktion**: Responsive Bildkomponente mit Pan/Zoom und SVG/HTML-Pin-Overlay.
-- **Marker-Zustände**:
-  - Neu/Draft: Vollfarbiger Kreis in Boulder-Farbe mit weißem Rand und Schatten.
-  - Bestehend: Halbtransparenter Kreis.
-  - Zur Archivierung markiert: Durchgestrichen mit rotem X-Badge.
-- **Bottom-Sheet Formular**: Native/BottomSheet-Komponente, horizontaler Farb-Button-Scroll/Grid, 5 Slider für Radar-Werte, Speichern-Button mit direktem Feedback.
-- **Summary Dialog**: Modal mit Zähler (z.B. "+6 neu, -2 archiviert") und finalem Action-Button "Jetzt veröffentlichen".
+### UI / UX (Design System SPEC-005 Konform)
+- **Canvas & Pins**:
+  - Pins auf dem Wandfoto sind kreisrund (`border-radius: 50%`) als einzige funktionale Ausnahme der kantigen Geometrie.
+  - Neuer Pin (Draft): Volle Hallenfarbe mit 2px Kreide-Rand (`#F5F0E8`).
+  - Bestehender Pin: 40% Deckkraft (`opacity: 0.4`).
+  - Zur Archivierung vorgemerkt: Durchgestrichen mit diagonalem Strich und dezentem Lehm-Rot (`#A0522D`).
+  - Selektierter Pin: Statischer Kreide-Ring (`#F5F0E8`), kein animiertes Pulsieren.
+- **Bottom-Sheet Formular**:
+  - Konsequent kantig (`border-radius: 0px`), keine weichen Rundungen oder Bubble-Looks.
+  - Hintergrund in Granit-Surface (`#1E1E1E`), 1px Border `#333333`.
+  - Farbauswahl als Reihe quadratischer Farb-Blöcke (Hallenfarben).
+  - 5 Radar-Slider in Sandstein-Optik mit Space Mono Ziffern (1–5).
+  - Speichern-Button in Kreide-Weiß (`#F5F0E8`) mit 2px Ecken-Radius.
+- **Zusammenfassungs-Dialog**:
+  - Felsblock-Modal (`0px` Radius) mit Space Grotesk Headline, Space Mono Mengenangaben und klarem Kontrast.
 
 ## Dependencies
 - Depends on: SPEC-001 (Gym & Sector Management)

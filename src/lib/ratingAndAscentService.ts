@@ -230,6 +230,16 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
   return false;
 }
 
+export function deleteUserAscentsAndRatings(userId: string): void {
+  const allAscents = getAscents();
+  const filteredAscents = allAscents.filter(a => a.userId !== userId);
+  setStorageItem(STORAGE_KEY_ASCENTS, JSON.stringify(filteredAscents));
+
+  const allRatings = getRatings();
+  const filteredRatings = allRatings.filter(r => r.userId !== userId);
+  setStorageItem(STORAGE_KEY_RATINGS, JSON.stringify(filteredRatings));
+}
+
 // ----------------------------------------------------
 // Ratings (AC-5, AC-6, AC-7)
 // ----------------------------------------------------

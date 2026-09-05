@@ -4,6 +4,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  avatar_url?: string;
+  is_platform_admin?: boolean;
 }
 
 export interface Gym {
@@ -22,7 +24,22 @@ export interface GymMember {
   gym_id: string;
   user_id: string;
   role: GymRole;
+  appointed_by?: string;
   created_at: string;
+}
+
+export interface UserGymPermissions {
+  userId: string;
+  gymId?: string;
+  isClimber: true; // IMMER true
+  isSetter: boolean;
+  isAdmin: boolean;
+  isPlatformAdmin: boolean;
+  canAccessSetterStudio: boolean;
+  canAccessAdminConsole: boolean;
+  canAppointSetters: boolean;
+  canAppointAdmins: boolean;
+  canCreateGyms: boolean;
 }
 
 export interface GradeScale {

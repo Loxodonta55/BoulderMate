@@ -188,7 +188,7 @@ export async function processLocalImageFile(
         }
 
         // Clean background for transparency conversion
-        ctx.fillStyle = '#181614';
+        ctx.fillStyle = '#121212';
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 

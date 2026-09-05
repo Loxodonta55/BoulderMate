@@ -292,6 +292,7 @@ export interface CurrentUser {
   nickname: string;
   avatarUrl?: string;
   role: GymMemberRole;
+  isPlatformAdmin?: boolean;
 }
 
 // ==========================================

@@ -9,6 +9,7 @@ import {
   DEFAULT_RADAR,
   RadarAttributes
 } from '../types/boulder';
+import * as gymStorage from './gymStorage';
 
 const STORAGE_KEY_GYMS = 'boulderapp_gyms_v2';
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
@@ -131,58 +132,113 @@ export function checkSetterPermission(role: GymMemberRole): void {
 }
 
 // -------------------------------------------------------------
-// Gyms, Sectors & GradeScales
+// Gyms, Sectors & GradeScales (Synchronized with gymStorage)
 // -------------------------------------------------------------
 export function getGyms(): Gym[] {
   const data = getStorageItem(STORAGE_KEY_GYMS);
-  if (!data) {
-    setStorageItem(STORAGE_KEY_GYMS, JSON.stringify([SEED_GYM]));
-    return [SEED_GYM];
+  let v2Gyms: Gym[] = [];
+  if (data) {
+    try {
+      v2Gyms = JSON.parse(data);
+    } catch {
+      v2Gyms = [SEED_GYM];
+    }
+  } else {
+    v2Gyms = [SEED_GYM];
   }
+
+  // Also include any gyms registered via gymStorage (SPEC-001)
   try {
-    return JSON.parse(data);
-  } catch {
-    return [SEED_GYM];
+    const v1Gyms = gymStorage.getGyms();
+    const existingIds = new Set(v2Gyms.map(g => g.id));
+    for (const g of v1Gyms) {
+      if (!existingIds.has(g.id)) {
+        v2Gyms.push({
+          id: g.id,
+          name: g.name,
+          address: g.address,
+          city: g.city,
+          logoUrl: g.logo_url,
+          website: g.website,
+          createdBy: g.created_by,
+          createdAt: g.created_at,
+        });
+        existingIds.add(g.id);
+      }
+    }
+  } catch (e) {
+    console.error('Error synchronizing gyms from gymStorage:', e);
   }
+
+  return v2Gyms;
 }
 
 export function getSectors(gymId: string): Sector[] {
   const data = getStorageItem(STORAGE_KEY_SECTORS);
-  if (!data) {
-    setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(SEED_SECTORS));
-    return SEED_SECTORS.filter(s => s.gymId === gymId);
-  }
-  try {
-    let all: Sector[] = JSON.parse(data);
-    // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
-    let hasMigrated = false;
-    all = all.map(s => {
-      if (s.wallPhotoUrl.includes('photo-1522163182402')) {
-        hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/overhang.jpg' };
-      }
-      if (s.wallPhotoUrl.includes('photo-1564769662533') || s.wallPhotoUrl.includes('photo-1564769625905')) {
-        hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/slab.jpg' };
-      }
-      if (s.wallPhotoUrl.includes('photo-1516592673884')) {
-        hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/roof.jpg' };
-      }
-      return s;
-    });
-    if (hasMigrated) {
-      setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(all));
+  let all: Sector[] = [];
+  if (data) {
+    try {
+      all = JSON.parse(data);
+    } catch {
+      all = [...SEED_SECTORS];
     }
-    return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
-  } catch {
-    return SEED_SECTORS.filter(s => s.gymId === gymId);
+  } else {
+    all = [...SEED_SECTORS];
   }
+
+  // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
+  let hasMigrated = false;
+  all = all.map(s => {
+    if (s.wallPhotoUrl.includes('photo-1522163182402')) {
+      hasMigrated = true;
+      return { ...s, wallPhotoUrl: '/images/walls/overhang.jpg' };
+    }
+    if (s.wallPhotoUrl.includes('photo-1564769662533') || s.wallPhotoUrl.includes('photo-1564769625905')) {
+      hasMigrated = true;
+      return { ...s, wallPhotoUrl: '/images/walls/slab.jpg' };
+    }
+    if (s.wallPhotoUrl.includes('photo-1516592673884')) {
+      hasMigrated = true;
+      return { ...s, wallPhotoUrl: '/images/walls/roof.jpg' };
+    }
+    return s;
+  });
+  if (hasMigrated) {
+    setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(all));
+  }
+
+  // Also include sectors created via gymStorage for this gym
+  try {
+    const v1Sectors = gymStorage.getSectors(gymId);
+    const existingIds = new Set(all.map(s => s.id));
+    for (const s of v1Sectors) {
+      if (!existingIds.has(s.id)) {
+        all.push({
+          id: s.id,
+          gymId: s.gym_id,
+          name: s.name,
+          wallPhotoUrl: s.wall_photo_url || '/images/walls/overhang.jpg',
+          sortOrder: s.sort_order || 1,
+          createdAt: s.created_at,
+        });
+        existingIds.add(s.id);
+      }
+    }
+  } catch (e) {
+    console.error('Error synchronizing sectors from gymStorage:', e);
+  }
+
+  return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function getSectorById(sectorId: string): Sector | null {
-  const sectors = getSectors('gym-minimum-zh');
-  return sectors.find(s => s.id === sectorId) || null;
+  const gyms = getGyms();
+  for (const gym of gyms) {
+    const sectors = getSectors(gym.id);
+    const found = sectors.find(s => s.id === sectorId);
+    if (found) return found;
+  }
+  return null;
 }
 
 // AC-2: Update Sector Wall Photo (preserves relative coordinates of all boulders)
@@ -194,6 +250,14 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
   let sectors: Sector[] = allData ? JSON.parse(allData) : [...SEED_SECTORS];
   const idx = sectors.findIndex(s => s.id === sectorId);
   if (idx === -1) {
+    // If not in v2, check if it's in gymStorage and add to v2
+    const sector = getSectorById(sectorId);
+    if (sector) {
+      const updatedSector = { ...sector, wallPhotoUrl: newPhotoUrl.trim() };
+      sectors.push(updatedSector);
+      setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(sectors));
+      return updatedSector;
+    }
     throw new Error(`Sektor mit ID "${sectorId}" wurde nicht gefunden.`);
   }
 
@@ -208,16 +272,51 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
 
 export function getGradeScales(gymId: string): GymGradeScale[] {
   const data = getStorageItem(STORAGE_KEY_GRADE_SCALES);
-  if (!data) {
-    setStorageItem(STORAGE_KEY_GRADE_SCALES, JSON.stringify(SEED_GRADE_SCALES));
-    return SEED_GRADE_SCALES.filter(s => s.gymId === gymId);
+  let all: GymGradeScale[] = [];
+  if (data) {
+    try {
+      all = JSON.parse(data);
+    } catch {
+      all = [...SEED_GRADE_SCALES];
+    }
+  } else {
+    all = [...SEED_GRADE_SCALES];
   }
+
+  // Also include grade scales from gymStorage
   try {
-    const all: GymGradeScale[] = JSON.parse(data);
-    return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
-  } catch {
-    return SEED_GRADE_SCALES.filter(s => s.gymId === gymId);
+    const v1Scales = gymStorage.getGradeScales(gymId);
+    const existingIds = new Set(all.map(s => s.id));
+    for (const sc of v1Scales) {
+      if (!existingIds.has(sc.id)) {
+        all.push({
+          id: sc.id,
+          gymId: sc.gym_id,
+          colorName: sc.color_name,
+          colorHex: sc.color_hex,
+          difficultyLabel: sc.difficulty_label,
+          fontRangeMin: sc.font_range_min,
+          fontRangeMax: sc.font_range_max,
+          sortOrder: sc.sort_order,
+        });
+        existingIds.add(sc.id);
+      }
+    }
+  } catch (e) {
+    console.error('Error synchronizing grade scales from gymStorage:', e);
   }
+
+  const gymScales = all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
+  if (gymScales.length > 0) {
+    return gymScales;
+  }
+
+  // Provide sensible standard gym scales for newly created gyms
+  return SEED_GRADE_SCALES.map((scale, idx) => ({
+    ...scale,
+    id: `scale-${gymId}-${idx}`,
+    gymId: gymId,
+  }));
 }
 
 // -------------------------------------------------------------
@@ -256,6 +355,25 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
 
 function saveWallBoulders(boulders: WallBoulder[]): void {
   setStorageItem(STORAGE_KEY_WALL_BOULDERS, JSON.stringify(boulders));
+
+  try {
+    const existing = gymStorage.getBoulders();
+    const map = new Map(existing.map(b => [b.id, b]));
+    for (const b of boulders) {
+      map.set(b.id, {
+        id: b.id,
+        sector_id: b.sectorId,
+        grade_scale_id: b.gradeScaleId,
+        position_x: b.positionX,
+        position_y: b.positionY,
+        status: b.status,
+        name: b.name
+      });
+    }
+    gymStorage.saveBoulders(Array.from(map.values()));
+  } catch (e) {
+    // Non-blocking in isolated unit tests
+  }
 }
 
 // AC-3 & AC-4 & AC-8: Create Draft Boulder

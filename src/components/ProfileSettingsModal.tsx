@@ -59,27 +59,27 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="w-full max-w-md bg-[#181614] border border-[#38332e] rounded-2xl shadow-2xl overflow-hidden my-4 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden my-4 flex flex-col">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-[#38332e] bg-[#141210] flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-[#333333] bg-[#1E1E1E] flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 text-xs font-mono text-[#a89f91] hover:text-[#f4efe6] transition"
+            className="flex items-center gap-1.5 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Zurück</span>
           </button>
 
-          <h2 className="text-sm font-headline uppercase tracking-wider text-[#f4efe6]">
+          <h2 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
             Einstellungen
           </h2>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-[#78716c] hover:text-[#f4efe6] hover:bg-[#221f1c] transition"
+            className="p-1 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
             aria-label="Schließen"
           >
             <X className="w-4 h-4" />
@@ -88,21 +88,21 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-6">
-          {/* Avatar Section */}
+          {/* Avatar Section - SPEC-005: square 0px avatar */}
           <div className="flex flex-col items-center gap-3">
             <div className="relative group">
-              <div className="w-20 h-20 rounded-full bg-[#221f1c] border-2 border-[#d97706]/60 flex items-center justify-center overflow-hidden shadow-md">
+              <div className="w-20 h-20 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center overflow-hidden">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={nickname} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-2xl font-headline font-bold text-[#f59e0b]">
+                  <span className="text-2xl font-mono font-bold text-[#F5F0E8]">
                     {nickname.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
               <label
                 htmlFor="avatar-file-input"
-                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#d97706] text-[#121110] cursor-pointer hover:bg-[#b45309] transition shadow"
+                className="absolute bottom-0 right-0 p-1.5 rounded-none bg-[#2A2A2A] border border-[#333333] text-[#F5F0E8] cursor-pointer hover:bg-[#333333] transition"
                 title="Profilbild ändern"
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             <div className="text-center">
               <label
                 htmlFor="avatar-file-input"
-                className="text-xs font-mono text-[#d97706] hover:underline cursor-pointer"
+                className="text-xs font-mono text-[#C9A96E] hover:underline cursor-pointer"
               >
                 {isProcessingImage ? 'Wird optimiert...' : 'Foto hochladen / ändern'}
               </label>
@@ -126,7 +126,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setAvatarUrl('')}
-                  className="block text-[10px] font-mono text-[#78716c] hover:text-red-400 mt-0.5 mx-auto"
+                  className="block text-[10px] font-mono text-[#6B6358] hover:text-[#A0522D] mt-0.5 mx-auto"
                 >
                   Foto entfernen
                 </button>
@@ -136,18 +136,18 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
           {/* Nickname Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#a89f91] uppercase tracking-wider block">
+            <label className="text-xs font-mono text-[#A89F91] uppercase tracking-wider block">
               Nickname
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-[#78716c] absolute left-3 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-[#6B6358] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={nickname}
                 onChange={e => setNickname(e.target.value)}
                 placeholder="Dein Kletter-Name"
                 required
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#121110] border border-[#38332e] text-sm text-[#f4efe6] placeholder-[#78716c] focus:outline-none focus:border-[#d97706] transition"
+                className="w-full pl-9 pr-3 py-2 rounded-none bg-[#121212] border border-[#333333] text-sm text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] transition font-mono"
                 data-testid="input-nickname"
               />
             </div>
@@ -157,7 +157,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           <button
             type="submit"
             disabled={!nickname.trim() || saveSuccess}
-            className="w-full py-2.5 rounded-xl text-xs font-headline uppercase tracking-wider font-bold bg-[#d97706] hover:bg-[#b45309] text-[#121110] transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50"
+            className="w-full py-2.5 rounded-[2px] text-xs font-headline uppercase tracking-wider font-bold bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             data-testid="btn-save-profile"
           >
             {saveSuccess ? (
@@ -171,15 +171,15 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </button>
 
           {/* Divider */}
-          <div className="border-t border-[#2a2622] pt-4 space-y-3">
+          <div className="border-t border-[#333333] pt-4 space-y-3">
             {/* Logout Button */}
             <button
               type="button"
               onClick={onLogout}
-              className="w-full py-2 px-3 rounded-xl border border-[#38332e] bg-[#141210] hover:bg-[#221f1c] text-xs font-mono text-[#d4cdc3] hover:text-[#f4efe6] transition flex items-center justify-center gap-2"
+              className="w-full py-2 px-3 rounded-[2px] border border-[#333333] bg-[#2A2A2A] hover:bg-[#333333] text-xs font-mono text-[#E8E0D4] transition flex items-center justify-center gap-2"
               data-testid="btn-logout"
             >
-              <LogOut className="w-3.5 h-3.5 text-[#78716c]" />
+              <LogOut className="w-3.5 h-3.5 text-[#6B6358]" />
               <span>Ausloggen</span>
             </button>
 
@@ -188,16 +188,16 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDeleting(true)}
-                className="w-full py-2 px-3 rounded-xl border border-red-900/30 hover:border-red-600/50 bg-red-950/10 hover:bg-red-950/25 text-xs font-mono text-red-400 hover:text-red-300 transition flex items-center justify-center gap-2"
+                className="w-full py-2 px-3 rounded-[2px] border border-[#A0522D]/40 hover:border-[#A0522D] bg-[#A0522D]/10 hover:bg-[#A0522D]/20 text-xs font-mono text-[#A0522D] transition flex items-center justify-center gap-2"
                 data-testid="btn-delete-account-trigger"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Account löschen</span>
               </button>
             ) : (
-              <div className="p-3 rounded-xl bg-red-950/20 border border-red-800/50 space-y-2.5 animate-in fade-in duration-150" data-testid="delete-account-confirmation">
-                <div className="flex items-start gap-2 text-xs font-mono text-red-300">
-                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-none bg-[#121212] border border-[#A0522D] space-y-2.5 animate-in fade-in duration-150" data-testid="delete-account-confirmation">
+                <div className="flex items-start gap-2 text-xs font-mono text-[#A0522D]">
+                  <AlertTriangle className="w-4 h-4 text-[#A0522D] shrink-0 mt-0.5" />
                   <span>
                     Bist du sicher? Alle deine Begehungen und Bewertungen werden unwiderruflich gelöscht.
                   </span>
@@ -206,7 +206,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsDeleting(false)}
-                    className="flex-1 py-1.5 rounded-lg bg-[#221f1c] text-[#a89f91] hover:text-[#f4efe6] text-xs font-mono transition"
+                    className="flex-1 py-1.5 rounded-[2px] bg-[#2A2A2A] border border-[#333333] text-[#A89F91] hover:text-[#E8E0D4] text-xs font-mono transition"
                   >
                     Abbrechen
                   </button>
@@ -216,7 +216,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                       onDeleteAccount();
                       onClose();
                     }}
-                    className="flex-1 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-mono font-bold transition shadow"
+                    className="flex-1 py-1.5 rounded-[2px] bg-[#A0522D] hover:bg-[#8B4513] text-[#F5F0E8] text-xs font-mono font-bold transition"
                     data-testid="btn-confirm-delete-account"
                   >
                     Ja, unwiderruflich löschen

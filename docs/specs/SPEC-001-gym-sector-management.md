@@ -78,11 +78,13 @@ CREATE TABLE sectors (
 - `grade_scales`: SELECT öffentlich; INSERT/UPDATE/DELETE nur Gym-Admins.
 - `sectors`: SELECT öffentlich; INSERT/UPDATE/DELETE nur Gym-Admins.
 
-### UI / UX
-- **Hallen-Erstellung**: Minimalistisches Formular (Name Pflicht, Rest optional).
-- **Grading-Konfiguration**: Farbauswahl mit Color-Picker, Eingabe von Min- und Max-Font-Graden, Drag & Drop Sortierung.
-- **Sektoren-Verwaltung**: Listenansicht mit Thumbnail, Drag-Handle zur Sortierung, Upload-Button für Wandfotos.
-- **Kletterer-Übersicht**: Horizontaler oder Grid-Karten-View mit Wandfotos und Anzahl aktiver Routen.
+### UI / UX (Design System SPEC-005 Konform)
+- **Visuelle Ästhetik**: Dark-Mode First (`--bg-primary: #121212`, `--bg-surface: #1E1E1E`), kantige Formensprache (0px Radius für Karten und Eingabefelder, 2px für Buttons), keine Drop-Shadows.
+- **Typografie**: Space Grotesk Bold Uppercase für Headlines (`Hallen-Verwaltung`, `Sektoren`), Inter für Body, Space Mono für Grade und Zähler.
+- **Hallen-Erstellung**: Minimalistisches Formular mit 0px Ecken, 1px Border `#333333` und großzügigem Schwarzraum.
+- **Grading-Konfiguration**: Farb-Badges im soliden Look; Farben der Hallenskala sind die einzigen gesättigten Akzente im sonst monochrom-granitfarbenen Interface.
+- **Sektoren-Verwaltung**: Block-Karten (`0px` Radius) mit Wandfoto-Thumbnail, Reorder-Handle und klarem 24px Screen-Padding.
+- **Kletterer-Übersicht**: Übersichtliche Wandkarten mit Wandfoto, Routenzähler in Space Mono und 1px Granit-Bordüre (`#333333`).
 
 ## Dependencies
 - Depends on: Supabase Auth & Storage Setup

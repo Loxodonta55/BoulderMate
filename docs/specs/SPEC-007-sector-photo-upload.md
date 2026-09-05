@@ -1,6 +1,6 @@
-# SPEC-005: Sektor-Wandfoto Datei-Upload (Laptop & Lokale Bilder)
+# SPEC-007: Sektor-Wandfoto Datei-Upload (Laptop & Lokale Bilder)
 
-## Status: APPROVED
+## Status: DONE
 
 ## Summary
 Ermöglicht Hallen-Admins und Schraubern das direkte Hochladen von Sektor-Wandfotos von ihrem lokalen Laptop oder Rechner (JPEG, PNG, WebP) über Drag & Drop und Dateiauswahl. Eine integrierte client-seitige Bildoptimierung skaliert und komprimiert hochauflösende Fotos automatisch, bevor sie als persistente Data-URLs gespeichert werden, um Browser-Speichergrenzen einzuhalten und maximale Performance zu garantieren.

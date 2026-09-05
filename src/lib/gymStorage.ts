@@ -1,4 +1,5 @@
 import { Gym, GymMember, GradeScale, Sector, BoulderReference, GymRole, User } from '../types/gym';
+import { isPlatformAdmin } from './authService';
 
 const GYMS_KEY = 'boulder_gyms_v1';
 const MEMBERS_KEY = 'boulder_gym_members_v1';
@@ -64,8 +65,11 @@ export function getGyms(): Gym[] {
 
 export function ensureInitialGymData(): void {
   const existing = getGyms();
-  if (existing.length === 0) {
+
+  // 1. Ensure Minimum Bouldern Zürich exists
+  if (!existing.some(g => g.name.toLowerCase().includes('minimum') || g.id === 'gym-minimum-zh')) {
     const defaultGym = createGym({
+      id: 'gym-minimum-zh',
       name: 'Minimum Bouldern Zürich',
       city: 'Zürich',
       address: 'Flüelastrasse 31',
@@ -103,6 +107,90 @@ export function ensureInitialGymData(): void {
       { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' },
       { id: 'b_sample_5', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.35, position_y: 0.60, status: 'active', name: 'Platten-Reibung' }
     ]);
+  }
+
+  // 2. Ensure 6a plus (Winterthur) exists & Boris has setter permissions
+  const currentGyms = getGyms();
+  let gym6a = currentGyms.find(g => 
+    g.id === 'gym-6a-plus' || 
+    g.name.toLowerCase().includes('6a plus') || 
+    g.name.toLowerCase().includes('6aplus')
+  );
+
+  if (!gym6a) {
+    gym6a = createGym({
+      id: 'gym-6a-plus',
+      name: '6a plus Kletter- & Boulderhalle Winterthur',
+      city: 'Winterthur',
+      address: 'Klosterstrasse 17',
+      website: 'https://sechsaplus.ch',
+      logo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=128&auto=format&fit=crop'
+    }, CURRENT_USER.id);
+
+    const s1 = createSector(gym6a.id, CURRENT_USER.id, {
+      name: 'Wettkampfwand (Comp Wall)',
+      wall_photo_url: '/images/walls/overhang.jpg',
+      sort_order: 1
+    });
+
+    const s2 = createSector(gym6a.id, CURRENT_USER.id, {
+      name: 'Dachgrotte & Überhang',
+      wall_photo_url: '/images/walls/roof.jpg',
+      sort_order: 2
+    });
+
+    const s3 = createSector(gym6a.id, CURRENT_USER.id, {
+      name: 'Platte (Slab & Reibung)',
+      wall_photo_url: '/images/walls/slab.jpg',
+      sort_order: 3
+    });
+
+    const scales = getGradeScales(gym6a.id);
+    const yellowScale = scales[0]?.id || 's_yellow_6a';
+    const blueScale = scales[2]?.id || 's_blue_6a';
+    const redScale = scales[3]?.id || 's_red_6a';
+
+    const existingBoulders = getBoulders();
+    saveBoulders([
+      ...existingBoulders,
+      { id: 'b_6a_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
+      { id: 'b_6a_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Boulder-Crux' },
+      { id: 'b_6a_3', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Dach-Problem Rot' },
+      { id: 'b_6a_4', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Platten-Traverse' }
+    ]);
+  }
+
+  // 3. Register Boris as Schrauber and Admin for 6a plus
+  if (gym6a) {
+    const members = getMembers();
+    const borisIds = ['user-boris', 'user_boris_001'];
+    let changed = false;
+
+    for (const bId of borisIds) {
+      if (!members.some(m => m.gym_id === gym6a!.id && m.user_id === bId && m.role === 'admin')) {
+        members.push({
+          id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          gym_id: gym6a.id,
+          user_id: bId,
+          role: 'admin',
+          created_at: new Date().toISOString()
+        });
+        changed = true;
+      }
+      if (!members.some(m => m.gym_id === gym6a!.id && m.user_id === bId && m.role === 'setter')) {
+        members.push({
+          id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          gym_id: gym6a.id,
+          user_id: bId,
+          role: 'setter',
+          created_at: new Date().toISOString()
+        });
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveMembers(members);
+    }
   }
 }
 
@@ -171,17 +259,21 @@ export function isGymAdmin(gym_id: string, user_id: string): boolean {
   return getUserRoleInGym(gym_id, user_id) === 'admin';
 }
 
-// AC-1: Ein eingeloggter Nutzer kann eine neue Halle mit Pflichtfeld `name` anlegen.
+// SPEC-000: Nur Plattform-Administratoren dürfen neue Hallen anlegen.
 // Der Ersteller erhält automatisch die Rolle `admin` in `gym_members`.
 export function createGym(
-  input: { name: string; address?: string; city?: string; logo_url?: string; website?: string },
+  input: { id?: string; name: string; address?: string; city?: string; logo_url?: string; website?: string },
   user_id: string = CURRENT_USER.id
 ): Gym {
+  if (!isPlatformAdmin(user_id)) {
+    throw new Error('Nur Plattform-Administratoren dürfen neue Hallen anlegen.');
+  }
+
   if (!input.name || input.name.trim().length === 0) {
     throw new Error('Hallenname ist ein Pflichtfeld.');
   }
 
-  const gymId = 'gym_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  const gymId = input.id || ('gym_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
   const now = new Date().toISOString();
 
   const newGym: Gym = {

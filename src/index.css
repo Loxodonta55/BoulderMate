@@ -3,94 +3,159 @@
 
 @layer base {
   :root {
-    --font-headline: 'Oswald', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-headline: 'Space Grotesk', -apple-system, sans-serif;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'Space Mono', monospace;
     
-    --color-granite-950: #121110;
-    --color-granite-900: #181614;
-    --color-granite-800: #221f1c;
-    --color-granite-700: #2d2925;
-    --color-granite-600: #3d3732;
-    --color-sandstone-border: #3d3732;
-    --color-chalk: #f4efe6;
-    --color-chalk-dim: #a8a29e;
-    --color-rust: #ea580c;
-    --color-ochre: #d97706;
+    /* SPEC-005 Design Tokens */
+    --bg-primary: #121212;
+    --bg-surface: #1E1E1E;
+    --bg-surface-elevated: #2A2A2A;
+    --bg-subtle: #333333;
+
+    --text-primary: #E8E0D4;
+    --text-secondary: #A89F91;
+    --text-muted: #6B6358;
+
+    --accent-chalk: #F5F0E8;
+    --accent-sandstone: #C9A96E;
+    --accent-brass: #B8860B;
+    --accent-granite: #8B8680;
+    --accent-moss: #4A5D3A;
+    --accent-clay: #A0522D;
+
+    --status-success: #4A5D3A;
+    --status-warning: #C9A96E;
+    --status-error: #A0522D;
+    --status-info: #8B8680;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-granite-950);
-    color: var(--color-chalk);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    /* Subtiles Granit-Noise (2-3% Opacity) */
     background-image: 
-      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
-    background-size: 24px 24px;
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
+    background-size: 16px 16px;
   }
 
   h1, h2, h3, h4, .font-headline {
     font-family: var(--font-headline);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
   }
 
   code, pre, .font-mono {
     font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
   }
 }
 
-/* Old School Climber UI Elements */
-.topo-plate {
-  background: #181614;
-  border: 1px solid #332e29;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+/* SPEC-005: Formensprache & Komponenten */
+
+/* Kantige Felsblock-Karten: 0px Radius, 1px Border, keine Drop-Shadows */
+.topo-card {
+  background-color: #1E1E1E;
+  border: 1px solid #333333;
+  border-radius: 0px;
 }
 
-.topo-plate:hover {
-  border-color: #4a433c;
+.topo-card-elevated {
+  background-color: #2A2A2A;
+  border: 1px solid #333333;
+  border-radius: 0px;
 }
 
-.topo-badge {
+/* Buttons: Minimaler 2px Radius, keine Bounces */
+.btn-primary {
+  background-color: #F5F0E8;
+  color: #121212;
+  border-radius: 2px;
   font-family: var(--font-headline);
+  text-transform: uppercase;
+  font-weight: 700;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border: 1px solid;
+  transition: opacity 100ms ease-out;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-primary:active {
+  opacity: 0.7;
 }
 
-/* Rubber Stamp Styling for Ascents */
-.stamp-badge {
-  display: inline-flex;
-  align-items: center;
+.btn-secondary {
+  background-color: transparent;
+  color: #E8E0D4;
+  border: 1px solid #8B8680;
+  border-radius: 2px;
   font-family: var(--font-headline);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.2rem 0.55rem;
-  border: 1.5px solid;
-  border-radius: 4px;
-  transform: rotate(-1deg);
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
-}
-
-/* Topo Grid Header */
-.topo-header-tab {
-  font-family: var(--font-headline);
+  font-weight: 600;
   letter-spacing: 0.04em;
+  transition: opacity 100ms ease-out, border-color 100ms ease-out;
+}
+.btn-secondary:hover {
+  border-color: #F5F0E8;
+  color: #F5F0E8;
+}
+.btn-secondary:active {
+  opacity: 0.7;
+}
+
+.btn-destructive {
+  background-color: #A0522D;
+  color: #F5F0E8;
+  border-radius: 2px;
+  font-family: var(--font-headline);
   text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: opacity 100ms ease-out;
+}
+.btn-destructive:hover {
+  opacity: 0.9;
+}
+
+/* Kreide-Akzente auf aktiven Tabs */
+.tab-active-chalk {
+  color: #F5F0E8;
+  border-bottom: 2px solid #F5F0E8;
+  text-shadow: 0 0 1px rgba(245, 240, 232, 0.4);
+}
+
+/* Boulder-Pins: 50% Radius (einziges rundes Element) */
+.boulder-pin {
+  border-radius: 50%;
+  transition: transform 150ms ease-out;
+}
+
+/* Kantige Inputs */
+input, select, textarea {
+  border-radius: 0px;
+}
+
+/* Modals & Sheets: 0px Radius */
+.modal-slab {
+  background-color: #1E1E1E;
+  border: 1px solid #333333;
+  border-radius: 0px;
 }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #141211;
+  background: #121212;
 }
 ::-webkit-scrollbar-thumb {
-  background: #332e29;
-  border-radius: 3px;
+  background: #333333;
+  border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a433c;
+  background: #8B8680;
 }

@@ -79,18 +79,18 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   };
 
   return (
-    <div className="bg-[#181614] border border-[#38332e] rounded-xl p-5 space-y-4 shadow-md">
-      <div className="flex items-center justify-between border-b border-[#332e29] pb-3">
+    <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-5 space-y-4">
+      <div className="flex items-center justify-between border-b border-[#333333] pb-3">
         <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-amber-500" />
-          <h3 className="text-base font-bold text-[#f4efe6] font-headline uppercase tracking-wider">
+          <Layers className="w-5 h-5 text-[#C9A96E]" />
+          <h3 className="text-base font-bold text-[#E8E0D4] font-headline uppercase tracking-wider">
             Sektoren & Wandbereiche (Topo-Tafeln)
           </h3>
         </div>
         {isAdmin && !isAdding && (
           <button
             onClick={() => setIsAdding(true)}
-            className="px-3.5 py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1.5 shadow"
+            className="px-3.5 py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" /> Neuer Sektor
           </button>
@@ -98,14 +98,14 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
       </div>
 
       {error && (
-        <div className="p-3 bg-red-950/40 border border-red-800/80 rounded-lg text-red-300 text-xs flex items-center gap-2 font-mono">
+        <div className="p-3 bg-[#121212] border border-[#A0522D] rounded-none text-[#A0522D] text-xs flex items-center gap-2 font-mono">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-3 bg-emerald-950/40 border border-emerald-800/80 rounded-lg text-emerald-300 text-xs flex items-center gap-2 font-mono">
+        <div className="p-3 bg-[#121212] border border-[#4A5D3A] rounded-none text-[#4A5D3A] text-xs flex items-center gap-2 font-mono">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
@@ -113,13 +113,13 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
 
       {/* Add Sector Form */}
       {isAdding && (
-        <form onSubmit={handleAddSector} className="p-4 bg-[#121110] border border-[#332e29] rounded-xl space-y-3 shadow-inner">
-          <div className="font-bold text-xs text-stone-200 font-headline uppercase tracking-wider">
+        <form onSubmit={handleAddSector} className="p-4 bg-[#121212] border border-[#333333] rounded-none space-y-3">
+          <div className="font-bold text-xs text-[#E8E0D4] font-headline uppercase tracking-wider">
             Neuen Sektor im Topo anlegen
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-stone-400 font-headline uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
                 Sektorname *
               </label>
               <input
@@ -128,11 +128,11 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 placeholder="z.B. Wettkampfwand, Höhle, Dach"
                 value={newSectorName}
                 onChange={(e) => setNewSectorName(e.target.value)}
-                className="w-full bg-[#181614] border border-[#38332e] rounded-lg px-3 py-1.5 text-xs text-stone-100 focus:outline-none focus:border-amber-600 font-sans"
+                className="w-full bg-[#1E1E1E] border border-[#333333] rounded-none px-3 py-1.5 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-stone-400 font-headline uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
                 Wandfoto *
               </label>
               <div className="flex gap-2">
@@ -142,12 +142,12 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                   placeholder="URL oder Bilddatei auswählen"
                   value={newSectorPhoto}
                   onChange={(e) => setNewSectorPhoto(e.target.value)}
-                  className="flex-1 bg-[#181614] border border-[#38332e] rounded-lg px-3 py-1.5 text-xs text-stone-100 focus:outline-none focus:border-amber-600 font-mono"
+                  className="flex-1 bg-[#1E1E1E] border border-[#333333] rounded-none px-3 py-1.5 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setIsUploadForNewSector(true)}
-                  className="px-3 py-1.5 bg-[#221f1c] hover:bg-[#2d2823] border border-[#38332e] text-amber-400 rounded-lg text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 shrink-0"
+                  className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#C9A96E] rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 shrink-0"
                   title="Datei vom Computer hochladen oder Wandpreset wählen"
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -160,13 +160,13 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="px-3 py-1.5 bg-[#221f1c] hover:bg-[#2d2823] border border-[#38332e] text-stone-300 rounded-lg text-xs font-headline uppercase tracking-wider"
+              className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#A89F91] rounded-[2px] text-xs font-headline uppercase tracking-wider"
             >
               Abbrechen
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold font-headline uppercase tracking-wider rounded-lg text-xs"
+              className="px-4 py-1.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-bold font-headline uppercase tracking-wider rounded-[2px] text-xs"
             >
               Sektor speichern
             </button>
@@ -179,33 +179,32 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
         {sectors.map((sector, idx) => (
           <div
             key={sector.id}
-            className="bg-[#121110] border border-[#332e29] rounded-xl overflow-hidden flex flex-col group hover:border-[#4d463f] transition-all shadow-md"
+            className="bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden flex flex-col group hover:border-[#8B8680] transition-all"
           >
             {/* Wall Photo Plate */}
-            <div className="relative aspect-video bg-[#181614] overflow-hidden">
+            <div className="relative aspect-video bg-black overflow-hidden">
               <img
                 src={sector.wall_photo_url}
                 alt={sector.name}
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                className="w-full h-full object-cover transition-transform duration-200"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
 
               {/* Status Badge */}
-              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 px-2 py-0.5 rounded border border-stone-700 text-[11px] font-mono text-stone-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#121212]/90 px-2 py-0.5 rounded-none border border-[#333333] text-[11px] font-mono text-[#E8E0D4]">
+                <span className="w-1.5 h-1.5 rounded-none bg-[#4A5D3A]" />
                 {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
               </div>
 
               {/* Move Sort Order Buttons (Admin) */}
               {isAdmin && (
-                <div className="absolute top-2 right-2 flex gap-1 bg-black/80 p-1 rounded border border-stone-700">
+                <div className="absolute top-2 right-2 flex gap-1 bg-[#121212]/90 p-1 rounded-none border border-[#333333]">
                   <button
                     disabled={idx === 0}
                     onClick={() => handleMove(idx, 'up')}
-                    className="p-1 hover:text-amber-400 disabled:opacity-20 text-stone-400"
+                    className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91]"
                     title="Nach oben verschieben"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
@@ -213,7 +212,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                   <button
                     disabled={idx === sectors.length - 1}
                     onClick={() => handleMove(idx, 'down')}
-                    className="p-1 hover:text-amber-400 disabled:opacity-20 text-stone-400"
+                    className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91]"
                     title="Nach unten verschieben"
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
@@ -223,19 +222,19 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
             </div>
 
             {/* Info & Actions Footer */}
-            <div className="p-3.5 flex items-center justify-between border-t border-[#332e29] bg-[#181614]">
+            <div className="p-3.5 flex items-center justify-between border-t border-[#333333] bg-[#1E1E1E]">
               <div>
-                <h4 className="font-bold text-sm text-[#f4efe6] font-headline uppercase tracking-wide">
+                <h4 className="font-bold text-sm text-[#E8E0D4] font-headline uppercase tracking-wide">
                   {sector.name}
                 </h4>
-                <div className="text-[10px] text-stone-500 font-mono">SECTOR #{sector.sort_order}</div>
+                <div className="text-[10px] text-[#6B6358] font-mono">SECTOR #{sector.sort_order}</div>
               </div>
 
               {isAdmin && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setActiveUploadSector(sector)}
-                    className="p-2 text-stone-400 hover:text-amber-400 hover:bg-[#221f1c] rounded-lg transition-colors border border-transparent hover:border-[#38332e] flex items-center gap-1 text-xs"
+                    className="p-2 text-[#A89F91] hover:text-[#C9A96E] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333] flex items-center gap-1 text-xs"
                     title="Wandfoto aktualisieren oder hochladen"
                   >
                     <Upload className="w-3.5 h-3.5" />
@@ -243,7 +242,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                   </button>
                   <button
                     onClick={() => handleDelete(sector.id)}
-                    className="p-2 text-stone-400 hover:text-red-400 hover:bg-[#221f1c] rounded-lg transition-colors border border-transparent hover:border-[#38332e]"
+                    className="p-2 text-[#A89F91] hover:text-[#A0522D] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333]"
                     title="Sektor löschen"
                   >
                     <Trash2 className="w-4 h-4" />

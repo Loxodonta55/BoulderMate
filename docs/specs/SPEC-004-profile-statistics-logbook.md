@@ -1,6 +1,6 @@
 # SPEC-004: Profil, Statistiken & Logbuch
 
-## Status: APPROVED
+## Status: DONE
 
 ## Summary
 Stellt Kletterern ein persönliches Profil mit vier Kernkennzahlen (Anzahl Tops, Anzahl Flashes, bester Top, bester Flash), einer visuellen Grad-Verteilung als gestapeltes horizontales Balkendiagramm (Flash/Top pro Hallenfarbe) und einem chronologischen Logbuch der eigenen Begehungen bereit. Ein Hallenfilter erlaubt das Umschalten zwischen globalem Gesamtüberblick und hallenspezifischer Auswertung. Das Profil ist als eigener Tab in der Bottom-Navigation erreichbar. Header und Statistiken sind öffentlich sichtbar, das Logbuch ist privat.
@@ -15,18 +15,18 @@ Stellt Kletterern ein persönliches Profil mit vier Kernkennzahlen (Anzahl Tops,
 - **US-7**: Als Kletterer möchte ich, dass andere User mein öffentliches Profil (Header + KPIs + Grad-Verteilung) sehen können, wenn sie in einem Ascent-Feed auf meinen Namen tippen, aber mein Logbuch privat bleibt.
 
 ## Acceptance Criteria
-- [ ] **AC-1: Profil-Tab**: Ein dedizierter Tab in der Bottom-Navigation zeigt das eigene Profil mit Header (Avatar, Nickname, Mitglied seit) und einem Gear-Icon für Settings.
-- [ ] **AC-2: KPI-Kacheln**: Vier Kennzahl-Kacheln werden prominent über der Grad-Verteilung angezeigt:
+- [x] **AC-1: Profil-Tab**: Ein dedizierter Tab in der Navigation zeigt das eigene Profil mit Header (Avatar, Nickname, Mitglied seit) und einem Gear-Icon für Settings.
+- [x] **AC-2: KPI-Kacheln**: Vier Kennzahl-Kacheln werden prominent über der Grad-Verteilung angezeigt:
   - Anzahl getoppte Boulder (Flash + Top)
   - Anzahl Flashes
   - Bester Top (höchstes Farbband getoppt)
   - Bester Flash (höchstes Farbband geflasht)
-- [ ] **AC-3: Grad-Verteilung**: Horizontales gestapeltes Balkendiagramm mit einer Zeile pro Hallenfarbe/Schwierigkeitsband. Balken in der Hallenfarbe, visuell unterteilt in Flashes (hellerer Abschnitt) und Tops (dunklerer Abschnitt). Gesamtzahl als Label am Balkenende.
-- [ ] **AC-4: Hallenfilter**: Ein Dropdown oder Chip-Leiste oberhalb der Statistiken erlaubt die Auswahl zwischen „Alle Hallen" (Default) und einzelnen Hallen. Filter wirkt auf KPIs, Grad-Verteilung und Logbuch gleichzeitig.
-- [ ] **AC-5: Logbuch (privat)**: Unterhalb der Grad-Verteilung zeigt eine scrollbare Liste die eigenen Begehungen in umgekehrt chronologischer Reihenfolge. Jede Zeile enthält: Farb-Badge, Hallenname, Sektorname, Begehungstyp-Icon (⚡/✅/🎯) und Datum. Tap navigiert zur Boulder-Detailseite.
-- [ ] **AC-6: Öffentliches Profil**: Wenn ein anderer User auf den Nickname/Avatar (z.B. im Ascent-Feed der Boulder-Detailseite) tippt, sieht er Header + KPIs + Grad-Verteilung. Das Logbuch wird dort **nicht** angezeigt.
-- [ ] **AC-7: Settings-Screen**: Erreichbar über Gear-Icon im Profil-Header. Bietet: Nickname ändern, Avatar-Foto hochladen/ändern, Logout-Button, Account-löschen-Button (mit Bestätigungsdialog).
-- [ ] **AC-8: Leerer Zustand**: Bei null Begehungen zeigen KPIs „0" / „–" und die Grad-Verteilung einen motivierenden Leer-Zustand (z.B. „Logge deinen ersten Boulder!").
+- [x] **AC-3: Grad-Verteilung**: Horizontales gestapeltes Balkendiagramm mit einer Zeile pro Hallenfarbe/Schwierigkeitsband. Balken in der Hallenfarbe, visuell unterteilt in Flashes (hellerer Abschnitt) und Tops (dunklerer Abschnitt). Gesamtzahl als Label am Balkenende.
+- [x] **AC-4: Hallenfilter**: Ein Dropdown oder Chip-Leiste oberhalb der Statistiken erlaubt die Auswahl zwischen „Alle Hallen" (Default) und einzelnen Hallen. Filter wirkt auf KPIs, Grad-Verteilung und Logbuch gleichzeitig.
+- [x] **AC-5: Logbuch (privat)**: Unterhalb der Grad-Verteilung zeigt eine scrollbare Liste die eigenen Begehungen in umgekehrt chronologischer Reihenfolge. Jede Zeile enthält: Farb-Badge, Hallenname, Sektorname, Begehungstyp-Icon (⚡/✅/🎯) und Datum. Tap navigiert zur Boulder-Detailseite.
+- [x] **AC-6: Öffentliches Profil**: Wenn ein anderer User auf den Nickname/Avatar (z.B. im Ascent-Feed der Boulder-Detailseite) tippt, sieht er Header + KPIs + Grad-Verteilung. Das Logbuch wird dort **nicht** angezeigt.
+- [x] **AC-7: Settings-Screen**: Erreichbar über Gear-Icon im Profil-Header. Bietet: Nickname ändern, Avatar-Foto hochladen/ändern, Logout-Button, Account-löschen-Button (mit Bestätigungsdialog).
+- [x] **AC-8: Leerer Zustand**: Bei null Begehungen zeigen KPIs „0" / „–" und die Grad-Verteilung einen motivierenden Leer-Zustand (z.B. „Logge deinen ersten Boulder!").
 
 ## Technical Design
 
@@ -135,14 +135,18 @@ LIMIT 50;
 - `ascents`: SELECT für eigene Einträge; für andere User nur COUNT-Aggregationen sichtbar (über Views/RPC), keine Einzeleinträge.
 - Statistik-Daten werden über Supabase RPC-Funktionen oder Views bereitgestellt (kein direkter Tabellenzugriff für fremde Logbücher).
 
-### UI / UX
+### UI / UX (Design System SPEC-005 Konform)
+- **Visuelle Ästhetik**: Dark-Mode First (`--bg-primary: #121212`, `--bg-surface: #1E1E1E`, `--bg-subtle: #333333`), keine abgerundeten Ecken (`0px` Radius für Kacheln, Karten, Avatare).
+- **Typografie**: Space Grotesk Bold Uppercase für Headlines, Space Mono für KPIs und Zahlen, Inter für Fließtext.
+- **Avatar**: Quadratisch (`0px` Radius), bewusst gegen den Kreis-Standard.
+- **Navigation**: Kletterer sehen 2 Tabs (`HALLE` und `PROFIL` mit integriertem Logbuch).
 
 **Profil-Screen Layout:**
 
 ```
 ┌─────────────────────────────────┐
-│  [Avatar]  Nickname        ⚙️   │
-│            Mitglied seit Mai '26│
+│  [■ Avatar]  NICKNAME      ⚙️   │
+│              Mitglied seit Mai  │
 │─────────────────────────────────│
 │  [Alle Hallen ▼]               │
 │─────────────────────────────────│
@@ -152,7 +156,7 @@ LIMIT 50;
 │  │      │ │      │ │ Top  │ │Flash │
 │  └──────┘ └──────┘ └──────┘ └──────┘
 │─────────────────────────────────│
-│  Grad-Verteilung                │
+│  GRAD-VERTEILUNG                │
 │                                 │
 │  Grün   ████████░░░░  8 (3⚡)   │
 │  Blau   ██████████░░  12 (4⚡)  │
@@ -163,7 +167,7 @@ LIMIT 50;
 │                                 │
 │  ░ = Flash │ █ = Top            │
 │─────────────────────────────────│
-│  Logbuch                        │
+│  LOGBUCH (Privat)               │
 │                                 │
 │  🔴 Minimum · Überhang  ⚡ Heute│
 │  🔵 Minimum · Platte    ✅ Heute│
@@ -172,9 +176,9 @@ LIMIT 50;
 │  🔴 Minimum · Überhang  🎯 01.09│
 │  ...                            │
 │                                 │
-└────┬──────┬──────┬──────┬──────┘
-     │ Home │Halle │  +   │Profil│
-     └──────┴──────┴──────┴──────┘
+└────────────┬────────────────────┘
+             │  🪨 HALLE  │ 🎒 PROFIL
+             └────────────┴────────────┘
 ```
 
 **Öffentliches Profil (anderer User):**

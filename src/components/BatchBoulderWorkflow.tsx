@@ -31,19 +31,29 @@ import {
   Rocket,
   ShieldAlert,
   CheckCircle2,
+  Building2,
+  Plus
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
   currentRole: GymMemberRole;
   currentUserId?: string;
   onViewLiveSectors?: () => void;
+  activeGymId?: string;
+  onSelectGym?: (gymId: string) => void;
+  onNavigateToGymManagement?: () => void;
 }
 
 export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   currentRole,
   currentUserId = 'setter-1',
+  activeGymId,
+  onSelectGym,
+  onNavigateToGymManagement,
 }) => {
+  const [gyms, setGyms] = useState<Gym[]>([]);
   const [gym, setGym] = useState<Gym | null>(null);
+  const [selectedGymId, setSelectedGymId] = useState<string>(activeGymId || '');
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [selectedSectorId, setSelectedSectorId] = useState<string>('');
   const [gradeScales, setGradeScales] = useState<GymGradeScale[]>([]);
@@ -60,21 +70,40 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // Photo replacement modal
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
 
-  // Load gym & sector data
-  useEffect(() => {
-    const gyms = getGyms();
-    if (gyms.length > 0) {
-      const currentGym = gyms[0];
-      setGym(currentGym);
+  const loadGymData = (gymIdToLoad: string, allGymsList: Gym[]) => {
+    const currentGym = allGymsList.find(g => g.id === gymIdToLoad) || allGymsList[0] || null;
+    setGym(currentGym);
+    if (currentGym) {
+      setSelectedGymId(currentGym.id);
       const gymSectors = getSectors(currentGym.id);
       setSectors(gymSectors);
       if (gymSectors.length > 0) {
         setSelectedSectorId(gymSectors[0].id);
+      } else {
+        setSelectedSectorId('');
       }
       const scales = getGradeScales(currentGym.id);
       setGradeScales(scales);
     }
-  }, []);
+  };
+
+  // Load gym & sector data
+  useEffect(() => {
+    const all = getGyms();
+    setGyms(all);
+    if (all.length > 0) {
+      const targetId = activeGymId && all.some(g => g.id === activeGymId)
+        ? activeGymId
+        : (selectedGymId && all.some(g => g.id === selectedGymId) ? selectedGymId : all[0].id);
+      loadGymData(targetId, all);
+    }
+  }, [activeGymId]);
+
+  const handleGymChange = (newGymId: string) => {
+    setSelectedGymId(newGymId);
+    onSelectGym?.(newGymId);
+    loadGymData(newGymId, gyms);
+  };
 
   // Reload boulders when sector changes
   useEffect(() => {
@@ -84,6 +113,8 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
       setSelectedBoulder(null);
       setIsSheetOpen(false);
       setHasPhotoUpdated(false);
+    } else {
+      setBoulders([]);
     }
   }, [selectedSectorId]);
 
@@ -213,16 +244,16 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // If unauthorized role (AC-1)
   if (!isAuthorized) {
     return (
-      <div className="topo-plate p-8 max-w-xl mx-auto my-12 text-center rounded-2xl space-y-4 border border-[#38332e]">
-        <div className="w-12 h-12 rounded-full bg-red-950/40 text-red-400 border border-red-800/60 flex items-center justify-center mx-auto">
+      <div className="p-8 max-w-xl mx-auto my-12 text-center rounded-none space-y-4 bg-[#1E1E1E] border border-[#333333]">
+        <div className="w-12 h-12 rounded-none bg-[#A0522D]/20 text-[#A0522D] border border-[#A0522D]/40 flex items-center justify-center mx-auto">
           <ShieldAlert className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-headline uppercase tracking-wider text-[#f4efe6]">Zugriff nur für Schrauber & Admins</h2>
-        <p className="text-xs font-mono text-[#a89f91] leading-relaxed">
+        <h2 className="text-xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Zugriff nur für Schrauber & Admins</h2>
+        <p className="text-xs font-sans text-[#A89F91] leading-relaxed">
           Du bist aktuell als <strong>Kletterer (Member)</strong> eingeloggt.
           Der Batch-Foto-Workflow zur Routenerfassung ist Schraubern (Route Settern) und Hallen-Admins vorbehalten.
         </p>
-        <p className="text-xs font-mono text-[#d97706] font-medium">
+        <p className="text-xs font-mono text-[#C9A96E] font-medium">
           💡 Nutze oben rechts den Rollen-Simulator, um zur Rolle <strong>Schrauber</strong> zu wechseln.
         </p>
       </div>
@@ -233,95 +264,138 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     <div className="space-y-6 pb-28">
       {/* Toast notification */}
       {successToast && (
-        <div className="fixed top-5 right-5 z-50 p-4 rounded-xl bg-[#181614] border border-[#d97706] text-[#f4efe6] font-mono text-xs shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-5 h-5 text-[#d97706]" />
+        <div className="fixed top-5 right-5 z-50 p-4 rounded-none bg-[#1E1E1E] border border-[#C9A96E] text-[#E8E0D4] font-mono text-xs flex items-center gap-2 animate-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-[#C9A96E]" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Sector Selection & Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#181614] p-4 rounded-2xl border border-[#38332e] shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1E1E1E] p-4 rounded-none border border-[#333333]">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[#221f1c] text-[#d97706] border border-[#38332e]">
+          <div className="p-2.5 rounded-none bg-[#2A2A2A] text-[#C9A96E] border border-[#333333]">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold text-[#d97706] uppercase tracking-widest">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-widest">
                 Batch-Schraubermodus
               </span>
-              <span className="bg-[#221f1c] text-[#a89f91] text-[10px] font-mono px-2 py-0.5 rounded border border-[#38332e]">
-                {gym?.name}
-              </span>
+              {/* Gym Selector Dropdown */}
+              <div className="flex items-center gap-1.5 bg-[#121212] border border-[#333333] rounded-none px-2 py-0.5">
+                <Building2 className="w-3 h-3 text-[#C9A96E]" />
+                <span className="text-[10px] font-mono text-[#6B6358] uppercase hidden sm:inline">Halle:</span>
+                <select
+                  value={selectedGymId}
+                  onChange={e => handleGymChange(e.target.value)}
+                  className="bg-transparent text-xs font-mono font-bold text-[#E8E0D4] focus:outline-none cursor-pointer"
+                  title="Halle für Routensetzung wechseln"
+                >
+                  {gyms.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                      {g.name} {g.city ? `(${g.city})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <h2 className="text-lg font-headline uppercase tracking-wider text-[#f4efe6]">
+            <h2 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
               Wand auswählen & Boulder erfassen
             </h2>
           </div>
         </div>
 
-        {/* Sector Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          {sectors.map(sector => {
-            const isSelected = selectedSectorId === sector.id;
-            return (
-              <button
-                key={sector.id}
-                type="button"
-                onClick={() => setSelectedSectorId(sector.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-headline uppercase tracking-wider transition flex items-center gap-1.5 ${
-                  isSelected
-                    ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                    : 'bg-[#221f1c] text-[#a89f91] hover:text-[#f4efe6] border border-[#38332e]'
-                }`}
-              >
-                <span>{sector.name}</span>
-              </button>
-            );
-          })}
+        {/* Sector Tabs (if sectors exist) */}
+        {sectors.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {sectors.map(sector => {
+              const isSelected = selectedSectorId === sector.id;
+              return (
+                <button
+                  key={sector.id}
+                  type="button"
+                  onClick={() => setSelectedSectorId(sector.id)}
+                  className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider transition flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-[#F5F0E8] text-[#121212] font-bold'
+                      : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]'
+                  }`}
+                >
+                  <span>{sector.name}</span>
+                </button>
+              );
+            })}
 
-          {/* Change Photo Button (AC-2) */}
-          <button
-            type="button"
-            onClick={() => setIsPhotoModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#221f1c] hover:bg-[#2a2622] text-[#d4cdc3] hover:text-[#f4efe6] text-xs font-mono border border-[#38332e] hover:border-[#d97706] flex items-center gap-1.5 transition"
-            title="Wandfoto aktualisieren (z.B. nach Neuschrauben)"
-          >
-            <Camera className="w-3.5 h-3.5 text-[#d97706]" />
-            <span className="hidden sm:inline">Neues Foto</span>
-          </button>
-        </div>
+            {/* Change Photo Button (AC-2) */}
+            <button
+              type="button"
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] text-xs font-mono border border-[#333333] flex items-center gap-1.5 transition"
+              title="Wandfoto aktualisieren (z.B. nach Neuschrauben)"
+            >
+              <Camera className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span className="hidden sm:inline">Neues Foto</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Main Interactive Canvas */}
-      {selectedSector && (
-        <WallPhotoCanvas
-          photoUrl={selectedSector.wallPhotoUrl}
-          boulders={boulders}
-          gradeScales={gradeScales}
-          pendingArchiveIds={pendingArchiveIds}
-          selectedBoulderId={selectedBoulder?.id || null}
-          onPhotoClick={handlePhotoClick}
-          onPinClick={handlePinClick}
-          onPinMove={handlePinMove}
-          isAddingEnabled={true}
-        />
+      {/* When no sectors exist in this gym */}
+      {sectors.length === 0 ? (
+        <div className="p-8 md:p-12 rounded-none bg-[#1E1E1E] border border-[#333333] text-center space-y-4 my-6">
+          <div className="w-14 h-14 rounded-none bg-[#2A2A2A] border border-[#333333] text-[#C9A96E] flex items-center justify-center mx-auto">
+            <Layers className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+              Keine Sektoren in „{gym?.name || 'dieser Halle'}“ vorhanden
+            </h3>
+            <p className="text-xs font-sans text-[#A89F91] max-w-md mx-auto leading-relaxed">
+              Um hier Boulder auf die Wand zu setzen, lege zuerst mindestens einen Sektor mit einem Wandfoto in der Hallen-Verwaltung an.
+            </p>
+          </div>
+          {onNavigateToGymManagement && (
+            <button
+              type="button"
+              onClick={onNavigateToGymManagement}
+              className="px-5 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] transition inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Sektoren & Wandfotos anlegen</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        /* Main Interactive Canvas */
+        selectedSector && (
+          <WallPhotoCanvas
+            photoUrl={selectedSector.wallPhotoUrl}
+            boulders={boulders}
+            gradeScales={gradeScales}
+            pendingArchiveIds={pendingArchiveIds}
+            selectedBoulderId={selectedBoulder?.id || null}
+            onPhotoClick={handlePhotoClick}
+            onPinClick={handlePinClick}
+            onPinMove={handlePinMove}
+            isAddingEnabled={true}
+          />
+        )
       )}
 
       {/* Persistent Bottom Bar (Batch Status & Trigger) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#181614]/95 backdrop-blur-xl border-t border-[#38332e] shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#1E1E1E] border-t border-[#333333]">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#221f1c] border border-emerald-600/40 text-emerald-400 text-xs font-mono font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-none bg-[#121212] border border-[#4A5D3A] text-[#4A5D3A] text-xs font-mono font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-[#4A5D3A]" />
                 {drafts.length} neu
               </span>
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#221f1c] border border-red-800/40 text-red-400 text-xs font-mono font-bold">
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-none bg-[#121212] border border-[#A0522D] text-[#A0522D] text-xs font-mono font-bold">
                 {pendingArchiveIds.length} archiviert
               </span>
             </div>
-            <p className="hidden md:block text-xs font-mono text-[#a89f91]">
+            <p className="hidden md:block text-xs font-mono text-[#A89F91]">
               Tippe ins Foto für nächsten Pin. Erst mit "Veröffentlichen" wird alles online gestellt.
             </p>
           </div>
@@ -330,7 +404,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             type="button"
             onClick={() => setIsSummaryOpen(true)}
             disabled={drafts.length === 0 && pendingArchiveIds.length === 0}
-            className="px-5 py-2.5 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-[#121110] font-headline uppercase font-bold tracking-wider text-xs shadow-lg flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Rocket className="w-4 h-4" />
             <span>Zusammenfassung & Veröffentlichen ({drafts.length + pendingArchiveIds.length})</span>

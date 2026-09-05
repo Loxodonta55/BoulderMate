@@ -22,7 +22,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
   referenceData,
   size = 280,
   showLabels = true,
-  accentColor = '#f59e0b', // amber-500
+  accentColor = '#C9A96E', // SPEC-005 Sandstone
 }) => {
   const center = size / 2;
   const maxRadius = (size / 2) * 0.65;
@@ -61,8 +61,8 @@ export const RadarChart: React.FC<RadarChartProps> = ({
         {/* Background Gradients & Filters */}
         <defs>
           <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={accentColor} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={accentColor} stopOpacity="0.02" />
+            <stop offset="0%" stopColor={accentColor} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={accentColor} stopOpacity="0.01" />
           </radialGradient>
         </defs>
 
@@ -78,7 +78,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
               key={`ring-${lvl}`}
               points={ringPoints}
               fill="none"
-              stroke="#334155"
+              stroke="#333333"
               strokeWidth={lvl === 5 ? '1.5' : '0.75'}
               strokeDasharray={lvl < 5 ? '3 3' : undefined}
               className="transition-all"
@@ -96,7 +96,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
               y1={center}
               x2={outer.x}
               y2={outer.y}
-              stroke="#334155"
+              stroke="#333333"
               strokeWidth="1"
             />
           );
@@ -107,7 +107,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
           <polygon
             points={refPoints}
             fill="none"
-            stroke="#94a3b8"
+            stroke="#6B6358"
             strokeWidth="1.5"
             strokeDasharray="4 4"
             className="opacity-60"
@@ -119,9 +119,9 @@ export const RadarChart: React.FC<RadarChartProps> = ({
           points={primaryPoints}
           fill="url(#radarGlow)"
           stroke={accentColor}
-          strokeWidth="2.5"
+          strokeWidth="2"
           strokeLinejoin="round"
-          className="transition-all duration-500 ease-out filter drop-shadow-[0_2px_8px_rgba(245,158,11,0.2)]"
+          className="transition-all duration-300 ease-out"
         />
 
         {/* Data points on vertices */}
@@ -133,10 +133,10 @@ export const RadarChart: React.FC<RadarChartProps> = ({
               key={`point-${idx}`}
               cx={x}
               cy={y}
-              r="4.5"
-              fill="#0f172a"
+              r="4"
+              fill="#121212"
               stroke={accentColor}
-              strokeWidth="2.5"
+              strokeWidth="2"
               className="transition-all duration-300"
             />
           );
@@ -167,7 +167,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
                   y={ly - 4}
                   textAnchor={textAnchor}
                   dominantBaseline="central"
-                  className="fill-slate-300 text-[11px] font-bold tracking-tight"
+                  className="fill-[#A89F91] text-[10px] font-bold uppercase tracking-wider font-headline"
                 >
                   {label}
                 </text>
@@ -176,7 +176,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
                   y={ly + 10}
                   textAnchor={textAnchor}
                   dominantBaseline="central"
-                  className="fill-amber-400 text-[10px] font-extrabold"
+                  className="fill-[#E8E0D4] text-[10px] font-mono font-bold"
                 >
                   {val.toFixed(1)}/5
                 </text>
@@ -187,14 +187,14 @@ export const RadarChart: React.FC<RadarChartProps> = ({
 
       {/* Legend if referenceData is provided */}
       {referenceData && (
-        <div className="flex items-center gap-4 text-[11px] mt-2 font-medium">
+        <div className="flex items-center gap-4 text-[11px] mt-2 font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
-            <span className="text-slate-200">Community Schnitt</span>
+            <span className="w-2 h-2 rounded-none" style={{ backgroundColor: accentColor }} />
+            <span className="text-[#E8E0D4]">Community</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-t-2 border-dashed border-slate-400" />
-            <span className="text-slate-400">Schrauber-Basis</span>
+            <span className="w-3 h-0.5 border-t-2 border-dashed border-[#6B6358]" />
+            <span className="text-[#A89F91]">Schrauber</span>
           </div>
         </div>
       )}

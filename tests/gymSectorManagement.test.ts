@@ -16,6 +16,14 @@ import {
   CURRENT_USER
 } from '../src/lib/gymStorage';
 import type { BoulderReference } from '../src/types/gym';
+import {
+  getGyms as getBatchGyms,
+  getSectors as getBatchSectors,
+  getGradeScales as getBatchGradeScales,
+  createDraftBoulder,
+  publishBatch,
+  getWallBoulders
+} from '../src/lib/batchBoulderService';
 
 describe('SPEC-001: Hallen- & Sektor-Verwaltung', () => {
   beforeEach(() => {
@@ -208,5 +216,52 @@ describe('SPEC-001: Hallen- & Sektor-Verwaltung', () => {
 
     const slabSector = results[0].sectors.find(s => s.name === 'Platte');
     expect(slabSector?.active_boulder_count).toBe(0);
+  });
+
+  it('AC-8: allows setters to seamlessly switch to created gym and screw/publish routes on its sectors', () => {
+    const gym = createGym({ name: 'Griffig Uster', city: 'Uster' });
+    const sec = createSector(gym.id, CURRENT_USER.id, {
+      name: 'Wettkampfwand',
+      wall_photo_url: 'https://photos/griffig-comp.jpg'
+    });
+
+    // Verify batchBoulderService sees custom gym & sector
+    const allGyms = getBatchGyms();
+    expect(allGyms.some(g => g.id === gym.id)).toBe(true);
+
+    const sectors = getBatchSectors(gym.id);
+    expect(sectors.length).toBe(1);
+    expect(sectors[0].id).toBe(sec.id);
+    expect(sectors[0].name).toBe('Wettkampfwand');
+
+    const scales = getBatchGradeScales(gym.id);
+    expect(scales.length).toBeGreaterThan(0);
+
+    // Setter screws a route on this custom gym sector
+    const draft = createDraftBoulder(
+      {
+        sectorId: sec.id,
+        gradeScaleId: scales[0].id,
+        positionX: 0.5,
+        positionY: 0.5,
+        name: 'Uster Testroute',
+        setterId: CURRENT_USER.id
+      },
+      'setter'
+    );
+    expect(draft.id).toBeDefined();
+
+    // Publish route
+    const publishResult = publishBatch(sec.id, CURRENT_USER.id, []);
+    expect(publishResult.publishedCount).toBe(1);
+
+    // Verify Climber view and gym search see the active boulder
+    const activeBoulders = getWallBoulders(sec.id).filter(b => b.status === 'active');
+    expect(activeBoulders.length).toBe(1);
+    expect(activeBoulders[0].name).toBe('Uster Testroute');
+
+    const gymsWithStats = searchGymsWithSectors('Uster');
+    expect(gymsWithStats.length).toBe(1);
+    expect(gymsWithStats[0].sectors[0].active_boulder_count).toBe(1);
   });
 });

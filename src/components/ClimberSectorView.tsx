@@ -26,15 +26,27 @@ import {
   Clock,
   Star,
   Info,
-  ChevronRight
+  ChevronRight,
+  Building2,
+  Plus
 } from 'lucide-react';
 
 interface ClimberSectorViewProps {
   currentUser: CurrentUser;
+  activeGymId?: string;
+  onSelectGym?: (gymId: string) => void;
+  onNavigateToSetter?: () => void;
 }
 
-export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUser }) => {
+export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
+  currentUser,
+  activeGymId,
+  onSelectGym,
+  onNavigateToSetter,
+}) => {
+  const [gyms, setGyms] = useState<Gym[]>([]);
   const [gym, setGym] = useState<Gym | null>(null);
+  const [selectedGymId, setSelectedGymId] = useState<string>(activeGymId || '');
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [selectedSectorId, setSelectedSectorId] = useState<string>('');
   const [gradeScales, setGradeScales] = useState<GymGradeScale[]>([]);
@@ -42,21 +54,40 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [dataVersion, setDataVersion] = useState<number>(0);
 
-  // Load initial gym & sectors
-  useEffect(() => {
-    const gyms = getGyms();
-    if (gyms.length > 0) {
-      const currentGym = gyms[0];
-      setGym(currentGym);
+  const loadGymData = (gymIdToLoad: string, allGymsList: Gym[]) => {
+    const currentGym = allGymsList.find(g => g.id === gymIdToLoad) || allGymsList[0] || null;
+    setGym(currentGym);
+    if (currentGym) {
+      setSelectedGymId(currentGym.id);
       const gymSectors = getSectors(currentGym.id);
       setSectors(gymSectors);
       if (gymSectors.length > 0) {
         setSelectedSectorId(gymSectors[0].id);
+      } else {
+        setSelectedSectorId('');
       }
       const scales = getGradeScales(currentGym.id);
       setGradeScales(scales);
     }
-  }, []);
+  };
+
+  // Load initial gym & sectors
+  useEffect(() => {
+    const all = getGyms();
+    setGyms(all);
+    if (all.length > 0) {
+      const targetId = activeGymId && all.some(g => g.id === activeGymId)
+        ? activeGymId
+        : (selectedGymId && all.some(g => g.id === selectedGymId) ? selectedGymId : all[0].id);
+      loadGymData(targetId, all);
+    }
+  }, [activeGymId]);
+
+  const handleGymChange = (newGymId: string) => {
+    setSelectedGymId(newGymId);
+    onSelectGym?.(newGymId);
+    loadGymData(newGymId, gyms);
+  };
 
   // Reload boulders when sector changes or data updates
   useEffect(() => {
@@ -84,60 +115,103 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
   return (
     <div className="space-y-6">
       {/* Sector Selection Bar */}
-      <div className="bg-[#181614] border border-[#38332e] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-[#d97706] uppercase tracking-widest mb-1">
-            <Layers className="w-3.5 h-3.5" />
-            <span>{gym?.name || 'Boulderhalle'}</span>
+      <div className="bg-[#1E1E1E] border border-[#333333] p-4 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-widest mb-1">
+              <Layers className="w-3.5 h-3.5" />
+              <span>{gym?.name || 'Boulderhalle'}</span>
+            </div>
+            <h2 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Sektoren & Wandansicht</h2>
           </div>
-          <h2 className="text-lg font-headline uppercase tracking-wider text-[#f4efe6]">Sektoren & Wandansicht</h2>
+
+          {gyms.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-[#6B6358] uppercase">Halle:</span>
+              <select
+                value={selectedGymId}
+                onChange={e => handleGymChange(e.target.value)}
+                className="bg-[#121212] border border-[#333333] text-[#E8E0D4] text-xs font-mono rounded-none px-2.5 py-1 focus:outline-none focus:border-[#C9A96E]"
+              >
+                {gyms.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Sector Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          {sectors.map(sector => {
-            const isSelected = sector.id === selectedSectorId;
-            return (
-              <button
-                key={sector.id}
-                type="button"
-                onClick={() => setSelectedSectorId(sector.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-headline uppercase tracking-wider transition flex items-center gap-2 ${
-                  isSelected
-                    ? 'bg-[#d97706] text-[#121110] font-bold shadow'
-                    : 'bg-[#221f1c] text-[#a89f91] hover:text-[#f4efe6] border border-[#38332e]'
-                }`}
-              >
-                <span>{sector.name}</span>
-              </button>
-            );
-          })}
-        </div>
+        {sectors.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {sectors.map(sector => {
+              const isSelected = sector.id === selectedSectorId;
+              return (
+                <button
+                  key={sector.id}
+                  type="button"
+                  onClick={() => setSelectedSectorId(sector.id)}
+                  className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider transition flex items-center gap-2 ${
+                    isSelected
+                      ? 'bg-[#F5F0E8] text-[#121212] font-bold'
+                      : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]'
+                  }`}
+                >
+                  <span>{sector.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {sectors.length === 0 && (
+        <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-8 text-center max-w-lg mx-auto">
+          <Building2 className="w-12 h-12 text-[#C9A96E] mx-auto mb-3 opacity-80" />
+          <h3 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4] mb-2">
+            Keine Sektoren in "{gym?.name || 'dieser Halle'}"
+          </h3>
+          <p className="text-sm font-sans text-[#A89F91] mb-6">
+            In dieser Boulderhalle wurden noch keine Sektoren mit Wandfotos angelegt. Schrauber können unter "Schrauber &gt; Hallen & Sektoren" neue Sektoren mit Fotos hochladen.
+          </p>
+          {onNavigateToSetter && (
+            <button
+              type="button"
+              onClick={onNavigateToSetter}
+              className="px-4 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase tracking-wider font-bold rounded-[2px] text-xs transition inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Zum Schrauber-Bereich</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {selectedSector && (
         <>
           {/* Wall Photo Canvas with Interactive Pins (AC-1) */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between px-1 text-xs font-mono text-[#a89f91]">
+            <div className="flex items-center justify-between px-1 text-xs font-mono text-[#A89F91]">
               <span className="flex items-center gap-1.5 font-medium">
-                <Info className="w-3.5 h-3.5 text-[#d97706]" />
+                <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
                 <span>Tippe auf einen Pin im Foto für Detailansicht, Bewertungen & Logging</span>
               </span>
-              <span className="font-semibold text-[#f4efe6]">
+              <span className="font-semibold text-[#E8E0D4]">
                 {boulders.length} {boulders.length === 1 ? 'aktiver Boulder' : 'aktive Boulder'}
               </span>
             </div>
 
-            <div className="relative w-full rounded-2xl overflow-hidden topo-plate border border-[#38332e] shadow-2xl">
-              <div className="relative w-full max-h-[600px] overflow-hidden flex items-center justify-center bg-black/40">
+            <div className="relative w-full rounded-none overflow-hidden border border-[#333333]">
+              <div className="relative w-full max-h-[600px] overflow-hidden flex items-center justify-center bg-black">
                 <img
                   src={selectedSector.wallPhotoUrl}
                   alt={selectedSector.name}
                   className="w-full h-auto object-cover max-h-[600px] block select-none pointer-events-none"
                 />
 
-                {/* Pin Overlay (AC-1) */}
+                {/* Pin Overlay (AC-1) - Pins on photo are circular (SPEC-005 sole exception) */}
                 {boulders.map(boulder => {
                   const scale = scaleMap.get(boulder.gradeScaleId);
                   const userAscent = getUserAscent(currentUser.id, boulder.id);
@@ -160,27 +234,27 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
                       {/* Pulse Ring */}
                       <span
                         className="absolute -inset-1.5 rounded-full opacity-75 animate-ping"
-                        style={{ backgroundColor: scale?.colorHex || '#f59e0b' }}
+                        style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
                       />
 
-                      {/* Main Pin Disc */}
+                      {/* Main Pin Disc (SPEC-005: 50% circle) */}
                       <div
-                        className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121110] shadow-xl flex items-center justify-center transition-all group-hover:ring-4 group-hover:ring-[#f4efe6]/30"
-                        style={{ backgroundColor: scale?.colorHex || '#f59e0b' }}
+                        className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8]"
+                        style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
                       >
                         {/* Status Icon Indicator */}
-                        {isFlash && <Zap className="w-4 h-4 text-[#121110] fill-[#121110]" />}
-                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121110]" />}
-                        {isProject && <Clock className="w-3.5 h-3.5 text-[#121110]" />}
+                        {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
+                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
+                        {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
                         {!userAscent && (
-                          <span className="text-[11px] font-headline font-bold text-[#121110] drop-shadow">
+                          <span className="text-[11px] font-mono font-bold text-[#121212]">
                             {scale?.colorName?.[0] || '●'}
                           </span>
                         )}
                       </div>
 
-                      {/* Pin Label Tag */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-md bg-[#181614] border border-[#38332e] text-[10px] font-mono font-bold text-[#f4efe6] whitespace-nowrap opacity-90 group-hover:opacity-100 shadow-md">
+                      {/* Pin Label Tag - 0px */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-90 group-hover:opacity-100">
                         {boulder.name || scale?.colorName || 'Route'}
                       </div>
                     </button>
@@ -192,9 +266,9 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
 
           {/* Boulder Route List in this Sector */}
           <div className="space-y-3">
-            <h3 className="text-base font-headline uppercase tracking-wider text-[#f4efe6] px-1 flex items-center gap-2">
+            <h3 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4] px-1 flex items-center gap-2">
               <span>Routen in {selectedSector.name}</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-md bg-[#221f1c] text-[#a89f91] font-mono font-semibold border border-[#38332e]">
+              <span className="text-xs px-2.5 py-0.5 rounded-none bg-[#2A2A2A] text-[#A89F91] font-mono font-semibold border border-[#333333]">
                 {boulders.length}
               </span>
             </h3>
@@ -211,20 +285,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
                   <div
                     key={boulder.id}
                     onClick={() => setSelectedBoulder(boulder)}
-                    className="p-4 rounded-xl bg-[#181614] border border-[#38332e] hover:border-[#d97706] transition cursor-pointer flex flex-col justify-between group shadow-lg"
+                    className="p-4 rounded-none bg-[#1E1E1E] border border-[#333333] hover:border-[#8B8680] transition cursor-pointer flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2.5">
+                          {/* Badge outside wall photo: square 0px */}
                           <div
-                            className="w-5 h-5 rounded-full border-2 border-black/30 shadow-sm shrink-0"
-                            style={{ backgroundColor: scale?.colorHex || '#f59e0b' }}
+                            className="w-5 h-5 rounded-none border border-black/40 shrink-0"
+                            style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
                           />
                           <div>
-                            <h4 className="text-sm font-headline uppercase tracking-wider text-[#f4efe6] group-hover:text-[#f59e0b] transition">
+                            <h4 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4] group-hover:text-[#F5F0E8] transition">
                               {boulder.name || `${scale?.colorName || 'Boulder'} Problem`}
                             </h4>
-                            <span className="text-[11px] font-mono text-[#a89f91]">
+                            <span className="text-[11px] font-mono text-[#A89F91]">
                               {scale?.difficultyLabel} • Fb {scale?.fontRangeMin} - {scale?.fontRangeMax}
                             </span>
                           </div>
@@ -232,45 +307,45 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({ currentUse
 
                         {/* Ascent Badge */}
                         {userAscent?.type === 'flash' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#221f1c] text-[#f59e0b] border border-[#d97706]/40 flex items-center gap-1">
-                            <Zap className="w-3 h-3 fill-[#f59e0b]" />
+                          <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
+                            <Zap className="w-3 h-3 fill-[#C9A96E]" />
                             <span>Flash</span>
                           </span>
                         )}
                         {userAscent?.type === 'top' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#221f1c] text-emerald-400 border border-emerald-600/40 flex items-center gap-1">
-                            <Trophy className="w-3 h-3" />
+                          <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#4A5D3A] border border-[#4A5D3A]/50 flex items-center gap-1">
+                            <Trophy className="w-3 h-3 text-[#4A5D3A]" />
                             <span>Top</span>
                           </span>
                         )}
                         {userAscent?.type === 'project' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#221f1c] text-sky-400 border border-sky-600/40 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                          <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#A89F91] border border-[#333333] flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-[#A89F91]" />
                             <span>Projekt</span>
                           </span>
                         )}
                       </div>
 
                       {boulder.notes && (
-                        <p className="text-xs font-mono text-[#a89f91] line-clamp-2 my-2 italic">
+                        <p className="text-xs font-mono text-[#A89F91] line-clamp-2 my-2 italic">
                           "{boulder.notes}"
                         </p>
                       )}
                     </div>
 
                     {/* Footer KPI of Route Card */}
-                    <div className="pt-3 mt-2 border-t border-[#38332e] flex items-center justify-between text-xs font-mono text-[#a89f91]">
-                      <div className="flex items-center gap-1 text-[#f59e0b] font-bold">
-                        <Star className="w-3.5 h-3.5 fill-[#f59e0b]" />
+                    <div className="pt-3 mt-2 border-t border-[#333333] flex items-center justify-between text-xs font-mono text-[#A89F91]">
+                      <div className="flex items-center gap-1 text-[#C9A96E] font-bold">
+                        <Star className="w-3.5 h-3.5 fill-[#C9A96E]" />
                         <span>{stats.avgStars > 0 ? stats.avgStars.toFixed(1) : '–'}</span>
-                        <span className="text-[10px] text-[#78716c] font-normal">
+                        <span className="text-[10px] text-[#6B6358] font-normal">
                           ({stats.totalRatings})
                         </span>
                       </div>
 
-                      <span className="text-[11px] text-[#d4cdc3] flex items-center gap-1 group-hover:text-[#f59e0b] transition font-semibold">
+                      <span className="text-[11px] text-[#E8E0D4] flex items-center gap-1 group-hover:text-[#F5F0E8] transition font-semibold">
                         <span>Details & Log</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-[#d97706]" />
+                        <ChevronRight className="w-3.5 h-3.5 text-[#C9A96E]" />
                       </span>
                     </div>
                   </div>
