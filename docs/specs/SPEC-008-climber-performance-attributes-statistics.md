@@ -3,7 +3,7 @@
 ## Status: APPROVED (SDD Autonomous Mode)
 
 ## Summary
-Erweitert das persönliche Kletterer-Profil (SPEC-004) um eine tiefgehende multidimensionale Performance-Analyse. Das Feature setzt die individuellen Begehungserfolge (Flash, Top, Projekt) in direkte Relation zu den 5 Boulder-Attributen (**Kraft**, **Technik**, **Balance**, **Koordination**, **Flexibilität**) und dem jeweiligen Schwierigkeitsgrad. Über einen grad-normalisierten Performance-Index (GNPI) mit Relevanz-Filterung für den Grenzbereich (Limit-Klettern) wird ein persönliches **Athleten-Radar** berechnet. Dieses wird dem **Hallen-Anforderungsprofil** gegenübergestellt, leitet automatisch primäre **Stärken** und **Baustellen (Schwächen)** ab und liefert kletterspezifische Trainingsempfehlungen.
+Erweitert das persönliche Kletterer-Profil (SPEC-004) um eine tiefgehende multidimensionale Performance-Analyse. Das Feature setzt individuelle Begehungserfolge (Flash, Top, Projekt) in direkte mathematische Relation zu den 5 Boulder-Attributen (**Kraft**, **Technik**, **Balance**, **Koordination**, **Flexibilität**) und dem jeweiligen Schwierigkeitsgrad. Über einen grad-normalisierten Performance-Index (GNPI) mit Relevanz-Filterung für den Grenzbereich (Limit-Klettern) wird ein persönliches **Athleten-Radar** berechnet. Dieses wird dem **Hallen-Anforderungsprofil** gegenübergestellt, leitet automatisch die primäre **Stärke** und die wichtigste **Baustelle (Schwäche)** ab und liefert kletterspezifische Trainingsempfehlungen.
 
 ---
 
@@ -18,7 +18,7 @@ Die bloße Zählung von Tops führt zu groben Verzerrungen: Ein Aufwärmboulder 
    * Alle Boulderschwierigkeiten werden als Delta $\Delta G_i = G_i - G_{\text{median}}$ relativ zum Klettererniveau gemessen.
 
 2. **Grenzbereich-Relevanzfilter (Limit-Climbing Relevance $R_i$)**:
-   * Bouldern, die weit unter dem persönlichen Niveau liegen ($\Delta G < -2$, z.B. Aufwärmboulder), wird nur eine geringe statistische Relevanz beigemessen ($R_i = 0.25$).
+   * Bouldern weit unter dem persönlichen Niveau ($\Delta G < -2$, z.B. Aufwärmboulder) wird nur geringe statistische Relevanz beigemessen ($R_i = 0.25$).
    * Boulder im Grenzbereich ($\Delta G \in [-1, +2]$) und darüber erhalten volles Gewicht ($R_i = 1.0$).
    $$R(G_i) = \begin{cases} 
    1.0 & \text{wenn } G_i \ge G_{\text{median}} - 1 \\ 
@@ -81,15 +81,18 @@ $$\text{AthletenRadar}_a = \text{clamp}\left(1.0, \, 5.0, \, 3.0 + 1.5 \cdot (P_
 - **US-2**: Als Kletterer möchte ich mein Athleten-Radar direkt im Vergleich zum Anforderungsprofil der Halle sehen (Doppel-Polygon).
 - **US-3**: Als Kletterer möchte ich in zwei markanten Infokarten meine größte Stärke und meine größte Schwachstelle mit konkreten Daten und Empfehlungen lesen.
 - **US-4**: Als Kletterer möchte ich das Grade-Ceiling (härtester Top) pro Klettereigenschaft sehen.
+- **US-5**: Als Kletterer möchte ich aktive Routenempfehlungen der aktuellen Halle erhalten, die genau meine Schwachstelle trainieren.
+- **US-6**: Als Kletterer möchte ich zwischen Einzelauswertung für eine Halle und einer globalen Auswertung über alle Hallen umschalten können.
 
 ### Acceptance Criteria
 - [x] **AC-1**: Profil-Screen bietet Segmentierung: `[ÜBERSICHT]` und `[STIL & PERFORMANCE]`.
-- [x] **AC-2**: 5-Achsen SVG-Chart rendert dein Profil (Glow) + Hallen-Anforderungsprofil (gestrichelte Granit-Linie).
+- [x] **AC-2**: 5-Achsen SVG-Chart rendert dein Profil (Sandstein-Glow) + Hallen-Anforderungsprofil (gestrichelte Granit-Linie).
 - [x] **AC-3**: Grad-Normalisierung filtert Aufwärmboulder mit geringerem Gewicht und gewichtet Limit-Tops/Drops exponentiell.
 - [x] **AC-4**: Stärken-Karte (Moosgrün `#4A5D3A`) und Baustellen-Karte (Lehmrot `#A0522D`) nennen konkrete Kennzahlen (Send-Quote, Delta zum Hallenschnitt, Grade-Ceiling).
 - [x] **AC-5**: Konkrete Boulder-Empfehlung: Schlägt 1–2 aktive Boulder der Halle vor, die genau die aktuelle Baustelle trainieren.
 - [x] **AC-6**: Umschaltbar zwischen einzelner Halle (zeigt spezifischen Hallenschnitt) und „Alle Hallen" (zeigt globalen Boulder-Schnitt).
 - [x] **AC-7**: Mindestanzahl $\ge 5$ Logs für Freischaltung; sonst Fortschritts-Felsblock.
+- [x] **AC-8**: Privatsphäre: Das Athleten-Radar ist im öffentlichen Profil anderer Kletterer sichtbar (zeigt deren Klettertyp), detaillierte Baustellen/Trainingsempfehlungen bleiben **privat**.
 
 ---
 
@@ -135,3 +138,79 @@ $$\text{AthletenRadar}_a = \text{clamp}\left(1.0, \, 5.0, \, 3.0 + 1.5 \cdot (P_
 │                                                        │
 └────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 6. Technische Datenstrukturen (TypeScript)
+
+```typescript
+export interface StyleAttributeMetric {
+  key: keyof RadarAttributes;
+  label: string;
+  userScore: number;       // 1.0 - 5.0
+  gymScore: number;        // 1.0 - 5.0
+  delta: number;           // userScore - gymScore
+  sendRatePercent: number; // 0 - 100
+  flashRatePercent: number;// 0 - 100
+  highestGradeTopped?: GymGradeScale;
+  attemptsCount: number;
+}
+
+export interface PerformanceInsight {
+  attribute: keyof RadarAttributes;
+  attributeLabel: string;
+  type: 'strength' | 'weakness';
+  headline: string;
+  description: string;
+  metricHighlight: string;
+  recommendedBoulder?: {
+    id: string;
+    name: string;
+    sectorName: string;
+    gradeColorHex: string;
+    gradeLabel: string;
+    attributeValue: number;
+  };
+}
+
+export interface AthletePerformanceReport {
+  userId: string;
+  gymId: string;
+  isUnlocked: boolean;      // true if loggedAscents >= 5
+  loggedAscentsCount: number;
+  minRequiredAscents: number;// 5
+  medianGradeOrder: number;
+  userRadar: RadarAttributes;
+  gymRadar: RadarAttributes;
+  strength: PerformanceInsight | null;
+  weakness: PerformanceInsight | null;
+  attributeMetrics: StyleAttributeMetric[];
+}
+```
+
+---
+
+## 7. Edge Cases & Robustheit
+
+1. **Weniger als 5 Begehungen**:
+   Anzeige einer motivierenden Felsblock-Box: „Noch $X$ Begehungen bis zur Freischaltung deines persönlichen Kletterprofils.“
+2. **Keine Boulder im Gym**:
+   Hallen-Radar fällt stabil auf Standardwerte (3.0) zurück.
+3. **Kletterer loggt nur eine Boulderfarbe / einen Stil**:
+   Attribut-Delta wird vorsichtig gedeckelt, kein Absturz durch Nulldivision.
+4. **Alle Versuche sind Flashes**:
+   Send-Rate und Flash-Rate bleiben sauber auf 100% geklammert.
+
+---
+
+## 8. Verifikation & Testplan
+
+1. **Unit-Tests (`tests/performanceService.test.ts`)**:
+   - Korrekte Berechnung des Median-Grads.
+   - Richtige Filterung von Aufwärmbouldern durch Relevanzfaktor $R(G)$.
+   - Exakte Bestimmung von Stärke ($\max \Delta$) und Schwäche ($\min \Delta$).
+   - Fallback bei $< 5$ Begehungen.
+2. **UI-Tests (`tests/performanceComponents.test.tsx`)**:
+   - Segment-Umschaltung zwischen `Übersicht` und `Stil & Performance`.
+   - Rendern des Doppel-Radars (User-Polygon + Gym-Polygon).
+   - Anzeige von Stärken- und Schwächen-Karten mit korrekten Farbakzenten.

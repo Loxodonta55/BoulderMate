@@ -159,7 +159,7 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 ## 8. Logbuch & Statistiken
 
 - **Begehungsarten**: `Flash` (⚡), `Top` (✅), `Projekt` (🎯)
-- **Persönliche Statistiken**: Grad-Verteilung (Balkendiagramm)
+- **Persönliche Statistiken**: Grad-Verteilung (Balkendiagramm) sowie multidimensionale Stil- & Performance-Statistik (Athleten-Radar & Stärken/Baustellen-Analyse vs. Hallenschnitt, SPEC-008)
 
 ---
 
