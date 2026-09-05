@@ -40,7 +40,7 @@ export const SEED_SECTORS: Sector[] = [
     id: 'sector-overhang',
     gymId: 'gym-minimum-zh',
     name: 'Überhang 45°',
-    wallPhotoUrl: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=1600&q=80',
+    wallPhotoUrl: '/images/walls/overhang.jpg',
     sortOrder: 1,
     createdAt: '2026-09-01T10:00:00Z',
   },
@@ -48,15 +48,15 @@ export const SEED_SECTORS: Sector[] = [
     id: 'sector-slab',
     gymId: 'gym-minimum-zh',
     name: 'Platte (Slab & Balance)',
-    wallPhotoUrl: 'https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1600&q=80',
+    wallPhotoUrl: '/images/walls/slab.jpg',
     sortOrder: 2,
     createdAt: '2026-09-01T10:00:00Z',
   },
   {
     id: 'sector-roof',
     gymId: 'gym-minimum-zh',
-    name: 'Wettkampf-Dach',
-    wallPhotoUrl: 'https://images.unsplash.com/photo-1516592673884-4a382d1124c2?auto=format&fit=crop&w=1600&q=80',
+    name: 'Wettkampf-Dach & Cave',
+    wallPhotoUrl: '/images/walls/roof.jpg',
     sortOrder: 3,
     createdAt: '2026-09-01T10:00:00Z',
   },
@@ -153,7 +153,27 @@ export function getSectors(gymId: string): Sector[] {
     return SEED_SECTORS.filter(s => s.gymId === gymId);
   }
   try {
-    const all: Sector[] = JSON.parse(data);
+    let all: Sector[] = JSON.parse(data);
+    // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
+    let hasMigrated = false;
+    all = all.map(s => {
+      if (s.wallPhotoUrl.includes('photo-1522163182402')) {
+        hasMigrated = true;
+        return { ...s, wallPhotoUrl: '/images/walls/overhang.jpg' };
+      }
+      if (s.wallPhotoUrl.includes('photo-1564769662533') || s.wallPhotoUrl.includes('photo-1564769625905')) {
+        hasMigrated = true;
+        return { ...s, wallPhotoUrl: '/images/walls/slab.jpg' };
+      }
+      if (s.wallPhotoUrl.includes('photo-1516592673884')) {
+        hasMigrated = true;
+        return { ...s, wallPhotoUrl: '/images/walls/roof.jpg' };
+      }
+      return s;
+    });
+    if (hasMigrated) {
+      setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(all));
+    }
     return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
   } catch {
     return SEED_SECTORS.filter(s => s.gymId === gymId);

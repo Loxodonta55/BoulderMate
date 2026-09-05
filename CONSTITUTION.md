@@ -170,9 +170,22 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 
 ---
 
-## 10. Design-Prinzipien
+## 10. Design-Prinzipien & UI-Architektur
 
-1. **Speed > Features**: Blitzschnelle Erfassung und Bewertung.
-2. **Schrauber-First**: Kein administrativer Frust nach stundenlangem Schrauben.
-3. **Visuell > Text**: Wandfotos, interaktive Marker, Radar-Charts.
-4. **Keine Datenverluste**: Archivierung statt Löschung – jeder Send bleibt im Profil.
+1. **Stets sehr aufgeräumtes, reduziertes Design (Klarheit vor Masse)**:
+   - Wenige, dafür klar erkennbare und strikt getrennte Features.
+   - Ruhiges, aufgeräumtes Layout mit großzügigem Weißraum / Stone-Spacing, klaren visuellen Hierarchien und Verzicht auf visuelle Überladung (*Visual Clutter*).
+   - Jede Ansicht erfüllt genau einen Hauptzweck (Fokus-Design).
+
+2. **Schrauber- & Admin-Bereich unprominent halten**:
+   - Die App wird zu über 95% von Kletterern im Hallenalltag genutzt.
+   - Schrauber- und Hallenverwaltungs-Funktionen dürfen das Kletterer-Erlebnis niemals dominieren oder die primäre Navigation überfrachten.
+   - Routenbau- und Admin-Werkzeuge sind dezent platziert (sekundäres Einstellungsmenü / dezenter Schrauber-Schalter) und treten nur bei gezielter Nutzung in den Vordergrund.
+
+3. **Visuell > Text & Blitzschnelle Bedienung**:
+   - Wandfotos, interaktive Marker, klare Grad-Badges und Radar-Charts statt langer Textpassagen.
+   - Loggen einer Route in unter 2 Klicks.
+
+4. **Keine Datenverluste & saubere Trennung**:
+   - Archivierung statt Löschung – jeder Send bleibt im persönlichen Profil erhalten.
+   - Strikte Trennung zwischen Hallen-Ebene, Wand-Ebene und persönlichem Logbuch.

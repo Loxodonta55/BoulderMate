@@ -1,6 +1,6 @@
 # SPEC-003: Boulder-Detailansicht, Bewertungen & Logging
 
-## Status: IMPLEMENTING
+## Status: DONE
 
 ## Summary
 Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwierigkeitsband, Community-Qualität, Grade-Feeling und Radar-Chart zu Klettereigenschaften), das Loggen eigener Begehungen (Flash, Top, Projekt) sowie die direkte Bewertung nach dem Durchstieg. Das Bewertungssystem umfasst ein 3-stufiges Grad-Empfinden (Soft / Fair / Stiff), eine 5-Sterne Qualitäts-/Spaßwertung sowie eine 5-Achsen-Charakterisierung (Kraft, Technik, Balance, Koordination, Flexibilität), deren Durchschnitt gemeinsam mit der initialen Schrauber-Einschätzung aggregiert wird.
@@ -15,21 +15,21 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
 - **US-7**: Als Kletterer möchte ich sehen, welche anderen Nutzer den Boulder bereits getoppt oder geflasht haben.
 
 ## Acceptance Criteria
-- [ ] **AC-1: Navigation & Detailansicht**: Antippen eines aktiven Boulder-Pins navigiert zur vollständigen Detailseite mit Header (Farb-Badge, Schwierigkeitsband, Sternedurchschnitt, Soft/Fair/Stiff-Barometer), Radar-Chart und Aktionen.
-- [ ] **AC-2: Radar-Chart Aggregation**: Das Radar-Chart zeigt den gewichteten Mittelwert aus Schrauber-Initialbewertung und Community-Ratings (Schrauber-Gewichtung anfangs dominant, Community-Einfluss steigt mit Bewertungsanzahl).
-- [ ] **AC-3: Begehungs-Logging (Ascents)**: Nutzer können pro Boulder den Status `flash`, `top` oder `project` setzen. Ein neuer Top/Flash überschreibt vorherigen Projekt-Status.
-- [ ] **AC-4: Automatischer Bewertungs-Trigger**: Direkt nach erfolgreichem Speichern eines `top` oder `flash` Logs öffnet sich ein Bewertungs-Sheet (mit "Überspringen"-Button).
-- [ ] **AC-5: Manuelle Bewertung**: Auf der Detailseite existiert ein separater "Bewerten"-Button, um auch unabhängig vom Logzeitpunkt Feedback abzugeben oder anzupassen.
-- [ ] **AC-6: Kompaktes Bewertungs-Formular**:
+- [x] **AC-1: Navigation & Detailansicht**: Antippen eines aktiven Boulder-Pins navigiert zur vollständigen Detailseite mit Header (Farb-Badge, Schwierigkeitsband, Sternedurchschnitt, Soft/Fair/Stiff-Barometer), Radar-Chart und Aktionen.
+- [x] **AC-2: Radar-Chart Aggregation**: Das Radar-Chart zeigt den gewichteten Mittelwert aus Schrauber-Initialbewertung und Community-Ratings (Schrauber-Gewichtung anfangs dominant, Community-Einfluss steigt mit Bewertungsanzahl).
+- [x] **AC-3: Begehungs-Logging (Ascents)**: Nutzer können pro Boulder den Status `flash`, `top` oder `project` setzen. Ein neuer Top/Flash überschreibt vorherigen Projekt-Status.
+- [x] **AC-4: Automatischer Bewertungs-Trigger**: Direkt nach erfolgreichem Speichern eines `top` oder `flash` Logs öffnet sich ein Bewertungs-Sheet (mit "Überspringen"-Button).
+- [x] **AC-5: Manuelle Bewertung**: Auf der Detailseite existiert ein separater "Bewerten"-Button, um auch unabhängig vom Logzeitpunkt Feedback abzugeben oder anzupassen.
+- [x] **AC-6: Kompaktes Bewertungs-Formular**:
   - 3 prominente Buttons für Grad-Empfinden: `Soft` (🟢), `Fair` (🟡), `Stiff` (🔴).
   - 1–5 Sterne-Rating für Qualität/Spaß.
   - Einklappbarer Bereich für 5 Slider des Radar-Charts (Kraft, Technik, Balance, Koordination, Flexibilität von 1 bis 5).
   - Speichern mit maximal 2–3 Taps möglich.
-- [ ] **AC-7: Einmalige Wertung pro Nutzer**: Ein Nutzer kann pro Boulder genau eine Bewertung abgeben; spätere Aufrufe aktualisieren seine bestehende Bewertung.
-- [ ] **AC-8: Community-Aggregat-Anzeige**:
+- [x] **AC-7: Einmalige Wertung pro Nutzer**: Ein Nutzer kann pro Boulder genau eine Bewertung abgeben; spätere Aufrufe aktualisieren seine bestehende Bewertung.
+- [x] **AC-8: Community-Aggregat-Anzeige**:
   - Soft/Fair/Stiff wird als prozentualer Balken oder dominanter Trend (z.B. "Eher Soft (62%)") visualisiert.
   - Sterne werden als dezimaler Durchschnitt (z.B. "4.6 ★ (18)") gerendert.
-- [ ] **AC-9: Ascent-Feed / Begehungsliste**: Die Detailseite listet Kletterer auf, die den Boulder getoppt oder geflasht haben (Avatar, Nickname, Datum).
+- [x] **AC-9: Ascent-Feed / Begehungsliste**: Die Detailseite listet Kletterer auf, die den Boulder getoppt oder geflasht haben (Avatar, Nickname, Datum).
 
 ## Technical Design
 

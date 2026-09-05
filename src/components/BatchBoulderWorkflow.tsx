@@ -23,6 +23,7 @@ import {
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { BoulderBottomSheet } from './BoulderBottomSheet';
 import { BatchSummaryModal } from './BatchSummaryModal';
+import { WallPhotoUploadModal } from './WallPhotoUploadModal';
 import {
   Camera,
   Layers,
@@ -58,7 +59,6 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
 
   // Photo replacement modal
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
-  const [newPhotoUrlInput, setNewPhotoUrlInput] = useState<string>('');
 
   // Load gym & sector data
   useEffect(() => {
@@ -170,17 +170,16 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   };
 
   // Update Sector Wall Photo (AC-2)
-  const handleSaveNewPhoto = () => {
-    if (!selectedSectorId || !newPhotoUrlInput.trim()) return;
+  const handlePhotoSelected = (photoUrl: string) => {
+    if (!selectedSectorId || !photoUrl.trim()) return;
     try {
-      const updated = updateSectorPhoto(selectedSectorId, newPhotoUrlInput);
+      const updated = updateSectorPhoto(selectedSectorId, photoUrl);
       setSectors(prev => prev.map(s => (s.id === updated.id ? updated : s)));
       setHasPhotoUpdated(true);
       setIsPhotoModalOpen(false);
-      setNewPhotoUrlInput('');
       showToast('Wandfoto erfolgreich aktualisiert!');
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || 'Fehler beim Aktualisieren des Wandfotos.');
     }
   };
 
@@ -214,16 +213,16 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // If unauthorized role (AC-1)
   if (!isAuthorized) {
     return (
-      <div className="p-8 max-w-xl mx-auto my-12 bg-slate-900 border border-slate-800 rounded-3xl text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center mx-auto">
+      <div className="topo-plate p-8 max-w-xl mx-auto my-12 text-center rounded-2xl space-y-4 border border-[#38332e]">
+        <div className="w-12 h-12 rounded-full bg-red-950/40 text-red-400 border border-red-800/60 flex items-center justify-center mx-auto">
           <ShieldAlert className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-bold text-white">Zugriff nur für Schrauber & Admins</h2>
-        <p className="text-xs text-slate-400 leading-relaxed">
+        <h2 className="text-xl font-headline uppercase tracking-wider text-[#f4efe6]">Zugriff nur für Schrauber & Admins</h2>
+        <p className="text-xs font-mono text-[#a89f91] leading-relaxed">
           Du bist aktuell als <strong>Kletterer (Member)</strong> eingeloggt.
           Der Batch-Foto-Workflow zur Routenerfassung ist Schraubern (Route Settern) und Hallen-Admins vorbehalten.
         </p>
-        <p className="text-xs text-amber-400/90 font-medium">
+        <p className="text-xs font-mono text-[#d97706] font-medium">
           💡 Nutze oben rechts den Rollen-Simulator, um zur Rolle <strong>Schrauber</strong> zu wechseln.
         </p>
       </div>
@@ -234,28 +233,28 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     <div className="space-y-6 pb-28">
       {/* Toast notification */}
       {successToast && (
-        <div className="fixed top-5 right-5 z-50 p-4 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-5 h-5" />
+        <div className="fixed top-5 right-5 z-50 p-4 rounded-xl bg-[#181614] border border-[#d97706] text-[#f4efe6] font-mono text-xs shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-[#d97706]" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Sector Selection & Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#181614] p-4 rounded-2xl border border-[#38332e] shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div className="p-2.5 rounded-xl bg-[#221f1c] text-[#d97706] border border-[#38332e]">
             <Layers className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+              <span className="text-[10px] font-mono font-bold text-[#d97706] uppercase tracking-widest">
                 Batch-Schraubermodus
               </span>
-              <span className="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded-full border border-slate-700">
+              <span className="bg-[#221f1c] text-[#a89f91] text-[10px] font-mono px-2 py-0.5 rounded border border-[#38332e]">
                 {gym?.name}
               </span>
             </div>
-            <h2 className="text-base font-bold text-white">
+            <h2 className="text-lg font-headline uppercase tracking-wider text-[#f4efe6]">
               Wand auswählen & Boulder erfassen
             </h2>
           </div>
@@ -270,10 +269,10 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
                 key={sector.id}
                 type="button"
                 onClick={() => setSelectedSectorId(sector.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-headline uppercase tracking-wider transition flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-750 border border-slate-700/60'
+                    ? 'bg-[#d97706] text-[#121110] font-bold shadow'
+                    : 'bg-[#221f1c] text-[#a89f91] hover:text-[#f4efe6] border border-[#38332e]'
                 }`}
               >
                 <span>{sector.name}</span>
@@ -285,10 +284,10 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
           <button
             type="button"
             onClick={() => setIsPhotoModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition"
+            className="px-3.5 py-1.5 rounded-xl bg-[#221f1c] hover:bg-[#2a2622] text-[#d4cdc3] hover:text-[#f4efe6] text-xs font-mono border border-[#38332e] hover:border-[#d97706] flex items-center gap-1.5 transition"
             title="Wandfoto aktualisieren (z.B. nach Neuschrauben)"
           >
-            <Camera className="w-3.5 h-3.5 text-amber-400" />
+            <Camera className="w-3.5 h-3.5 text-[#d97706]" />
             <span className="hidden sm:inline">Neues Foto</span>
           </button>
         </div>
@@ -310,19 +309,19 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
       )}
 
       {/* Persistent Bottom Bar (Batch Status & Trigger) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#181614]/95 backdrop-blur-xl border-t border-[#38332e] shadow-2xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#221f1c] border border-emerald-600/40 text-emerald-400 text-xs font-mono font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                 {drafts.length} neu
               </span>
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-bold">
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#221f1c] border border-red-800/40 text-red-400 text-xs font-mono font-bold">
                 {pendingArchiveIds.length} archiviert
               </span>
             </div>
-            <p className="hidden md:block text-xs text-slate-400">
+            <p className="hidden md:block text-xs font-mono text-[#a89f91]">
               Tippe ins Foto für nächsten Pin. Erst mit "Veröffentlichen" wird alles online gestellt.
             </p>
           </div>
@@ -331,7 +330,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             type="button"
             onClick={() => setIsSummaryOpen(true)}
             disabled={drafts.length === 0 && pendingArchiveIds.length === 0}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/25 flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-[#121110] font-headline uppercase font-bold tracking-wider text-xs shadow-lg flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Rocket className="w-4 h-4" />
             <span>Zusammenfassung & Veröffentlichen ({drafts.length + pendingArchiveIds.length})</span>
@@ -369,75 +368,14 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         onConfirmPublish={handlePublishBatch}
       />
 
-      {/* Update Sector Photo Dialog (AC-2) */}
-      {isPhotoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                <Camera className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-white">Neues Wandfoto für {selectedSector?.name}</h3>
-            </div>
-            <p className="text-xs text-slate-400">
-              Gib eine neue Bild-URL ein oder wähle eines der Demo-Wandfotos. Bestehende relative Koordinaten aller Boulder bleiben exakt erhalten!
-            </p>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">Bild-URL eingeben:</label>
-              <input
-                type="text"
-                value={newPhotoUrlInput}
-                onChange={e => setNewPhotoUrlInput(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            {/* Quick Demo Photo Presets */}
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400 mb-2">Oder Schnellauswahl Preset:</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setNewPhotoUrlInput('https://images.unsplash.com/photo-1522163182402-834f871fd851?auto=format&fit=crop&w=1600&q=80')}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-left text-xs text-slate-300"
-                >
-                  🧗 Neugeschraubt 45°
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewPhotoUrlInput('https://images.unsplash.com/photo-1564769662533-4f00a87b4056?auto=format&fit=crop&w=1600&q=80')}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-left text-xs text-slate-300"
-                >
-                  📐 Neue Wettkampf-Platte
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPhotoModalOpen(false);
-                  setNewPhotoUrlInput('');
-                }}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveNewPhoto}
-                disabled={!newPhotoUrlInput.trim()}
-                className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-bold hover:bg-amber-300 disabled:opacity-40"
-              >
-                Foto aktualisieren
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Update Sector Photo Dialog with File Upload & Presets (AC-2) */}
+      <WallPhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        sectorName={selectedSector?.name || ''}
+        currentPhotoUrl={selectedSector?.wallPhotoUrl}
+        onClose={() => setIsPhotoModalOpen(false)}
+        onPhotoSelected={handlePhotoSelected}
+      />
     </div>
   );
 };

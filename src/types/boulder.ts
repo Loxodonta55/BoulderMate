@@ -294,3 +294,50 @@ export interface CurrentUser {
   role: GymMemberRole;
 }
 
+// ==========================================
+// SPEC-004: Profile, Statistics & Logbook
+// ==========================================
+
+export interface UserProfile {
+  id: string;
+  nickname: string;
+  avatarUrl?: string;
+  createdAt: string; // ISO timestamp, e.g. "2026-05-15T00:00:00Z"
+  updatedAt?: string;
+}
+
+export interface ProfileKPIs {
+  totalTops: number; // Tops + Flashes (AC-2)
+  totalFlashes: number; // Flashes only (AC-2)
+  bestTop: GymGradeScale | null; // Highest color band topped (AC-2)
+  bestFlash: GymGradeScale | null; // Highest color band flashed (AC-2)
+}
+
+export interface GradeDistributionItem {
+  gradeScale: GymGradeScale;
+  flashCount: number;
+  topCount: number; // regular tops (excluding flash)
+  totalCount: number; // flashCount + topCount
+}
+
+export interface LogbookEntry {
+  id: string;
+  ascentId: string;
+  boulderId: string;
+  boulderName?: string;
+  type: AscentType; // 'flash' | 'top' | 'project'
+  createdAt: string;
+  gymId: string;
+  gymName: string;
+  sectorId: string;
+  sectorName: string;
+  gradeScale: GymGradeScale;
+}
+
+export interface ProfileData {
+  profile: UserProfile;
+  kpis: ProfileKPIs;
+  gradeDistribution: GradeDistributionItem[];
+  logbook: LogbookEntry[];
+}
+

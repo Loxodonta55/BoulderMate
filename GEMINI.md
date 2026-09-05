@@ -51,6 +51,19 @@ Every feature starts as a specification that must be approved before implementat
 | `product-owner` | Product | Requirements, backlog |
 | `product-manager` | Product | PRDs, user stories |
 
+## Design Principles & UI Guidelines
+
+> Vollständiges Design-System: siehe [SPEC-005](docs/specs/SPEC-005-design-system.md)
+
+**Zielgruppe**: 20–50 Jahre, alternativ, naturverbunden, problemlösungsorientiert.
+
+1. **Schlank & Aufgeräumt**: Wenige Elemente pro Screen, grosszügiger Schwarzraum, klare Hierarchien. Kein visual clutter.
+2. **Dark-Mode First**: Granit-Hintergrund, Sandstein-/Kreide-/Messing-Akzente. Hallenfarben sind die einzigen kräftigen Farben.
+3. **Kantig & Geometrisch**: Border-Radius 0–2px, keine Glassmorphismus-Bubbles, keine Pill-Shapes. Felsblock-Ästhetik.
+4. **Old School Kletterer Charakter**: Markante Typografie (Uppercase Headlines), subtile Granit-Texturen, Kreide-Patina. Patagonia-Katalog trifft Bergführer-Handbuch.
+5. **Schrauber unprominent**: Kletterer sehen 2 Tabs (Halle + Profil), Setter/Admins sehen 3 (+Schrauben). Admin-Tools drängen sich nicht auf.
+6. **Nur funktionale Animationen**: Mikro-Transitions (250ms max). Kein Bounce, kein Confetti, kein Parallax.
+
 ## Code Quality
 
 - Run `lint` and `type-check` before committing
@@ -60,4 +73,8 @@ Every feature starts as a specification that must be approved before implementat
 
 ## Tech Stack
 
-> To be determined based on project specs.
+- **Frontend**: React Native (Cross-Platform: iOS + Android)
+- **Backend**: Supabase (PostgreSQL + Auth + Storage + Realtime)
+- **Auth**: Social Login (Google / Apple) + E-Mail
+- **Styling**: Dark-Mode First, kantige Formensprache (siehe SPEC-005)
+- **Testing**: Vitest & React Testing Library

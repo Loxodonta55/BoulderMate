@@ -65,31 +65,39 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
-          <Palette className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-base font-bold text-slate-100">Hallenspezifisches Farbsystem (Grade Scales)</h3>
+    <div className="topo-plate rounded-2xl p-5 space-y-5 shadow-lg border border-[#38332e]">
+      <div className="flex items-center justify-between border-b border-[#38332e] pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-[#221f1c] border border-[#38332e] text-[#d97706]">
+            <Palette className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-headline uppercase tracking-wider text-[#f4efe6]">
+              Hallenspezifisches Farbsystem (Grade Scales)
+            </h3>
+            <p className="text-[11px] font-mono text-[#a89f91]">Fontainebleau Parcour Skalen & Farbstufen</p>
+          </div>
         </div>
         <button
+          type="button"
           onClick={addColor}
-          className="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition-colors flex items-center gap-1.5"
+          className="px-3.5 py-1.5 text-xs font-mono font-semibold bg-[#221f1c] hover:bg-[#2a2622] text-[#f4efe6] border border-[#38332e] hover:border-[#d97706] rounded-xl transition flex items-center gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5" /> Farbe hinzufügen
+          <Plus className="w-3.5 h-3.5 text-[#d97706]" /> Farbe hinzufügen
         </button>
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs">
+        <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs font-mono">
           {error}
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {scales.map((scale, idx) => (
           <div
             key={scale.id || idx}
-            className="flex items-center gap-2 p-2.5 bg-slate-950/80 border border-slate-800/80 rounded-xl text-xs"
+            className="flex items-center gap-2.5 p-3 bg-[#181614] border border-[#38332e] hover:border-[#443e38] rounded-xl text-xs transition"
           >
             {/* Sort Handle / Move */}
             <div className="flex flex-col gap-0.5">
@@ -97,7 +105,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
                 type="button"
                 disabled={idx === 0}
                 onClick={() => moveColor(idx, 'up')}
-                className="p-1 hover:text-emerald-400 disabled:opacity-20 text-slate-400"
+                className="p-1 hover:text-[#d97706] disabled:opacity-20 text-[#78716c] transition"
               >
                 <ArrowUp className="w-3 h-3" />
               </button>
@@ -105,7 +113,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
                 type="button"
                 disabled={idx === scales.length - 1}
                 onClick={() => moveColor(idx, 'down')}
-                className="p-1 hover:text-emerald-400 disabled:opacity-20 text-slate-400"
+                className="p-1 hover:text-[#d97706] disabled:opacity-20 text-[#78716c] transition"
               >
                 <ArrowDown className="w-3 h-3" />
               </button>
@@ -117,7 +125,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
                 type="color"
                 value={scale.color_hex}
                 onChange={(e) => handleFieldChange(idx, 'color_hex', e.target.value)}
-                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border border-slate-700 p-0"
+                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border border-[#38332e] p-0"
               />
             </div>
 
@@ -128,7 +136,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
                 value={scale.color_name}
                 onChange={(e) => handleFieldChange(idx, 'color_name', e.target.value)}
                 placeholder="Farbname"
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-semibold focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[#121110] border border-[#38332e] focus:border-[#d97706] rounded-lg px-2.5 py-1.5 text-[#f4efe6] font-semibold focus:outline-none"
               />
             </div>
 
@@ -139,27 +147,27 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
                 value={scale.difficulty_label}
                 onChange={(e) => handleFieldChange(idx, 'difficulty_label', e.target.value)}
                 placeholder="z.B. Mittel / Fortgeschritten"
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[#121110] border border-[#38332e] focus:border-[#d97706] rounded-lg px-2.5 py-1.5 text-[#d4cdc3] focus:outline-none"
               />
             </div>
 
             {/* Font Range Min & Max */}
-            <div className="flex items-center gap-1">
-              <span className="text-slate-500 text-[11px]">Font:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#78716c] font-mono text-[11px]">Font:</span>
               <input
                 type="text"
                 value={scale.font_range_min}
                 onChange={(e) => handleFieldChange(idx, 'font_range_min', e.target.value)}
                 placeholder="Min"
-                className="w-14 bg-slate-900 border border-slate-800 rounded-lg px-1.5 py-1 text-slate-200 text-center focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-14 bg-[#121110] border border-[#38332e] focus:border-[#d97706] rounded-lg px-1.5 py-1.5 text-[#f4efe6] text-center focus:outline-none font-mono font-bold"
               />
-              <span className="text-slate-500">–</span>
+              <span className="text-[#78716c]">–</span>
               <input
                 type="text"
                 value={scale.font_range_max}
                 onChange={(e) => handleFieldChange(idx, 'font_range_max', e.target.value)}
                 placeholder="Max"
-                className="w-14 bg-slate-900 border border-slate-800 rounded-lg px-1.5 py-1 text-slate-200 text-center focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-14 bg-[#121110] border border-[#38332e] focus:border-[#d97706] rounded-lg px-1.5 py-1.5 text-[#f4efe6] text-center focus:outline-none font-mono font-bold"
               />
             </div>
 
@@ -167,7 +175,8 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
             <button
               type="button"
               onClick={() => removeColor(idx)}
-              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-900 rounded-lg ml-auto transition-colors"
+              className="p-2 text-[#78716c] hover:text-red-400 hover:bg-[#221f1c] rounded-lg ml-auto transition-colors"
+              title="Farbe entfernen"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -179,7 +188,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
         <button
           type="button"
           onClick={handleSave}
-          className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all"
+          className="px-5 py-2.5 bg-[#d97706] hover:bg-[#b45309] text-[#121110] font-headline uppercase font-bold tracking-wider text-xs rounded-xl flex items-center gap-2 shadow-md transition-all"
         >
           {savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {savedSuccess ? 'Gespeichert!' : 'Farbsystem speichern'}

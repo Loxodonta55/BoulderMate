@@ -74,15 +74,21 @@ export function ensureInitialGymData(): void {
     }, CURRENT_USER.id);
 
     const s1 = createSector(defaultGym.id, CURRENT_USER.id, {
-      name: 'Wettkampfwand (Comp Wall)',
-      wall_photo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&auto=format&fit=crop',
+      name: 'Überhang 45° (Comp Wall)',
+      wall_photo_url: '/images/walls/overhang.jpg',
       sort_order: 1
     });
 
     const s2 = createSector(defaultGym.id, CURRENT_USER.id, {
       name: 'Dachbereich & Cave',
-      wall_photo_url: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?w=1200&auto=format&fit=crop',
+      wall_photo_url: '/images/walls/roof.jpg',
       sort_order: 2
+    });
+
+    const s3 = createSector(defaultGym.id, CURRENT_USER.id, {
+      name: 'Platte (Slab & Balance)',
+      wall_photo_url: '/images/walls/slab.jpg',
+      sort_order: 3
     });
 
     const scales = getGradeScales(defaultGym.id);
@@ -94,7 +100,8 @@ export function ensureInitialGymData(): void {
       { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
       { id: 'b_sample_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.42, status: 'active', name: 'Blaues Volumen-Problem' },
       { id: 'b_sample_3', sector_id: s1.id, grade_scale_id: redScale, position_x: 0.74, position_y: 0.31, status: 'active', name: 'Rote Leiste' },
-      { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' }
+      { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' },
+      { id: 'b_sample_5', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.35, position_y: 0.60, status: 'active', name: 'Platten-Reibung' }
     ]);
   }
 }
@@ -121,7 +128,22 @@ export function saveGradeScales(scales: GradeScale[]): void {
 }
 
 export function getSectors(gym_id?: string): Sector[] {
-  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  let all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  let hasMigrated = false;
+  all = all.map(s => {
+    if (s.wall_photo_url.includes('photo-1522163182402')) {
+      hasMigrated = true;
+      return { ...s, wall_photo_url: '/images/walls/overhang.jpg' };
+    }
+    if (s.wall_photo_url.includes('photo-1564769625905') || s.wall_photo_url.includes('photo-1564769662533')) {
+      hasMigrated = true;
+      return { ...s, wall_photo_url: '/images/walls/roof.jpg' };
+    }
+    return s;
+  });
+  if (hasMigrated) {
+    saveSectors(all);
+  }
   return gym_id ? all.filter(s => s.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
 }
 

@@ -71,25 +71,25 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6">
+    <div className="fixed inset-0 z-50 bg-[#121110]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-[#181614] border border-[#38332e] rounded-2xl shadow-2xl overflow-hidden my-6">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="p-4 sm:p-5 border-b border-[#38332e] flex items-center justify-between bg-[#141210]">
           <div className="flex items-center gap-3">
             <div
-              className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+              className="w-4 h-4 rounded-full border border-black/30 shadow-sm"
               style={{ backgroundColor: gradeScale?.colorHex || '#f59e0b' }}
             />
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-1.5">
+              <h2 className="text-base font-headline uppercase tracking-wider text-[#f4efe6] flex items-center gap-1.5">
                 <span>{boulder.name || `${gradeScale?.colorName || 'Boulder'} Problem`}</span>
                 {existingRating && (
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  <span className="text-[10px] font-mono uppercase tracking-widest font-semibold text-[#f59e0b] bg-[#221f1c] px-2 py-0.5 rounded border border-[#38332e]">
                     Aktualisieren
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs font-mono text-[#a89f91]">
                 {isTriggeredByAscent
                   ? 'Glückwunsch zum Top! Wie fandest du die Route?'
                   : 'Bewerte Schwierigkeit & Spaßfaktor'}
@@ -98,7 +98,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl text-[#78716c] hover:text-[#f4efe6] hover:bg-[#221f1c] transition"
             aria-label="Schließen"
           >
             <X className="w-5 h-5" />
@@ -108,50 +108,50 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         <div className="p-4 sm:p-5 space-y-6">
           {/* Section 1: Grad-Empfinden (AC-6) */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+            <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#a89f91] block">
               Grad-Empfinden (Schwierigkeit)
             </label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setGradeFeel('soft')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                className={`py-3 px-2 rounded-xl text-xs font-mono font-bold border transition flex flex-col items-center gap-1 ${
                   gradeFeel === 'soft'
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-500/10'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                    ? 'bg-[#1a2e1a] border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/40 shadow-md'
+                    : 'bg-[#121110] border-[#38332e] text-[#d4cdc3] hover:border-[#a89f91]'
                 }`}
               >
                 <span className="text-base">🟢</span>
-                <span>Soft</span>
-                <span className="text-[10px] font-normal text-slate-400">eher leicht</span>
+                <span className="font-headline uppercase tracking-wider">Soft</span>
+                <span className="text-[10px] font-normal text-[#a89f91]">eher leicht</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setGradeFeel('fair')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                className={`py-3 px-2 rounded-xl text-xs font-mono font-bold border transition flex flex-col items-center gap-1 ${
                   gradeFeel === 'fair'
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                    ? 'bg-[#2a2520] border-[#d97706] text-[#f59e0b] ring-2 ring-[#d97706]/40 shadow-md'
+                    : 'bg-[#121110] border-[#38332e] text-[#d4cdc3] hover:border-[#a89f91]'
                 }`}
               >
                 <span className="text-base">🟡</span>
-                <span>Fair</span>
-                <span className="text-[10px] font-normal text-slate-400">genau passend</span>
+                <span className="font-headline uppercase tracking-wider">Fair</span>
+                <span className="text-[10px] font-normal text-[#a89f91]">genau passend</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setGradeFeel('stiff')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold border transition flex flex-col items-center gap-1 ${
+                className={`py-3 px-2 rounded-xl text-xs font-mono font-bold border transition flex flex-col items-center gap-1 ${
                   gradeFeel === 'stiff'
-                    ? 'bg-rose-500/20 border-rose-500 text-rose-300 shadow-md shadow-rose-500/10'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                    ? 'bg-[#2e1a1a] border-red-500 text-red-300 ring-2 ring-red-500/40 shadow-md'
+                    : 'bg-[#121110] border-[#38332e] text-[#d4cdc3] hover:border-[#a89f91]'
                 }`}
               >
                 <span className="text-base">🔴</span>
-                <span>Stiff</span>
-                <span className="text-[10px] font-normal text-slate-400">ziemlich hart</span>
+                <span className="font-headline uppercase tracking-wider">Stiff</span>
+                <span className="text-[10px] font-normal text-[#a89f91]">ziemlich hart</span>
               </button>
             </div>
           </div>
@@ -159,14 +159,14 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           {/* Section 2: Sterne-Bewertung (AC-6) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#a89f91] block">
                 Routenqualität & Spaß
               </label>
-              <span className="text-xs font-bold text-amber-400">
+              <span className="text-xs font-mono font-bold text-[#f59e0b]">
                 {hoverStars !== null ? hoverStars : qualityStars} von 5 Sternen
               </span>
             </div>
-            <div className="flex items-center justify-center gap-2 py-2 bg-slate-950/60 rounded-xl border border-slate-800/80">
+            <div className="flex items-center justify-center gap-2 py-3 bg-[#121110] rounded-xl border border-[#38332e]">
               {[1, 2, 3, 4, 5].map(star => {
                 const isActive = (hoverStars !== null ? hoverStars : qualityStars) >= star;
                 return (
@@ -182,8 +182,8 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                     <Star
                       className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${
                         isActive
-                          ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_2px_6px_rgba(245,158,11,0.3)]'
-                          : 'text-slate-700 hover:text-slate-600'
+                          ? 'fill-[#f59e0b] text-[#f59e0b] filter drop-shadow-[0_2px_6px_rgba(245,158,11,0.3)]'
+                          : 'text-[#38332e] hover:text-[#57534e]'
                       }`}
                     />
                   </button>
@@ -193,26 +193,26 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           </div>
 
           {/* Section 3: Einklappbarer Bereich für Radar-Slider (AC-6) */}
-          <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/40">
+          <div className="border border-[#38332e] rounded-xl overflow-hidden bg-[#121110]">
             <button
               type="button"
               onClick={() => setIsRadarExpanded(!isRadarExpanded)}
-              className="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/40 transition"
+              className="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-headline uppercase tracking-wider text-[#d4cdc3] hover:text-[#f4efe6] hover:bg-[#181614] transition"
             >
               <div className="flex items-center gap-2">
-                <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                <Sliders className="w-3.5 h-3.5 text-[#d97706]" />
                 <span>Klettereigenschaften bewerten (Radar-Chart)</span>
               </div>
               {isRadarExpanded ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
+                <ChevronUp className="w-4 h-4 text-[#a89f91]" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-[#a89f91]" />
               )}
             </button>
 
             {isRadarExpanded && (
-              <div className="p-4 space-y-4 border-t border-slate-800 bg-slate-950/80 animate-in slide-in-from-top-2 duration-150">
-                <p className="text-[11px] text-slate-400">
+              <div className="p-4 space-y-4 border-t border-[#38332e] bg-[#181614] animate-in slide-in-from-top-2 duration-150">
+                <p className="text-[11px] font-mono text-[#a89f91]">
                   Passe die 5 Achsen nach deinem Empfinden an (1 = minimal, 5 = dominant).
                   Fließt mit in den Community-Schnitt ein!
                 </p>
@@ -227,10 +227,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   };
 
                   return (
-                    <div key={axis} className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-bold text-slate-300">
+                    <div key={axis} className="space-y-1 font-mono">
+                      <div className="flex justify-between text-[11px] font-bold text-[#d4cdc3]">
                         <span>{labels[axis]}</span>
-                        <span className="text-amber-400">{radarValues[axis]}/5</span>
+                        <span className="text-[#f59e0b] font-bold">{radarValues[axis]}/5</span>
                       </div>
                       <input
                         type="range"
@@ -239,7 +239,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                         step="1"
                         value={radarValues[axis]}
                         onChange={e => handleSliderChange(axis, parseInt(e.target.value, 10))}
-                        className="w-full accent-amber-500 bg-slate-800 h-2 rounded-lg cursor-pointer"
+                        className="w-full accent-[#d97706] bg-[#221f1c] h-2 rounded-lg cursor-pointer"
                       />
                     </div>
                   );
@@ -254,7 +254,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 px-4 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl transition text-center"
+                className="flex-1 py-2.5 px-4 text-xs font-mono font-semibold text-[#a89f91] hover:text-[#f4efe6] bg-[#221f1c] hover:bg-[#2a2622] border border-[#38332e] rounded-xl transition text-center"
               >
                 Überspringen
               </button>
@@ -263,7 +263,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="flex-1 py-2.5 px-4 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 px-4 text-xs font-headline uppercase font-bold tracking-wider text-[#121110] bg-[#d97706] hover:bg-[#b45309] rounded-xl transition shadow flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
               <span>Bewertung speichern</span>
