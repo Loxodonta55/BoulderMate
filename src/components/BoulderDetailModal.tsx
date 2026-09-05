@@ -9,6 +9,7 @@ import {
 } from '../types/boulder';
 import { RadarChart } from './RadarChart';
 import { RatingModal } from './RatingModal';
+import { PublicProfileModal } from './PublicProfileModal';
 import {
   getUserAscent,
   getUserRating,
@@ -54,6 +55,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 }) => {
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [ratingTriggeredByAscent, setRatingTriggeredByAscent] = useState(false);
+  const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
 
   // Compute live aggregates from storage
   const ratings = getRatings(boulder.id);
@@ -389,12 +391,18 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         key={ascent.id}
                         className="p-3 sm:px-4 flex items-center justify-between hover:bg-[#181614] transition"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#221f1c] flex items-center justify-center text-xs font-mono font-bold text-[#f4efe6] border border-[#38332e]">
+                        <button
+                          type="button"
+                          onClick={() => setViewingPublicUserId(ascent.userId)}
+                          className="flex items-center gap-3 text-left group/user cursor-pointer focus:outline-none"
+                          title={`${ascent.userNickname}s öffentliches Profil ansehen`}
+                          data-testid={`btn-user-profile-${ascent.userId}`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[#221f1c] group-hover/user:border-[#d97706] flex items-center justify-center text-xs font-mono font-bold text-[#f4efe6] border border-[#38332e] transition shadow-sm">
                             {ascent.userNickname.charAt(0)}
                           </div>
                           <div>
-                            <span className="text-xs font-mono font-bold text-[#f4efe6] block">
+                            <span className="text-xs font-mono font-bold text-[#f4efe6] group-hover/user:text-[#f59e0b] transition block">
                               {ascent.userNickname}
                             </span>
                             <span className="text-[10px] font-mono text-[#78716c] flex items-center gap-1">
@@ -402,7 +410,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                               <span>{dateFormatted}</span>
                             </span>
                           </div>
-                        </div>
+                        </button>
 
                         <div>
                           {isFlash && (
@@ -448,6 +456,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             setRatingTriggeredByAscent(false);
           }}
           onSave={handleSaveRating}
+        />
+      )}
+
+      {/* Sub-modal: Public Profile Modal (AC-6) */}
+      {viewingPublicUserId && (
+        <PublicProfileModal
+          userId={viewingPublicUserId}
+          isOpen={!!viewingPublicUserId}
+          onClose={() => setViewingPublicUserId(null)}
         />
       )}
     </>

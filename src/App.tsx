@@ -17,6 +17,8 @@ import { BatchBoulderWorkflow } from './components/BatchBoulderWorkflow';
 import { GymManagement } from './components/GymManagement';
 import { ensureInitialGymData } from './lib/gymStorage';
 import { ClimberSectorView } from './components/ClimberSectorView';
+import { UserProfileView } from './components/UserProfileView';
+import { getProfile } from './lib/profileService';
 import { Mountain, Plus, Database, Wrench, Compass, Layers, ArrowLeft, User } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
@@ -82,7 +84,7 @@ const SEED_DATA: BoulderInput[] = [
 ];
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'wall' | 'logbook'>('wall');
+  const [activeTab, setActiveTab] = useState<'wall' | 'logbook' | 'profile'>('wall');
   const [isSetterAreaOpen, setIsSetterAreaOpen] = useState(false);
   const [setterTab, setSetterTab] = useState<'batch_setter' | 'gym_management'>('batch_setter');
   const [userRole, setUserRole] = useState<GymMemberRole>('setter');
@@ -90,6 +92,7 @@ export const App: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBoulder, setEditingBoulder] = useState<Boulder | null>(null);
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+  const [climberNicknames, setClimberNicknames] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState<BoulderFilterOptions>({
     searchQuery: '',
     ascentStyle: 'all',
@@ -101,12 +104,13 @@ export const App: React.FC = () => {
 
   const [climberId, setClimberId] = useState<string>('user-boris');
   const currentClimber = AVAILABLE_CLIMBERS.find(c => c.id === climberId) || AVAILABLE_CLIMBERS[0];
+  const activeNickname = climberNicknames[climberId] || getProfile(climberId).nickname || currentClimber.nickname;
 
   const currentUser = useMemo(() => ({
     id: currentClimber.id,
-    nickname: currentClimber.nickname,
+    nickname: activeNickname,
     role: userRole
-  }), [currentClimber, userRole]);
+  }), [currentClimber.id, activeNickname, userRole]);
 
   // Load boulders & initial gym data on mount
   useEffect(() => {
@@ -213,6 +217,23 @@ export const App: React.FC = () => {
             >
               <Compass className="w-3.5 h-3.5" />
               <span>Kletterer-Logbuch</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('profile');
+                setIsSetterAreaOpen(false);
+              }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
+                !isSetterAreaOpen && activeTab === 'profile'
+                  ? 'bg-[#2a2520] text-[#f59e0b] border border-[#d97706]/40 shadow-sm font-bold'
+                  : 'text-[#a89f91] hover:text-[#f4efe6]'
+              }`}
+              data-testid="tab-profile"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Mein Profil</span>
             </button>
           </nav>
 
