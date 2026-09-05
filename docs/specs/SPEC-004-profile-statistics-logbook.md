@@ -216,7 +216,7 @@ LIMIT 50;
 - Blocks: Post-MVP Features (Ranking/Leaderboard, erweitertes Statistik-Dashboard)
 
 ## Out of Scope
-- Persönliches 5-Achsen Radar-Chart (Stärken/Schwächen-Profil) → Post-MVP
+- Persönliches 5-Achsen Radar-Chart (Stärken/Schwächen-Profil) → Umgesetzt in [SPEC-008](file:///c:/Users/boris/Repos/BoulderApp/docs/specs/SPEC-008-climber-performance-attributes-statistics.md)
 - Aktivitäts-Kalender / Heatmap → Post-MVP
 - Flash-Rate als Prozentzahl → Post-MVP (aktuell implizit über KPIs ablesbar)
 - Zeitverlauf / Fortschrittsgraph → Post-MVP
