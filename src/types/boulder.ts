@@ -190,6 +190,31 @@ export const DEFAULT_RADAR: RadarAttributes = {
   flexibilitaet: 3,
 };
 
+export const RADAR_AXIS_KEYS: (keyof RadarAttributes)[] = [
+  'kraft',
+  'technik',
+  'balance',
+  'koordination',
+  'flexibilitaet',
+];
+
+export type RadarAxisKey = keyof RadarAttributes;
+
+export interface RadarAxisMeta {
+  key: RadarAxisKey;
+  label: string;
+  fullLabel: string;
+  emoji: string;
+}
+
+export const RADAR_AXIS_DEFINITIONS: RadarAxisMeta[] = [
+  { key: 'kraft', label: 'Kraft', fullLabel: 'Kraft / Bouldermuskeln', emoji: '💪' },
+  { key: 'technik', label: 'Technik', fullLabel: 'Technik / Präzision', emoji: '🦶' },
+  { key: 'balance', label: 'Balance', fullLabel: 'Balance / Körpergefühl', emoji: '⚖️' },
+  { key: 'koordination', label: 'Koordination', fullLabel: 'Koordination / Dynos', emoji: '🎯' },
+  { key: 'flexibilitaet', label: 'Flexibilität', fullLabel: 'Flexibilität / Mobilität', emoji: '🤸' },
+];
+
 export type BoulderStatus = 'draft' | 'active' | 'archived';
 
 export interface WallBoulder {

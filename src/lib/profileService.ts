@@ -10,77 +10,35 @@ import {
 import { getAscents, deleteUserAscentsAndRatings } from './ratingAndAscentService';
 import { getWallBoulders, getSectors, getGradeScales, getGyms } from './batchBoulderService';
 
+import { SEED_PROFILES } from './seedData';
+import {
+  getStorageString,
+  setStorageJson,
+  removeStorageItem,
+} from './storageUtils';
+
+export { SEED_PROFILES };
+
 export const STORAGE_KEY_PROFILES = 'boulderapp_profiles_v1';
 
-export const SEED_PROFILES: UserProfile[] = [
-  {
-    id: 'user-boris',
-    nickname: 'Boris',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-  {
-    id: 'admin-6aplus',
-    nickname: 'Admin6APlus',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-  {
-    id: 'schrauber-6aplus',
-    nickname: 'Schrauber6aPlus',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-  {
-    id: 'hans-kletterer',
-    nickname: 'HansDereinfacheKletterer',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-  {
-    id: 'admin-minimum',
-    nickname: 'AdminMinimum',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-  {
-    id: 'schrauber-minimum',
-    nickname: 'Schrauber Minimum',
-    createdAt: '2026-05-15T10:00:00Z',
-  },
-];
-
-let memoryProfiles: Record<string, string> = {};
-
-function getStorageItem(key: string): string | null {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage.getItem(key);
-  }
-  return memoryProfiles[key] || null;
-}
-
-function setStorageItem(key: string, value: string): void {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.setItem(key, value);
-  } else {
-    memoryProfiles[key] = value;
-  }
-}
-
 export function resetProfileStorage(): void {
-  memoryProfiles = {};
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.removeItem(STORAGE_KEY_PROFILES);
-  }
+  removeStorageItem(STORAGE_KEY_PROFILES);
 }
 
 export function getProfiles(): UserProfile[] {
-  const raw = getStorageItem(STORAGE_KEY_PROFILES);
+  const raw = getStorageString(STORAGE_KEY_PROFILES);
+  let list: UserProfile[];
   if (!raw) {
-    const list = [...SEED_PROFILES];
-    setStorageItem(STORAGE_KEY_PROFILES, JSON.stringify(list));
-    return list;
+    list = [...SEED_PROFILES];
+    setStorageJson(STORAGE_KEY_PROFILES, list);
+  } else {
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      list = [...SEED_PROFILES];
+    }
   }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [...SEED_PROFILES];
-  }
+  return list;
 }
 
 export function getProfile(userId: string): UserProfile {
@@ -96,7 +54,7 @@ export function getProfile(userId: string): UserProfile {
   };
 
   const updated = [...profiles, newProfile];
-  setStorageItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+  setStorageJson(STORAGE_KEY_PROFILES, updated);
   return newProfile;
 }
 
@@ -129,7 +87,7 @@ export function updateProfile(
     profiles.push(updatedProfile);
   }
 
-  setStorageItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
+  setStorageJson(STORAGE_KEY_PROFILES, profiles);
   return updatedProfile;
 }
 
@@ -139,7 +97,7 @@ export function updateProfile(
 export function deleteAccount(userId: string): void {
   // 1. Remove profile
   const profiles = getProfiles().filter(p => p.id !== userId);
-  setStorageItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
+  setStorageJson(STORAGE_KEY_PROFILES, profiles);
 
   // 2. Remove user ascents and ratings
   deleteUserAscentsAndRatings(userId);

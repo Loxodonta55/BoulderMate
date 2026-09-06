@@ -1,23 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Gym,
-  Sector,
-  GymGradeScale,
   WallBoulder,
-  CurrentUser
+  CurrentUser,
+  Ascent,
+  BoulderStatsAggregate
 } from '../types/boulder';
-import {
-  getGyms,
-  getSectors,
-  getGradeScales,
-  getWallBoulders
-} from '../lib/batchBoulderService';
+import { getWallBoulders } from '../lib/batchBoulderService';
 import {
   getUserAscent,
   getRatings,
   getAscents,
-  computeBoulderStatsAggregate
+  computeBoulderStatsAggregate,
 } from '../lib/ratingAndAscentService';
+import { useGymSectorData } from '../hooks/useGymSectorData';
 import { BoulderDetailModal } from './BoulderDetailModal';
 import {
   Layers,
@@ -41,50 +36,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   activeGymId,
   onSelectGym,
 }) => {
-  const [gyms, setGyms] = useState<Gym[]>([]);
-  const [gym, setGym] = useState<Gym | null>(null);
-  const [selectedGymId, setSelectedGymId] = useState<string>(activeGymId || '');
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [selectedSectorId, setSelectedSectorId] = useState<string>('');
-  const [gradeScales, setGradeScales] = useState<GymGradeScale[]>([]);
+  const {
+    gyms,
+    gym,
+    selectedGymId,
+    sectors,
+    selectedSectorId,
+    selectedSector,
+    scaleMap,
+    setSelectedSectorId,
+    handleGymChange,
+  } = useGymSectorData(activeGymId, onSelectGym);
+
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [dataVersion, setDataVersion] = useState<number>(0);
-
-  const loadGymData = (gymIdToLoad: string, allGymsList: Gym[]) => {
-    const currentGym = allGymsList.find(g => g.id === gymIdToLoad) || allGymsList[0] || null;
-    setGym(currentGym);
-    if (currentGym) {
-      setSelectedGymId(currentGym.id);
-      const gymSectors = getSectors(currentGym.id);
-      setSectors(gymSectors);
-      if (gymSectors.length > 0) {
-        setSelectedSectorId(gymSectors[0].id);
-      } else {
-        setSelectedSectorId('');
-      }
-      const scales = getGradeScales(currentGym.id);
-      setGradeScales(scales);
-    }
-  };
-
-  // Load initial gym & sectors
-  useEffect(() => {
-    const all = getGyms();
-    setGyms(all);
-    if (all.length > 0) {
-      const targetId = activeGymId && all.some(g => g.id === activeGymId)
-        ? activeGymId
-        : (selectedGymId && all.some(g => g.id === selectedGymId) ? selectedGymId : all[0].id);
-      loadGymData(targetId, all);
-    }
-  }, [activeGymId]);
-
-  const handleGymChange = (newGymId: string) => {
-    setSelectedGymId(newGymId);
-    onSelectGym?.(newGymId);
-    loadGymData(newGymId, gyms);
-  };
 
   // Reload boulders when sector changes or data updates
   useEffect(() => {
@@ -93,12 +59,25 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
       const allBoulders = getWallBoulders(selectedSectorId);
       const activeBoulders = allBoulders.filter(b => b.status === 'active');
       setBoulders(activeBoulders);
+    } else {
+      setBoulders([]);
     }
   }, [selectedSectorId, dataVersion]);
 
-  const selectedSector = sectors.find(s => s.id === selectedSectorId) || null;
-  const scaleMap = new Map<string, GymGradeScale>();
-  gradeScales.forEach(s => scaleMap.set(s.id, s));
+  // Pre-index ascents and stats in a single pass to eliminate N+1 read overhead
+  const { userAscentMap, statsMap } = useMemo(() => {
+    const userAscents = new Map<string, Ascent | null>();
+    const stats = new Map<string, BoulderStatsAggregate>();
+
+    for (const b of boulders) {
+      userAscents.set(b.id, getUserAscent(currentUser.id, b.id));
+      const bRatings = getRatings(b.id);
+      const bAscents = getAscents(b.id);
+      stats.set(b.id, computeBoulderStatsAggregate(b, bRatings, bAscents));
+    }
+
+    return { userAscentMap: userAscents, statsMap: stats };
+  }, [boulders, currentUser.id, dataVersion]);
 
   const handleRefreshData = () => {
     setDataVersion(v => v + 1);
@@ -201,7 +180,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 {/* Pin Overlay (AC-1) - Pins on photo are circular (SPEC-005 sole exception) */}
                 {boulders.map(boulder => {
                   const scale = scaleMap.get(boulder.gradeScaleId);
-                  const userAscent = getUserAscent(currentUser.id, boulder.id);
+                  const userAscent = userAscentMap.get(boulder.id);
                   const isFlash = userAscent?.type === 'flash';
                   const isTop = userAscent?.type === 'top';
                   const isProject = userAscent?.type === 'project';
@@ -263,10 +242,15 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {boulders.map(boulder => {
                 const scale = scaleMap.get(boulder.gradeScaleId);
-                const userAscent = getUserAscent(currentUser.id, boulder.id);
-                const ratings = getRatings(boulder.id);
-                const ascents = getAscents(boulder.id);
-                const stats = computeBoulderStatsAggregate(boulder, ratings, ascents);
+                const userAscent = userAscentMap.get(boulder.id);
+                const stats = statsMap.get(boulder.id) || {
+                  avgStars: 0,
+                  totalRatings: 0,
+                  topsCount: 0,
+                  flashesCount: 0,
+                  projectsCount: 0,
+                  gradeFeelPercentages: { soft: 0, fair: 0, stiff: 0 }
+                };
 
                 return (
                   <div

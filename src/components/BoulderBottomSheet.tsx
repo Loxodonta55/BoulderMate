@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR } from '../types/boulder';
+import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR, RADAR_AXIS_DEFINITIONS } from '../types/boulder';
 import { X, Check, Trash2, Archive, Sparkles, SlidersHorizontal } from 'lucide-react';
 
 interface BoulderBottomSheetProps {
@@ -79,14 +79,6 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   const handleRadarChange = (key: keyof RadarAttributes, val: number) => {
     setRadar(prev => ({ ...prev, [key]: val }));
   };
-
-  const RADAR_KEYS: { key: keyof RadarAttributes; label: string; emoji: string }[] = [
-    { key: 'kraft', label: 'Kraft', emoji: '💪' },
-    { key: 'technik', label: 'Technik', emoji: '🦶' },
-    { key: 'balance', label: 'Balance', emoji: '⚖️' },
-    { key: 'koordination', label: 'Koordination', emoji: '🎯' },
-    { key: 'flexibilitaet', label: 'Flexibilität', emoji: '🤸' },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 animate-in fade-in duration-150">
@@ -205,7 +197,7 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
             </div>
 
             <div className="space-y-2.5">
-              {RADAR_KEYS.map(({ key, label, emoji }) => {
+              {RADAR_AXIS_DEFINITIONS.map(({ key, label, emoji }) => {
                 const currentVal = radar[key] ?? 3;
                 return (
                   <div key={key} className="flex items-center justify-between text-xs">

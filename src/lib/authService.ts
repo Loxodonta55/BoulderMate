@@ -83,6 +83,12 @@ export const DEMO_USERS: Record<string, AuthUser> = {
   }
 };
 
+import {
+  getStorageJson,
+  setStorageJson,
+  removeStorageItem,
+} from './storageUtils';
+
 let currentSessionUser: AuthUser | null = null;
 const authListeners: Array<(user: AuthUser | null) => void> = [];
 
@@ -97,19 +103,8 @@ function notifyListeners(): void {
 }
 
 export function initAuthSession(): AuthUser | null {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_AUTH_KEY);
-      if (stored) {
-        currentSessionUser = JSON.parse(stored);
-        return currentSessionUser;
-      }
-    } catch (e) {
-      console.error('Failed restoring auth session:', e);
-    }
-  }
-  currentSessionUser = null;
-  return null;
+  currentSessionUser = getStorageJson<AuthUser | null>(STORAGE_AUTH_KEY, null);
+  return currentSessionUser;
 }
 
 export function getCurrentAuthUser(): AuthUser | null {
@@ -138,14 +133,7 @@ export function setSessionUser(userOrId: AuthUser | string): AuthUser {
     currentSessionUser = { ...userOrId };
   }
 
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(currentSessionUser));
-    } catch (e) {
-      console.error('Failed saving auth session:', e);
-    }
-  }
-
+  setStorageJson(STORAGE_AUTH_KEY, currentSessionUser);
   notifyListeners();
   return currentSessionUser;
 }
@@ -204,13 +192,7 @@ export async function signInWithEmail(email: string, _password?: string): Promis
  */
 export async function signOut(): Promise<void> {
   currentSessionUser = null;
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.removeItem(STORAGE_AUTH_KEY);
-    } catch (e) {
-      console.error('Failed clearing auth session:', e);
-    }
-  }
+  removeStorageItem(STORAGE_AUTH_KEY);
   notifyListeners();
 }
 

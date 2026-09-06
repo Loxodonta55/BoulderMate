@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Gym,
-  Sector,
-  GymGradeScale,
   WallBoulder,
   GymMemberRole,
   RadarAttributes,
 } from '../types/boulder';
 import {
-  getGyms,
-  getSectors,
-  getGradeScales,
   getWallBoulders,
   createDraftBoulder,
   updateBoulderPosition,
@@ -20,6 +14,7 @@ import {
   updateSectorPhoto,
   getLastSelectedGradeScaleId,
 } from '../lib/batchBoulderService';
+import { useGymSectorData } from '../hooks/useGymSectorData';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { BoulderBottomSheet } from './BoulderBottomSheet';
 import { BatchSummaryModal } from './BatchSummaryModal';
@@ -48,12 +43,19 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   activeGymId,
   onSelectGym,
 }) => {
-  const [gyms, setGyms] = useState<Gym[]>([]);
-  const [gym, setGym] = useState<Gym | null>(null);
-  const [selectedGymId, setSelectedGymId] = useState<string>(activeGymId || '');
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [selectedSectorId, setSelectedSectorId] = useState<string>('');
-  const [gradeScales, setGradeScales] = useState<GymGradeScale[]>([]);
+  const {
+    gyms,
+    gym,
+    selectedGymId,
+    sectors,
+    setSectors,
+    selectedSectorId,
+    selectedSector,
+    gradeScales,
+    setSelectedSectorId,
+    handleGymChange,
+  } = useGymSectorData(activeGymId, onSelectGym);
+
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
 
   // Batch interaction state
@@ -67,41 +69,6 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // Photo replacement modal
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
 
-  const loadGymData = (gymIdToLoad: string, allGymsList: Gym[]) => {
-    const currentGym = allGymsList.find(g => g.id === gymIdToLoad) || allGymsList[0] || null;
-    setGym(currentGym);
-    if (currentGym) {
-      setSelectedGymId(currentGym.id);
-      const gymSectors = getSectors(currentGym.id);
-      setSectors(gymSectors);
-      if (gymSectors.length > 0) {
-        setSelectedSectorId(gymSectors[0].id);
-      } else {
-        setSelectedSectorId('');
-      }
-      const scales = getGradeScales(currentGym.id);
-      setGradeScales(scales);
-    }
-  };
-
-  // Load gym & sector data
-  useEffect(() => {
-    const all = getGyms();
-    setGyms(all);
-    if (all.length > 0) {
-      const targetId = activeGymId && all.some(g => g.id === activeGymId)
-        ? activeGymId
-        : (selectedGymId && all.some(g => g.id === selectedGymId) ? selectedGymId : all[0].id);
-      loadGymData(targetId, all);
-    }
-  }, [activeGymId]);
-
-  const handleGymChange = (newGymId: string) => {
-    setSelectedGymId(newGymId);
-    onSelectGym?.(newGymId);
-    loadGymData(newGymId, gyms);
-  };
-
   // Reload boulders when sector changes
   useEffect(() => {
     if (selectedSectorId) {
@@ -114,8 +81,6 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
       setBoulders([]);
     }
   }, [selectedSectorId]);
-
-  const selectedSector = sectors.find(s => s.id === selectedSectorId) || null;
 
   // AC-1: Check permissions
   const isAuthorized = currentRole === 'setter' || currentRole === 'admin';

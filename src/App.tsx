@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Boulder, BoulderInput, BoulderFilterOptions, GymMemberRole, Gym } from './types/boulder';
+import { Boulder, GymMemberRole, Gym } from './types/boulder';
 import {
   getStoredBoulders,
   createBoulder,
-  updateBoulder,
-  deleteBoulder,
-  filterAndSortBoulders,
-  computeStats
 } from './lib/storage';
-import { BoulderStatsBar } from './components/BoulderStatsBar';
-import { BoulderFilter } from './components/BoulderFilter';
-import { BoulderList } from './components/BoulderList';
-import { BoulderForm } from './components/BoulderForm';
-import { DataManagementModal } from './components/DataManagementModal';
+import { SEED_CRUD_BOULDERS } from './lib/seedData';
+import { LegacyLogbookView } from './components/LegacyLogbookView';
 import { BatchBoulderWorkflow } from './components/BatchBoulderWorkflow';
 import { GymManagement } from './components/GymManagement';
 import { ensureInitialGymData } from './lib/gymStorage';
@@ -23,8 +16,9 @@ import { getProfile } from './lib/profileService';
 import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
+import { LandingPage } from './components/LandingPage';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, AuthUser } from './lib/authService';
-import { Mountain, Plus, Database, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
+import { Mountain, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
@@ -35,82 +29,18 @@ export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'schrauber-minimum', nickname: 'Schrauber Minimum (Schrauber Minimum)' },
 ];
 
-const SEED_DATA: BoulderInput[] = [
-  {
-    name: 'Rainbow Rocket',
-    location: 'Fontainebleau',
-    sector: 'Cuvier Rempart',
-    date: '2026-09-02',
-    gradeScale: 'font',
-    grade: '8A',
-    ascentStyle: 'top',
-    attempts: 14,
-    wallAngle: 'vertical',
-    holdTypes: ['sloper', 'crimp'],
-    perceivedDifficulty: 'fair',
-    rating: 5,
-    cruxDescription: 'Dynamischer Weitsprung von der Untergriff-Leiste auf die abgerundete Sloper-Kante. Volle Körperspannung beim Abfangen.',
-    notes: 'Klassischer Weltklasse-Dyno. Perfektes Reibungswetter bei 12°C.',
-    tags: ['dyno', 'highball', 'classic']
-  },
-  {
-    name: 'Karma',
-    location: 'Fontainebleau',
-    sector: 'Cuvier Rempart',
-    date: '2026-09-02',
-    gradeScale: 'font',
-    grade: '7A+',
-    ascentStyle: 'flash',
-    attempts: 1,
-    wallAngle: 'vertical',
-    holdTypes: ['sloper', 'pinch'],
-    perceivedDifficulty: 'soft',
-    rating: 5,
-    cruxDescription: 'Präziser Schulterzug und anschließender Mantle.',
-    notes: 'Flash gelungen dank perfekter Beta von Jonas!',
-    tags: ['sloper', 'mantle']
-  },
-  {
-    name: 'Dach-Projekt 42',
-    location: 'Minimum Zürich',
-    sector: 'Wettkampf-Dach',
-    date: '2026-09-04',
-    gradeScale: 'font',
-    grade: '7C',
-    ascentStyle: 'project',
-    attempts: 7,
-    wallAngle: 'roof',
-    holdTypes: ['pinch', 'crimp', 'volume'],
-    perceivedDifficulty: 'hard',
-    rating: 4,
-    cruxDescription: 'Toe-Hook halten während weitem Zug auf die linke Zange. Beim Hook-Release nicht von der Wand abreißen.',
-    notes: 'Sequenz bis Zug 5 steht stabil. Nächstes Mal Ausstieg probieren.',
-    tags: ['roof', 'toehook', 'project']
-  }
-];
-
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'wall' | 'logbook' | 'profile'>('wall');
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isGuestBrowsing, setIsGuestBrowsing] = useState<boolean>(false);
   const [hasChosenModeForUser, setHasChosenModeForUser] = useState<Record<string, boolean>>({});
 
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [activeGymId, setActiveGymId] = useState<string>('gym-6a-plus');
   const [boulders, setBoulders] = useState<Boulder[]>([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingBoulder, setEditingBoulder] = useState<Boulder | null>(null);
-  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [climberNicknames, setClimberNicknames] = useState<Record<string, string>>({});
-  const [filters, setFilters] = useState<BoulderFilterOptions>({
-    searchQuery: '',
-    ascentStyle: 'all',
-    wallAngle: 'all',
-    holdType: 'all',
-    location: '',
-    sortBy: 'date_desc'
-  });
 
   const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
   const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
@@ -214,7 +144,7 @@ export const App: React.FC = () => {
     }
     const loaded = getStoredBoulders();
     if (loaded.length === 0) {
-      for (const item of SEED_DATA) {
+      for (const item of SEED_CRUD_BOULDERS) {
         createBoulder(item);
       }
       setBoulders(getStoredBoulders());
@@ -228,42 +158,51 @@ export const App: React.FC = () => {
     refreshGyms();
   };
 
-  const handleSaveBoulder = (data: BoulderInput) => {
-    if (editingBoulder) {
-      updateBoulder(editingBoulder.id, data);
-    } else {
-      createBoulder(data);
-    }
-    refreshData();
-    setIsFormOpen(false);
-    setEditingBoulder(null);
-  };
+  // Dedicated Standalone Landing Page for unauthenticated visitors
+  if (!authSession && !isGuestBrowsing) {
+    return (
+      <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
+        <LandingPage
+          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onExploreAsGuest={() => setIsGuestBrowsing(true)}
+          onQuickLogin={(user) => {
+            const updated = setSessionUser(user);
+            setAuthSession(updated);
+            setClimberId(updated.id);
+            setIsGuestBrowsing(false);
+          }}
+        />
 
-  const handleEditBoulder = (boulder: Boulder) => {
-    setEditingBoulder(boulder);
-    setIsFormOpen(true);
-  };
+        {/* Login Modal (SPEC-000) */}
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onUserChanged={(user) => {
+            if (user) {
+              setAuthSession(user);
+              setClimberId(user.id);
+              setIsGuestBrowsing(false);
+            } else {
+              setAuthSession(null);
+              setClimberId(null);
+            }
+          }}
+        />
 
-  const handleDeleteBoulder = (id: string) => {
-    deleteBoulder(id);
-    refreshData();
-  };
-
-  const availableLocations = useMemo(() => {
-    const locSet = new Set<string>();
-    boulders.forEach(b => {
-      if (b.location) locSet.add(b.location);
-    });
-    return Array.from(locSet).sort();
-  }, [boulders]);
-
-  const filteredBoulders = useMemo(() => {
-    return filterAndSortBoulders(boulders, filters);
-  }, [boulders, filters]);
-
-  const stats = useMemo(() => {
-    return computeStats(boulders);
-  }, [boulders]);
+        {/* Role Gateway Modal if triggered */}
+        {climberId && (
+          <RoleGatewayModal
+            isOpen={isRoleGatewayOpen}
+            nickname={currentUser.nickname}
+            roleInfo={roleInfo}
+            currentMode={appMode}
+            onSelectMode={handleSelectMode}
+            onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
@@ -497,9 +436,21 @@ export const App: React.FC = () => {
                   </select>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs text-[#A89F91] font-mono">
-                  <User className="w-3.5 h-3.5 text-[#6B6358]" />
-                  <span>Gast</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs text-[#A89F91] font-mono">
+                    <User className="w-3.5 h-3.5 text-[#6B6358]" />
+                    <span>Gast</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsGuestBrowsing(false)}
+                    className="px-2 py-1 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-xs font-mono text-[#C9A96E] hover:text-[#E8E0D4] transition flex items-center gap-1"
+                    title="Zurück zur Landing Page"
+                    data-testid="back-to-landing-btn"
+                  >
+                    <Mountain className="w-3 h-3" />
+                    <span className="hidden sm:inline">Landing Page</span>
+                  </button>
                 </div>
               )}
 
@@ -514,19 +465,6 @@ export const App: React.FC = () => {
                 <LogIn className="w-3.5 h-3.5 text-[#C9A96E]" />
                 <span className="hidden sm:inline">{authSession ? currentUser.nickname : 'Login'}</span>
               </button>
-
-              {activeTab === 'logbook' && (
-                <button
-                  onClick={() => {
-                    setEditingBoulder(null);
-                    setIsFormOpen(true);
-                  }}
-                  className="px-3 py-1.5 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Loggen</span>
-                </button>
-              )}
 
               {/* Discreet Privileged Workspace Switcher (Only visible for setters and admins!) */}
               {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
@@ -595,6 +533,7 @@ export const App: React.FC = () => {
               signOut();
               setAuthSession(null);
               setClimberId(null);
+              setIsGuestBrowsing(false);
               setActiveTab('wall');
             }}
             onNavigateToWall={() => setActiveTab('wall')}
@@ -605,80 +544,13 @@ export const App: React.FC = () => {
             }
           />
         ) : (
-          /* Feature 2: Persönliches Kletterer-Logbuch & Dashboard */
-          <div className="space-y-6">
-            <BoulderStatsBar stats={stats} />
-
-            {isFormOpen && (
-              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
-                <div className="w-full max-w-2xl my-8">
-                  <BoulderForm
-                    initialData={editingBoulder}
-                    onSave={handleSaveBoulder}
-                    onCancel={() => {
-                      setIsFormOpen(false);
-                      setEditingBoulder(null);
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <BoulderFilter
-              filters={filters}
-              onChange={setFilters}
-              availableLocations={availableLocations}
-            />
-
-            <section className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-base font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-                  <span>Erfasste Routen</span>
-                  <span className="px-2.5 py-0.5 rounded-none text-xs font-mono font-semibold bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
-                    {filteredBoulders.length} von {boulders.length}
-                  </span>
-                </h2>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setEditingBoulder(null);
-                      setIsFormOpen(true);
-                    }}
-                    className="px-2.5 py-1 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Begehung erfassen</span>
-                  </button>
-                  <button
-                    onClick={() => setIsDataModalOpen(true)}
-                    className="px-2.5 py-1 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1.5"
-                    title="Datenverwaltung / Backup"
-                  >
-                    <Database className="w-3.5 h-3.5 text-[#C9A96E]" />
-                    <span>Backup</span>
-                  </button>
-                </div>
-              </div>
-
-              <BoulderList
-                boulders={filteredBoulders}
-                onEdit={handleEditBoulder}
-                onDelete={handleDeleteBoulder}
-              />
-            </section>
-          </div>
+          /* Feature 1: Legacy Kletterer-Logbuch & Dashboard */
+          <LegacyLogbookView
+            boulders={boulders}
+            onDataChanged={refreshData}
+          />
         )}
       </main>
-
-      {/* Data Management Modal (Export/Import) */}
-      {isDataModalOpen && (
-        <DataManagementModal
-          boulders={boulders}
-          onImportComplete={refreshData}
-          onClose={() => setIsDataModalOpen(false)}
-        />
-      )}
 
       {/* Clean, quiet Footer (SPEC-005) */}
       <footer className="border-t border-[#333333] bg-[#121212] py-5 text-center text-xs text-[#6B6358] font-mono">

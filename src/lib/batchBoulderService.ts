@@ -7,9 +7,30 @@ import {
   BatchPublishResult,
   GymMemberRole,
   DEFAULT_RADAR,
-  RadarAttributes
+  RadarAttributes,
 } from '../types/boulder';
 import * as gymStorage from './gymStorage';
+import {
+  SEED_GYM,
+  SEED_GRADE_SCALES,
+  SEED_SECTORS,
+  SEED_EXISTING_BOULDERS,
+} from './seedData';
+import {
+  getStorageString,
+  setStorageString,
+  getStorageJson,
+  setStorageJson,
+  removeStorageItem,
+} from './storageUtils';
+
+// Re-export seed constants for backward compatibility
+export {
+  SEED_GYM,
+  SEED_GRADE_SCALES,
+  SEED_SECTORS,
+  SEED_EXISTING_BOULDERS,
+};
 
 const STORAGE_KEY_GYMS = 'boulderapp_gyms_v2';
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
@@ -17,383 +38,11 @@ const STORAGE_KEY_GRADE_SCALES = 'boulderapp_grade_scales_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
 const STORAGE_KEY_LAST_COLOR_PREFIX = 'boulderapp_last_color_';
 
-// Initial realistic seed data
-export const SEED_GYM: Gym = {
-  id: 'gym-minimum-zh',
-  name: 'Minimum Boulder Zürich',
-  city: 'Zürich',
-  address: 'Flüelastrasse 31, 8048 Zürich',
-  createdBy: 'user-admin-1',
-  createdAt: '2026-09-01T10:00:00Z',
-};
-
-export const SEED_GRADE_SCALES: GymGradeScale[] = [
-  { id: 'scale-green', gymId: 'gym-minimum-zh', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Leicht', fontRangeMin: '4a', fontRangeMax: '5b', sortOrder: 1 },
-  { id: 'scale-blue', gymId: 'gym-minimum-zh', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Fortgeschritten', fontRangeMin: '5c', fontRangeMax: '6b', sortOrder: 2 },
-  { id: 'scale-yellow', gymId: 'gym-minimum-zh', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Sportlich', fontRangeMin: '6b+', fontRangeMax: '7a', sortOrder: 3 },
-  { id: 'scale-red', gymId: 'gym-minimum-zh', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Schwer', fontRangeMin: '7a+', fontRangeMax: '7b+', sortOrder: 4 },
-  { id: 'scale-black', gymId: 'gym-minimum-zh', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7c', fontRangeMax: '8a', sortOrder: 5 },
-  { id: 'scale-white', gymId: 'gym-minimum-zh', colorName: 'Weiß', colorHex: '#f8fafc', difficultyLabel: 'Elite', fontRangeMin: '8a+', fontRangeMax: '8b+', sortOrder: 6 },
-];
-
-export const SEED_SECTORS: Sector[] = [
-  {
-    id: 'sector-overhang',
-    gymId: 'gym-minimum-zh',
-    name: 'Überhang 45°',
-    wallPhotoUrl: '/images/walls/overhang.jpg',
-    sortOrder: 1,
-    createdAt: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'sector-slab',
-    gymId: 'gym-minimum-zh',
-    name: 'Platte (Slab & Balance)',
-    wallPhotoUrl: '/images/walls/slab.jpg',
-    sortOrder: 2,
-    createdAt: '2026-09-01T10:00:00Z',
-  },
-  {
-    id: 'sector-roof',
-    gymId: 'gym-minimum-zh',
-    name: 'Wettkampf-Dach & Cave',
-    wallPhotoUrl: '/images/walls/roof.jpg',
-    sortOrder: 3,
-    createdAt: '2026-09-01T10:00:00Z',
-  },
-];
-
-export const SEED_EXISTING_BOULDERS: WallBoulder[] = [
-  // --- Sector 1: Überhang 45° (7 Boulders) ---
-  {
-    id: 'boulder-existing-1',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.35,
-    positionY: 0.42,
-    name: 'Dyno King',
-    notes: 'Dynamischer Sprung an die Leiste',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 4, technik: 3, balance: 2, koordination: 4, flexibilitaet: 2 },
-    createdAt: '2026-08-25T14:00:00Z',
-    publishedAt: '2026-08-25T18:00:00Z',
-  },
-  {
-    id: 'boulder-existing-2',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.68,
-    positionY: 0.55,
-    name: 'Heel-Hook Madness',
-    notes: 'Körperspannung am Untergriff',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 3, technik: 5, balance: 4, koordination: 3, flexibilitaet: 4 },
-    createdAt: '2026-08-25T14:30:00Z',
-    publishedAt: '2026-08-25T18:00:00Z',
-  },
-  {
-    id: 'boulder-overhang-3',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-red',
-    positionX: 0.22,
-    positionY: 0.30,
-    name: 'Power-Leiste',
-    notes: 'Kleine Leisten im 45° Überhang',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 5, technik: 4, balance: 2, koordination: 2, flexibilitaet: 3 },
-    createdAt: '2026-08-26T10:00:00Z',
-    publishedAt: '2026-08-26T14:00:00Z',
-  },
-  {
-    id: 'boulder-overhang-4',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.80,
-    positionY: 0.65,
-    name: 'Zangengriff Traverse',
-    notes: 'Winklige Pinches und weite Züge',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 4, technik: 3, balance: 3, koordination: 3, flexibilitaet: 2 },
-    createdAt: '2026-08-27T11:00:00Z',
-    publishedAt: '2026-08-27T15:00:00Z',
-  },
-  {
-    id: 'boulder-overhang-5',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-green',
-    positionX: 0.50,
-    positionY: 0.75,
-    name: 'Blocker-Kante',
-    notes: 'Große Henkel zum Warmklettern',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 3, technik: 3, balance: 2, koordination: 2, flexibilitaet: 2 },
-    createdAt: '2026-08-28T09:00:00Z',
-    publishedAt: '2026-08-28T12:00:00Z',
-  },
-  {
-    id: 'boulder-overhang-6',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-red',
-    positionX: 0.45,
-    positionY: 0.20,
-    name: 'Der Rote Bulle',
-    notes: 'Maximalkraft-Züge ohne Rastposition',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 5, technik: 4, balance: 2, koordination: 3, flexibilitaet: 2 },
-    createdAt: '2026-08-28T10:30:00Z',
-    publishedAt: '2026-08-28T13:30:00Z',
-  },
-  {
-    id: 'boulder-overhang-archived-1',
-    sectorId: 'sector-overhang',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.60,
-    positionY: 0.40,
-    name: 'Retro-Kante 2025',
-    notes: 'Abgeschraubte Legende am Pfeiler',
-    setterId: 'setter-1',
-    status: 'archived',
-    radar: { kraft: 4, technik: 4, balance: 3, koordination: 2, flexibilitaet: 3 },
-    createdAt: '2026-07-01T10:00:00Z',
-    publishedAt: '2026-07-01T14:00:00Z',
-    archivedAt: '2026-08-15T18:00:00Z',
-  },
-
-  // --- Sector 2: Platte (Slab & Balance) (7 Boulders) ---
-  {
-    id: 'boulder-slab-1',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-green',
-    positionX: 0.25,
-    positionY: 0.65,
-    name: 'Reibungstraum',
-    notes: 'Nur auf Reibung stehen',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 1, technik: 4, balance: 5, koordination: 2, flexibilitaet: 4 },
-    createdAt: '2026-08-26T11:00:00Z',
-    publishedAt: '2026-08-26T15:00:00Z',
-  },
-  {
-    id: 'boulder-slab-2',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.45,
-    positionY: 0.48,
-    name: 'Messers Schneide',
-    notes: 'Kleine Tritte, saubere Gewichtsverlagerung',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 2, technik: 5, balance: 5, koordination: 3, flexibilitaet: 4 },
-    createdAt: '2026-08-26T12:00:00Z',
-    publishedAt: '2026-08-26T16:00:00Z',
-  },
-  {
-    id: 'boulder-slab-3',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.70,
-    positionY: 0.38,
-    name: 'Körperschwerpunkt',
-    notes: 'Hoher Antritt und delikate Balance',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 2, technik: 5, balance: 5, koordination: 3, flexibilitaet: 5 },
-    createdAt: '2026-08-27T14:00:00Z',
-    publishedAt: '2026-08-27T18:00:00Z',
-  },
-  {
-    id: 'boulder-slab-4',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-red',
-    positionX: 0.35,
-    positionY: 0.28,
-    name: 'Mikrotropfen',
-    notes: 'Fast grifflos, nur Sloper-Volumen',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 3, technik: 5, balance: 5, koordination: 4, flexibilitaet: 4 },
-    createdAt: '2026-08-27T15:00:00Z',
-    publishedAt: '2026-08-27T19:00:00Z',
-  },
-  {
-    id: 'boulder-slab-5',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.58,
-    positionY: 0.72,
-    name: 'Zirkus-Stepper',
-    notes: 'Koordination über drei Volumen',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 2, technik: 4, balance: 4, koordination: 4, flexibilitaet: 3 },
-    createdAt: '2026-08-28T11:00:00Z',
-    publishedAt: '2026-08-28T15:00:00Z',
-  },
-  {
-    id: 'boulder-slab-6',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-green',
-    positionX: 0.15,
-    positionY: 0.80,
-    name: 'Platten-Finesse',
-    notes: 'Leichter Einstieg mit schöner Fußarbeit',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 1, technik: 3, balance: 4, koordination: 2, flexibilitaet: 3 },
-    createdAt: '2026-08-29T09:30:00Z',
-    publishedAt: '2026-08-29T13:00:00Z',
-  },
-  {
-    id: 'boulder-slab-archived-1',
-    sectorId: 'sector-slab',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.82,
-    positionY: 0.30,
-    name: 'Die Glatte Wand',
-    notes: 'Ehemaliges Platten-Projekt',
-    setterId: 'setter-1',
-    status: 'archived',
-    radar: { kraft: 2, technik: 5, balance: 5, koordination: 3, flexibilitaet: 4 },
-    createdAt: '2026-07-10T11:00:00Z',
-    publishedAt: '2026-07-10T15:00:00Z',
-    archivedAt: '2026-08-18T16:00:00Z',
-  },
-
-  // --- Sector 3: Wettkampf-Dach & Cave (7 Boulders) ---
-  {
-    id: 'boulder-roof-1',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.30,
-    positionY: 0.70,
-    name: 'Fledermaus-Hook',
-    notes: 'Toe-Hook Entlastung im Dach',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 4, technik: 4, balance: 3, koordination: 3, flexibilitaet: 5 },
-    createdAt: '2026-08-28T13:00:00Z',
-    publishedAt: '2026-08-28T17:00:00Z',
-  },
-  {
-    id: 'boulder-roof-2',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.52,
-    positionY: 0.55,
-    name: 'Dach-Kompressor',
-    notes: 'Gegendruck auf zwei große Sloper',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 5, technik: 4, balance: 2, koordination: 3, flexibilitaet: 3 },
-    createdAt: '2026-08-28T14:00:00Z',
-    publishedAt: '2026-08-28T18:00:00Z',
-  },
-  {
-    id: 'boulder-roof-3',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-red',
-    positionX: 0.75,
-    positionY: 0.42,
-    name: 'Wettkampf-Sprung',
-    notes: 'Dynamischer Paddle-Dyno zur Kante',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 4, technik: 3, balance: 2, koordination: 5, flexibilitaet: 3 },
-    createdAt: '2026-08-29T10:00:00Z',
-    publishedAt: '2026-08-29T14:00:00Z',
-  },
-  {
-    id: 'boulder-roof-4',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-black',
-    positionX: 0.40,
-    positionY: 0.25,
-    name: 'Cave Ausstiegs-Crux',
-    notes: 'Extrem harter Heel-Hook Ausstieg',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 5, technik: 5, balance: 3, koordination: 4, flexibilitaet: 3 },
-    createdAt: '2026-08-29T11:00:00Z',
-    publishedAt: '2026-08-29T15:00:00Z',
-  },
-  {
-    id: 'boulder-roof-5',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-blue',
-    positionX: 0.65,
-    positionY: 0.68,
-    name: 'Körperspannung Pur',
-    notes: 'Füße dürfen nicht abrutschen',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 4, technik: 3, balance: 2, koordination: 2, flexibilitaet: 3 },
-    createdAt: '2026-08-30T09:00:00Z',
-    publishedAt: '2026-08-30T13:00:00Z',
-  },
-  {
-    id: 'boulder-roof-6',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-green',
-    positionX: 0.20,
-    positionY: 0.82,
-    name: 'Dach-Einstieg',
-    notes: 'Gute Griffe durch die Schräge',
-    setterId: 'setter-1',
-    status: 'active',
-    radar: { kraft: 3, technik: 3, balance: 2, koordination: 2, flexibilitaet: 2 },
-    createdAt: '2026-08-30T10:00:00Z',
-    publishedAt: '2026-08-30T14:00:00Z',
-  },
-  {
-    id: 'boulder-roof-archived-1',
-    sectorId: 'sector-roof',
-    gradeScaleId: 'scale-yellow',
-    positionX: 0.50,
-    positionY: 0.40,
-    name: 'Horizontale Hölle',
-    notes: 'Klassiker der letzten Saison',
-    setterId: 'setter-1',
-    status: 'archived',
-    radar: { kraft: 5, technik: 4, balance: 2, koordination: 3, flexibilitaet: 3 },
-    createdAt: '2026-07-15T12:00:00Z',
-    publishedAt: '2026-07-15T16:00:00Z',
-    archivedAt: '2026-08-20T17:00:00Z',
-  },
-];
-
-// Helper: Memory fallback if localStorage is absent (e.g. Node tests without mock)
-let memoryStore: Record<string, string> = {};
-
-function getStorageItem(key: string): string | null {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage.getItem(key);
-  }
-  return memoryStore[key] || null;
-}
-
-function setStorageItem(key: string, value: string): void {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.setItem(key, value);
-  } else {
-    memoryStore[key] = value;
-  }
-}
-
 export function clearBatchServiceStorage(): void {
-  memoryStore = {};
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.removeItem(STORAGE_KEY_GYMS);
-    window.localStorage.removeItem(STORAGE_KEY_SECTORS);
-    window.localStorage.removeItem(STORAGE_KEY_GRADE_SCALES);
-    window.localStorage.removeItem(STORAGE_KEY_WALL_BOULDERS);
-  }
+  removeStorageItem(STORAGE_KEY_GYMS);
+  removeStorageItem(STORAGE_KEY_SECTORS);
+  removeStorageItem(STORAGE_KEY_GRADE_SCALES);
+  removeStorageItem(STORAGE_KEY_WALL_BOULDERS);
 }
 
 // -------------------------------------------------------------
@@ -409,17 +58,7 @@ export function checkSetterPermission(role: GymMemberRole): void {
 // Gyms, Sectors & GradeScales (Synchronized with gymStorage)
 // -------------------------------------------------------------
 export function getGyms(): Gym[] {
-  const data = getStorageItem(STORAGE_KEY_GYMS);
-  let v2Gyms: Gym[] = [];
-  if (data) {
-    try {
-      v2Gyms = JSON.parse(data);
-    } catch {
-      v2Gyms = [SEED_GYM];
-    }
-  } else {
-    v2Gyms = [SEED_GYM];
-  }
+  const v2Gyms = getStorageJson<Gym[]>(STORAGE_KEY_GYMS, [SEED_GYM]);
 
   // Also include any gyms registered via gymStorage (SPEC-001)
   try {
@@ -448,17 +87,7 @@ export function getGyms(): Gym[] {
 }
 
 export function getSectors(gymId: string): Sector[] {
-  const data = getStorageItem(STORAGE_KEY_SECTORS);
-  let all: Sector[] = [];
-  if (data) {
-    try {
-      all = JSON.parse(data);
-    } catch {
-      all = [...SEED_SECTORS];
-    }
-  } else {
-    all = [...SEED_SECTORS];
-  }
+  let all = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
 
   // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
   let hasMigrated = false;
@@ -493,7 +122,7 @@ export function getSectors(gymId: string): Sector[] {
     return s;
   });
   if (hasMigrated) {
-    setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(all));
+    setStorageJson(STORAGE_KEY_SECTORS, all);
   }
 
   // Also include sectors created via gymStorage for this gym
@@ -535,16 +164,14 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
   if (!newPhotoUrl || !newPhotoUrl.trim()) {
     throw new Error('Eine gültige Bild-URL oder Foto ist erforderlich.');
   }
-  const allData = getStorageItem(STORAGE_KEY_SECTORS);
-  let sectors: Sector[] = allData ? JSON.parse(allData) : [...SEED_SECTORS];
+  const sectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
   const idx = sectors.findIndex(s => s.id === sectorId);
   if (idx === -1) {
-    // If not in v2, check if it's in gymStorage and add to v2
     const sector = getSectorById(sectorId);
     if (sector) {
       const updatedSector = { ...sector, wallPhotoUrl: newPhotoUrl.trim() };
       sectors.push(updatedSector);
-      setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(sectors));
+      setStorageJson(STORAGE_KEY_SECTORS, sectors);
       return updatedSector;
     }
     throw new Error(`Sektor mit ID "${sectorId}" wurde nicht gefunden.`);
@@ -555,22 +182,12 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
     wallPhotoUrl: newPhotoUrl.trim(),
   };
 
-  setStorageItem(STORAGE_KEY_SECTORS, JSON.stringify(sectors));
+  setStorageJson(STORAGE_KEY_SECTORS, sectors);
   return sectors[idx];
 }
 
 export function getGradeScales(gymId: string): GymGradeScale[] {
-  const data = getStorageItem(STORAGE_KEY_GRADE_SCALES);
-  let all: GymGradeScale[] = [];
-  if (data) {
-    try {
-      all = JSON.parse(data);
-    } catch {
-      all = [...SEED_GRADE_SCALES];
-    }
-  } else {
-    all = [...SEED_GRADE_SCALES];
-  }
+  const all = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, [...SEED_GRADE_SCALES]);
 
   // Also include grade scales from gymStorage
   try {
@@ -600,7 +217,6 @@ export function getGradeScales(gymId: string): GymGradeScale[] {
     return gymScales;
   }
 
-  // Provide sensible standard gym scales for newly created gyms
   return SEED_GRADE_SCALES.map((scale, idx) => ({
     ...scale,
     id: `scale-${gymId}-${idx}`,
@@ -612,25 +228,25 @@ export function getGradeScales(gymId: string): GymGradeScale[] {
 // AC-5: Smart Color Memory (Remember last selected color per gym)
 // -------------------------------------------------------------
 export function getLastSelectedGradeScaleId(gymId: string): string | null {
-  return getStorageItem(STORAGE_KEY_LAST_COLOR_PREFIX + gymId);
+  return getStorageString(STORAGE_KEY_LAST_COLOR_PREFIX + gymId);
 }
 
 export function setLastSelectedGradeScaleId(gymId: string, scaleId: string): void {
-  setStorageItem(STORAGE_KEY_LAST_COLOR_PREFIX + gymId, scaleId);
+  setStorageString(STORAGE_KEY_LAST_COLOR_PREFIX + gymId, scaleId);
 }
 
 // -------------------------------------------------------------
 // Wall Boulder Lifecycle
 // -------------------------------------------------------------
 export function getWallBoulders(sectorId?: string): WallBoulder[] {
-  const data = getStorageItem(STORAGE_KEY_WALL_BOULDERS);
-  let all: WallBoulder[] = [];
-  if (!data) {
+  const raw = getStorageString(STORAGE_KEY_WALL_BOULDERS);
+  let all: WallBoulder[];
+  if (!raw) {
     all = [...SEED_EXISTING_BOULDERS];
-    setStorageItem(STORAGE_KEY_WALL_BOULDERS, JSON.stringify(all));
+    setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
   } else {
     try {
-      all = JSON.parse(data);
+      all = JSON.parse(raw);
     } catch {
       all = [...SEED_EXISTING_BOULDERS];
     }
@@ -643,7 +259,7 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
 }
 
 function saveWallBoulders(boulders: WallBoulder[]): void {
-  setStorageItem(STORAGE_KEY_WALL_BOULDERS, JSON.stringify(boulders));
+  setStorageJson(STORAGE_KEY_WALL_BOULDERS, boulders);
 
   try {
     const existing = gymStorage.getBoulders();

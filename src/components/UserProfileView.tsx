@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CurrentUser, WallBoulder, LogbookEntry } from '../types/boulder';
 import {
   getProfileData,
@@ -6,6 +6,7 @@ import {
   deleteAccount,
 } from '../lib/profileService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
+import { formatRelativeDate } from '../lib/formatUtils';
 import { ProfileKPIsBar } from './ProfileKPIsBar';
 import { GradeDistributionChart } from './GradeDistributionChart';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
@@ -44,11 +45,17 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [activeSegment, setActiveSegment] = useState<'overview' | 'performance'>('overview');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
-  const [, setVersion] = useState(0);
+  const [version, setVersion] = useState(0);
 
-  const gyms = getGyms();
-  const profileData = getProfileData(currentUser.id, selectedGymId);
-  const performanceReport = getAthletePerformanceReport(currentUser.id, selectedGymId);
+  const gyms = useMemo(() => getGyms(), []);
+  const profileData = useMemo(
+    () => getProfileData(currentUser.id, selectedGymId),
+    [currentUser.id, selectedGymId, version]
+  );
+  const performanceReport = useMemo(
+    () => getAthletePerformanceReport(currentUser.id, selectedGymId),
+    [currentUser.id, selectedGymId, version]
+  );
   const { profile, kpis, gradeDistribution, logbook } = profileData;
 
   const formattedJoinDate = new Date(profile.createdAt).toLocaleDateString('de-DE', {
@@ -101,35 +108,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
     }
   };
 
-  // Helper to format logbook timestamps human-friendly
-  const formatLogbookDate = (isoString: string) => {
-    const d = new Date(isoString);
-    const now = new Date();
-    const isToday =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday =
-      d.getDate() === yesterday.getDate() &&
-      d.getMonth() === yesterday.getMonth() &&
-      d.getFullYear() === yesterday.getFullYear();
-
-    if (isToday) return 'Heute';
-    if (isYesterday) return 'Gestern';
-
-    return d.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
   // Find sector and gradeScale for selected boulder if modal is open
-  const allSectors = getSectors('gym-minimum-zh');
-  const allScales = getGradeScales('gym-minimum-zh');
+  const allSectors = useMemo(() => getSectors('gym-minimum-zh'), []);
+  const allScales = useMemo(() => getGradeScales('gym-minimum-zh'), []);
   const activeSector = selectedBoulder ? allSectors.find(s => s.id === selectedBoulder.sectorId) : undefined;
   const activeScale = selectedBoulder ? allScales.find(s => s.id === selectedBoulder.gradeScaleId) : undefined;
 
@@ -351,7 +332,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                         {/* Formatted Date */}
                         <div className="text-right">
                           <span className="text-[11px] font-mono text-[#A89F91]">
-                            {formatLogbookDate(entry.createdAt)}
+                            {formatRelativeDate(entry.createdAt)}
                           </span>
                         </div>
 

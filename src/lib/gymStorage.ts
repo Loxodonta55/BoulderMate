@@ -14,53 +14,34 @@ export const CURRENT_USER: User = {
   email: 'boris@bouldermate.ch'
 };
 
-// Helpers for localStorage with in-memory fallback
-let memoryGyms: Gym[] = [];
-let memoryMembers: GymMember[] = [];
-let memoryGradeScales: GradeScale[] = [];
-let memorySectors: Sector[] = [];
-let memoryBoulders: BoulderReference[] = [];
-
-function getStorage<T>(key: string, memoryFallback: T[]): T[] {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const data = window.localStorage.getItem(key);
-      if (data) return JSON.parse(data);
-    } catch (e) {
-      console.error(`Failed reading ${key} from localStorage`, e);
-    }
-  }
-  return [...memoryFallback];
-}
-
-function setStorage<T>(key: string, data: T[], setMemory: (val: T[]) => void): void {
-  setMemory([...data]);
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-      console.error(`Failed writing ${key} to localStorage`, e);
-    }
-  }
-}
+import {
+  getStorageJson,
+  setStorageJson,
+  removeStorageItem,
+} from './storageUtils';
 
 export function resetAllGymData(): void {
-  memoryGyms = [];
-  memoryMembers = [];
-  memoryGradeScales = [];
-  memorySectors = [];
-  memoryBoulders = [];
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.removeItem(GYMS_KEY);
-    window.localStorage.removeItem(MEMBERS_KEY);
-    window.localStorage.removeItem(GRADE_SCALES_KEY);
-    window.localStorage.removeItem(SECTORS_KEY);
-    window.localStorage.removeItem(BOULDERS_KEY);
-  }
+  removeStorageItem(GYMS_KEY);
+  removeStorageItem(MEMBERS_KEY);
+  removeStorageItem(GRADE_SCALES_KEY);
+  removeStorageItem(SECTORS_KEY);
+  removeStorageItem(BOULDERS_KEY);
 }
 
 export function getGyms(): Gym[] {
-  return getStorage<Gym>(GYMS_KEY, memoryGyms);
+  return getStorageJson<Gym[]>(GYMS_KEY, []);
+}
+
+export function saveGyms(gyms: Gym[]): void {
+  setStorageJson(GYMS_KEY, gyms);
+}
+
+export function getMembers(): GymMember[] {
+  return getStorageJson<GymMember[]>(MEMBERS_KEY, []);
+}
+
+export function saveMembers(members: GymMember[]): void {
+  setStorageJson(MEMBERS_KEY, members);
 }
 
 export function ensureInitialGymData(): void {
@@ -205,29 +186,17 @@ export function ensureInitialGymData(): void {
   }
 }
 
-export function saveGyms(gyms: Gym[]): void {
-  setStorage<Gym>(GYMS_KEY, gyms, val => { memoryGyms = val; });
-}
-
-export function getMembers(): GymMember[] {
-  return getStorage<GymMember>(MEMBERS_KEY, memoryMembers);
-}
-
-export function saveMembers(members: GymMember[]): void {
-  setStorage<GymMember>(MEMBERS_KEY, members, val => { memoryMembers = val; });
-}
-
 export function getGradeScales(gym_id?: string): GradeScale[] {
-  const all = getStorage<GradeScale>(GRADE_SCALES_KEY, memoryGradeScales);
+  const all = getStorageJson<GradeScale[]>(GRADE_SCALES_KEY, []);
   return gym_id ? all.filter(g => g.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
 }
 
 export function saveGradeScales(scales: GradeScale[]): void {
-  setStorage<GradeScale>(GRADE_SCALES_KEY, scales, val => { memoryGradeScales = val; });
+  setStorageJson(GRADE_SCALES_KEY, scales);
 }
 
 export function getSectors(gym_id?: string): Sector[] {
-  let all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  let all = getStorageJson<Sector[]>(SECTORS_KEY, []);
   let hasMigrated = false;
   all = all.map(s => {
     if (s.wall_photo_url.includes('photo-1522163182402')) {
@@ -262,16 +231,16 @@ export function getSectors(gym_id?: string): Sector[] {
 }
 
 export function saveSectors(sectors: Sector[]): void {
-  setStorage<Sector>(SECTORS_KEY, sectors, val => { memorySectors = val; });
+  setStorageJson(SECTORS_KEY, sectors);
 }
 
 export function getBoulders(sector_id?: string): BoulderReference[] {
-  const all = getStorage<BoulderReference>(BOULDERS_KEY, memoryBoulders);
+  const all = getStorageJson<BoulderReference[]>(BOULDERS_KEY, []);
   return sector_id ? all.filter(b => b.sector_id === sector_id) : all;
 }
 
 export function saveBoulders(boulders: BoulderReference[]): void {
-  setStorage<BoulderReference>(BOULDERS_KEY, boulders, val => { memoryBoulders = val; });
+  setStorageJson(BOULDERS_KEY, boulders);
 }
 
 // User role check in gym
@@ -391,7 +360,7 @@ export function setGymGradeScales(
     };
   });
 
-  const all = getStorage<GradeScale>(GRADE_SCALES_KEY, memoryGradeScales);
+  const all = getGradeScales();
   const others = all.filter(s => s.gym_id !== gym_id);
   saveGradeScales([...others, ...validated]);
   return validated.sort((a, b) => a.sort_order - b.sort_order);
@@ -427,7 +396,7 @@ export function createSector(
     created_at: now
   };
 
-  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const all = getSectors();
   saveSectors([...all, newSector]);
   return newSector;
 }
@@ -442,7 +411,7 @@ export function reorderSectors(
     throw new Error('Nur Hallen-Admins dürfen Sektoren sortieren.');
   }
 
-  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const all = getSectors();
   const gymSectors = all.filter(s => s.gym_id === gym_id);
   const otherSectors = all.filter(s => s.gym_id !== gym_id);
 
@@ -465,7 +434,7 @@ export function updateSectorWallPhoto(
   user_id: string,
   new_wall_photo_url: string
 ): Sector {
-  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const all = getSectors();
   const sector = all.find(s => s.id === sector_id);
   if (!sector) throw new Error('Sektor nicht gefunden.');
 
@@ -505,7 +474,7 @@ export function deleteSector(
   sector_id: string,
   user_id: string
 ): boolean {
-  const all = getStorage<Sector>(SECTORS_KEY, memorySectors);
+  const all = getSectors();
   const sector = all.find(s => s.id === sector_id);
   if (!sector) return false;
 

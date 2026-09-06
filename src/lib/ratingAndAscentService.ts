@@ -9,270 +9,17 @@ import {
   GradeFeel
 } from '../types/boulder';
 
+import { SEED_ASCENTS, SEED_RATINGS } from './seedData';
+import {
+  getStorageString,
+  setStorageJson,
+  removeStorageItem,
+} from './storageUtils';
+
+export { SEED_ASCENTS, SEED_RATINGS };
+
 export const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
 export const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
-
-// Initial realistic seed data for community engagement
-export const SEED_ASCENTS: Ascent[] = [
-  {
-    id: 'ascent-1',
-    userId: 'hans-kletterer',
-    userNickname: 'HansDereinfacheKletterer',
-    boulderId: 'boulder-existing-1',
-    type: 'flash',
-    createdAt: '2026-09-02T16:30:00Z',
-  },
-  {
-    id: 'ascent-2',
-    userId: 'admin-minimum',
-    userNickname: 'AdminMinimum',
-    boulderId: 'boulder-existing-1',
-    type: 'top',
-    createdAt: '2026-09-03T11:15:00Z',
-  },
-  {
-    id: 'ascent-3',
-    userId: 'admin-6aplus',
-    userNickname: 'Admin6APlus',
-    boulderId: 'boulder-existing-1',
-    type: 'top',
-    createdAt: '2026-09-03T18:45:00Z',
-  },
-  {
-    id: 'ascent-4',
-    userId: 'schrauber-6aplus',
-    userNickname: 'Schrauber6aPlus',
-    boulderId: 'boulder-existing-1',
-    type: 'project',
-    createdAt: '2026-09-04T10:00:00Z',
-  },
-  {
-    id: 'ascent-hans-1',
-    userId: 'hans-kletterer',
-    userNickname: 'HansDereinfacheKletterer',
-    boulderId: 'boulder-existing-1',
-    type: 'top',
-    createdAt: '2026-09-04T10:10:00Z',
-  },
-  {
-    id: 'ascent-admin-min-1',
-    userId: 'admin-minimum',
-    userNickname: 'AdminMinimum',
-    boulderId: 'boulder-existing-1',
-    type: 'flash',
-    createdAt: '2026-09-04T10:15:00Z',
-  },
-  {
-    id: 'ascent-5',
-    userId: 'schrauber-minimum',
-    userNickname: 'Schrauber Minimum',
-    boulderId: 'boulder-existing-2',
-    type: 'top',
-    createdAt: '2026-09-02T19:00:00Z',
-  },
-  {
-    id: 'ascent-6',
-    userId: 'hans-kletterer',
-    userNickname: 'HansDereinfacheKletterer',
-    boulderId: 'boulder-existing-2',
-    type: 'flash',
-    createdAt: '2026-09-04T14:20:00Z',
-  },
-
-  // --- Boris' Personal Ascents in Minimum (16 Logs: Flashes, Tops, Projects, including Archived) ---
-  {
-    id: 'ascent-boris-1',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-existing-1', // Overhang, Blue, Dyno King (Koord 4)
-    type: 'project',
-    createdAt: '2026-09-04T17:00:00Z',
-  },
-  {
-    id: 'ascent-boris-2',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-existing-2', // Overhang, Yellow, Heel-Hook (Kraft 3, Tech 5, Bal 4)
-    type: 'flash',
-    createdAt: '2026-09-04T17:15:00Z',
-  },
-  {
-    id: 'ascent-boris-3',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-overhang-3', // Overhang, Red (7a+), Power-Leiste (Kraft 5, Tech 4)
-    type: 'top',
-    createdAt: '2026-09-04T17:45:00Z',
-  },
-  {
-    id: 'ascent-boris-4',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-overhang-4', // Overhang, Blue, Zangengriff (Kraft 4)
-    type: 'flash',
-    createdAt: '2026-09-04T18:00:00Z',
-  },
-  {
-    id: 'ascent-boris-5',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-overhang-5', // Overhang, Green, Blocker-Kante (Kraft 3)
-    type: 'flash',
-    createdAt: '2026-09-04T16:45:00Z',
-  },
-  {
-    id: 'ascent-boris-6',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-overhang-6', // Overhang, Red (7a+), Der Rote Bulle (Kraft 5)
-    type: 'top',
-    createdAt: '2026-09-04T18:30:00Z',
-  },
-  {
-    id: 'ascent-boris-7',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-overhang-archived-1', // Overhang [Archived], Yellow, Retro-Kante (Kraft 4)
-    type: 'top',
-    createdAt: '2026-08-10T16:00:00Z',
-  },
-  {
-    id: 'ascent-boris-8',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-slab-1', // Slab, Green, Reibungstraum (Balance 5)
-    type: 'flash',
-    createdAt: '2026-09-03T16:30:00Z',
-  },
-  {
-    id: 'ascent-boris-9',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-slab-2', // Slab, Blue, Messers Schneide (Balance 5, Tech 5)
-    type: 'top',
-    createdAt: '2026-09-03T17:00:00Z',
-  },
-  {
-    id: 'ascent-boris-10',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-slab-3', // Slab, Yellow, Körperschwerpunkt (Balance 5, Flex 5)
-    type: 'top',
-    createdAt: '2026-09-03T17:30:00Z',
-  },
-  {
-    id: 'ascent-boris-11',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-slab-5', // Slab, Blue, Zirkus-Stepper (Balance 4, Koord 4)
-    type: 'top',
-    createdAt: '2026-09-03T18:00:00Z',
-  },
-  {
-    id: 'ascent-boris-12',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-slab-archived-1', // Slab [Archived], Yellow, Die Glatte Wand (Balance 5)
-    type: 'top',
-    createdAt: '2026-08-12T15:00:00Z',
-  },
-  {
-    id: 'ascent-boris-13',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-roof-1', // Roof, Blue, Fledermaus-Hook (Kraft 4, Flex 5)
-    type: 'flash',
-    createdAt: '2026-09-01T17:00:00Z',
-  },
-  {
-    id: 'ascent-boris-14',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-roof-2', // Roof, Yellow, Dach-Kompressor (Kraft 5)
-    type: 'top',
-    createdAt: '2026-09-01T17:30:00Z',
-  },
-  {
-    id: 'ascent-boris-15',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-roof-3', // Roof, Red, Wettkampf-Sprung (Koord 5)
-    type: 'project',
-    createdAt: '2026-09-01T18:00:00Z',
-  },
-  {
-    id: 'ascent-boris-16',
-    userId: 'user-boris',
-    userNickname: 'Boris',
-    boulderId: 'boulder-roof-5', // Roof, Blue, Körperspannung Pur (Kraft 4)
-    type: 'flash',
-    createdAt: '2026-09-01T18:30:00Z',
-  }
-];
-
-export const SEED_RATINGS: BoulderRating[] = [
-  {
-    id: 'rating-1',
-    boulderId: 'boulder-existing-1',
-    userId: 'hans-kletterer',
-    userNickname: 'HansDereinfacheKletterer',
-    gradeFeel: 'soft',
-    qualityStars: 5,
-    radar: { kraft: 4, technik: 3, balance: 2, koordination: 4, flexibilitaet: 2 },
-    createdAt: '2026-09-02T16:35:00Z',
-    updatedAt: '2026-09-02T16:35:00Z',
-  },
-  {
-    id: 'rating-2',
-    boulderId: 'boulder-existing-1',
-    userId: 'admin-minimum',
-    userNickname: 'AdminMinimum',
-    gradeFeel: 'fair',
-    qualityStars: 4,
-    radar: { kraft: 5, technik: 3, balance: 3, koordination: 4, flexibilitaet: 2 },
-    createdAt: '2026-09-03T11:20:00Z',
-    updatedAt: '2026-09-03T11:20:00Z',
-  },
-  {
-    id: 'rating-3',
-    boulderId: 'boulder-existing-1',
-    userId: 'admin-6aplus',
-    userNickname: 'Admin6APlus',
-    gradeFeel: 'soft',
-    qualityStars: 4,
-    radar: { kraft: 3, technik: 3, balance: 2, koordination: 4, flexibilitaet: 3 },
-    createdAt: '2026-09-03T18:50:00Z',
-    updatedAt: '2026-09-03T18:50:00Z',
-  },
-  {
-    id: 'rating-4',
-    boulderId: 'boulder-existing-2',
-    userId: 'schrauber-minimum',
-    userNickname: 'Schrauber Minimum',
-    gradeFeel: 'stiff',
-    qualityStars: 5,
-    radar: { kraft: 4, technik: 5, balance: 4, koordination: 3, flexibilitaet: 4 },
-    createdAt: '2026-09-02T19:05:00Z',
-    updatedAt: '2026-09-02T19:05:00Z',
-  }
-];
-
-let memoryStore: Record<string, string> = {};
-
-function getStorageItem(key: string): string | null {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage.getItem(key);
-  }
-  return memoryStore[key] || null;
-}
-
-function setStorageItem(key: string, value: string): void {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.setItem(key, value);
-  } else {
-    memoryStore[key] = value;
-  }
-}
 
 let lastTimestamp = 0;
 export function getUniqueIsoTimestamp(): string {
@@ -285,12 +32,9 @@ export function getUniqueIsoTimestamp(): string {
 }
 
 export function resetAscentAndRatingStorage(): void {
-  memoryStore = {};
   lastTimestamp = 0;
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.removeItem(STORAGE_KEY_ASCENTS);
-    window.localStorage.removeItem(STORAGE_KEY_RATINGS);
-  }
+  removeStorageItem(STORAGE_KEY_ASCENTS);
+  removeStorageItem(STORAGE_KEY_RATINGS);
 }
 
 // ----------------------------------------------------
@@ -298,11 +42,11 @@ export function resetAscentAndRatingStorage(): void {
 // ----------------------------------------------------
 
 export function getAscents(boulderId?: string): Ascent[] {
-  const raw = getStorageItem(STORAGE_KEY_ASCENTS);
-  let list: Ascent[] = [];
+  const raw = getStorageString(STORAGE_KEY_ASCENTS);
+  let list: Ascent[];
   if (!raw) {
     list = [...SEED_ASCENTS];
-    setStorageItem(STORAGE_KEY_ASCENTS, JSON.stringify(list));
+    setStorageJson(STORAGE_KEY_ASCENTS, list);
   } else {
     try {
       list = JSON.parse(raw);
@@ -311,10 +55,7 @@ export function getAscents(boulderId?: string): Ascent[] {
     }
   }
 
-  if (boulderId) {
-    return list.filter(a => a.boulderId === boulderId);
-  }
-  return list;
+  return boulderId ? list.filter(a => a.boulderId === boulderId) : list;
 }
 
 export function getUserAscent(userId: string, boulderId: string): Ascent | null {
@@ -373,7 +114,7 @@ export function logAscent(
     all.push(resultAscent);
   }
 
-  setStorageItem(STORAGE_KEY_ASCENTS, JSON.stringify(all));
+  setStorageJson(STORAGE_KEY_ASCENTS, all);
   return { ascent: resultAscent, isFirstTopOrFlash };
 }
 
@@ -381,7 +122,7 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
   const all = getAscents();
   const filtered = all.filter(a => !(a.userId === userId && a.boulderId === boulderId));
   if (filtered.length !== all.length) {
-    setStorageItem(STORAGE_KEY_ASCENTS, JSON.stringify(filtered));
+    setStorageJson(STORAGE_KEY_ASCENTS, filtered);
     return true;
   }
   return false;
@@ -390,11 +131,11 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
 export function deleteUserAscentsAndRatings(userId: string): void {
   const allAscents = getAscents();
   const filteredAscents = allAscents.filter(a => a.userId !== userId);
-  setStorageItem(STORAGE_KEY_ASCENTS, JSON.stringify(filteredAscents));
+  setStorageJson(STORAGE_KEY_ASCENTS, filteredAscents);
 
   const allRatings = getRatings();
   const filteredRatings = allRatings.filter(r => r.userId !== userId);
-  setStorageItem(STORAGE_KEY_RATINGS, JSON.stringify(filteredRatings));
+  setStorageJson(STORAGE_KEY_RATINGS, filteredRatings);
 }
 
 // ----------------------------------------------------
@@ -402,11 +143,11 @@ export function deleteUserAscentsAndRatings(userId: string): void {
 // ----------------------------------------------------
 
 export function getRatings(boulderId?: string): BoulderRating[] {
-  const raw = getStorageItem(STORAGE_KEY_RATINGS);
-  let list: BoulderRating[] = [];
+  const raw = getStorageString(STORAGE_KEY_RATINGS);
+  let list: BoulderRating[];
   if (!raw) {
     list = [...SEED_RATINGS];
-    setStorageItem(STORAGE_KEY_RATINGS, JSON.stringify(list));
+    setStorageJson(STORAGE_KEY_RATINGS, list);
   } else {
     try {
       list = JSON.parse(raw);
@@ -415,10 +156,7 @@ export function getRatings(boulderId?: string): BoulderRating[] {
     }
   }
 
-  if (boulderId) {
-    return list.filter(r => r.boulderId === boulderId);
-  }
-  return list;
+  return boulderId ? list.filter(r => r.boulderId === boulderId) : list;
 }
 
 export function getUserRating(userId: string, boulderId: string): BoulderRating | null {
@@ -468,7 +206,7 @@ export function saveRating(
     all.push(result);
   }
 
-  setStorageItem(STORAGE_KEY_RATINGS, JSON.stringify(all));
+  setStorageJson(STORAGE_KEY_RATINGS, all);
   return result;
 }
 

@@ -53,6 +53,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   onClose,
   onDataChanged,
 }) => {
+  if (!isOpen) return null;
+
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [ratingTriggeredByAscent, setRatingTriggeredByAscent] = useState(false);
   const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
@@ -64,8 +66,6 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   const currentUserAscent = getUserAscent(currentUser.id, boulder.id);
   const currentUserRating = getUserRating(currentUser.id, boulder.id);
-
-  if (!isOpen) return null;
 
   const handleAscentClick = (type: AscentType) => {
     // If clicking same active type, option to remove

@@ -1,5 +1,6 @@
 import { Boulder, BoulderInput, BoulderFilterOptions, BoulderStats } from '../types/boulder';
 import { getGradeScore, fontToVGrade, isValidGrade } from './gradeConverter';
+import { getStorageJson, setStorageJson } from './storageUtils';
 
 const STORAGE_KEY = 'boulder_app_records_v1';
 
@@ -57,32 +58,12 @@ export function validateBoulderInput(input: Partial<BoulderInput>): { isValid: b
   };
 }
 
-// In-memory fallback if localStorage is unavailable (e.g. in non-browser testing environment)
-let memoryStore: Boulder[] = [];
-
 export function getStoredBoulders(): Boulder[] {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const data = window.localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        return JSON.parse(data) as Boulder[];
-      }
-    } catch (e) {
-      console.error('Failed to read from localStorage, using memory store', e);
-    }
-  }
-  return [...memoryStore];
+  return getStorageJson<Boulder[]>(STORAGE_KEY, []);
 }
 
 export function saveStoredBoulders(boulders: Boulder[]): void {
-  memoryStore = [...boulders];
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(boulders));
-    } catch (e) {
-      console.error('Failed to write to localStorage', e);
-    }
-  }
+  setStorageJson(STORAGE_KEY, boulders);
 }
 
 export function createBoulder(input: BoulderInput): Boulder {

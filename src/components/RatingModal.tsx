@@ -6,7 +6,8 @@ import {
   RadarAttributes,
   BoulderRating,
   RatingInput,
-  CurrentUser
+  CurrentUser,
+  RADAR_AXIS_DEFINITIONS
 } from '../types/boulder';
 import {
   Star,
@@ -217,33 +218,23 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   Fließt mit in den Community-Schnitt ein!
                 </p>
 
-                {(['kraft', 'technik', 'balance', 'koordination', 'flexibilitaet'] as (keyof RadarAttributes)[]).map(axis => {
-                  const labels: Record<keyof RadarAttributes, string> = {
-                    kraft: 'Kraft / Bouldermuskeln',
-                    technik: 'Technik / Präzision',
-                    balance: 'Balance / Körpergefühl',
-                    koordination: 'Koordination / Dynos',
-                    flexibilitaet: 'Flexibilität / Mobilität',
-                  };
-
-                  return (
-                    <div key={axis} className="space-y-1 font-mono">
-                      <div className="flex justify-between text-[11px] font-bold text-[#E8E0D4]">
-                        <span>{labels[axis]}</span>
-                        <span className="text-[#C9A96E] font-bold">{radarValues[axis]}/5</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="5"
-                        step="1"
-                        value={radarValues[axis]}
-                        onChange={e => handleSliderChange(axis, parseInt(e.target.value, 10))}
-                        className="w-full accent-[#C9A96E] bg-[#121212] h-2 rounded-none cursor-pointer"
-                      />
+                {RADAR_AXIS_DEFINITIONS.map(axisDef => (
+                  <div key={axisDef.key} className="space-y-1 font-mono">
+                    <div className="flex justify-between text-[11px] font-bold text-[#E8E0D4]">
+                      <span>{axisDef.fullLabel}</span>
+                      <span className="text-[#C9A96E] font-bold">{radarValues[axisDef.key]}/5</span>
                     </div>
-                  );
-                })}
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="1"
+                      value={radarValues[axisDef.key]}
+                      onChange={e => handleSliderChange(axisDef.key, parseInt(e.target.value, 10))}
+                      className="w-full accent-[#C9A96E] bg-[#121212] h-2 rounded-none cursor-pointer"
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
