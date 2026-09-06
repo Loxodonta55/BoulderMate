@@ -24,27 +24,28 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // 1. Standalone Header
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText('Digitales Wand-Topo')).toBeInTheDocument();
+      expect(screen.getByText('Wand-Topo & Community')).toBeInTheDocument();
       expect(screen.getByText('Gast')).toBeInTheDocument();
 
       // Keine Gast-Bypass-Buttons
       expect(screen.queryByTestId('explore-guest-btn')).not.toBeInTheDocument();
       expect(screen.queryByTestId('hero-explore-guest-btn')).not.toBeInTheDocument();
 
-      // 2. Hero Headline & Information
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
-      expect(screen.getByText(/direkt an die Wand/i)).toBeInTheDocument();
+      // 2. Hero Headline & Information (Constitution Vision & Community Core)
+      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
+      expect(screen.getByText(/zur lebendigsten Community/i)).toBeInTheDocument();
 
       // 3. Rollen-Tabs: Kletterer ist standardmäßig aktiv mit Fokus-Tag
       const climberTab = screen.getByTestId('role-tab-climber');
       expect(climberTab).toBeInTheDocument();
       expect(climberTab).toHaveTextContent(/Fokus/i);
 
-      // Kletterer-Features sind sichtbar
-      expect(screen.getByText('Interaktive Wand & Sektoren')).toBeInTheDocument();
+      // Kletterer-Features sind sichtbar (5 Constitution Pillars)
+      expect(screen.getByText('Hallen-Highlights & Beliebte Boulder')).toBeInTheDocument();
+      expect(screen.getByText('Demokratisches Grade-Barometer')).toBeInTheDocument();
       expect(screen.getByText('Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText('Profil & Performance-Radar')).toBeInTheDocument();
-      expect(screen.getByText('Community Barometer')).toBeInTheDocument();
+      expect(screen.getByText('Athleten-Radar & Progression')).toBeInTheDocument();
+      expect(screen.getByText('Beta-Talk & Matten-Diskussion')).toBeInTheDocument();
     });
 
     it('erlaubt das Umschalten auf die Schrauber-Rolle und zeigt deren Workflow', () => {
@@ -58,10 +59,10 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       const setterTab = screen.getByTestId('role-tab-setter');
       fireEvent.click(setterTab);
 
-      // Schrauber-Features sichtbar
-      expect(screen.getByText('Batch-Umschrauben in Rekordzeit')).toBeInTheDocument();
-      expect(screen.getByText('Echtzeit-Feedback & Hallen-Monitoring')).toBeInTheDocument();
-      expect(screen.getByText(/Vom Akkuschrauber direkt ins digitale Topo/i)).toBeInTheDocument();
+      // Schrauber-Features sichtbar (Constitution Mission & Workflow)
+      expect(screen.getByText('Batch-Foto-Erfassung in unter 3 Minuten')).toBeInTheDocument();
+      expect(screen.getByText('Echtzeit-Feedback & Community-Resonanz')).toBeInTheDocument();
+      expect(screen.getByText(/Nach dem Schraubtag eine Wand mit ~8 Bouldern in unter 3 Minuten erfassen/i)).toBeInTheDocument();
     });
 
     it('wechselt die Feature-Vorschau bei Klick auf ein Feature', () => {
@@ -76,7 +77,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       fireEvent.click(loggingCard);
 
       expect(screen.getByText('Vorschau: Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText(/Für eingekreidete Hände optimiert/i)).toBeInTheDocument();
+      expect(screen.getByText(/Lückenloses Logging für eingekreidete Hände/i)).toBeInTheDocument();
       expect(screen.getByText('FLASH ⚡')).toBeInTheDocument();
       expect(screen.getByText('TOP ✅')).toBeInTheDocument();
     });
@@ -110,7 +111,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // Standalone Landing Page ist aktiv
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
 
       // Interne App-Navigation und Hallenwände sind für unangemeldete User NICHT sichtbar
       expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
@@ -195,7 +196,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       fireEvent.click(logoutBtn);
 
       // Nun befindet sich der Nutzer wieder exklusiv auf der Landing Page
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
     });
@@ -218,7 +219,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
 
       // Nutzer ist abgemeldet / unangemeldet auf der Landing Page mit allen Informationen
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.getByText('Gast')).toBeInTheDocument();
 

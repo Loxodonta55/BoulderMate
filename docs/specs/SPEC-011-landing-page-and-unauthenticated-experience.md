@@ -6,9 +6,16 @@
 Definiert die Landing Page für unangemeldete Besucher von BoulderMate:
 1. **Striktes Informations-Gate**: Unangemeldete User sehen **ausschließlich** die Landing Page mit allen Produktinformationen und Screenshots. Es gibt keinen anonymen Gast-Bypass in die interne Wandansicht oder in Sektoren.
 2. **Schlankes, aufgeräumtes Design (SPEC-005)**: Vollständig standalone, ohne überladene Navigationsleisten oder interne App-Tools.
-3. **Rollen-Differenzierung mit Kletterer-Fokus**:
-   - **Kletterer (Hauptfokus / Standard)**: Visuelle Fotowand, Chalk-Proof 2-Tap Logging, Performance-Profil & Fontainebleau-Bänder (U1–U7), Community Barometer.
-   - **Schrauber (Studio-Workflow)**: Batch-Umschrauben, direkte Pin-Platzierung, Kletterer-Feedback und Sektor-Monitoring.
+3. **Rollen-Differenzierung mit Kletterer-Fokus & Constitution-Marketing**:
+   - **Kletterer (Hauptfokus / Standard — 5 Säulen nach CONSTITUTION.md Abs. 1.1)**:
+     1. **Beliebte Boulder & Hallen-Highlights finden**: Perlen des Schraubzyklus sofort an echten Wandfotos entdecken.
+     2. **Routen fair einschätzen**: Demokratische Grade-Findung statt Schrauber-Willkür (Barometer Soft/Fair/Stiff + Sterne).
+     3. **Persönliche Erfolge tracken**: Lückenloses 2-Tap-Logging (Flash, Top, Projekt) für kreidige Hände auf der Matte.
+     4. **Stärken & Schwächen erkennen**: 5-Achsen-Leistungsradar & objektiver Stil-Vergleich gegen den Hallenschnitt.
+     5. **Beta-Talk & Matten-Diskussion**: Die klassische Matten-Diskussion zieht digital direkt an den Pin der Route.
+   - **Schrauber (Mission & Studio-Workflow nach CONSTITUTION.md Abs. 1 & 6)**:
+     - Eine Wand mit ~8 Bouldern in **unter 3 Minuten** per Batch-Foto-Workflow erfassen.
+     - Echtes Community-Feedback & Barometer-Resonanz von der Matte statt Schrauber-Tunnelblick.
 4. **Einfache Registrierung & Login**: Schnelle Kontoerstellung (E-Mail, Google OAuth oder 1-Klick Test-Personas).
 5. **Rollenwahl & Abbruch-Verhalten ('X')**:
    - Nach dem Login privilegierter Nutzer (Boris, Schrauber, Admin) erscheint das **Role Gateway** zur Bereichswahl.
