@@ -197,6 +197,37 @@ describe('SPEC-003: UI Components Integration', () => {
 
       expect(handleDataChanged).toHaveBeenCalled();
     });
+
+    it('renders route discussion feed and allows posting a beta comment', () => {
+      const handleDataChanged = vi.fn();
+
+      render(
+        <BoulderDetailModal
+          boulder={sampleBoulder}
+          sector={sampleSector}
+          gradeScale={sampleGradeScale}
+          currentUser={sampleUser}
+          isOpen={true}
+          onClose={vi.fn()}
+          onDataChanged={handleDataChanged}
+        />
+      );
+
+      // Verify discussion section exists
+      expect(screen.getByText(/Routen-Diskussion & Beta/i)).toBeInTheDocument();
+      // Seed comment is shown
+      expect(screen.getByText(/Der Dyno geht super/i)).toBeInTheDocument();
+
+      // Submit new comment
+      const input = screen.getByTestId('boulder-comment-input');
+      const submitBtn = screen.getByTestId('boulder-comment-submit');
+
+      fireEvent.change(input, { target: { value: 'Crux mit links blockieren!' } });
+      fireEvent.click(submitBtn);
+
+      expect(screen.getByText('Crux mit links blockieren!')).toBeInTheDocument();
+      expect(handleDataChanged).toHaveBeenCalled();
+    });
   });
 
   describe('ClimberSectorView (AC-1)', () => {

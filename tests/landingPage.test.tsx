@@ -30,8 +30,8 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       expect(screen.getByText('Gast')).toBeInTheDocument();
 
       // 2. Hero Headline
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
-      expect(screen.getByText(/direkt an die Wand/i)).toBeInTheDocument();
+      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Erfolge & Community/i)).toBeInTheDocument();
 
       // 3. Rollen-Tabs: Kletterer ist standardmäßig aktiv mit Fokus-Tag
       const climberTab = screen.getByTestId('role-tab-climber');
@@ -39,10 +39,10 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       expect(climberTab).toHaveTextContent(/Fokus/i);
 
       // Kletterer-Features sind sichtbar
-      expect(screen.getByText('Interaktive Wand & Sektoren')).toBeInTheDocument();
-      expect(screen.getByText('Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText('Profil & Performance-Radar')).toBeInTheDocument();
-      expect(screen.getByText('Community Barometer')).toBeInTheDocument();
+      expect(screen.getByText('Faire Grade & Beliebte Boulder')).toBeInTheDocument();
+      expect(screen.getByText('Routen-Diskussion & Beta-Tipps')).toBeInTheDocument();
+      expect(screen.getByText('Erfolge tracken & Selbsteinschätzung')).toBeInTheDocument();
+      expect(screen.getByText('Interaktive Wand & 2-Tap Logging')).toBeInTheDocument();
     });
 
     it('erlaubt das Umschalten auf die Schrauber-Rolle und zeigt deren Workflow', () => {
@@ -71,14 +71,14 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
         />
       );
 
-      // Klick auf "Chalk-Proof 2-Tap Logging"
-      const loggingCard = screen.getByText('Chalk-Proof 2-Tap Logging');
-      fireEvent.click(loggingCard);
+      // Klick auf "Routen-Diskussion & Beta-Tipps"
+      const discussionCard = screen.getByText('Routen-Diskussion & Beta-Tipps');
+      fireEvent.click(discussionCard);
 
-      expect(screen.getByText('Vorschau: Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText(/Für eingekreidete Hände optimiert/i)).toBeInTheDocument();
-      expect(screen.getByText('FLASH ⚡')).toBeInTheDocument();
-      expect(screen.getByText('TOP ✅')).toBeInTheDocument();
+      expect(screen.getByText('Vorschau: Routen-Diskussion & Beta-Tipps')).toBeInTheDocument();
+      expect(screen.getByText(/Die Hallen-Diskussion direkt an der Route/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Routen-Diskussion & Beta/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Rechten Fuß hoch auf die Kante/i)).toBeInTheDocument();
     });
 
     it('triggert onOpenLogin und onExploreAsGuest bei Klick auf die entsprechenden Buttons', () => {
@@ -112,7 +112,7 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
 
       // Standalone Landing Page ist aktiv
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
       expect(screen.queryByTestId('studio-gym-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('admin-gym-select')).not.toBeInTheDocument();
     });
@@ -130,7 +130,7 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
 
       // Klick auf "Landing Page" bringt den Besucher zurück
       fireEvent.click(screen.getByTestId('back-to-landing-btn'));
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
     });
 
     it('führt nach Login über Quick-Login oder Modal zur daraus resultierenden Wahl (Role Gateway für Boris)', () => {
@@ -179,7 +179,7 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       fireEvent.click(logoutBtn);
 
       // Nun befindet sich der Nutzer wieder auf der Landing Page
-      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
     });
   });

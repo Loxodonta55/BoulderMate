@@ -6,11 +6,28 @@
 
 ---
 
-## 1. Vision & Mission
+## 1. Vision, Mission & Community Core (Marketing-Purpose)
 
-**Vision**: Die intuitivste und nützlichste App für Indoor-Boulderer – vom Betreten der Halle bis zum Loggen des letzten Tops.
+**Vision**: Die lebendigste und nützlichste Plattform für Indoor-Boulderer – von der Orientierung an der Wand bis zur aktiven Community.
 
-**Mission**: Boulderer sollen in Sekundenschnelle alle Routen ihrer Halle sehen, bewerten und loggen können. Schrauber sollen nach dem Schraubtag in unter 3 Minuten pro Wand ihre neuen Boulder erfasst haben.
+**Mission**: Boulderer sollen in Sekundenschnelle alle Routen ihrer Halle finden, fair einschätzen, persönliche Erfolge festhalten und sich mit der Community austauschen. Schrauber sollen nach dem Schraubtag in unter 3 Minuten pro Wand ihre neuen Boulder erfasst haben.
+
+### 1.1 Nach außen getragener Sinn & Zweck (Marketing-Aussagen & Value Proposition)
+BoulderMate ist nach außen hin keine reine Verwaltungssoftware oder Schrauber-Tool, sondern das **soziale und sportliche Bindeglied der Kletter-Community**:
+
+1. **Routen fair einschätzen**:
+   - Demokratische Grade-Findung statt subjektiver Schrauber-Willkür.
+   - Das Community-Barometer (*Soft / Fair / Stiff*) und Sterne-Ratings decken auf, wie sich die Route in Wirklichkeit klettert.
+2. **Beliebte Boulder & Hallen-Highlights finden**:
+   - Kletterer sehen sofort, welche Boulder der Community am meisten Spaß machen und welche Linien die unbestrittenen "Perlen" des aktuellen Schraubzyklus sind.
+3. **Persönliche Erfolge tracken & Kletter-Progression visualisieren**:
+   - Lückenloses 2-Tap-Logging (Flash, Top, Projekt) für eingekreidete Hände direkt auf der Bouldermatte.
+   - Automatische Historie und Progression über alle Hallenbesuche hinweg.
+4. **Stärken & Schwächen erkennen (Selbsteinschätzung vs. Community)**:
+   - 5-Achsen-Leistungsradar (Kraft, Technik, Balance, Koordination, Flexibilität).
+   - Objektiver Vergleich des eigenen Kletterstils mit dem Hallendurchschnitt: Wo liegen die Trümpfe (z.B. Platten-Balance), wo die Trainingsbaustellen (z.B. Dach-Körperspannung)?
+5. **Routen-Diskussion & Beta-Talk direkt am Boulder**:
+   - Die klassische Matten-Diskussion zieht digital an den Boulder: Crux-Lösungen, Beta-Tipps, Tritt-Empfehlungen und Feedback direkt am Pin der Route.
 
 ---
 

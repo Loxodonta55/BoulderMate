@@ -6,7 +6,8 @@ import {
   BoulderStatsAggregate,
   WallBoulder,
   RadarAttributes,
-  GradeFeel
+  GradeFeel,
+  BoulderComment
 } from '../types/boulder';
 
 import { SEED_ASCENTS, SEED_RATINGS } from './seedData';
@@ -20,6 +21,34 @@ export { SEED_ASCENTS, SEED_RATINGS };
 
 export const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
 export const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
+export const STORAGE_KEY_COMMENTS = 'boulderapp_comments_v3';
+
+export const SEED_COMMENTS: BoulderComment[] = [
+  {
+    id: 'comment-seed-1',
+    boulderId: 'boulder-existing-1',
+    userId: 'hans-kletterer',
+    userNickname: 'HansDereinfacheKletterer',
+    text: 'Der Dyno geht super, wenn man den rechten Fuß etwas höher auf Reibung stellt! Geniale Route.',
+    createdAt: '2026-09-02T16:36:00Z'
+  },
+  {
+    id: 'comment-seed-2',
+    boulderId: 'boulder-existing-1',
+    userId: 'admin-minimum',
+    userNickname: 'AdminMinimum',
+    text: 'Schöne Linie. Zieht ordentlich in die Unterarme, aber sehr fair bewertet.',
+    createdAt: '2026-09-03T11:22:00Z'
+  },
+  {
+    id: 'comment-seed-3',
+    boulderId: 'boulder-existing-2',
+    userId: 'schrauber-minimum',
+    userNickname: 'Schrauber Minimum',
+    text: 'Heel-Hook gut setzen, dann spart man enorm Kraft für den finalen Zug.',
+    createdAt: '2026-09-02T19:08:00Z'
+  }
+];
 
 let lastTimestamp = 0;
 export function getUniqueIsoTimestamp(): string {
@@ -35,6 +64,7 @@ export function resetAscentAndRatingStorage(): void {
   lastTimestamp = 0;
   removeStorageItem(STORAGE_KEY_ASCENTS);
   removeStorageItem(STORAGE_KEY_RATINGS);
+  removeStorageItem(STORAGE_KEY_COMMENTS);
 }
 
 // ----------------------------------------------------
@@ -211,6 +241,64 @@ export function saveRating(
 }
 
 // ----------------------------------------------------
+// Comments & Route Discussion
+// ----------------------------------------------------
+
+export function getComments(boulderId?: string): BoulderComment[] {
+  const raw = getStorageString(STORAGE_KEY_COMMENTS);
+  let list: BoulderComment[];
+  if (!raw) {
+    list = [...SEED_COMMENTS];
+    setStorageJson(STORAGE_KEY_COMMENTS, list);
+  } else {
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      list = [...SEED_COMMENTS];
+    }
+  }
+
+  const filtered = boulderId ? list.filter(c => c.boulderId === boulderId) : list;
+  return [...filtered].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export function addComment(
+  userId: string,
+  userNickname: string,
+  boulderId: string,
+  text: string,
+  userAvatarUrl?: string
+): BoulderComment {
+  const all = getComments();
+  const now = getUniqueIsoTimestamp();
+  const newComment: BoulderComment = {
+    id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    boulderId,
+    userId,
+    userNickname,
+    userAvatarUrl,
+    text: text.trim(),
+    createdAt: now,
+  };
+  all.unshift(newComment);
+  setStorageJson(STORAGE_KEY_COMMENTS, all);
+  return newComment;
+}
+
+export function deleteComment(commentId: string, currentUserId: string, isPlatformAdmin = false): boolean {
+  const all = getComments();
+  const target = all.find(c => c.id === commentId);
+  if (!target) return false;
+  if (target.userId !== currentUserId && !isPlatformAdmin) return false;
+
+  const filtered = all.filter(c => c.id !== commentId);
+  setStorageJson(STORAGE_KEY_COMMENTS, filtered);
+  return true;
+}
+
+// ----------------------------------------------------
 // Aggregation & Statistics (AC-2, AC-8, AC-9)
 // ----------------------------------------------------
 
@@ -256,10 +344,12 @@ export function computeAggregatedRadar(
 export function computeBoulderStatsAggregate(
   boulder: WallBoulder,
   ratings: BoulderRating[] = getRatings(),
-  ascents: Ascent[] = getAscents()
+  ascents: Ascent[] = getAscents(),
+  comments: BoulderComment[] = getComments()
 ): BoulderStatsAggregate {
   const boulderRatings = ratings.filter(r => r.boulderId === boulder.id);
   const boulderAscents = ascents.filter(a => a.boulderId === boulder.id);
+  const boulderComments = comments.filter(c => c.boulderId === boulder.id);
 
   // Quality stars average
   const starsRatings = boulderRatings.filter(r => typeof r.qualityStars === 'number');
@@ -325,5 +415,6 @@ export function computeBoulderStatsAggregate(
     totalProjects,
     radarAggregate,
     ascents: sortedAscents,
+    comments: boulderComments,
   };
 }

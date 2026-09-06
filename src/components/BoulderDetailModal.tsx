@@ -18,7 +18,10 @@ import {
   saveRating,
   computeBoulderStatsAggregate,
   getRatings,
-  getAscents
+  getAscents,
+  getComments,
+  addComment,
+  deleteComment
 } from '../lib/ratingAndAscentService';
 import {
   X,
@@ -31,7 +34,10 @@ import {
   User,
   Info,
   Calendar,
-  Layers
+  Layers,
+  MessageSquare,
+  Send,
+  Trash2
 } from 'lucide-react';
 
 interface BoulderDetailModalProps {
@@ -58,14 +64,40 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [ratingTriggeredByAscent, setRatingTriggeredByAscent] = useState(false);
   const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [commentsVersion, setCommentsVersion] = useState(0);
 
   // Compute live aggregates from storage
-  const ratings = getRatings(boulder.id);
-  const ascents = getAscents(boulder.id);
-  const stats = computeBoulderStatsAggregate(boulder, ratings, ascents);
+  const stats = React.useMemo(() => {
+    const ratings = getRatings(boulder.id);
+    const ascents = getAscents(boulder.id);
+    const comments = getComments(boulder.id);
+    return computeBoulderStatsAggregate(boulder, ratings, ascents, comments);
+  }, [boulder, commentsVersion]);
 
   const currentUserAscent = getUserAscent(currentUser.id, boulder.id);
   const currentUserRating = getUserRating(currentUser.id, boulder.id);
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    addComment(
+      currentUser.id,
+      currentUser.nickname,
+      boulder.id,
+      commentText.trim(),
+      currentUser.avatarUrl
+    );
+    setCommentText('');
+    setCommentsVersion(v => v + 1);
+    onDataChanged?.();
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    deleteComment(commentId, currentUser.id, currentUser.isPlatformAdmin);
+    setCommentsVersion(v => v + 1);
+    onDataChanged?.();
+  };
 
   const handleAscentClick = (type: AscentType) => {
     // If clicking same active type, option to remove
@@ -432,6 +464,108 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                             </span>
                           )}
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Route Discussion & Beta Community Feed */}
+            <div className="space-y-3 pt-2 border-t border-[#333333]">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[#C9A96E]" />
+                  <span>Routen-Diskussion & Beta ({stats.comments.length})</span>
+                </h3>
+                <span className="text-xs font-mono text-[#A89F91]">
+                  Tipps, Tricks & Beta austauschen
+                </span>
+              </div>
+
+              {/* Comment Input Form */}
+              <form onSubmit={handleAddComment} className="flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  placeholder="Diskussion starten: Beta-Tipp, Crux-Erfahrung, Tritt-Empfehlung..."
+                  className="flex-1 px-3 py-2 bg-[#121212] border border-[#333333] focus:border-[#F5F0E8] rounded-none text-xs font-mono text-[#E8E0D4] placeholder:text-[#6B6358] focus:outline-none"
+                  data-testid="boulder-comment-input"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim()}
+                  className="px-3 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] disabled:opacity-40 disabled:cursor-not-allowed text-[#121212] font-headline uppercase font-bold text-xs tracking-wider rounded-[2px] transition flex items-center gap-1.5 shrink-0"
+                  data-testid="boulder-comment-submit"
+                >
+                  <Send className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span className="hidden sm:inline">Senden</span>
+                </button>
+              </form>
+
+              {/* Comments List */}
+              {stats.comments.length === 0 ? (
+                <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+                  Noch keine Diskussionsbeiträge. Starte als Erster die Diskussion zu diesem Boulder!
+                </div>
+              ) : (
+                <div className="divide-y divide-[#333333] rounded-none bg-[#2A2A2A] border border-[#333333] overflow-hidden">
+                  {stats.comments.map(comment => {
+                    const isAuthor = comment.userId === currentUser.id;
+                    const canDelete = isAuthor || currentUser.isPlatformAdmin;
+                    const dateFormatted = new Date(comment.createdAt).toLocaleDateString('de-DE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    });
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className="p-3 sm:px-4 flex items-start justify-between gap-3 hover:bg-[#1E1E1E] transition"
+                        data-testid={`comment-${comment.id}`}
+                      >
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => setViewingPublicUserId(comment.userId)}
+                            className="w-7 h-7 rounded-none bg-[#1E1E1E] hover:border-[#F5F0E8] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4] border border-[#333333] shrink-0 transition"
+                            title={`${comment.userNickname}s Profil ansehen`}
+                          >
+                            {comment.userNickname.charAt(0)}
+                          </button>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-[#E8E0D4]">
+                                {comment.userNickname}
+                              </span>
+                              {isAuthor && (
+                                <span className="text-[9px] font-mono px-1 py-0.2 bg-[#121212] text-[#C9A96E] border border-[#333333]">
+                                  Du
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-[#6B6358]">
+                                {dateFormatted}
+                              </span>
+                            </div>
+                            <p className="text-xs font-sans text-[#E8E0D4] leading-relaxed break-words">
+                              {comment.text}
+                            </p>
+                          </div>
+                        </div>
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="p-1 text-[#6B6358] hover:text-[#A0522D] transition shrink-0"
+                            title="Kommentar löschen"
+                            data-testid={`delete-comment-${comment.id}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}

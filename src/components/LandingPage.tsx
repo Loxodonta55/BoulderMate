@@ -4,7 +4,6 @@ import {
   Wrench,
   Layers,
   Sparkles,
-  Zap,
   CheckCircle2,
   ArrowRight,
   Shield,
@@ -12,7 +11,11 @@ import {
   Eye,
   LogIn,
   User,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Flame,
+  MessageSquare,
+  TrendingUp,
+  Scale
 } from 'lucide-react';
 import { AuthUser, DEMO_USERS } from '../lib/authService';
 
@@ -34,60 +37,60 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const climberFeatures = [
     {
-      id: 'interactive-wall',
-      title: 'Interaktive Wand & Sektoren',
-      badge: 'Visual Topo',
-      tagline: 'Die echte Hallenwand auf deinem Smartphone',
-      description: 'Kein Rätselraten mehr vor dem Wandsektor: Finde jeden Boulder direkt auf hochauflösenden Hallenfotos mit farbcodierten Pins für jede Grifffarbe und Schwierigkeit.',
+      id: 'community-ratings',
+      title: 'Faire Grade & Beliebte Boulder',
+      badge: 'Community-Power',
+      tagline: 'Schluss mit unfairen Sandbags & grauer Theorie',
+      description: 'Wie schwer ist die Route wirklich? Sieh sofort, welche Boulder in deiner Halle am beliebtesten sind und wie die Community den Grad einschätzt. Stimme mit Soft / Fair / Stiff ab und finde auf Anhieb die besten Linien der Halle.',
       bullets: [
-        'Echte Wandfotos mit Zoom & Touch-Bedienung',
-        'Farbcodierte Pins passend zu den realen Griffen an der Wand',
-        'Sektor-Filter: Wettkampfwand, Überhang, Dach oder Platte'
+        'Beliebte Boulder & Perlen der Halle auf einen Klick finden',
+        'Faire Schwierigkeit: Transparenter Konsens (Soft, Fair, Stiff)',
+        'Qualitäts-Ranking mit 5-Sterne-Bewertungen der Community'
       ],
-      mockupImage: '/images/walls/six-a-comp.jpg',
-      previewType: 'wall' as const
+      mockupImage: '/images/walls/roof.jpg',
+      previewType: 'community' as const
     },
     {
-      id: 'chalk-proof-logging',
-      title: 'Chalk-Proof 2-Tap Logging',
-      badge: '2-Sekunden-Flow',
-      tagline: 'Für eingekreidete Hände optimiert',
-      description: 'Du stehst auf der Bouldermatte und hast Chalk an den Händen. Kein langes Tippen, keine Formulare: Ein Tap auf den Pin, ein zweiter Tap auf Flash ⚡, Top ✅ oder Projekt 🎯 – fertig.',
+      id: 'route-discussion',
+      title: 'Routen-Diskussion & Beta-Tipps',
+      badge: 'Austausch',
+      tagline: 'Die Hallen-Diskussion direkt an der Route',
+      description: 'Crux nicht verstanden oder genialen Hook entdeckt? Starte die Diskussion direkt am Boulder! Tausche Beta, Tritt-Empfehlungen und Lösungen mit deiner Hallen-Community aus.',
       bullets: [
-        'Minimalistische Tasten mit maximalem Kontrast',
-        'Automatische Zeiterfassung & Versuchszähler',
-        'Vollständige Historie aller Begehungen'
+        'Beta-Tipps & Crux-Lösungen direkt am Boulder austauschen',
+        'Community-Diskussion über Routenführung & Griffe',
+        'Kein langes Suchen: Diskussion ist direkt mit dem Pin verknüpft'
       ],
-      mockupImage: '/images/walls/overhang.jpg',
-      previewType: 'logging' as const
+      mockupImage: '/images/walls/six-a-comp.jpg',
+      previewType: 'discussion' as const
     },
     {
       id: 'performance-profile',
-      title: 'Profil & Performance-Radar',
-      badge: 'Analytics',
-      tagline: 'Deine persönliche Kletter-Progression',
-      description: 'Verfolge deine Entwicklung über alle Hallen hinweg. Mit objektiven Grade-Bändern (Fontainebleau U1–U7), Leistungsradar nach Stil (Leisten, Sloper, Dynos) und deiner persönlichen Boulderpyramide.',
+      title: 'Erfolge tracken & Selbsteinschätzung',
+      badge: 'Progression',
+      tagline: 'Stärken & Schwächen im Vergleich zur Community',
+      description: 'Lerne deine Fähigkeiten objektiv einzuschätzen. Vergleiche deinen Kletterstil (Leisten, Sloper, Dynos, Beweglichkeit) mit dem Hallenschnitt. Erkenne sofort deine Stärken und gezielte Baustellen für das nächste Training.',
       bullets: [
-        'Hallenübergreifende Normalisierung aller Schwierigkeiten',
-        'Leistungsradar für Griffarten & Wandneigungen',
-        'Erfolgs-KPIs: Bester Flash, Bester Top & Projektquote'
+        'Erfolge & persönliche Boulderpyramide verlässlich loggen',
+        'Stärken- & Schwächen-Analyse mit 5-Achsen-Leistungsradar',
+        'Objektiver Vergleich: Dein Kletterprofil vs. Hallenschnitt'
       ],
       mockupImage: '/images/walls/six-a-slab.jpg',
       previewType: 'profile' as const
     },
     {
-      id: 'community-ratings',
-      title: 'Community Barometer',
-      badge: 'Echte Meinungen',
-      tagline: 'Wie schwer ist der Boulder wirklich?',
-      description: 'Ist der 6A+ wirklich soft oder ein harter Sandbagger? Bewerte Routen mit Sternen und stimme im Barometer ab (Soft / Fair / Hard), um eine faire Hallen-Schwierigkeit zu ermitteln.',
+      id: 'interactive-wall',
+      title: 'Interaktive Wand & 2-Tap Logging',
+      badge: 'Visual Topo',
+      tagline: 'Reale Hallenfotos – für Chalk-Hände optimiert',
+      description: 'Finde jeden Boulder direkt auf hochauflösenden Fotos deiner Wand. Mit eingekreideten Händen reicht ein zweiter Tap auf Flash ⚡, Top ✅ oder Projekt 🎯 – so bleibt der Kopf frei fürs Bouldern.',
       bullets: [
-        'Konsens-Grade aus der Kletterer-Community',
-        'Stern-Bewertungen für Qualität & Bewegungsfluss',
-        'Community-Feedback für faire Einstufungen'
+        'Echte Wandfotos mit farbcodierten Pins auf den Startgriffen',
+        '2-Tap Chalk-Proof Logging in unter zwei Sekunden',
+        'Sektoren-Filter: Überhang, Dach, Platte oder Wettkampfwand'
       ],
-      mockupImage: '/images/walls/roof.jpg',
-      previewType: 'community' as const
+      mockupImage: '/images/walls/overhang.jpg',
+      previewType: 'wall' as const
     }
   ];
 
@@ -194,21 +197,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-none bg-[#1E1E1E] border border-[#333333] text-xs font-mono text-[#C9A96E] uppercase tracking-widest shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span>Das digitale Topo für Kletterer & Schrauber</span>
+            <Flame className="w-3.5 h-3.5 text-[#C9A96E]" />
+            <span>Community-Plattform für Hallenboulderer</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold uppercase tracking-tight text-[#E8E0D4] leading-[1.1]">
-            Vom Schrauberschlüssel <br />
+            Faire Grade. Beliebte Boulder. <br />
             <span className="text-[#C9A96E] underline decoration-[#C9A96E]/40 underline-offset-8">
-              direkt an die Wand
+              Erfolge & Community
             </span>{' '}
-            ins Profil.
+            an der Wand.
           </h1>
 
           <p className="text-sm sm:text-base md:text-lg text-[#A89F91] max-w-2xl mx-auto leading-relaxed font-sans">
-            Schluss mit veralteten Kladde-Heften, unleserlichen Zetteln am Wandrand und ungenauen Skizzen.
-            BoulderMate bringt reale Hallenfotos, 2-Tap Chalk-Proof Logging und synchronisierten Routenbau zusammen.
+            Schluss mit unklaren Graden und Rätselraten vor der Wand. BoulderMate gibt der Kletter-Community eine gemeinsame Stimme:
+            Bewerte Routen fair, finde die beliebtesten Boulder deiner Halle, erkenne deine Stärken und Schwächen im Vergleich zu anderen und diskutiere Crux-Tipps & Beta direkt am Boulder.
           </p>
 
           {/* Primary Action Buttons */}
@@ -443,33 +446,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                             Rote Leiste
                           </span>
                         </div>
-                      </>
-                    )}
 
-                    {climberFeatures[activeClimberFeature].previewType === 'logging' && (
-                      <div className="absolute inset-x-4 bottom-4 bg-[#1E1E1E]/95 backdrop-blur-md border border-[#F5F0E8]/40 p-4 rounded-none shadow-2xl space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
+                        {/* 2-Tap Logging Bottom Drawer on Wall */}
+                        <div className="absolute inset-x-3 bottom-3 bg-[#1E1E1E]/95 backdrop-blur-md border border-[#F5F0E8]/40 p-3 rounded-none shadow-2xl space-y-2">
+                          <div className="flex items-center justify-between">
                             <span className="text-[10px] font-mono text-[#C9A96E] uppercase font-bold">2-Tap Schnelleintrag</span>
-                            <h4 className="text-sm font-headline font-bold text-[#E8E0D4]">Blaues Volumen-Problem (6A+)</h4>
+                            <span className="text-[10px] font-mono text-[#A89F91]">Chalk-Proof</span>
                           </div>
-                          <span className="px-2 py-0.5 bg-[#3b82f6] text-white text-[10px] font-mono font-bold">Sektor 1</span>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button type="button" className="p-1.5 bg-[#2A2A2A] text-center rounded-[2px]">
+                              <span className="text-xs font-mono font-bold text-[#facc15] block">FLASH ⚡</span>
+                            </button>
+                            <button type="button" className="p-1.5 bg-[#F5F0E8] text-[#121212] text-center rounded-[2px] font-bold shadow-md">
+                              <span className="text-xs font-mono block">TOP ✅</span>
+                            </button>
+                            <button type="button" className="p-1.5 bg-[#2A2A2A] text-center rounded-[2px]">
+                              <span className="text-xs font-mono font-bold text-[#f97316] block">PROJEKT 🎯</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <button type="button" className="p-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-center rounded-[2px] transition">
-                            <span className="text-xs font-mono font-bold text-[#facc15] block">FLASH ⚡</span>
-                            <span className="text-[9px] text-[#A89F91]">1. Versuch</span>
-                          </button>
-                          <button type="button" className="p-2 bg-[#F5F0E8] text-[#121212] border border-[#F5F0E8] text-center rounded-[2px] transition font-bold shadow-md">
-                            <span className="text-xs font-mono block">TOP ✅</span>
-                            <span className="text-[9px] text-[#121212]/80">Geschafft</span>
-                          </button>
-                          <button type="button" className="p-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-center rounded-[2px] transition">
-                            <span className="text-xs font-mono font-bold text-[#f97316] block">PROJEKT 🎯</span>
-                            <span className="text-[9px] text-[#A89F91]">In Arbeit</span>
-                          </button>
-                        </div>
-                      </div>
+                      </>
                     )}
 
                     {climberFeatures[activeClimberFeature].previewType === 'profile' && (
@@ -507,19 +503,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       </div>
                     )}
 
+                    {climberFeatures[activeClimberFeature].previewType === 'discussion' && (
+                      <div className="absolute inset-x-4 bottom-4 bg-[#1E1E1E]/95 backdrop-blur-md border border-[#333333] p-4 rounded-none shadow-2xl space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-[#333333] pb-2">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-3.5 h-3.5 text-[#C9A96E]" />
+                            <span className="text-xs font-headline font-bold text-[#E8E0D4]">Routen-Diskussion & Beta (6A+ Blau)</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-[#86efac]">Live Community Feed</span>
+                        </div>
+                        <div className="space-y-1.5 text-xs font-sans">
+                          <div className="p-2 bg-[#121212] border border-[#333333]">
+                            <span className="font-mono font-bold text-[#C9A96E] text-[11px]">Hans: </span>
+                            <span className="text-[#E8E0D4] text-[11px]">Rechten Fuß hoch auf die Kante, dann ist der Dyno ein Kinderspiel! 🧗‍♂️</span>
+                          </div>
+                          <div className="p-2 bg-[#121212] border border-[#333333]">
+                            <span className="font-mono font-bold text-[#A89F91] text-[11px]">Sara: </span>
+                            <span className="text-[#E8E0D4] text-[11px]">Danke für den Tipp, hat sofort im 2. Versuch geklappt! ⭐</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {climberFeatures[activeClimberFeature].previewType === 'community' && (
                       <div className="absolute inset-x-4 bottom-4 bg-[#1E1E1E]/95 backdrop-blur-md border border-[#333333] p-4 rounded-none shadow-2xl space-y-2">
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-headline font-bold text-[#E8E0D4]">Community Schwierigkeits-Konsens</div>
+                          <div className="text-xs font-headline font-bold text-[#E8E0D4]">Community Schwierigkeits-Konsens & Beliebtheit</div>
                           <div className="flex items-center gap-1 text-[#facc15] text-xs font-bold font-mono">
                             <Star className="w-3.5 h-3.5 fill-[#facc15]" />
-                            <span>4.8 (14 Reviews)</span>
+                            <span>4.9 (28 Bewertungen)</span>
                           </div>
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[10px] font-mono text-[#A89F91]">
                             <span>Grad-Empfinden Barometer:</span>
-                            <span className="text-[#86efac] font-bold">Eher Fair (68%)</span>
+                            <span className="text-[#86efac] font-bold">Eher Fair (68%) • Beliebter Boulder #1</span>
                           </div>
                           <div className="w-full h-2 bg-[#121212] rounded-none flex overflow-hidden border border-[#333333]">
                             <div style={{ width: '15%' }} className="bg-[#3b82f6]" title="Soft (15%)" />
@@ -722,39 +740,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Pillar 1 */}
             <div className="p-5 bg-[#1E1E1E] border border-[#333333] rounded-none space-y-3">
               <div className="w-10 h-10 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
-                <Layers className="w-5 h-5 stroke-[2]" />
+                <Scale className="w-5 h-5 stroke-[2]" />
               </div>
               <h4 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-                1. Visuelle Fotowand
+                1. Faire Einstufung
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Statt abstrakter 2D-Zeichnungen siehst du die echten Wände deiner Halle mit hochauflösenden Fotos. Alle Pins sitzen exakt auf den echten Startgriffen.
+                Kein Frust mehr über subjektive Grade: Das Community-Barometer (Soft/Fair/Stiff) und Sterne-Ratings sorgen für maximale Transparenz an jeder Route.
               </p>
             </div>
 
             {/* Pillar 2 */}
             <div className="p-5 bg-[#1E1E1E] border border-[#333333] rounded-none space-y-3">
               <div className="w-10 h-10 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#F5F0E8]">
-                <Zap className="w-5 h-5 stroke-[2]" />
+                <MessageSquare className="w-5 h-5 stroke-[2]" />
               </div>
               <h4 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-                2. 2-Tap Schnelligkeit
+                2. Community & Beta-Talk
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Eingekreidete Hände und Smartphone-Tastaturen vertragen sich nicht. BoulderMate ist strikt so gestaltet, dass jede Begehung mit zwei Taps geloggt ist.
+                Finde auf Knopfdruck die beliebtesten Routen der Halle. Starte die Diskussion über Kniffe, Crux-Züge und Beta direkt am Pin des Boulders.
               </p>
             </div>
 
             {/* Pillar 3 */}
             <div className="p-5 bg-[#1E1E1E] border border-[#333333] rounded-none space-y-3">
               <div className="w-10 h-10 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#86efac]">
-                <Shield className="w-5 h-5 stroke-[2]" />
+                <TrendingUp className="w-5 h-5 stroke-[2]" />
               </div>
               <h4 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-                3. Rollen-Klarheit
+                3. Selbsteinschätzung & Fortschritt
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Kletterer sehen ein aufgeräumtes Topo. Schrauber erhalten das mächtige Schrauber-Studio. Und Admins verwalten Hallen und Farbsysteme – ohne gegenseitige Störung.
+                Erfolge mit 2-Tap-Logging festhalten. Vergleiche deinen Kletterstil objektiv mit anderen Nutzern und erkenne deine Stärken und Trainingspotenziale.
               </p>
             </div>
           </div>

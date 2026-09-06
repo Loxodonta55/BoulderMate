@@ -290,6 +290,16 @@ export interface RatingInput {
   radar?: RadarAttributes;
 }
 
+export interface BoulderComment {
+  id: string;
+  boulderId: string;
+  userId: string;
+  userNickname: string;
+  userAvatarUrl?: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface BoulderStatsAggregate {
   boulderId: string;
   totalRatings: number;
@@ -310,6 +320,7 @@ export interface BoulderStatsAggregate {
   totalProjects: number;
   radarAggregate: RadarAttributes;
   ascents: Ascent[];
+  comments: BoulderComment[];
 }
 
 export interface CurrentUser {
