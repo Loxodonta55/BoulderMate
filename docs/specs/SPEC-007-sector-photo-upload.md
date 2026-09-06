@@ -3,16 +3,16 @@
 ## Status: DONE
 
 ## Summary
-Ermöglicht Hallen-Admins und Schraubern das direkte Hochladen von Sektor-Wandfotos von ihrem lokalen Laptop oder Rechner (JPEG, PNG, WebP) über Drag & Drop und Dateiauswahl. Eine integrierte client-seitige Bildoptimierung skaliert und komprimiert hochauflösende Fotos automatisch, bevor sie als persistente Data-URLs gespeichert werden, um Browser-Speichergrenzen einzuhalten und maximale Performance zu garantieren.
+Ermöglicht Hallen-Admins und Schraubern das direkte Aufnehmen von Fotos aus der App heraus (Live-Kamera via WebRTC MediaDevices mit Sucher & Auslöser sowie nativer System-Kamera-Trigger) sowie das Hochladen von Sektor-Wandfotos von ihrem lokalen Laptop oder Rechner (JPEG, PNG, WebP) über Drag & Drop und Dateiauswahl. Eine integrierte client-seitige Bildoptimierung skaliert und komprimiert hochauflösende Fotos automatisch, bevor sie als persistente Data-URLs gespeichert werden, um Browser-Speichergrenzen einzuhalten und maximale Performance zu garantieren.
 
 ---
 
 ## User Stories
-- **US-1**: Als Hallen-Admin möchte ich beim Erstellen eines neuen Sektors ein Foto direkt von meiner Festplatte/Laptop hochladen können, ohne das Bild erst extern hosten zu müssen.
-- **US-2**: Als Hallen-Admin möchte ich beim Bearbeiten eines bestehenden Sektors das Wandfoto durch eine lokale Datei ersetzen können.
-- **US-3**: Als Schrauber möchte ich im Batch-Erfassungs-Workflow ein neu geschraubtes Sektorfoto direkt von meinem Laptop hochladen und sofort auf der Wand markieren können.
-- **US-4**: Als Nutzer möchte ich vor dem Speichern eine klare Vorschau des hochgeladenen Bildes sehen und die Datei bei Bedarf wechseln oder entfernen können.
-- **US-5**: Als Nutzer möchte ich auch große Fotos (z. B. 10 MB Smartphone-Kameraaufnahmen) hochladen können, ohne dass der Browser-Speicher blockiert wird oder die App abstürzt.
+- **US-1**: Als Hallen-Admin möchte ich beim Erstellen eines neuen Sektors ein Foto direkt von meiner Festplatte/Laptop hochladen oder mit der Gerätekamera aufnehmen können, ohne das Bild erst extern hosten zu müssen.
+- **US-2**: Als Hallen-Admin möchte ich beim Bearbeiten eines bestehenden Sektors das Wandfoto durch eine lokale Datei oder ein neues Kamerafoto ersetzen können.
+- **US-3**: Als Schrauber möchte ich im Batch-Erfassungs-Workflow ein neu geschraubtes Sektorfoto direkt aus der App mit der Kamera aufnehmen oder von meinem Rechner hochladen und sofort auf der Wand markieren können.
+- **US-4**: Als Nutzer möchte ich vor dem Speichern eine klare Vorschau des aufgenommenen oder hochgeladenen Bildes sehen und die Datei bei Bedarf wiederholen, wechseln oder entfernen können.
+- **US-5**: Als Nutzer möchte ich auch hochauflösende Fotos (z. B. 10–25 MB Kameraaufnahmen) aufnehmen oder hochladen können, ohne dass der Browser-Speicher blockiert wird oder die App abstürzt.
 
 ---
 
@@ -21,24 +21,24 @@ Ermöglicht Hallen-Admins und Schraubern das direkte Hochladen von Sektor-Wandfo
 - [ ] **AC-1**: **Lokaler Datei-Upload im Sektor-Manager (Erstellung)**:
   Beim Anlegen eines Sektors steht eine Upload-Zone mit Datei-Picker und Drag & Drop bereit (`accept="image/*"`).
 - [ ] **AC-2**: **Lokaler Datei-Upload im Sektor-Manager (Aktualisierung)**:
-  Beim Aktualisieren des Fotos eines vorhandenen Sektors kann eine neue lokale Datei ausgewählt werden.
-- [ ] **AC-3**: **Lokaler Datei-Upload im Schrauber-Batch-Workflow**:
-  Im Dialog "Wandfoto aktualisieren" im Schrauber-Batch kann ein neues Wandfoto direkt vom Laptop geladen werden.
+  Beim Aktualisieren des Fotos eines vorhandenen Sektors kann eine neue lokale Datei ausgewählt oder die Kamera genutzt werden.
+- [ ] **AC-3**: **Direkte Kameraaufnahme & lokaler Datei-Upload im Schrauber-Batch-Workflow**:
+  Im Dialog "Wandfoto aktualisieren" im Schrauber-Batch kann ein neues Wandfoto direkt aus der App per Live-Kamera (WebRTC `getUserMedia` mit Live-Sucher und Auslöser) aufgenommen oder als Datei vom Gerät geladen werden.
 - [ ] **AC-4**: **Client-seitige Komprimierung & Formatierung (`imageUtils.ts`)**:
   - Konvertierung und Skalierung auf maximal 1600px (Breite/Höhe) unter Beibehaltung des Seitenverhältnisses.
   - Komprimierung auf JPEG-Qualität ~0.82 (typische Zielgröße: 150–300 KB).
   - Validierung von Dateityp (`image/jpeg`, `image/png`, `image/webp` etc.) und Dateigröße.
   - Generierung einer sauberen Data-URL (`data:image/jpeg;base64,...`).
-- [ ] **AC-5**: **Haptische Kletterer-Vorschau & UI (`SectorPhotoUploader.tsx`)**:
+- [ ] **AC-5**: **Haptische Kletterer-Vorschau & UI (`SectorPhotoUploader.tsx`, `WallPhotoUploadModal.tsx`)**:
   - Aufgeräumtes Old School Kletterer Design (`topo-plate`, Sandsteinrahmen, Granit-Hintergrund).
-  - Drag-over-Effekt, Dateiauswahl-Button und Kamera-Glyph.
-  - Vorschau-Thumbnail mit Badge "Vom Laptop geladen" und "Entfernen"-Aktion.
-- [ ] **AC-6**: **Optionale URL-Alternative**:
-  - Umschaltung per Reiter zwischen "📁 Datei vom Laptop" und "🔗 Bild-URL eingeben", sodass auch externe URLs weiterhin unterstützt werden.
+  - Live-Kamera-Sucher mit Fadenkreuz-Markierungen, Shutter-Auslöser und Retake-Möglichkeit.
+  - Automatisches Stoppen aktiver Kamera-Tracks beim Wechseln der Tabs oder Schließen des Modals.
+- [ ] **AC-6**: **Optionale URL- und Preset-Alternativen**:
+  - Umschaltung per Reiter zwischen "📷 Foto machen (Kamera)", "📁 Datei vom Gerät", "🧗 Hallen-Wände (Presets)" und "🔗 Web-URL".
 - [ ] **AC-7**: **Testabdeckung & Regression**:
-  - Unit-Tests für `imageUtils.ts` (Validierung, Skalierung, Fehlerfälle).
-  - Komponententests für `SectorPhotoUploader.tsx`.
-  - Alle 56 bestehenden Tests laufen weiterhin fehlerfrei.
+  - Unit-Tests für `imageUtils.ts` (Validierung, Skalierung, Kameraframe-Erfassung).
+  - Komponententests für `WallPhotoUploadModal.tsx` und `SectorPhotoUploader.tsx`.
+  - Alle bestehenden Tests laufen weiterhin fehlerfrei.
 
 ---
 

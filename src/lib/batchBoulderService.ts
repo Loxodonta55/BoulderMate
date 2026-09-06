@@ -92,20 +92,21 @@ export function getSectors(gymId: string): Sector[] {
   // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
   let hasMigrated = false;
   all = all.map(s => {
-    if (s.wallPhotoUrl.includes('photo-1522163182402')) {
+    if (!s || !s.name) return null as any;
+    if (s.wallPhotoUrl?.includes('photo-1522163182402')) {
       hasMigrated = true;
       return { ...s, wallPhotoUrl: '/images/walls/overhang.jpg' };
     }
-    if (s.wallPhotoUrl.includes('photo-1564769662533') || s.wallPhotoUrl.includes('photo-1564769625905')) {
+    if (s.wallPhotoUrl?.includes('photo-1564769662533') || s.wallPhotoUrl?.includes('photo-1564769625905')) {
       hasMigrated = true;
       return { ...s, wallPhotoUrl: '/images/walls/slab.jpg' };
     }
-    if (s.wallPhotoUrl.includes('photo-1516592673884')) {
+    if (s.wallPhotoUrl?.includes('photo-1516592673884')) {
       hasMigrated = true;
       return { ...s, wallPhotoUrl: '/images/walls/roof.jpg' };
     }
     // 6a plus sectors: ensure only the 8 real sectors from Bilder6aPlus are used
-    if (s.gymId === 'gym-6a-plus') {
+    if (s.gymId === 'gym-6a-plus' || s.gymId.includes('6a')) {
       if (s.name === 'Halle 1' || s.name.includes('Wettkampf') || s.name.includes('Dachgrotte')) {
         hasMigrated = true;
         return null as any;
@@ -113,16 +114,25 @@ export function getSectors(gymId: string): Sector[] {
     }
     return s;
   }).filter(Boolean);
-  if (hasMigrated) {
-    setStorageJson(STORAGE_KEY_SECTORS, all);
-  }
 
-  // Also include sectors created via gymStorage for this gym
+  // Also include sectors created via gymStorage for this gym without creating duplicates by name
   try {
     const v1Sectors = gymStorage.getSectors(gymId);
-    const existingIds = new Set(all.map(s => s.id));
     for (const s of v1Sectors) {
-      if (!existingIds.has(s.id)) {
+      const existingByName = all.find(item => 
+        (item.gymId === s.gym_id || (item.gymId.includes('6a') && s.gym_id.includes('6a'))) && 
+        item.name.trim().toLowerCase() === s.name.trim().toLowerCase()
+      );
+      if (existingByName) {
+        if (s.wall_photo_url && s.wall_photo_url !== existingByName.wallPhotoUrl) {
+          existingByName.wallPhotoUrl = s.wall_photo_url;
+          hasMigrated = true;
+        }
+        if (s.sort_order && s.sort_order !== existingByName.sortOrder) {
+          existingByName.sortOrder = s.sort_order;
+          hasMigrated = true;
+        }
+      } else {
         all.push({
           id: s.id,
           gymId: s.gym_id,
@@ -131,29 +141,38 @@ export function getSectors(gymId: string): Sector[] {
           sortOrder: s.sort_order || 1,
           createdAt: s.created_at,
         });
-        existingIds.add(s.id);
-      } else {
-        const existingIdx = all.findIndex(item => item.id === s.id);
-        if (existingIdx !== -1 && (all[existingIdx].sortOrder !== s.sort_order || all[existingIdx].name !== s.name)) {
-          all[existingIdx] = {
-            ...all[existingIdx],
-            sortOrder: s.sort_order,
-            name: s.name || all[existingIdx].name,
-            wallPhotoUrl: s.wall_photo_url || all[existingIdx].wallPhotoUrl,
-          };
-          hasMigrated = true;
-        }
+        hasMigrated = true;
       }
     }
   } catch (e) {
     console.error('Error synchronizing sectors from gymStorage:', e);
   }
 
-  if (hasMigrated) {
-    setStorageJson(STORAGE_KEY_SECTORS, all);
+  // Deduplicate strictly by normalized (gymId, name)
+  const deduped: Sector[] = [];
+  const seenKey = new Set<string>();
+  for (const s of all) {
+    if (!s || !s.name) continue;
+    const normalizedGymId = (s.gymId === 'gym-6a-plus' || s.gymId.includes('6a')) ? 'gym-6a-plus' : s.gymId;
+    const key = `${normalizedGymId}::${s.name.trim().toLowerCase()}`;
+    if (!seenKey.has(key)) {
+      seenKey.add(key);
+      deduped.push({
+        ...s,
+        gymId: normalizedGymId,
+      });
+    } else {
+      hasMigrated = true;
+    }
   }
 
-  return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
+  if (hasMigrated || deduped.length !== all.length) {
+    setStorageJson(STORAGE_KEY_SECTORS, deduped);
+    all = deduped;
+  }
+
+  const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a')) ? 'gym-6a-plus' : gymId;
+  return all.filter(s => s.gymId === targetGymNorm || s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function reorderSectors(gymId: string, orderedSectorIds: string[]): Sector[] {
@@ -283,8 +302,32 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     }
   }
 
-  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3
+  // Also include boulders from gymStorage so no boulders are missed
   let hasMigrated = false;
+  try {
+    const v1Boulders = gymStorage.getBoulders();
+    const existingIds = new Set(all.map(b => b.id));
+    for (const b of v1Boulders) {
+      if (!existingIds.has(b.id)) {
+        all.push({
+          id: b.id,
+          sectorId: b.sector_id,
+          gradeScaleId: b.grade_scale_id,
+          positionX: b.position_x,
+          positionY: b.position_y,
+          name: b.name || 'Boulder',
+          setterId: (b as any).setter_id || 'setter-system',
+          status: (b.status as any) || 'active',
+          radar: DEFAULT_RADAR,
+          createdAt: new Date().toISOString(),
+        });
+        existingIds.add(b.id);
+        hasMigrated = true;
+      }
+    }
+  } catch (e) {}
+
+  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3
   all = all.map(b => {
     if (b.radar && (b.radar.maximalkraft === undefined || b.radar.kraftausdauer === undefined)) {
       hasMigrated = true;
@@ -308,6 +351,20 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
   }
 
   if (sectorId) {
+    // Find all matching sector IDs (handles aliases like sec_6a_... vs Supabase UUID)
+    const targetSector = getSectorById(sectorId);
+    if (targetSector) {
+      const altIds = new Set<string>([sectorId, targetSector.id]);
+      try {
+        const allSecs = gymStorage.getSectors(targetSector.gymId);
+        for (const s of allSecs) {
+          if (s.name.trim().toLowerCase() === targetSector.name.trim().toLowerCase()) {
+            altIds.add(s.id);
+          }
+        }
+      } catch {}
+      return all.filter(b => altIds.has(b.sectorId));
+    }
     return all.filter(b => b.sectorId === sectorId);
   }
   return all;
@@ -320,6 +377,7 @@ function saveWallBoulders(boulders: WallBoulder[]): void {
     const existing = gymStorage.getBoulders();
     const map = new Map(existing.map(b => [b.id, b]));
     for (const b of boulders) {
+      if (b.status === 'draft') continue;
       map.set(b.id, {
         id: b.id,
         sector_id: b.sectorId,
@@ -459,6 +517,10 @@ export function deleteDraftBoulder(boulderId: string): void {
   const all = getWallBoulders();
   const filtered = all.filter(b => !(b.id === boulderId && b.status === 'draft'));
   saveWallBoulders(filtered);
+  try {
+    const existing = gymStorage.getBoulders();
+    gymStorage.saveBoulders(existing.filter(b => b.id !== boulderId));
+  } catch (e) {}
 }
 
 // AC-9: Transactional Batch Publish

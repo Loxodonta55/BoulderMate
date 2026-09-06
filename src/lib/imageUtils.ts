@@ -271,3 +271,48 @@ export async function processUploadedImage(file: File): Promise<string> {
   const result = await processLocalImageFile(file);
   return result.dataUrl;
 }
+
+/**
+ * Captures the current frame of an active HTMLVideoElement into a compressed JPEG Data URL.
+ */
+export function captureVideoFrame(
+  video: HTMLVideoElement,
+  maxDimension = 1600,
+  quality = 0.85
+): string {
+  let width = video.videoWidth || 1280;
+  let height = video.videoHeight || 720;
+
+  if (width > maxDimension || height > maxDimension) {
+    if (width > height) {
+      height = Math.round((height * maxDimension) / width);
+      width = maxDimension;
+    } else {
+      width = Math.round((width * maxDimension) / height);
+      height = maxDimension;
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  return '';
+}
+
+/**
+ * Check if the current browser environment supports camera access via getUserMedia
+ */
+export function isCameraSupported(): boolean {
+  return (
+    typeof navigator !== 'undefined' &&
+    !!navigator.mediaDevices &&
+    typeof navigator.mediaDevices.getUserMedia === 'function'
+  );
+}
+

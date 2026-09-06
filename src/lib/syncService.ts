@@ -100,44 +100,58 @@ export async function syncFromSupabase(): Promise<boolean> {
       .order('sort_order', { ascending: true });
 
     if (!secError && dbSectors && dbSectors.length > 0) {
+      // V1 Cache (gymStorage)
+      const localV1Sectors = gymStorage.getSectors();
+      const v1SecMap = new Map(localV1Sectors.map(s => [s.id, s]));
+
+      // V2 Cache (batchBoulderService)
       const localSectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
       const sectorMap = new Map(localSectors.map(s => [s.id, s]));
 
       for (const s of dbSectors) {
-        // Check if exists by id or gymId + name
+        const targetGymId = (s.gym_id && s.gym_id.includes('f2b11564')) ? 'gym-6a-plus' : (s.gym_id && s.gym_id.includes('814696b2')) ? 'gym-minimum-zh' : s.gym_id;
+        const resolvedUrl = s.wall_photo_url || '/images/walls/overhang.jpg';
+
+        // Check if exists in V2 by id or name
         let foundKey: string | null = null;
         for (const [k, localSec] of sectorMap.entries()) {
-          if (k === s.id || (localSec.name === s.name && (localSec.gymId === s.gym_id || localSec.gymId.includes('6a')))) {
+          if (k === s.id || (localSec.name.trim().toLowerCase() === s.name.trim().toLowerCase() && (localSec.gymId === targetGymId || localSec.gymId.includes('6a')))) {
             foundKey = k;
             break;
           }
         }
 
-        const resolvedUrl = s.wall_photo_url || '/images/walls/overhang.jpg';
+        const canonicalId = foundKey || s.id;
+        sectorMap.set(canonicalId, {
+          id: canonicalId,
+          gymId: targetGymId,
+          name: s.name,
+          wallPhotoUrl: resolvedUrl,
+          sortOrder: s.sort_order || 1,
+          createdAt: s.created_at,
+        });
 
-        if (foundKey) {
-          const existing = sectorMap.get(foundKey)!;
-          sectorMap.set(foundKey, {
-            ...existing,
-            name: s.name,
-            wallPhotoUrl: resolvedUrl,
-            sortOrder: s.sort_order || existing.sortOrder,
-          });
-        } else {
-          // Neues Sektor-Objekt non-destruktiv hinzufügen
-          const targetGymId = s.gym_id.includes('f2b11564') ? 'gym-6a-plus' : s.gym_id;
-          sectorMap.set(s.id, {
-            id: s.id,
-            gymId: targetGymId,
-            name: s.name,
-            wallPhotoUrl: resolvedUrl,
-            sortOrder: s.sort_order || 1,
-            createdAt: s.created_at,
-          });
+        // Also sync into V1 (gymStorage) so Hallenbereich sees the exact same sectors!
+        let foundV1Key: string | null = null;
+        for (const [k, localSec] of v1SecMap.entries()) {
+          if (k === canonicalId || k === s.id || (localSec.name.trim().toLowerCase() === s.name.trim().toLowerCase() && (localSec.gym_id === targetGymId || localSec.gym_id.includes('6a')))) {
+            foundV1Key = k;
+            break;
+          }
         }
+        const v1Id = foundV1Key || canonicalId;
+        v1SecMap.set(v1Id, {
+          id: v1Id,
+          gym_id: targetGymId,
+          name: s.name,
+          wall_photo_url: resolvedUrl,
+          sort_order: s.sort_order || 1,
+          created_at: s.created_at || new Date().toISOString(),
+        });
       }
 
       setStorageJson(STORAGE_KEY_SECTORS, Array.from(sectorMap.values()));
+      gymStorage.saveSectors(Array.from(v1SecMap.values()));
       currentSyncStatus.syncedSectors = sectorMap.size;
     }
 
@@ -189,7 +203,7 @@ export async function syncFromSupabase(): Promise<boolean> {
       setStorageJson('boulderapp_grade_scales_v2', Array.from(v2Map.values()));
     }
 
-    // 3. Boulder laden
+    // 3. Boulder laden & harmonisieren
     const { data: dbBoulders, error: boulderError } = await supabase
       .from('boulders')
       .select('*');
@@ -198,36 +212,73 @@ export async function syncFromSupabase(): Promise<boolean> {
       const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
       const boulderMap = new Map(localBoulders.map(b => [b.id, b]));
 
+      const localV1Boulders = gymStorage.getBoulders();
+      const v1BoulderMap = new Map(localV1Boulders.map(b => [b.id, b]));
+
+      // Lookup für Sektoren nach Name
+      const allSectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+      const sectorIdByName = new Map<string, string>();
+      for (const sec of allSectors) {
+        sectorIdByName.set(sec.name.trim().toLowerCase(), sec.id);
+      }
+
       for (const b of dbBoulders) {
-        if (!boulderMap.has(b.id)) {
-          boulderMap.set(b.id, {
-            id: b.id,
-            sectorId: b.sector_id,
-            gradeScaleId: b.grade_scale_id,
-            positionX: b.position_x,
-            positionY: b.position_y,
-            name: b.name || 'Unbenannter Boulder',
-            notes: b.notes || '',
-            setterId: b.setter_id || 'system',
-            status: b.status || 'active',
-            radar: {
-              maximalkraft: b.radar_maximalkraft || b.radar_kraft || 3,
-              kraftausdauer: b.radar_kraftausdauer || b.radar_kraft || 3,
-              kraft: b.radar_kraft || 3,
-              technik: b.radar_technik || 3,
-              balance: b.radar_balance || 3,
-              koordination: b.radar_koordination || 3,
-              flexibilitaet: b.radar_flexibilitaet || 3,
-            },
-            fontGrade: b.font_grade || undefined,
-            createdAt: b.created_at,
-            publishedAt: b.published_at || undefined,
-            archivedAt: b.archived_at || undefined,
-          });
+        let resolvedSectorId = b.sector_id;
+        const matchingSec = dbSectors?.find(ds => ds.id === b.sector_id);
+        if (matchingSec && sectorIdByName.has(matchingSec.name.trim().toLowerCase())) {
+          resolvedSectorId = sectorIdByName.get(matchingSec.name.trim().toLowerCase())!;
         }
+
+        const boulderObj: WallBoulder = {
+          id: b.id,
+          sectorId: resolvedSectorId,
+          gradeScaleId: b.grade_scale_id,
+          positionX: b.position_x,
+          positionY: b.position_y,
+          name: b.name || 'Unbenannter Boulder',
+          notes: b.notes || '',
+          setterId: b.setter_id || 'system',
+          status: b.status || 'active',
+          radar: {
+            maximalkraft: b.radar_maximalkraft || b.radar_kraft || 3,
+            kraftausdauer: b.radar_kraftausdauer || b.radar_kraft || 3,
+            kraft: b.radar_kraft || 3,
+            technik: b.radar_technik || 3,
+            balance: b.radar_balance || 3,
+            koordination: b.radar_koordination || 3,
+            flexibilitaet: b.radar_flexibilitaet || 3,
+          },
+          fontGrade: b.font_grade || undefined,
+          createdAt: b.created_at,
+          publishedAt: b.published_at || undefined,
+          archivedAt: b.archived_at || undefined,
+        };
+
+        // Deduplizierung: Falls Boulder mit gleichem Namen im Sektor existiert -> updaten
+        let foundBoulderId: string | null = null;
+        for (const [id, eb] of boulderMap.entries()) {
+          if (id === b.id || (eb.name && b.name && eb.name.trim().toLowerCase() === b.name.trim().toLowerCase() && eb.sectorId === resolvedSectorId)) {
+            foundBoulderId = id;
+            break;
+          }
+        }
+
+        const bId = foundBoulderId || b.id;
+        boulderMap.set(bId, { ...boulderObj, id: bId });
+
+        v1BoulderMap.set(bId, {
+          id: bId,
+          sector_id: resolvedSectorId,
+          grade_scale_id: b.grade_scale_id,
+          position_x: b.position_x,
+          position_y: b.position_y,
+          status: b.status || 'active',
+          name: b.name,
+        });
       }
 
       setStorageJson(STORAGE_KEY_WALL_BOULDERS, Array.from(boulderMap.values()));
+      gymStorage.saveBoulders(Array.from(v1BoulderMap.values()));
       currentSyncStatus.syncedBoulders = boulderMap.size;
     }
 
