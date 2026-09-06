@@ -32,87 +32,87 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [activeClimberFeature, setActiveClimberFeature] = useState<number>(0);
   const [activeSetterFeature, setActiveSetterFeature] = useState<number>(0);
 
-  // Climber Features strictly derived from CONSTITUTION.md Section 1.1:
-  // 1. Beliebte Boulder & Hallen-Highlights finden
-  // 2. Routen fair einschätzen (Demokratische Grade-Findung)
-  // 3. Persönliche Erfolge & Kletter-Progression (2-Tap Chalk-Proof Logging)
-  // 4. Stärken & Schwächen erkennen (5-Achsen-Leistungsradar)
-  // 5. Routen-Diskussion & Beta-Talk direkt am Boulder
+  // Climber Features strictly aligned with CONSTITUTION.md Section 1.1:
+  // 1. Welche Boulder sind cool? (Perlen & Spaßgaranten)
+  // 2. Welche passen zu mir? (Style-, Grad- & Neigungs-Match)
+  // 3. Chalk-Proof 2-Tap Logging (Tracken ohne Frust)
+  // 4. Beta-Talk & Matten-Diskussion (Gemeinsam knacken)
+  // 5. Faire Grade im Barometer (Demokratische Grade-Findung)
   const climberFeatures = [
     {
-      id: 'hallen-highlights',
-      title: 'Hallen-Highlights & Beliebte Boulder',
-      badge: 'Orientierung',
-      tagline: 'Die unbestrittenen Perlen des Schraubzyklus sofort an der Wand entdecken',
+      id: 'cool-boulders',
+      title: 'Welche Boulder sind cool?',
+      badge: 'Perlen-Finder',
+      tagline: 'Die absoluten Highlights und Spaßgaranten deiner Halle sofort an der Wand entdecken',
       description:
-        'Kein zielloses Suchen vor überfüllten Wandbereichen: Finde in Sekundenschnelle alle Routen deiner Halle auf hochauflösenden Wandfotos. Entdecke sofort, welche Boulder der Community am meisten Spass machen und welche Linien die unbestrittenen Highlights sind.',
+        'Deine Haut und Energie an der Wand sind kostbar. Niemand will Zeit an langweiligen Zügen verschwenden: Sieh auf echten Wandfotos sofort, welche Linien die unbestrittenen Perlen des Schraubzyklus sind, welche Routen der Community am meisten Spaß machen und wo echter Bewegungsfluss wartet.',
       bullets: [
+        'Community-Favoriten & Sterne-Highlights auf einen Blick',
         'Echte Wandfotos mit farbcodierten Pins für jede Grifffarbe',
-        'Sofort die beliebtesten Routen und Sterne-Ratings im Blick',
-        'Sekundenschnelle Sektor-Orientierung von der Platte bis zum Dach'
+        'Nie wieder Kraft an uninspirierten Linien verschwenden'
       ],
       mockupImage: '/images/walls/six-a-comp.jpg',
       previewType: 'wall' as const
     },
     {
-      id: 'community-barometer',
-      title: 'Demokratisches Grade-Barometer',
-      badge: 'Faire Grade',
-      tagline: 'Demokratische Grade-Findung statt subjektiver Schrauber-Willkür',
+      id: 'style-match',
+      title: 'Welche passen zu mir?',
+      badge: 'Style-Match',
+      tagline: 'Finde Routen, die genau zu deinen Stärken, Vorlieben und Zielen passen',
       description:
-        'Wie klettert sich die Route in Wirklichkeit? Das Community-Barometer (Soft / Fair / Stiff) und 5-Sterne-Qualitätsratings decken auf, wie sich die Route anfühlt – für eine ehrliche, transparente Hallen-Schwierigkeit getragen von allen Kletterern.',
+        'Liebst du filigrane Platten-Balance, steile Dach-Power oder dynamische Sprünge? Das 5-Achsen-Radar (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität) matcht Boulder mit deinem Style und zeigt dir genau die Linien, an denen du wächst oder dein nächstes Level knackst.',
       bullets: [
-        'Community-Barometer: Stimme ab (Soft / Fair / Stiff)',
-        '5-Sterne-Bewertung für Routenbau-Qualität & Bewegungsfluss',
-        'Demokratischer Konsens-Grad aus hunderten Begehungen'
-      ],
-      mockupImage: '/images/walls/roof.jpg',
-      previewType: 'community' as const
-    },
-    {
-      id: 'chalk-proof-logging',
-      title: 'Chalk-Proof 2-Tap Logging',
-      badge: 'Für die Matte',
-      tagline: 'Lückenloses Logging für eingekreidete Hände direkt auf der Bouldermatte',
-      description:
-        'Du stehst auf der Matte, die Hände voll Chalk: Kein langes Tippen, kein Formular-Wahnsinn. Ein Fingertipp auf den Pin der Route, ein zweiter auf Flash ⚡, Top ✅ oder Projekt 🎯 – in zwei Sekunden geloggt. Deine Historie wächst automatisch über alle Hallenbesuche mit.',
-      bullets: [
-        'Große, kontraststarke Tasten – speziell für kreidige Finger',
-        'Flash, Top & Projekt in unter 2 Sekunden erfassen',
-        'Automatische Historie & Hallen-Erfolgsstatistik'
-      ],
-      mockupImage: '/images/walls/overhang.jpg',
-      previewType: 'logging' as const
-    },
-    {
-      id: 'athletes-radar',
-      title: 'Athleten-Radar & Progression',
-      badge: 'Stil-Analyse',
-      tagline: 'Objektiver Vergleich des eigenen Kletterstils mit dem Hallendurchschnitt',
-      description:
-        'Wo liegen deine Trümpfe, wo deine Trainingsbaustellen? Das 5-Achsen-Leistungsradar (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität) vergleicht deinen Kletterstil objektiv mit dem Hallenschnitt und zeigt, was dein nächstes Level freischaltet.',
-      bullets: [
-        '5-Achsen-Leistungsradar: Fingerkraft, Balance, Dynamik & Technik',
-        'Objektiver Vergleich der Selbsteinschätzung gegen den Hallenschnitt',
-        'Persönliche Boulderpyramide und historische Progression'
+        '5-Achsen-Radar für Maximalkraft, Balance, Dynamik & Technik',
+        'Stärken & Baustellen objektiv gegen den Hallenschnitt abgleichen',
+        'Finde zielsicher die Projekte, die dich weiterbringen'
       ],
       mockupImage: '/images/walls/six-a-slab.jpg',
       previewType: 'profile' as const
     },
     {
+      id: 'chalk-proof-logging',
+      title: 'Tracken ohne Frust',
+      badge: '2-Tap Flow',
+      tagline: 'Erfolge mit kreidigen Fingern direkt auf der Matte in zwei Sekunden festhalten',
+      description:
+        'Du stehst auf der Matte, das Adrenalin pumpt, die Hände voll Chalk: Kein langes Tippen, kein Formular-Wahnsinn. Ein Fingertipp auf den Pin der Route, ein zweiter auf Flash ⚡, Top ✅ oder Projekt 🎯 – in zwei Sekunden geloggt. Deine Historie wächst automatisch über alle Hallenbesuche mit.',
+      bullets: [
+        'Große, kontraststarke Tasten – speziell für kreidige Finger',
+        'Flash, Top & Projekt in unter 2 Sekunden erfassen',
+        'Automatische Historie & persönliche Boulderpyramide'
+      ],
+      mockupImage: '/images/walls/overhang.jpg',
+      previewType: 'logging' as const
+    },
+    {
       id: 'beta-talk',
-      title: 'Beta-Talk & Matten-Diskussion',
-      badge: 'Community',
+      title: 'Diskutieren & Beta-Talk',
+      badge: 'Zusammen knacken',
       tagline: 'Die klassische Matten-Diskussion zieht digital direkt an den Boulder',
       description:
-        'Crux-Lösungen, Tritt-Empfehlungen und Beta-Tipps direkt am Pin der Route: Tausche dich mit der Community aus, diskutiere knifflige Schlüsselstellen und knacke schwere Projekte gemeinsam mit Kletterern aus deiner Halle.',
+        'Wo liegt der versteckte Heelhook? Welcher Micro-Tritt macht die Crux leicht? Tausche Beta direkt am Pin der Route aus, diskutiere knifflige Schlüsselstellen mit der Community und knackt schwere Projekte gemeinsam.',
       bullets: [
-        'Beta-Tipps & Crux-Lösungen direkt am Pin angeheftet',
-        'Echtzeit-Austausch über Sequenzen, Trittfolgen & Hooks',
-        'Gemeinsam Projekte knacken und Matten-Erfolge teilen'
+        'Beta-Tipps & Crux-Tricks direkt am Pin angeheftet',
+        'Echtzeit-Austausch ohne externe Messenger-Gruppen',
+        'Gemeinsam tüfteln und Matten-Erfolge feiern'
       ],
       mockupImage: '/images/walls/six-a-roof.jpg',
       previewType: 'discussion' as const
+    },
+    {
+      id: 'community-barometer',
+      title: 'Faire Grade im Barometer',
+      badge: 'Kein Sandbagging',
+      tagline: 'Demokratische Grade-Findung statt subjektiver Schrauber-Willkür',
+      description:
+        'Wie schwer klettert sich die Route in Wirklichkeit? Das Community-Barometer (Soft / Fair / Stiff) und 5-Sterne-Qualitätsratings decken ehrlich auf, wie sich die Route anfühlt – für eine ehrliche, transparente Hallen-Schwierigkeit getragen von allen Kletterern.',
+      bullets: [
+        'Mit einem Tap im Barometer abstimmen (Soft / Fair / Stiff)',
+        '5-Sterne-Bewertung für Routenbau-Qualität & Spaßfaktor',
+        'Demokratischer Konsens-Grad aus hunderten Begehungen'
+      ],
+      mockupImage: '/images/walls/roof.jpg',
+      previewType: 'community' as const
     }
   ];
 
@@ -215,19 +215,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-none bg-[#1E1E1E] border border-[#333333] text-xs font-mono text-[#C9A96E] uppercase tracking-widest shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span>Das sportliche & soziale Bindeglied deiner Kletterhalle</span>
+            <span>Der Begleiter für deine perfekte Boulder-Session</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold uppercase tracking-tight text-[#E8E0D4] leading-[1.1]">
-            Von der Orientierung an der Wand <br />
+            Erkennen, welche Boulder cool sind. <br />
             <span className="text-[#C9A96E] underline decoration-[#C9A96E]/40 underline-offset-8">
-              zur lebendigsten Community
+              Finden, was zu dir passt.
             </span>{' '}
-            auf der Matte.
+            Tracken & gemeinsam knacken.
           </h1>
 
           <p className="text-sm sm:text-base md:text-lg text-[#A89F91] max-w-2xl mx-auto leading-relaxed font-sans">
-            Finde in Sekundenschnelle alle Routen deiner Halle auf echten Wandfotos. Ermittle faire Grade im demokratischen Community-Barometer, logge Flash & Top mit kreidigen Fingern in zwei Taps und diskutiere Beta direkt am Boulder.
+            Deine Haut und Kraft sind zu kostbar für langweilige Züge: BoulderMate zeigt dir sofort die echten Highlights und Spaßgaranten deiner Halle, matcht Routen mit deinem persönlichen Style, loggt Tops mit kreidigen Fingern in zwei Taps und bringt den Beta-Talk direkt an den Boulder.
           </p>
 
           {/* Primary Action Buttons (Account Registration & Sign-in) */}
@@ -783,10 +783,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Compass className="w-5 h-5 stroke-[2]" />
               </div>
               <h4 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-                1. Lebendige Community
+                1. Coolness & Style-Match
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Routen fair bewerten, Highlights küren und Beta am Boulder austauschen. BoulderMate verbindet die Kletterer auf der Matte mit dem Routenbau an der Wand.
+                Nie wieder Energie an langweiligen Zügen verschwenden. Sieh sofort, welche Linien die echten Perlen deiner Halle sind und finde zielsicher Boulder, die zu deinem Kletterstil passen.
               </p>
             </div>
 
@@ -799,7 +799,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 2. 2-Sekunden-Flow
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Gebaut für kreidige Finger direkt auf der Matte: Maximaler Kontrast, große Schaltflächen, 2 Taps pro Begehung. Du bist zum Klettern in der Halle, nicht zum Tippen.
+                Gebaut für kreidige Finger direkt auf der Matte: Große Tasten, 2 Taps pro Begehung. Voller Fokus auf die Wand und deine nächste Session – null Display-Frust.
               </p>
             </div>
 
@@ -809,10 +809,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Shield className="w-5 h-5 stroke-[2]" />
               </div>
               <h4 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-                3. Reine Feature-Isolation
+                3. Matten-Community
               </h4>
               <p className="text-xs text-[#A89F91] leading-relaxed">
-                Kletterer genießen ein aufgeräumtes Topo und ihr Logbuch. Schrauber erfassen Sektoren in unter 3 Minuten. Jeder Bereich ist fokussiert und frei von Ablenkung.
+                Beta austauschen, Crux-Lösungen teilen und demokratische Grade im Barometer mitbestimmen. BoulderMate verbindet die Kletterer auf der Matte mit dem Routenbau an der Wand.
               </p>
             </div>
           </div>
@@ -828,11 +828,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <h3 className="text-2xl sm:text-4xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
-            Finde deine Hallen-Highlights & starte dein Logbuch
+            Bereit, die besten Boulder deiner Halle zu entdecken?
           </h3>
 
           <p className="text-xs sm:text-sm text-[#A89F91] max-w-xl mx-auto leading-relaxed">
-            Als Kletterer landest du direkt in der Hallen-Wandansicht deines Homegyms. Als Schrauber oder Hallen-Admin öffnet sich die direkte Bereichswahl (Role Gateway).
+            Finde heraus, welche Routen der Community am meisten Spaß machen, matche deinen Style und tracke deine Tops in zwei Taps. Kostenlos registrieren oder direkt testen.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">

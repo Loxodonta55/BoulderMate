@@ -8,26 +8,28 @@
 
 ## 1. Vision, Mission & Community Core (Marketing-Purpose)
 
-**Vision**: Die lebendigste und nützlichste Plattform für Indoor-Boulderer – von der Orientierung an der Wand bis zur aktiven Community.
+**Vision**: Die lebendigste, inspirierendste und nützlichste Plattform für Indoor-Boulderer – von der perfekten Session-Orientierung bis zur aktiven Matten-Community.
 
-**Mission**: Boulderer sollen in Sekundenschnelle alle Routen ihrer Halle finden, fair einschätzen, persönliche Erfolge festhalten und sich mit der Community austauschen. Schrauber sollen nach dem Schraubtag in unter 3 Minuten pro Wand ihre neuen Boulder erfasst haben.
+**Mission**: Kletterer sollen in Sekundenschnelle erkennen, **welche Boulder richtig cool sind**, welche Routen **perfekt zum eigenen Kletterstil passen**, Erfolge mühelos festhalten und sich direkt an der Wand mit der Community austauschen. Schrauber erfassen nach dem Schraubtag in unter 3 Minuten pro Wand ihre neuen Linien und sehen die echte Begeisterung der Kletterer.
 
-### 1.1 Nach außen getragener Sinn & Zweck (Marketing-Aussagen & Value Proposition)
-BoulderMate ist nach außen hin keine reine Verwaltungssoftware oder Schrauber-Tool, sondern das **soziale und sportliche Bindeglied der Kletter-Community**:
+### 1.1 Der emotionale Kletterer-Nutzen (Marketing-Aussagen & Core Value Proposition)
+BoulderMate ist keine Verwaltungssoftware und kein bürokratisches Topo, sondern der **persönliche Session-Begleiter und das sportliche Bindeglied der Kletter-Community**:
 
-1. **Routen fair einschätzen**:
-   - Demokratische Grade-Findung statt subjektiver Schrauber-Willkür.
-   - Das Community-Barometer (*Soft / Fair / Stiff*) und Sterne-Ratings decken auf, wie sich die Route in Wirklichkeit klettert.
-2. **Beliebte Boulder & Hallen-Highlights finden**:
-   - Kletterer sehen sofort, welche Boulder der Community am meisten Spaß machen und welche Linien die unbestrittenen "Perlen" des aktuellen Schraubzyklus sind.
-3. **Persönliche Erfolge tracken & Kletter-Progression visualisieren**:
-   - Lückenloses 2-Tap-Logging (Flash, Top, Projekt) für eingekreidete Hände direkt auf der Bouldermatte.
-   - Automatische Historie und Progression über alle Hallenbesuche hinweg.
-4. **Stärken & Schwächen erkennen (Selbsteinschätzung vs. Community)**:
-   - 5-Achsen-Leistungsradar (Kraft, Technik, Balance, Koordination, Flexibilität).
-   - Objektiver Vergleich des eigenen Kletterstils mit dem Hallendurchschnitt: Wo liegen die Trümpfe (z.B. Platten-Balance), wo die Trainingsbaustellen (z.B. Dach-Körperspannung)?
-5. **Routen-Diskussion & Beta-Talk direkt am Boulder**:
-   - Die klassische Matten-Diskussion zieht digital an den Boulder: Crux-Lösungen, Beta-Tipps, Tritt-Empfehlungen und Feedback direkt am Pin der Route.
+1. **Erkennen, welche Boulder richtig cool sind (Highlight- & Perlen-Finder)**:
+   - Deine Haut und Energie an der Wand sind kostbar. Niemand will Zeit an langweiligen Zügen verschwenden.
+   - Kletterer sehen auf einen Blick, welche Linien die unbestrittenen "Perlen" des aktuellen Schraubzyklus sind, welche Boulder der Community am meisten Spaß machen und wo echter Bewegungsfluss wartet (Sterne-Rating & Beliebtheits-Ranking).
+2. **Finden, welche Boulder zu mir passen (Style-, Grad- & Neigungs-Match)**:
+   - Jeder Kletterer hat seine eigene DNA: Platte, Überhang, Dynamik, Körperspannung oder filigrane Leisten.
+   - BoulderMate zeigt dir genau die Linien, die zu deinem aktuellen Leistungsstand und deinen Vorlieben passen – oder deckt gezielt die Projekte auf, die dein nächstes Level freischalten (Stil-Radar & Stärken/Baustellen-Analyse).
+3. **Mühelos tracken & Progression feiern (2-Tap Chalk-Proof Logging)**:
+   - Optimiert für eingekreidete Hände direkt auf der Bouldermatte: Ein Tap auf den Pin, ein zweiter auf Flash ⚡, Top ✅ oder Projekt 🎯 – in zwei Sekunden geloggt.
+   - Automatische Historie und Kletter-Progression über alle Besuche und Hallen hinweg.
+4. **Diskutieren & Beta-Talk direkt am Boulder (Digitale Matten-Kultur)**:
+   - Die beste Seite des Boulderns zieht digital an die Wand: Crux-Lösungen, Tritt-Empfehlungen, Hook-Tricks und Beta-Tipps direkt am Pin der Route.
+   - Gemeinsam Projekte knacken, Matten-Erfolge feiern und einander weiterbringen.
+5. **Routen fair einschätzen (Demokratisches Community-Barometer)**:
+   - Demokratische Konsens-Grade statt subjektiver Schrauber-Willkür.
+   - Das Barometer (*Soft / Fair / Stiff*) zeigt schonungslos, wie sich die Route in Wirklichkeit klettert – kein Frust mehr über Sandbagging oder geschenkte Grade.
 
 ---
 

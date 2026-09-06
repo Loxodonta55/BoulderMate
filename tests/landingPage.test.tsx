@@ -31,21 +31,21 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.queryByTestId('explore-guest-btn')).not.toBeInTheDocument();
       expect(screen.queryByTestId('hero-explore-guest-btn')).not.toBeInTheDocument();
 
-      // 2. Hero Headline & Information (Constitution Vision & Community Core)
-      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
-      expect(screen.getByText(/zur lebendigsten Community/i)).toBeInTheDocument();
+      // 2. Hero Headline & Information (Constitution Marketing: Coolness, Match, Tracking, Discussion)
+      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
+      expect(screen.getByText(/Finden, was zu dir passt/i)).toBeInTheDocument();
 
       // 3. Rollen-Tabs: Kletterer ist standardmäßig aktiv mit Fokus-Tag
       const climberTab = screen.getByTestId('role-tab-climber');
       expect(climberTab).toBeInTheDocument();
       expect(climberTab).toHaveTextContent(/Fokus/i);
 
-      // Kletterer-Features sind sichtbar (5 Constitution Pillars)
-      expect(screen.getByText('Hallen-Highlights & Beliebte Boulder')).toBeInTheDocument();
-      expect(screen.getByText('Demokratisches Grade-Barometer')).toBeInTheDocument();
-      expect(screen.getByText('Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText('Athleten-Radar & Progression')).toBeInTheDocument();
-      expect(screen.getByText('Beta-Talk & Matten-Diskussion')).toBeInTheDocument();
+      // Kletterer-Features sind sichtbar (Marketing-Value Propositions)
+      expect(screen.getByText('Welche Boulder sind cool?')).toBeInTheDocument();
+      expect(screen.getByText('Welche passen zu mir?')).toBeInTheDocument();
+      expect(screen.getByText('Tracken ohne Frust')).toBeInTheDocument();
+      expect(screen.getByText('Diskutieren & Beta-Talk')).toBeInTheDocument();
+      expect(screen.getByText('Faire Grade im Barometer')).toBeInTheDocument();
     });
 
     it('erlaubt das Umschalten auf die Schrauber-Rolle und zeigt deren Workflow', () => {
@@ -72,12 +72,12 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
         />
       );
 
-      // Klick auf "Chalk-Proof 2-Tap Logging"
-      const loggingCard = screen.getByText('Chalk-Proof 2-Tap Logging');
+      // Klick auf "Tracken ohne Frust"
+      const loggingCard = screen.getByText('Tracken ohne Frust');
       fireEvent.click(loggingCard);
 
-      expect(screen.getByText('Vorschau: Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
-      expect(screen.getByText(/Lückenloses Logging für eingekreidete Hände/i)).toBeInTheDocument();
+      expect(screen.getByText('Vorschau: Tracken ohne Frust')).toBeInTheDocument();
+      expect(screen.getByText(/Erfolge mit kreidigen Fingern/i)).toBeInTheDocument();
       expect(screen.getByText('FLASH ⚡')).toBeInTheDocument();
       expect(screen.getByText('TOP ✅')).toBeInTheDocument();
     });
@@ -111,7 +111,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // Standalone Landing Page ist aktiv
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
 
       // Interne App-Navigation und Hallenwände sind für unangemeldete User NICHT sichtbar
       expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
@@ -196,7 +196,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       fireEvent.click(logoutBtn);
 
       // Nun befindet sich der Nutzer wieder exklusiv auf der Landing Page
-      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
     });
@@ -219,7 +219,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
 
       // Nutzer ist abgemeldet / unangemeldet auf der Landing Page mit allen Informationen
-      expect(screen.getByText(/Von der Orientierung an der Wand/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.getByText('Gast')).toBeInTheDocument();
 
