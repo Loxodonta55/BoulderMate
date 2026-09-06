@@ -29,7 +29,9 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
             type="button"
             onClick={onClose}
             className="absolute top-5 right-5 p-2 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
-            title="Schließen"
+            title="Schließen & Abbrechen"
+            aria-label="Schließen"
+            data-testid="role-gateway-close-btn"
           >
             <X className="w-5 h-5" />
           </button>

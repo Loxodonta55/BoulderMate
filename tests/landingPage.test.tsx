@@ -199,5 +199,32 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
     });
+
+    it('schließt das Role Gateway beim Klick auf X und bringt den Nutzer unangemeldet auf die Landing Page zurück', () => {
+      render(<App />);
+
+      // Schnellanmeldung als Boris -> Role Gateway öffnet sich
+      const borisQuickLogin = screen.getByTestId('quick-login-boris');
+      fireEvent.click(borisQuickLogin);
+
+      expect(screen.getByText('Arbeitsbereich wählen')).toBeInTheDocument();
+      expect(screen.getByTestId('role-gateway-close-btn')).toBeInTheDocument();
+
+      // Klick auf das X (role-gateway-close-btn)
+      const closeBtn = screen.getByTestId('role-gateway-close-btn');
+      fireEvent.click(closeBtn);
+
+      // Auswahlfenster ist weg
+      expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
+
+      // Nutzer ist abgemeldet / unangemeldet auf der Landing Page mit allen Informationen
+      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
+      expect(screen.getByText('Gast')).toBeInTheDocument();
+
+      // Interne App-Bereiche sind nicht zugänglich
+      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
+      expect(screen.queryByText('Schrauber-Studio')).not.toBeInTheDocument();
+    });
   });
 });

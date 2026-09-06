@@ -123,6 +123,18 @@ export const App: React.FC = () => {
     setIsRoleGatewayOpen(false);
   };
 
+  const handleCloseRoleGateway = () => {
+    if (climberId && hasChosenModeForUser[climberId]) {
+      setIsRoleGatewayOpen(false);
+    } else {
+      // Cancel initial post-login workspace choice: log out and return to landing page unauthenticated
+      signOut();
+      setAuthSession(null);
+      setClimberId(null);
+      setIsRoleGatewayOpen(false);
+    }
+  };
+
   const refreshGyms = () => {
     const all = getGyms();
     setGyms(all);
@@ -193,7 +205,7 @@ export const App: React.FC = () => {
             roleInfo={roleInfo}
             currentMode={appMode}
             onSelectMode={handleSelectMode}
-            onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
+            onClose={handleCloseRoleGateway}
           />
         )}
       </div>
@@ -544,7 +556,7 @@ export const App: React.FC = () => {
           roleInfo={roleInfo}
           currentMode={appMode}
           onSelectMode={handleSelectMode}
-          onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
+          onClose={handleCloseRoleGateway}
         />
       )}
 

@@ -18,6 +18,7 @@ Reine Kletterer landen immer ohne Umwege direkt im aufgeräumten Kletterer-Panel
 - **US-3**: Als Schrauber möchte ich im "Schrauber-Studio" ein auf das Schrauben optimiertes Interface mit Hallen- und Sektorauswahl, Wandfoto-Pins und Batch-Veröffentlichung nutzen.
 - **US-4**: Als Admin möchte ich in der "Hallen-Administration" gezielt Hallendaten, Farbsysteme und Sektoren verwalten, ohne Kletterer-Funktionen im Weg zu haben.
 - **US-5**: Als berechtigter Nutzer möchte ich jederzeit unkompliziert zwischen den freigeschalteten Arbeitsbereichen wechseln oder zur Kletterer-App zurückkehren können.
+- **US-6**: Als Nutzer möchte ich im Role Gateway die Rollenwahl jederzeit per 'X' abbrechen können. Das Auswahlfenster schließt sich, ich werde automatisch abgemeldet und lande unangemeldet auf der Landing Page mit allen Produktinformationen.
 
 ---
 
@@ -35,3 +36,7 @@ Reine Kletterer landen immer ohne Umwege direkt im aufgeräumten Kletterer-Panel
 - [x] **AC-5**: Berechtigte Nutzer können aus dem Kletterer-Panel über einen dezenten Umschalter oder über ihr Profil jederzeit das Role Gateway erneut öffnen, um den Bereich zu wechseln.
 - [x] **AC-6**: Beim Nutzerwechsel (z.B. Wechsel von Boris (Admin) zu Jonas (Kletterer)) wird die Ansicht sofort an die Berechtigungen des neuen Nutzers angepasst.
 - [x] **AC-7**: **Strikte Feature-Isolation**: Die drei Bereiche sind völlig voneinander getrennt. Keines der Features darf aus zwei Bereichen aufrufbar sein; alle Funktionen, Buttons und Dialoge sind exklusiv in ihrem jeweiligen Bereich verankert.
+- [x] **AC-8**: **Abbruch- & Logout-Verhalten via 'X'**:
+  - Das Role Gateway besitzt immer einen sichtbaren Schließen-Button ('X', `data-testid="role-gateway-close-btn"`).
+  - Wird das 'X' bei der initialen Rollenwahl nach dem Login gedrückt, wird die Session verworfen (`signOut`), das Auswahlfenster geschlossen und der Nutzer landet unangemeldet auf der Landing Page.
+  - Wurde der Bereichswechsel nachträglich aus einem bereits gewählten Modus aufgerufen, schließt das 'X' lediglich das Modal und verbleibt im aktuellen Arbeitsbereich.
