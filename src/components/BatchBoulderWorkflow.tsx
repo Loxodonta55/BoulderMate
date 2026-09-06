@@ -31,8 +31,7 @@ import {
   Rocket,
   ShieldAlert,
   CheckCircle2,
-  Building2,
-  Plus
+  Building2
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
@@ -41,7 +40,6 @@ interface BatchBoulderWorkflowProps {
   onViewLiveSectors?: () => void;
   activeGymId?: string;
   onSelectGym?: (gymId: string) => void;
-  onNavigateToGymManagement?: () => void;
 }
 
 export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
@@ -49,7 +47,6 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   currentUserId = 'setter-1',
   activeGymId,
   onSelectGym,
-  onNavigateToGymManagement,
 }) => {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [gym, setGym] = useState<Gym | null>(null);
@@ -351,19 +348,9 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
               Keine Sektoren in „{gym?.name || 'dieser Halle'}“ vorhanden
             </h3>
             <p className="text-xs font-sans text-[#A89F91] max-w-md mx-auto leading-relaxed">
-              Um hier Boulder auf die Wand zu setzen, lege zuerst mindestens einen Sektor mit einem Wandfoto in der Hallen-Verwaltung an.
+              In dieser Halle sind noch keine Sektoren mit Wandfotos vorhanden. Das Anlegen von Sektoren und Wandtafeln ist eine administrative Aufgabe und erfolgt exklusiv in der Hallen-Administration.
             </p>
           </div>
-          {onNavigateToGymManagement && (
-            <button
-              type="button"
-              onClick={onNavigateToGymManagement}
-              className="px-5 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] transition inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Sektoren & Wandfotos anlegen</span>
-            </button>
-          )}
         </div>
       ) : (
         /* Main Interactive Canvas */

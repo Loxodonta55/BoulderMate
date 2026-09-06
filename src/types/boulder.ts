@@ -342,3 +342,54 @@ export interface ProfileData {
   logbook: LogbookEntry[];
 }
 
+// ==========================================
+// SPEC-008: Climber Performance & Style Statistics
+// ==========================================
+
+export interface StyleAttributeMetric {
+  key: keyof RadarAttributes;
+  label: string;
+  userScore: number;       // 1.0 - 5.0
+  gymScore: number;        // 1.0 - 5.0
+  delta: number;           // userScore - gymScore
+  sendRatePercent: number; // 0 - 100
+  flashRatePercent: number;// 0 - 100
+  highestGradeTopped?: GymGradeScale;
+  attemptsCount: number;
+}
+
+export interface RecommendedBoulderInsight {
+  id: string;
+  name: string;
+  sectorName: string;
+  gradeColorHex: string;
+  gradeColorName: string;
+  difficultyLabel: string;
+  attributeValue: number;
+}
+
+export interface PerformanceInsight {
+  attribute: keyof RadarAttributes;
+  attributeLabel: string;
+  type: 'strength' | 'weakness';
+  headline: string;
+  description: string;
+  metricHighlight: string;
+  recommendedBoulder?: RecommendedBoulderInsight;
+}
+
+export interface AthletePerformanceReport {
+  userId: string;
+  gymId: string;
+  gymName: string;
+  isUnlocked: boolean;      // true if loggedAscentsCount >= 5
+  loggedAscentsCount: number;
+  minRequiredAscents: number;// 5
+  medianGradeOrder: number;
+  userRadar: RadarAttributes;
+  gymRadar: RadarAttributes;
+  strength: PerformanceInsight | null;
+  weakness: PerformanceInsight | null;
+  attributeMetrics: StyleAttributeMetric[];
+}
+

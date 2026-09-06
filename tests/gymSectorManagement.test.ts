@@ -13,6 +13,7 @@ import {
   getBoulders,
   saveBoulders,
   resetAllGymData,
+  ensureInitialGymData,
   CURRENT_USER
 } from '../src/lib/gymStorage';
 import type { BoulderReference } from '../src/types/gym';
@@ -263,5 +264,28 @@ describe('SPEC-001: Hallen- & Sektor-Verwaltung', () => {
     const gymsWithStats = searchGymsWithSectors('Uster');
     expect(gymsWithStats.length).toBe(1);
     expect(gymsWithStats[0].sectors[0].active_boulder_count).toBe(1);
+  });
+
+  it('ensures Minimum Bouldern Zürich and 6a plus Winterthur have distinct sector wall photos', () => {
+    ensureInitialGymData();
+
+    const minSectors = getSectors('gym-minimum-zh');
+    const sixASectors = getSectors('gym-6a-plus');
+
+    expect(minSectors.length).toBeGreaterThan(0);
+    expect(sixASectors.length).toBeGreaterThan(0);
+
+    const minPhotos = minSectors.map(s => s.wall_photo_url);
+    const sixAPhotos = sixASectors.map(s => s.wall_photo_url);
+
+    // Verify 6a plus has its own dedicated wall photos
+    expect(sixAPhotos).toContain('/images/walls/six-a-comp.jpg');
+    expect(sixAPhotos).toContain('/images/walls/six-a-roof.jpg');
+    expect(sixAPhotos).toContain('/images/walls/six-a-slab.jpg');
+
+    // Verify no sector in 6a plus shares the exact same photo as a sector in Minimum
+    minPhotos.forEach(photo => {
+      expect(sixAPhotos).not.toContain(photo);
+    });
   });
 });

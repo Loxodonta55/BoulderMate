@@ -17,21 +17,20 @@ import {
 } from '../lib/roleService';
 import { GradeScaleConfig } from './GradeScaleConfig';
 import { SectorManager } from './SectorManager';
-import { Building2, Search, Plus, MapPin, Globe, Shield, X, Compass, Wrench, Layers, Users, UserCheck, Trash2 } from 'lucide-react';
+import { Building2, Search, Plus, MapPin, Globe, Shield, X, Users, UserCheck, Trash2, Compass } from 'lucide-react';
 
 interface GymManagementProps {
   activeGymId?: string;
   onSelectGym?: (gymId: string) => void;
-  onNavigateToBatchSetter?: (gymId: string) => void;
-  onNavigateToClimberView?: (gymId: string) => void;
+  userId?: string;
 }
 
 export const GymManagement: React.FC<GymManagementProps> = ({
   activeGymId,
   onSelectGym,
-  onNavigateToBatchSetter,
-  onNavigateToClimberView,
+  userId,
 }) => {
+  const effectiveUserId = userId || CURRENT_USER.id;
   const [searchQuery, setSearchQuery] = useState('');
   const [gymsWithSectors, setGymsWithSectors] = useState<Array<Gym & { sectors: Array<Sector & { active_boulder_count: number }> }>>([]);
   const [selectedGymId, setSelectedGymId] = useState<string | null>(activeGymId || null);
@@ -44,6 +43,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
   const [newGymAddress, setNewGymAddress] = useState('');
   const [newGymWebsite, setNewGymWebsite] = useState('');
   const [newGymLogo, setNewGymLogo] = useState('');
+  const [initialAdminUserId, setInitialAdminUserId] = useState<string>('user-boris');
   const [createError, setCreateError] = useState<string | null>(null);
 
   // Team management state
@@ -87,14 +87,16 @@ export const GymManagement: React.FC<GymManagementProps> = ({
         city: newGymCity || undefined,
         address: newGymAddress || undefined,
         website: newGymWebsite || undefined,
-        logo_url: newGymLogo || undefined
-      });
+        logo_url: newGymLogo || undefined,
+        initial_admin_user_id: initialAdminUserId || effectiveUserId
+      }, effectiveUserId);
       setIsCreatingGym(false);
       setNewGymName('');
       setNewGymCity('');
       setNewGymAddress('');
       setNewGymWebsite('');
       setNewGymLogo('');
+      setInitialAdminUserId('user-boris');
       setSelectedGymId(created.id);
       onSelectGym?.(created.id);
       refreshData();
@@ -124,10 +126,10 @@ export const GymManagement: React.FC<GymManagementProps> = ({
       setTeamError(null);
       setTeamMessage(null);
       if (newMemberRole === 'setter') {
-        appointGymSetter(selectedGymId, newMemberUserId.trim(), CURRENT_USER.id);
+        appointGymSetter(selectedGymId, newMemberUserId.trim(), effectiveUserId);
         setTeamMessage(`${newMemberUserId.trim()} erfolgreich als Schrauber ernannt!`);
       } else {
-        appointGymAdmin(selectedGymId, newMemberUserId.trim(), CURRENT_USER.id);
+        appointGymAdmin(selectedGymId, newMemberUserId.trim(), effectiveUserId);
         setTeamMessage(`${newMemberUserId.trim()} erfolgreich als Hallen-Admin ernannt!`);
       }
       setNewMemberUserId('');
@@ -137,17 +139,17 @@ export const GymManagement: React.FC<GymManagementProps> = ({
     }
   };
 
-  const handleRevokeMember = (userId: string, role: string) => {
+  const handleRevokeMember = (targetUserId: string, role: string) => {
     if (!selectedGymId) return;
     try {
       setTeamError(null);
       setTeamMessage(null);
       if (role === 'setter') {
-        revokeGymSetter(selectedGymId, userId, CURRENT_USER.id);
-        setTeamMessage(`Schrauber-Rechte für ${userId} entzogen.`);
+        revokeGymSetter(selectedGymId, targetUserId, effectiveUserId);
+        setTeamMessage(`Schrauber-Rechte für ${targetUserId} entzogen.`);
       } else {
-        revokeGymAdmin(selectedGymId, userId, CURRENT_USER.id);
-        setTeamMessage(`Hallen-Admin-Rechte für ${userId} entzogen.`);
+        revokeGymAdmin(selectedGymId, targetUserId, effectiveUserId);
+        setTeamMessage(`Hallen-Admin-Rechte für ${targetUserId} entzogen.`);
       }
       refreshTeam(selectedGymId);
     } catch (e: any) {
@@ -156,8 +158,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
   };
 
   const selectedGym = gymsWithSectors.find(g => g.id === selectedGymId);
-  const isAdmin = selectedGym ? isGymAdmin(selectedGym.id, CURRENT_USER.id) : false;
-  const isPlatformSuperAdmin = isPlatformAdmin(CURRENT_USER.id);
+  const isPlatformSuperAdmin = isPlatformAdmin(effectiveUserId);
+  const isAdmin = selectedGym ? (isGymAdmin(selectedGym.id, effectiveUserId) || isPlatformSuperAdmin) : false;
   const gradeScales = selectedGym ? getGradeScales(selectedGym.id) : [];
 
   return (
@@ -284,32 +286,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
               </div>
             </div>
 
-            {/* Actions & View Tabs */}
+            {/* View Tabs */}
             <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-auto">
-              {onNavigateToBatchSetter && (
-                <button
-                  type="button"
-                  onClick={() => onNavigateToBatchSetter(selectedGym.id)}
-                  className="px-3.5 py-1.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase tracking-wider font-bold text-xs rounded-[2px] transition flex items-center gap-1.5"
-                  title="Routen auf die Wände dieser Halle setzen"
-                >
-                  <Wrench className="w-3.5 h-3.5" />
-                  <span>Routen schrauben</span>
-                </button>
-              )}
-
-              {onNavigateToClimberView && (
-                <button
-                  type="button"
-                  onClick={() => onNavigateToClimberView(selectedGym.id)}
-                  className="px-3.5 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] font-headline uppercase tracking-wider font-bold text-xs rounded-[2px] transition flex items-center gap-1.5"
-                  title="Wand & Sektoren als Kletterer ansehen"
-                >
-                  <Layers className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span>Wand ansehen</span>
-                </button>
-              )}
-
               <div className="flex bg-[#121212] p-1 rounded-none border border-[#333333] text-xs font-headline uppercase tracking-wider">
                 <button
                   onClick={() => setActiveTab('sectors')}
@@ -347,7 +325,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
           {activeTab === 'sectors' && (
             <SectorManager
               gymId={selectedGym.id}
-              userId={CURRENT_USER.id}
+              userId={effectiveUserId}
               isAdmin={isAdmin}
               sectors={selectedGym.sectors}
               onRefresh={refreshData}
@@ -357,7 +335,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
           {activeTab === 'grading' && (
             <GradeScaleConfig
               gymId={selectedGym.id}
-              userId={CURRENT_USER.id}
+              userId={effectiveUserId}
               initialScales={gradeScales}
               onSaved={refreshData}
             />
@@ -371,7 +349,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   Team- & Schrauber-Verwaltung
                 </h3>
                 <p className="text-xs text-[#A89F91] mt-1">
-                  Schrauber-Rechte gelten ausschließlich für diese Halle ({selectedGym.name}). Als Hallen-Admin kannst du Kletterer zu Schraubern oder weiteren Admins ernennen.
+                  Schrauber-Rechte gelten ausschließlich für diese Halle ({selectedGym.name}). Als Hallen-Admin oder OverAdmin kannst du Kletterer zu Schraubern oder weiteren Admins ernennen.
                 </p>
               </div>
 
@@ -395,7 +373,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
                     type="text"
-                    placeholder="Nutzer-ID / Nickname (z. B. user-jonas)"
+                    placeholder="Nutzer-ID / Nickname (z. B. admin-6aplus)"
                     value={newMemberUserId}
                     onChange={(e) => setNewMemberUserId(e.target.value)}
                     className="w-full px-3 py-2 bg-[#1E1E1E] border border-[#333333] rounded-none text-xs text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-mono"
@@ -415,6 +393,28 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   >
                     Rolle zuweisen
                   </button>
+                </div>
+
+                {/* Quick-Select Buttons for Fake Personas */}
+                <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                  <span className="text-[10px] text-[#6B6358] font-mono">Schnellauswahl:</span>
+                  {[
+                    { id: 'admin-6aplus', label: 'Admin6APlus' },
+                    { id: 'schrauber-6aplus', label: 'Schrauber6aPlus' },
+                    { id: 'admin-minimum', label: 'AdminMinimum' },
+                    { id: 'schrauber-minimum', label: 'Schrauber Minimum' },
+                    { id: 'hans-kletterer', label: 'Hans' },
+                    { id: 'user-boris', label: 'Boris' }
+                  ].map(u => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => setNewMemberUserId(u.id)}
+                      className="px-2 py-0.5 rounded-none text-[10px] font-mono bg-[#1E1E1E] hover:bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333] transition"
+                    >
+                      {u.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -564,9 +564,30 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+                  Initialer Hallen-Admin (SPEC-000)
+                </label>
+                <select
+                  value={initialAdminUserId}
+                  onChange={(e) => setInitialAdminUserId(e.target.value)}
+                  className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
+                >
+                  <option value="user-boris">Boris (OverAdmin)</option>
+                  <option value="admin-6aplus">Admin6APlus (HallenAdmin fürs 6aPlus)</option>
+                  <option value="admin-minimum">AdminMinimum (Hallenadmin im Minimum)</option>
+                  <option value="schrauber-6aplus">Schrauber6aPlus</option>
+                  <option value="schrauber-minimum">Schrauber Minimum</option>
+                  <option value="hans-kletterer">HansDereinfacheKletterer</option>
+                </select>
+                <p className="text-[10px] text-[#6B6358] mt-1 font-mono">
+                  Als OverAdmin legst du fest, wer sofort als Administrator dieser neuen Halle eingesetzt wird.
+                </p>
+              </div>
+
               <div className="text-[11px] text-[#A89F91] bg-[#121212] p-2.5 rounded-none border border-[#333333] flex items-center gap-2 font-mono">
                 <Compass className="w-4 h-4 text-[#C9A96E] shrink-0" />
-                <span>Als Ersteller erhältst du automatisch die Administrator-Rolle für diese Halle.</span>
+                <span>Als OverAdmin erhältst du automatisch Verwaltungsrechte für alle Hallen.</span>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#333333]">

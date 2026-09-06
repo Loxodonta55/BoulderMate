@@ -1,6 +1,6 @@
-# 🧗 BoulderApp — Constitution
+# 🧗 BoulderMate — Constitution
 
-> **Arbeitstitel**: BoulderApp
+> **Projektname**: BoulderMate
 > **Version**: 1.0 — Erstellt am 04.09.2026
 > **Status**: Genehmigt durch Grill-Me Interview
 
@@ -26,27 +26,38 @@
 
 ---
 
-## 3. Benutzerrollen
+## 3. Benutzerrollen & die 3 getrennten App-Bereiche
 
-### 3.1 Kletterer (Standard-User)
-- Sieht alle aktiven Boulder der gewählten Halle
-- Bewertet Boulder (Soft/Fair/Stiff + 5-Sterne-Qualität + Radar-Chart)
-- Loggt Begehungen (Flash / Top / Projekt)
-- Sieht persönliche Statistiken (Grad-Verteilung)
-- Öffentliches Profil mit Nickname + Statistiken
+Die App ist strikt in drei autarke, voneinander getrennte Bereiche unterteilt.
 
-### 3.2 Schrauber (Route Setter)
-- Alle Kletterer-Features +
-- Erstellt Boulder via Batch-Foto-Workflow
-- Setzt initiale Bewertungen (Grad, Farbe, Radar-Chart)
-- Archiviert abgeschraubte Boulder
-- Sieht Übersicht aller eigenen aktiven Boulder mit Community-Bewertungen
+> **Fundamentales Architektur-Prinzip (Feature-Isolation)**:
+> Die 3 Bereiche der App sind **völlig voneinander getrennt**. **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jedes Feature, jede Aktion und jeder Dialog gehört exklusiv zu genau einem Bereich. Es gibt keine geteilten oder bereichsübergreifenden Feature-Aufrufe.
 
-### 3.3 Hallen-Admin
-- Alle Schrauber-Features +
-- Verwaltet Hallendaten (Name, Adresse, Sektoren)
-- Vergibt Schrauber-Berechtigungen
-- Definiert Sektoren/Wände (Name + Foto)
+### 3.1 Kletterer-Bereich (Standard-User / Kletterer-App)
+- **Exklusive Kletterer-Features**:
+  - Interaktive Wand- & Sektoransicht mit markierten Bouldern
+  - Bouldernavigation, Filter & Sortierung
+  - Begehungen erfassen (Flash / Top / Projekt)
+  - Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, 5-Sterne-Qualität, Radar-Chart)
+  - Persönliches Logbuch & persönliche Performance-/Stil-Statistiken (Athleten-Radar, Stärken/Baustellen)
+  - Öffentliches Profil & Kletterer-Einstellungen
+- **Strikte Isolation**: Keine Schrauber-Werkzeuge, kein Erstellen/Archivieren von Bouldern, keine Sektor- oder Hallenverwaltung.
+
+### 3.2 Schrauber-Bereich (Schrauber-Studio / Route Setter)
+- **Exklusive Schrauber-Features**:
+  - Batch-Foto-Workflow zur visuellen Neuerfassung von Bouldern auf Wandfotos
+  - Setzen initialer Parameter (Grifffarbe, Hallengrad, 5-Achsen-Radar)
+  - Bearbeiten und Archivieren eigener/aktiver Boulder
+  - Schrauber-spezifische Feedback-Übersicht (Community-Resonanz auf eigene Routen)
+- **Strikte Isolation**: Kein persönliches Logbuch, keine Begehungs-Einträge, keine Hallen-Stammdaten-/Rechteverwaltung.
+
+### 3.3 Hallen-Admin-Bereich (Admin-Konsole)
+- **Exklusive Admin-Features**:
+  - Verwaltung der Hallenstammdaten (Name, Anschrift, Basisdaten)
+  - Sektoren- und Wand-Management (Sektoren anlegen, sortieren, Sektorfotos hochladen/aktualisieren)
+  - Farbsystem- und Grading-Konfiguration (Hallenskalen, Farbwerte, Font-Mapping)
+  - Team- & Rechteverwaltung (Schrauber ernennen/entziehen, Hallen-Admins verwalten)
+- **Strikte Isolation**: Kein Routenbau-/Batch-Editor, kein Loggen von Begehungen oder Kletterer-Funktionen.
 
 ---
 
@@ -186,6 +197,11 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
    - Wandfotos, interaktive Marker, klare Grad-Badges und Radar-Charts statt langer Textpassagen.
    - Loggen einer Route in unter 2 Klicks.
 
-4. **Keine Datenverluste & saubere Trennung**:
+4. **Keine Datenverluste & saubere Datenhaltung**:
    - Archivierung statt Löschung – jeder Send bleibt im persönlichen Profil erhalten.
    - Strikte Trennung zwischen Hallen-Ebene, Wand-Ebene und persönlichem Logbuch.
+
+5. **Vollständige Trennung der 3 Bereiche & absolute Feature-Isolation**:
+   - **Völlige Isolation**: Die drei Bereiche (**Kletterer-App**, **Schrauber-Studio**, **Hallen-Admin-Konsole**) sind streng voneinander abgegrenzt.
+   - **Kein Feature-Leak**: **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jede Funktionalität (z.B. Routenerfassung, Sektorverwaltung, Bewertungsabgabe, Rollenverwaltung) existiert exklusiv in genau einem der drei Bereiche.
+   - Es gibt keine bereichsübergreifenden Aktionen, Misch-Masken oder Querverweise. Berechtigte Nutzer wechseln explizit über das Rollen-/Modus-Gateway zwischen den Bereichen.

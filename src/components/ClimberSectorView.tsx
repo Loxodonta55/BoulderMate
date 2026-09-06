@@ -27,22 +27,19 @@ import {
   Star,
   Info,
   ChevronRight,
-  Building2,
-  Plus
+  Building2
 } from 'lucide-react';
 
 interface ClimberSectorViewProps {
   currentUser: CurrentUser;
   activeGymId?: string;
   onSelectGym?: (gymId: string) => void;
-  onNavigateToSetter?: () => void;
 }
 
 export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   currentUser,
   activeGymId,
   onSelectGym,
-  onNavigateToSetter,
 }) => {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [gym, setGym] = useState<Gym | null>(null);
@@ -173,19 +170,9 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
           <h3 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4] mb-2">
             Keine Sektoren in "{gym?.name || 'dieser Halle'}"
           </h3>
-          <p className="text-sm font-sans text-[#A89F91] mb-6">
-            In dieser Boulderhalle wurden noch keine Sektoren mit Wandfotos angelegt. Schrauber können unter "Schrauber &gt; Hallen & Sektoren" neue Sektoren mit Fotos hochladen.
+          <p className="text-sm font-sans text-[#A89F91]">
+            In dieser Boulderhalle wurden noch keine Sektoren mit Wandfotos angelegt. Sobald die Halle Sektoren und Routen erfasst hat, werden sie hier angezeigt.
           </p>
-          {onNavigateToSetter && (
-            <button
-              type="button"
-              onClick={onNavigateToSetter}
-              className="px-4 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase tracking-wider font-bold rounded-[2px] text-xs transition inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Zum Schrauber-Bereich</span>
-            </button>
-          )}
         </div>
       )}
 

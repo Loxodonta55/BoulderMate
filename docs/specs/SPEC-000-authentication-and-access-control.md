@@ -290,11 +290,13 @@ export interface UserGymPermissions {
   - `signInWithEmail(email, password)`: E-Mail-Login.
   - `signOut()`: Beendet Session und räumt Cache auf.
   - `getCurrentUser()`: Liefert `AuthUser | null`.
-  - `setSimulatedUser(userId)`: Erlaubt in Dev/Testing das Umschalten zwischen:
-    - **Boris** (`user-boris`): Plattform-Admin + Admin & Schrauber für **6a plus Winterthur** und Minimum Zürich.
-    - **Jonas** (`user-jonas`): Schrauber für Minimum Zürich, reiner Kletterer für Bouldergarten.
-    - **Lena** (`user-lena`): Reiner Kletterer überall.
-    - **Sophie** (`user-sophie`): Admin für Bouldergarten, reiner Kletterer für Minimum Zürich.
+  - `setSimulatedUser(userId)`: Erlaubt in Dev/Testing das Umschalten zwischen den 6 expliziten Test-Profilen:
+    - **1. Boris** (`user-boris`): Plattform OverAdmin (kann neue Hallen anlegen, initiale Admins bestimmen, teamweit Schrauber/Admins ernennen).
+    - **2. Admin6APlus** (`admin-6aplus`): HallenAdmin fürs 6aPlus (voller Admin-Zugriff im 6a plus, normaler Kletterer in anderen Hallen).
+    - **3. Schrauber6aPlus** (`schrauber-6aplus`): Schrauber im 6a Plus (Schrauber-Studio im 6a plus, normaler Kletterer in anderen Hallen).
+    - **4. HansDereinfacheKletterer** (`hans-kletterer`): Der Standard-User (reiner Kletterer überall).
+    - **5. AdminMinimum** (`admin-minimum`): Hallenadmin im Minimum (voller Admin-Zugriff im Minimum, normaler Kletterer in anderen Hallen).
+    - **6. Schrauber Minimum** (`schrauber-minimum`): Schrauber im Minimum (Schrauber-Studio im Minimum, normaler Kletterer in anderen Hallen).
 - **`roleService`**:
   - `getUserGymPermissions(userId: string, gymId: string): UserGymPermissions`:
     - Berechnet exakte Berechtigungen unter Berücksichtigung der Hallen-Bindung.

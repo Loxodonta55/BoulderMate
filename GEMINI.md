@@ -1,35 +1,53 @@
-# BoulderApp
+# BoulderMate
 
 > Boulder & Climbing App — Spec Driven Development
 
 ## Project Overview
 
-BoulderApp is a boulder/climbing application built with Spec Driven Development (SDD).
-Every feature starts as a specification that must be approved before implementation begins.
+BoulderMate is a boulder/climbing application built with Spec Driven Development (SDD).
+Every feature starts as a specification that aligns user requirements before implementation begins.
 
-## Spec Driven Development Workflow (Autonomous Mode)
+## Spec Driven Development Workflow (2-Phasen-Prinzip)
 
 ```
-1. SPECIFY      → Write spec in docs/specs/
-2. AUTO-APPROVE → Spec is treated as approved immediately
-3. IMPLEMENT    → Code according to spec without interruption
-4. VERIFY       → Prove code matches spec
+1. PLANUNG & BRAINSTORMING (Kollaborativ & Dialogstark)
+   └── Sehr viel nachfragen, brainstormen, Alternativen & Vorschläge einbringen, ask_question aktiv nutzen
+
+2. SPEZIFIKATION FESTHALTEN
+   └── Abgestimmte Anforderungen präzise in docs/specs/ dokumentieren
+
+3. UMSETZUNG (Sehr autonom)
+   └── Zügig, selbstständig und end-to-end implementieren ohne Mikropausen
+
+4. VERIFIKATION & SELF-HEALING
+   └── Selbstständig testen, Fehler eigenständig beheben, Funktion sicherstellen
 ```
 
-### Autonomy & Execution Rules
+### Arbeitsweise & Leitprinzipien
 
-1. **Zero Clarification Questions**: NEVER use the `ask_question` tool and DO NOT pause to ask clarifying or design questions. Make pragmatic, industry-standard assumptions autonomously and proceed.
-2. **Bypass Socratic Gate**: Skip the mandatory questions from the brainstorming skill. Start planning and implementing immediately.
-3. **Autonomous Spec Workflow**: Specs are written to `docs/specs/` as single source of truth, but are pre-approved (`Status: APPROVED`). Never halt execution to wait for user sign-off.
-4. **End-to-End Execution**: Complete requests from start to finish in a single turn without intermediate pauses.
-5. **Traceability & Verification**: Implementation is still tested and verified against spec criteria.
+#### 1. Planungs- & Brainstorming-Phase: Sehr viel nachfragen & beraten
+- **Aktiv Nachfragen & Brainstormen**: Bei neuen Ideen, Anforderungen, Architektur- oder UX-Entscheidungen nicht voreilig Annahmen treffen. Stattdessen intensiv nachfragen, den Kontext ergründen und kreative Ideen austauschen.
+- **Proaktive Vorschläge**: Dem User mehrere Optionen, Vor- und Nachteile sowie Best Practices vorschlagen.
+- **Nutzung von `ask_question`**: Bei Mehrfachauswahlen, unklaren Anforderungen oder Design-Entscheidungen gezielt und strukturiert nachfragen.
+- **Gemeinsames Schärfen der Specs**: Spezifikationen in `docs/specs/` werden im engen Dialog mit dem User iteriert und erst begonnen umzusetzen, wenn das Konzept steht.
+
+#### 2. Umsetzungs- & Implementierungs-Phase: Sehr autonom
+- **Hohe Autonomie**: Sobald die Richtung und Spezifikation geklärt sind, erfolgt die technische Realisierung extrem eigenständig.
+- **End-to-End Execution**: Aufgaben in einem Durchlauf ohne unnötige Zwischenstopps oder wiederholte Genehmigungsfragen fertigstellen.
+- **Self-Healing**: Schlagen Builds, Typen-Checks oder Unit-Tests fehl, werden die Fehler selbstständig analysiert und repariert.
+- **Qualitätssicherung**: Vor Abschluss wird der Code durch automatisierte Tests gegen die Akzeptanzkriterien verifiziert.
+
+#### 3. Striktes Verbot von unaufgeforderten Mocks & Fakes (Real-Implementation First)
+- **NICHTS faken ohne expliziten Befehl**: Es ist strengstens verboten, Authentifizierung, Datenbanken, APIs, Backend-Dienste oder Benutzerdaten stillschweigend zu mocken, zu faken oder durch simulierte Dummy-Daten zu ersetzen, es sei denn, der User hat dies ausdrücklich und unmissverständlich befohlen.
+- **Transparenz vor Simulation**: Fehlen Credentials, Backend-Services, API-Keys oder OAuth-Konfigurationen (z. B. Supabase URL, Google Cloud OAuth Client ID), muss dies sofort und transparent offengelegt werden. Es darf niemals ein Fake-Login oder Fake-Backend vorgegaukelt werden.
+- **Echte Protokolle & echte Infrastruktur**: Features sind stets gegen echte Services (Supabase Auth, echte OAuth 2.0 PKCE-Flows, echte PostgreSQL-Tabellen) zu implementieren. Keine Mocks, keine Dummy-Personas, keine Fake-Logins ohne explizite Anweisung!
 
 ## Agent Configuration
 
 ### Primary Agents (Auto-routed via intelligent-routing)
 
 | Agent | Domain | Use When |
-|-------|--------|----------|
+| ------- | -------- | ---------- |
 | `orchestrator` | Multi-Agent Coordination | Complex, multi-domain tasks |
 | `project-planner` | Task Breakdown | New features, planning |
 | `backend-specialist` | Server/API | API endpoints, business logic |
@@ -42,7 +60,7 @@ Every feature starts as a specification that must be approved before implementat
 ### Supporting Agents
 
 | Agent | Domain | Use When |
-|-------|--------|----------|
+| ------- | -------- | ---------- |
 | `security-auditor` | Security | Auth, vulnerabilities |
 | `devops-engineer` | Deployment | CI/CD, production |
 | `performance-optimizer` | Performance | Speed, Core Web Vitals |
@@ -70,6 +88,7 @@ Every feature starts as a specification that must be approved before implementat
 - All code changes require tests
 - Follow clean-code principles
 - Use the spec as acceptance criteria
+- **Niemals unaufgefordert mocken/faken**: Echte Services und Protokolle implementieren; keine Fake-Logins oder Mocks ohne expliziten User-Befehl.
 
 ## Tech Stack
 

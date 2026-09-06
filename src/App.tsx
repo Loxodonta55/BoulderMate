@@ -20,17 +20,19 @@ import { getGyms } from './lib/batchBoulderService';
 import { ClimberSectorView } from './components/ClimberSectorView';
 import { UserProfileView } from './components/UserProfileView';
 import { getProfile } from './lib/profileService';
-import { AppMode, getUserRoleInfo } from './lib/roleService';
+import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
+import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, AuthUser } from './lib/authService';
 import { Mountain, Plus, Database, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
-  { id: 'user-boris', nickname: 'Boris' },
-  { id: 'climber-1', nickname: 'Alex' },
-  { id: 'user-jonas', nickname: 'Jonas' },
-  { id: 'user-lena', nickname: 'Lena' },
-  { id: 'user-sophie', nickname: 'Sophie' },
+  { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
+  { id: 'admin-6aplus', nickname: 'Admin6APlus (HallenAdmin 6aPlus)' },
+  { id: 'schrauber-6aplus', nickname: 'Schrauber6aPlus (Schrauber 6aPlus)' },
+  { id: 'hans-kletterer', nickname: 'HansDereinfacheKletterer (Kletterer)' },
+  { id: 'admin-minimum', nickname: 'AdminMinimum (HallenAdmin Minimum)' },
+  { id: 'schrauber-minimum', nickname: 'Schrauber Minimum (Schrauber Minimum)' },
 ];
 
 const SEED_DATA: BoulderInput[] = [
@@ -110,22 +112,61 @@ export const App: React.FC = () => {
     sortBy: 'date_desc'
   });
 
-  const [climberId, setClimberId] = useState<string>('user-boris');
-  const currentClimber = AVAILABLE_CLIMBERS.find(c => c.id === climberId) || AVAILABLE_CLIMBERS[0];
-  const activeNickname = climberNicknames[climberId] || getProfile(climberId).nickname || currentClimber.nickname;
+  const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
+  const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
+  const currentClimber = climberId
+    ? AVAILABLE_CLIMBERS.find(c => c.id === climberId) || { id: climberId, nickname: authSession?.nickname || 'Kletterer' }
+    : null;
+  const activeNickname = climberId
+    ? (climberNicknames[climberId] || getProfile(climberId)?.nickname || authSession?.nickname || currentClimber?.nickname || 'Kletterer')
+    : 'Gast';
 
   // SPEC-000: Hallenbezogene Rollenermittlung (Gym Scoping)
-  const roleInfo = useMemo(() => getUserRoleInfo(climberId, activeGymId), [climberId, activeGymId]);
+  const roleInfo: UserRoleInfo = useMemo(() => {
+    if (!climberId) {
+      return {
+        userId: 'guest',
+        gymId: activeGymId,
+        roles: ['member' as GymMemberRole],
+        isClimber: true,
+        isSetter: false,
+        isAdmin: false,
+        isPlatformAdmin: false,
+        canAccessSetterStudio: false,
+        canAccessAdminConsole: false,
+        canCreateGyms: false,
+        canAppointSetters: false,
+        canAppointAdmins: false,
+      };
+    }
+    return getUserRoleInfo(climberId, activeGymId);
+  }, [climberId, activeGymId]);
 
-  const currentUser = useMemo(() => ({
-    id: currentClimber.id,
-    nickname: activeNickname,
-    role: (roleInfo.isAdmin ? 'admin' : (roleInfo.isSetter ? 'setter' : 'member')) as GymMemberRole,
-    isPlatformAdmin: roleInfo.isPlatformAdmin
-  }), [currentClimber.id, activeNickname, roleInfo]);
+  const currentUser = useMemo(() => {
+    if (!climberId || !authSession) {
+      return {
+        id: 'guest',
+        nickname: 'Gast',
+        role: 'member' as GymMemberRole,
+        isPlatformAdmin: false,
+      };
+    }
+    return {
+      id: currentClimber?.id || climberId,
+      nickname: activeNickname,
+      role: (roleInfo.isAdmin ? 'admin' : (roleInfo.isSetter ? 'setter' : 'member')) as GymMemberRole,
+      isPlatformAdmin: roleInfo.isPlatformAdmin,
+    };
+  }, [climberId, authSession, currentClimber, activeNickname, roleInfo]);
 
   // Step 1: Detect user privileges on login, user switch, or gym switch
   useEffect(() => {
+    if (!climberId) {
+      setIsRoleGatewayOpen(false);
+      setAppMode('climber');
+      return;
+    }
+
     if (appMode === 'setter' && !roleInfo.canAccessSetterStudio) {
       setAppMode('climber');
     }
@@ -147,7 +188,9 @@ export const App: React.FC = () => {
 
   const handleSelectMode = (mode: AppMode) => {
     setAppMode(mode);
-    setHasChosenModeForUser(prev => ({ ...prev, [climberId]: true }));
+    if (climberId) {
+      setHasChosenModeForUser(prev => ({ ...prev, [climberId]: true }));
+    }
     setIsRoleGatewayOpen(false);
   };
 
@@ -329,16 +372,6 @@ export const App: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setAppMode('setter')}
-                className="px-2.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider font-bold bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] transition flex items-center gap-1"
-                data-testid="admin-to-setter-btn"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>Routen schrauben</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setIsRoleGatewayOpen(true)}
                 className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition"
                 data-testid="admin-switch-workspace-btn"
@@ -438,23 +471,37 @@ export const App: React.FC = () => {
 
             {/* Header Actions */}
             <div className="flex items-center gap-2">
-              {/* Active Climber Switcher */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
-                <User className="w-3.5 h-3.5 text-[#C9A96E]" />
-                <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
-                <select
-                  value={climberId}
-                  onChange={e => setClimberId(e.target.value)}
-                  className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
-                  title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
-                >
-                  {AVAILABLE_CLIMBERS.map(c => (
-                    <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
-                      {c.nickname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Active Climber Switcher / Auth indicator */}
+              {authSession ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
+                  <User className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
+                  <select
+                    value={climberId || ''}
+                    onChange={e => {
+                      const newId = e.target.value;
+                      if (newId) {
+                        setSessionUser(newId);
+                        setAuthSession(getCurrentAuthUser());
+                        setClimberId(newId);
+                      }
+                    }}
+                    className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
+                    title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
+                  >
+                    {AVAILABLE_CLIMBERS.map(c => (
+                      <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                        {c.nickname}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs text-[#A89F91] font-mono">
+                  <User className="w-3.5 h-3.5 text-[#6B6358]" />
+                  <span>Gast</span>
+                </div>
+              )}
 
               {/* Login / Profile Modal Trigger (SPEC-000) */}
               <button
@@ -465,19 +512,21 @@ export const App: React.FC = () => {
                 data-testid="login-modal-btn"
               >
                 <LogIn className="w-3.5 h-3.5 text-[#C9A96E]" />
-                <span className="hidden sm:inline">Login</span>
+                <span className="hidden sm:inline">{authSession ? currentUser.nickname : 'Login'}</span>
               </button>
 
-              <button
-                onClick={() => {
-                  setEditingBoulder(null);
-                  setIsFormOpen(true);
-                }}
-                className="px-3 py-1.5 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Loggen</span>
-              </button>
+              {activeTab === 'logbook' && (
+                <button
+                  onClick={() => {
+                    setEditingBoulder(null);
+                    setIsFormOpen(true);
+                  }}
+                  className="px-3 py-1.5 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Loggen</span>
+                </button>
+              )}
 
               {/* Discreet Privileged Workspace Switcher (Only visible for setters and admins!) */}
               {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
@@ -509,28 +558,15 @@ export const App: React.FC = () => {
               setActiveGymId(id);
               refreshGyms();
             }}
-            onNavigateToGymManagement={() => {
-              setAppMode('admin');
-            }}
           />
         ) : appMode === 'admin' ? (
           /* 2. Hallen-Administration */
           <GymManagement
             activeGymId={activeGymId}
+            userId={currentUser.id}
             onSelectGym={(id) => {
               setActiveGymId(id);
               refreshGyms();
-            }}
-            onNavigateToBatchSetter={(id) => {
-              if (id) setActiveGymId(id);
-              refreshGyms();
-              setAppMode('setter');
-            }}
-            onNavigateToClimberView={(id) => {
-              if (id) setActiveGymId(id);
-              refreshGyms();
-              setAppMode('climber');
-              setActiveTab('wall');
             }}
           />
         ) : activeTab === 'wall' ? (
@@ -542,24 +578,24 @@ export const App: React.FC = () => {
               setActiveGymId(id);
               refreshGyms();
             }}
-            onNavigateToSetter={
-              roleInfo.canAccessSetterStudio
-                ? () => setAppMode('setter')
-                : undefined
-            }
           />
         ) : activeTab === 'profile' ? (
           /* 3. Kletterer-App: Mein Profil & Statistiken */
           <UserProfileView
             currentUser={currentUser}
             onProfileUpdated={(newNickname) => {
-              setClimberNicknames(prev => ({
-                ...prev,
-                [climberId]: newNickname
-              }));
+              if (climberId) {
+                setClimberNicknames(prev => ({
+                  ...prev,
+                  [climberId]: newNickname
+                }));
+              }
             }}
             onLogout={() => {
-              setClimberId('user-boris');
+              signOut();
+              setAuthSession(null);
+              setClimberId(null);
+              setActiveTab('wall');
             }}
             onNavigateToWall={() => setActiveTab('wall')}
             onOpenRoleGateway={
@@ -603,14 +639,26 @@ export const App: React.FC = () => {
                   </span>
                 </h2>
 
-                <button
-                  onClick={() => setIsDataModalOpen(true)}
-                  className="px-2.5 py-1 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1.5"
-                  title="Datenverwaltung / Backup"
-                >
-                  <Database className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span>Backup</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingBoulder(null);
+                      setIsFormOpen(true);
+                    }}
+                    className="px-2.5 py-1 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Begehung erfassen</span>
+                  </button>
+                  <button
+                    onClick={() => setIsDataModalOpen(true)}
+                    className="px-2.5 py-1 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1.5"
+                    title="Datenverwaltung / Backup"
+                  >
+                    <Database className="w-3.5 h-3.5 text-[#C9A96E]" />
+                    <span>Backup</span>
+                  </button>
+                </div>
               </div>
 
               <BoulderList
@@ -641,21 +689,29 @@ export const App: React.FC = () => {
       </footer>
 
       {/* Role Gateway Modal (Step 1 after login / switch) */}
-      <RoleGatewayModal
-        isOpen={isRoleGatewayOpen}
-        nickname={currentUser.nickname}
-        roleInfo={roleInfo}
-        currentMode={appMode}
-        onSelectMode={handleSelectMode}
-        onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
-      />
+      {climberId && (
+        <RoleGatewayModal
+          isOpen={isRoleGatewayOpen}
+          nickname={currentUser.nickname}
+          roleInfo={roleInfo}
+          currentMode={appMode}
+          onSelectMode={handleSelectMode}
+          onClose={hasChosenModeForUser[climberId] ? () => setIsRoleGatewayOpen(false) : undefined}
+        />
+      )}
 
       {/* Login Modal (SPEC-000) */}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onUserChanged={(user) => {
-          setClimberId(user.id);
+          if (user) {
+            setAuthSession(user);
+            setClimberId(user.id);
+          } else {
+            setAuthSession(null);
+            setClimberId(null);
+          }
         }}
       />
     </div>

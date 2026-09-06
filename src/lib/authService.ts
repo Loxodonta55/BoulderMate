@@ -7,6 +7,7 @@ export interface AuthUser {
   nickname: string;
   avatarUrl?: string;
   isPlatformAdmin: boolean;
+  roleDescription?: string;
   provider: 'google' | 'email' | 'apple' | 'simulation';
   createdAt: string;
 }
@@ -14,58 +15,71 @@ export interface AuthUser {
 const STORAGE_AUTH_KEY = 'boulder_auth_session_v1';
 
 export const DEMO_USERS: Record<string, AuthUser> = {
+  // 1) Boris - Der OverAdmin der Halle anlegen kann und die Admins der Hallen festlegen
   'user-boris': {
     id: 'user-boris',
-    email: 'boris@boulderapp.ch',
+    email: 'boris@bouldermate.ch',
     nickname: 'Boris',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop',
     isPlatformAdmin: true,
+    roleDescription: 'OverAdmin (Hallen & Admins verwalten)',
     provider: 'simulation',
     createdAt: '2026-09-01T10:00:00Z'
   },
-  'user_boris_001': {
-    id: 'user_boris_001',
-    email: 'boris.platform@boulderapp.ch',
-    nickname: 'Boris D.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop',
-    isPlatformAdmin: true,
+  // 2) Admin6APlus - HallenAdmin fürs 6aPlus
+  'admin-6aplus': {
+    id: 'admin-6aplus',
+    email: 'admin@6aplus.ch',
+    nickname: 'Admin6APlus',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&auto=format&fit=crop',
+    isPlatformAdmin: false,
+    roleDescription: 'HallenAdmin (6a plus)',
     provider: 'simulation',
     createdAt: '2026-09-01T10:00:00Z'
   },
-  'user-jonas': {
-    id: 'user-jonas',
-    email: 'jonas@boulderapp.ch',
-    nickname: 'Jonas',
-    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=128&auto=format&fit=crop',
+  // 3) Schrauber6aPlus - Schrauber im 6a Plus
+  'schrauber-6aplus': {
+    id: 'schrauber-6aplus',
+    email: 'schrauber@6aplus.ch',
+    nickname: 'Schrauber6aPlus',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=128&auto=format&fit=crop',
     isPlatformAdmin: false,
+    roleDescription: 'Schrauber (6a plus)',
     provider: 'simulation',
-    createdAt: '2026-09-02T11:30:00Z'
+    createdAt: '2026-09-01T10:00:00Z'
   },
-  'user-lena': {
-    id: 'user-lena',
-    email: 'lena@boulderapp.ch',
-    nickname: 'Lena',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=128&auto=format&fit=crop',
+  // 4) HansDereinfacheKletterer - der standard User
+  'hans-kletterer': {
+    id: 'hans-kletterer',
+    email: 'hans@kletterer.ch',
+    nickname: 'HansDereinfacheKletterer',
+    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&auto=format&fit=crop',
     isPlatformAdmin: false,
+    roleDescription: 'Standard Kletterer (Universell)',
     provider: 'simulation',
-    createdAt: '2026-09-03T14:15:00Z'
+    createdAt: '2026-09-01T10:00:00Z'
   },
-  'user-sophie': {
-    id: 'user-sophie',
-    email: 'sophie@boulderapp.ch',
-    nickname: 'Sophie',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&auto=format&fit=crop',
+  // 5) AdminMinimum - Hallenadmin im Minimum
+  'admin-minimum': {
+    id: 'admin-minimum',
+    email: 'admin@minimum.ch',
+    nickname: 'AdminMinimum',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=128&auto=format&fit=crop',
     isPlatformAdmin: false,
+    roleDescription: 'HallenAdmin (Minimum Zürich)',
     provider: 'simulation',
-    createdAt: '2026-09-04T09:00:00Z'
+    createdAt: '2026-09-01T10:00:00Z'
   },
-  'climber-1': {
-    id: 'climber-1',
-    email: 'alex@boulderapp.ch',
-    nickname: 'Alex',
+  // 6) Schrauber Minimum - Schrauber im Minimum
+  'schrauber-minimum': {
+    id: 'schrauber-minimum',
+    email: 'schrauber@minimum.ch',
+    nickname: 'Schrauber Minimum',
+    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=128&auto=format&fit=crop',
     isPlatformAdmin: false,
+    roleDescription: 'Schrauber (Minimum Zürich)',
     provider: 'simulation',
-    createdAt: '2026-09-02T16:00:00Z'
+    createdAt: '2026-09-01T10:00:00Z'
   }
 };
 
@@ -82,24 +96,23 @@ function notifyListeners(): void {
   }
 }
 
-export function initAuthSession(): AuthUser {
+export function initAuthSession(): AuthUser | null {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const stored = window.localStorage.getItem(STORAGE_AUTH_KEY);
       if (stored) {
         currentSessionUser = JSON.parse(stored);
-        return currentSessionUser!;
+        return currentSessionUser;
       }
     } catch (e) {
       console.error('Failed restoring auth session:', e);
     }
   }
-  // Default fallback user (Boris)
-  currentSessionUser = DEMO_USERS['user-boris'];
-  return currentSessionUser;
+  currentSessionUser = null;
+  return null;
 }
 
-export function getCurrentAuthUser(): AuthUser {
+export function getCurrentAuthUser(): AuthUser | null {
   if (!currentSessionUser) {
     return initAuthSession();
   }
@@ -212,12 +225,21 @@ export function onAuthStateChange(listener: (user: AuthUser | null) => void): ()
   };
 }
 
+export const PRIMARY_FAKE_USERS: AuthUser[] = [
+  DEMO_USERS['user-boris'],
+  DEMO_USERS['admin-6aplus'],
+  DEMO_USERS['schrauber-6aplus'],
+  DEMO_USERS['hans-kletterer'],
+  DEMO_USERS['admin-minimum'],
+  DEMO_USERS['schrauber-minimum'],
+];
+
 export function getAvailableTestUsers(): AuthUser[] {
-  return Object.values(DEMO_USERS);
+  return PRIMARY_FAKE_USERS;
 }
 
 export function isPlatformAdmin(userId: string): boolean {
-  if (userId === 'user-boris' || userId === 'user_boris_001') {
+  if (userId === 'user-boris') {
     return true;
   }
   const user = DEMO_USERS[userId];

@@ -45,7 +45,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
             Arbeitsbereich wählen
           </h2>
           <p className="text-xs sm:text-sm font-sans text-[#A89F91] mt-1">
-            Hallo <span className="text-[#E8E0D4] font-bold">{nickname}</span>! In welcher Rolle möchtest du BoulderApp heute nutzen?
+            Hallo <span className="text-[#E8E0D4] font-bold">{nickname}</span>! In welcher Rolle möchtest du BoulderMate heute nutzen?
           </p>
         </div>
 

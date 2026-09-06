@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { getProfileData } from '../lib/profileService';
 import { getGyms } from '../lib/batchBoulderService';
+import { getAthletePerformanceReport } from '../lib/performanceService';
 import { ProfileKPIsBar } from './ProfileKPIsBar';
 import { GradeDistributionChart } from './GradeDistributionChart';
+import { AthletePerformanceView } from './AthletePerformanceView';
 import { X, Calendar, MapPin } from 'lucide-react';
 
 interface PublicProfileModalProps {
@@ -22,6 +24,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
 
   const gyms = getGyms();
   const profileData = getProfileData(userId, selectedGymId);
+  const performanceReport = getAthletePerformanceReport(userId, selectedGymId);
   const { profile, kpis, gradeDistribution } = profileData;
 
   const formattedDate = new Date(profile.createdAt).toLocaleDateString('de-DE', {
@@ -102,6 +105,13 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
 
           {/* Grade Distribution Bar Chart (AC-3, AC-8) */}
           <GradeDistributionChart distribution={gradeDistribution} />
+
+          {/* Public Athlete Performance Radar (SPEC-008 AC-8) */}
+          {performanceReport.isUnlocked && (
+            <div className="pt-2">
+              <AthletePerformanceView report={performanceReport} isPublicView={true} />
+            </div>
+          )}
 
           {/* Notice: Logbook is strictly private and hidden here (AC-6) */}
           <div className="p-3 rounded-none bg-[#121212] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">

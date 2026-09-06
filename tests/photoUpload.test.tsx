@@ -4,8 +4,8 @@ import { WallPhotoUploadModal } from '../src/components/WallPhotoUploadModal';
 import { WALL_PRESETS } from '../src/lib/imageUtils';
 
 describe('Wall Photo Upload & Realistic Presets', () => {
-  it('contains the 3 realistic indoor bouldering wall presets', () => {
-    expect(WALL_PRESETS.length).toBe(3);
+  it('contains the realistic indoor bouldering wall presets', () => {
+    expect(WALL_PRESETS.length).toBeGreaterThanOrEqual(3);
     expect(WALL_PRESETS.find(p => p.id === 'overhang')?.url).toBe('/images/walls/overhang.jpg');
     expect(WALL_PRESETS.find(p => p.id === 'slab')?.url).toBe('/images/walls/slab.jpg');
     expect(WALL_PRESETS.find(p => p.id === 'roof')?.url).toBe('/images/walls/roof.jpg');

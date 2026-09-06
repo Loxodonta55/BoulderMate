@@ -158,14 +158,14 @@ describe('SPEC-004: UI Components Integration', () => {
     it('renders header, KPIs, and grade distribution, but strictly NO logbook and NO settings gear', () => {
       render(
         <PublicProfileModal
-          userId="user-jonas"
+          userId="hans-kletterer"
           isOpen={true}
           onClose={vi.fn()}
         />
       );
 
       expect(screen.getByTestId('public-profile-modal')).toBeInTheDocument();
-      expect(screen.getByText(/Jonas K\./i)).toBeInTheDocument();
+      expect(screen.getByText(/HansDereinfacheKletterer/i)).toBeInTheDocument();
       expect(screen.getByTestId('kpi-total-tops')).toBeInTheDocument();
 
       // Ensure logbook section does NOT exist
@@ -180,15 +180,15 @@ describe('SPEC-004: UI Components Integration', () => {
   describe('UserProfileView (AC-1, AC-4, AC-5)', () => {
     it('renders complete profile view with header, settings button, gym filter, and logbook', () => {
       const user: CurrentUser = {
-        id: 'user-jonas',
-        nickname: 'Jonas K.',
+        id: 'hans-kletterer',
+        nickname: 'HansDereinfacheKletterer',
         role: 'member',
       };
 
       render(<UserProfileView currentUser={user} />);
 
       // AC-1: Header with nickname, join date, settings button
-      expect(screen.getByTestId('profile-nickname').textContent).toBe('Jonas K.');
+      expect(screen.getByTestId('profile-nickname').textContent).toBe('HansDereinfacheKletterer');
       expect(screen.getByTestId('btn-open-settings')).toBeInTheDocument();
 
       // AC-4: Gym filter dropdown

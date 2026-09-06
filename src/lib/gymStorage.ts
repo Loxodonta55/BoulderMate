@@ -9,9 +9,9 @@ const BOULDERS_KEY = 'boulder_routes_v1';
 
 // Default current user simulation (Boris / Admin)
 export const CURRENT_USER: User = {
-  id: 'user_boris_001',
-  name: 'Boris D.',
-  email: 'boris@boulderapp.ch'
+  id: 'user-boris',
+  name: 'Boris',
+  email: 'boris@bouldermate.ch'
 };
 
 // Helpers for localStorage with in-memory fallback
@@ -127,22 +127,28 @@ export function ensureInitialGymData(): void {
       logo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=128&auto=format&fit=crop'
     }, CURRENT_USER.id);
 
+    createSector(gym6a.id, CURRENT_USER.id, {
+      name: 'Halle 1',
+      wall_photo_url: '/images/walls/six-a-comp.jpg',
+      sort_order: 1
+    });
+
     const s1 = createSector(gym6a.id, CURRENT_USER.id, {
       name: 'Wettkampfwand (Comp Wall)',
-      wall_photo_url: '/images/walls/overhang.jpg',
-      sort_order: 1
+      wall_photo_url: '/images/walls/six-a-comp.jpg',
+      sort_order: 2
     });
 
     const s2 = createSector(gym6a.id, CURRENT_USER.id, {
       name: 'Dachgrotte & Überhang',
-      wall_photo_url: '/images/walls/roof.jpg',
-      sort_order: 2
+      wall_photo_url: '/images/walls/six-a-roof.jpg',
+      sort_order: 3
     });
 
     const s3 = createSector(gym6a.id, CURRENT_USER.id, {
       name: 'Platte (Slab & Reibung)',
-      wall_photo_url: '/images/walls/slab.jpg',
-      sort_order: 3
+      wall_photo_url: '/images/walls/six-a-slab.jpg',
+      sort_order: 4
     });
 
     const scales = getGradeScales(gym6a.id);
@@ -160,37 +166,42 @@ export function ensureInitialGymData(): void {
     ]);
   }
 
-  // 3. Register Boris as Schrauber and Admin for 6a plus
-  if (gym6a) {
-    const members = getMembers();
-    const borisIds = ['user-boris', 'user_boris_001'];
-    let changed = false;
+  // 3. Register default roles for fake personas across gyms
+  const allGyms = getGyms();
+  const currentMembers = getMembers();
+  let membersChanged = false;
 
-    for (const bId of borisIds) {
-      if (!members.some(m => m.gym_id === gym6a!.id && m.user_id === bId && m.role === 'admin')) {
-        members.push({
-          id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-          gym_id: gym6a.id,
-          user_id: bId,
-          role: 'admin',
-          created_at: new Date().toISOString()
-        });
-        changed = true;
-      }
-      if (!members.some(m => m.gym_id === gym6a!.id && m.user_id === bId && m.role === 'setter')) {
-        members.push({
-          id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-          gym_id: gym6a.id,
-          user_id: bId,
-          role: 'setter',
-          created_at: new Date().toISOString()
-        });
-        changed = true;
-      }
+  const ensureMember = (gymId: string, userId: string, role: GymRole) => {
+    if (!currentMembers.some(m => m.gym_id === gymId && m.user_id === userId && m.role === role)) {
+      currentMembers.push({
+        id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        gym_id: gymId,
+        user_id: userId,
+        role: role,
+        created_at: new Date().toISOString()
+      });
+      membersChanged = true;
     }
-    if (changed) {
-      saveMembers(members);
-    }
+  };
+
+  const gym6aFound = allGyms.find(g => g.id === 'gym-6a-plus' || g.name.toLowerCase().includes('6a'));
+  if (gym6aFound) {
+    ensureMember(gym6aFound.id, 'user-boris', 'admin');
+    ensureMember(gym6aFound.id, 'user-boris', 'setter');
+    ensureMember(gym6aFound.id, 'admin-6aplus', 'admin');
+    ensureMember(gym6aFound.id, 'schrauber-6aplus', 'setter');
+  }
+
+  const gymMinimumFound = allGyms.find(g => g.id === 'gym-minimum-zh' || g.name.toLowerCase().includes('minimum'));
+  if (gymMinimumFound) {
+    ensureMember(gymMinimumFound.id, 'user-boris', 'admin');
+    ensureMember(gymMinimumFound.id, 'user-boris', 'setter');
+    ensureMember(gymMinimumFound.id, 'admin-minimum', 'admin');
+    ensureMember(gymMinimumFound.id, 'schrauber-minimum', 'setter');
+  }
+
+  if (membersChanged) {
+    saveMembers(currentMembers);
   }
 }
 
@@ -227,6 +238,21 @@ export function getSectors(gym_id?: string): Sector[] {
       hasMigrated = true;
       return { ...s, wall_photo_url: '/images/walls/roof.jpg' };
     }
+    // 6a plus sectors: ensure they have their own dedicated photos instead of Minimum's
+    if (s.gym_id === 'gym-6a-plus') {
+      if (s.name.includes('Wettkampf') && s.wall_photo_url === '/images/walls/overhang.jpg') {
+        hasMigrated = true;
+        return { ...s, wall_photo_url: '/images/walls/six-a-comp.jpg' };
+      }
+      if (s.name.includes('Dach') && s.wall_photo_url === '/images/walls/roof.jpg') {
+        hasMigrated = true;
+        return { ...s, wall_photo_url: '/images/walls/six-a-roof.jpg' };
+      }
+      if (s.name.includes('Platte') && s.wall_photo_url === '/images/walls/slab.jpg') {
+        hasMigrated = true;
+        return { ...s, wall_photo_url: '/images/walls/six-a-slab.jpg' };
+      }
+    }
     return s;
   });
   if (hasMigrated) {
@@ -256,13 +282,15 @@ export function getUserRoleInGym(gym_id: string, user_id: string): GymRole | nul
 }
 
 export function isGymAdmin(gym_id: string, user_id: string): boolean {
+  if (isPlatformAdmin(user_id)) return true;
   return getUserRoleInGym(gym_id, user_id) === 'admin';
 }
 
 // SPEC-000: Nur Plattform-Administratoren dürfen neue Hallen anlegen.
 // Der Ersteller erhält automatisch die Rolle `admin` in `gym_members`.
+// Optional kann der Plattform-Admin direkt einen initialen Hallen-Admin festlegen.
 export function createGym(
-  input: { id?: string; name: string; address?: string; city?: string; logo_url?: string; website?: string },
+  input: { id?: string; name: string; address?: string; city?: string; logo_url?: string; website?: string; initial_admin_user_id?: string },
   user_id: string = CURRENT_USER.id
 ): Gym {
   if (!isPlatformAdmin(user_id)) {
@@ -300,7 +328,21 @@ export function createGym(
   };
 
   const members = getMembers();
-  saveMembers([...members, member]);
+  const newMembers = [...members, member];
+
+  // If initial_admin_user_id was specified by the platform admin, assign admin role to that user as well
+  if (input.initial_admin_user_id && input.initial_admin_user_id !== user_id) {
+    newMembers.push({
+      id: 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      gym_id: gymId,
+      user_id: input.initial_admin_user_id,
+      role: 'admin',
+      appointed_by: user_id,
+      created_at: now
+    });
+  }
+
+  saveMembers(newMembers);
 
   // Initialize with standard default grade scale for this gym (AC-2 convenience)
   const defaultScales: Omit<GradeScale, 'id' | 'created_at'>[] = [

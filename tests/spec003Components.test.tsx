@@ -172,9 +172,9 @@ describe('SPEC-003: UI Components Integration', () => {
       expect(screen.getByText('Grad-Barometer')).toBeInTheDocument();
       expect(screen.getByText('Community-Bewertung')).toBeInTheDocument();
 
-      // Verify Ascent feed (AC-9) - seed has Jonas K., Lena Berg, Max Mustermann
-      expect(screen.getByText('Jonas K.')).toBeInTheDocument();
-      expect(screen.getByText('Lena Berg')).toBeInTheDocument();
+      // Verify Ascent feed (AC-9) - seed has HansDereinfacheKletterer and AdminMinimum
+      expect(screen.getAllByText('HansDereinfacheKletterer').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('AdminMinimum').length).toBeGreaterThan(0);
     });
 
     it('allows logging a Top and updates UI', () => {

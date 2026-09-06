@@ -35,23 +35,39 @@ export function canUserCreateGym(userId: string): boolean {
 export function getUserRoleInfo(userId: string, gymId?: string): UserRoleInfo {
   const roles = new Set<GymMemberRole>(['member']);
   const platformAdmin = isPlatformAdmin(userId);
-  const isBoris = userId === 'user-boris' || userId === 'user_boris_001';
+  const isBoris = userId === 'user-boris';
 
-  // Boris ist Plattform-Admin und spezifisch Schrauber und Admin für 6a plus!
+  // Built-in fallback defaults for the 6 primary fake personas
   if (isBoris) {
     if (!gymId || gymId === 'gym-6a-plus' || gymId.toLowerCase().includes('6a') || gymId === 'gym-minimum-zh') {
       roles.add('admin');
       roles.add('setter');
     }
-  } else if (userId === 'climber-1') {
-    roles.add('setter');
+  } else if (userId === 'admin-6aplus') {
+    if (!gymId || gymId === 'gym-6a-plus' || gymId.toLowerCase().includes('6a')) {
+      roles.add('admin');
+      roles.add('setter');
+    }
+  } else if (userId === 'schrauber-6aplus') {
+    if (!gymId || gymId === 'gym-6a-plus' || gymId.toLowerCase().includes('6a')) {
+      roles.add('setter');
+    }
+  } else if (userId === 'admin-minimum') {
+    if (!gymId || gymId === 'gym-minimum-zh' || gymId.toLowerCase().includes('minimum')) {
+      roles.add('admin');
+      roles.add('setter');
+    }
+  } else if (userId === 'schrauber-minimum') {
+    if (!gymId || gymId === 'gym-minimum-zh' || gymId.toLowerCase().includes('minimum')) {
+      roles.add('setter');
+    }
   }
 
   // Hallenspezifische Rollen aus Storage abfragen
   try {
     const allMembers = getMembers();
     const relevantMembers = allMembers.filter(m => 
-      (m.user_id === userId || (isBoris && (m.user_id === 'user-boris' || m.user_id === 'user_boris_001'))) &&
+      m.user_id === userId &&
       (!gymId || m.gym_id === gymId)
     );
 

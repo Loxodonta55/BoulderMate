@@ -43,6 +43,24 @@ export const WALL_PRESETS: WallPreset[] = [
     description: 'Horizontale Dachzone für Heel-Hook- und Core-Power-Probleme',
     url: '/images/walls/roof.jpg',
   },
+  {
+    id: 'six-a-comp',
+    name: 'Wettkampfwand (6a plus Winterthur)',
+    description: 'Faceted Wettkampf-Arena mit Holz- & Antrazitpaneelen',
+    url: '/images/walls/six-a-comp.jpg',
+  },
+  {
+    id: 'six-a-roof',
+    name: 'Dachgrotte & Bogen (6a plus Winterthur)',
+    description: 'Gewölbter Dachbogen mit Steilüberhang & 3D-Volumen',
+    url: '/images/walls/six-a-roof.jpg',
+  },
+  {
+    id: 'six-a-slab',
+    name: 'Platte & Reibung (6a plus Winterthur)',
+    description: 'Helle Birkenholz-Plattenwand für delikate Tritt- und Balancearbeit',
+    url: '/images/walls/six-a-slab.jpg',
+  },
 ];
 
 const ACCEPTED_MIME_TYPES = [

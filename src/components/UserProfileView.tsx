@@ -10,6 +10,8 @@ import { ProfileKPIsBar } from './ProfileKPIsBar';
 import { GradeDistributionChart } from './GradeDistributionChart';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import { BoulderDetailModal } from './BoulderDetailModal';
+import { AthletePerformanceView } from './AthletePerformanceView';
+import { getAthletePerformanceReport } from '../lib/performanceService';
 import {
   Settings,
   Calendar,
@@ -39,12 +41,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   onOpenRoleGateway,
 }) => {
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
+  const [activeSegment, setActiveSegment] = useState<'overview' | 'performance'>('overview');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [, setVersion] = useState(0);
 
   const gyms = getGyms();
   const profileData = getProfileData(currentUser.id, selectedGymId);
+  const performanceReport = getAthletePerformanceReport(currentUser.id, selectedGymId);
   const { profile, kpis, gradeDistribution, logbook } = profileData;
 
   const formattedJoinDate = new Date(profile.createdAt).toLocaleDateString('de-DE', {
@@ -64,6 +68,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
     deleteAccount(currentUser.id);
     onProfileUpdated?.('Kletterer');
     setVersion(v => v + 1);
+  };
+
+  const handleOpenBoulderById = (boulderId: string) => {
+    const boulders = getWallBoulders();
+    const found = boulders.find(b => b.id === boulderId);
+    if (found) {
+      setSelectedBoulder(found);
+    }
   };
 
   const handleOpenLogbookBoulder = (entry: LogbookEntry) => {
@@ -205,120 +217,159 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         </select>
       </div>
 
-      {/* 3. KPI-Kacheln (AC-2) */}
-      <ProfileKPIsBar kpis={kpis} />
-
-      {/* 4. Grad-Verteilung (AC-3, AC-8) */}
-      <GradeDistributionChart
-        distribution={gradeDistribution}
-        onNavigateToWall={onNavigateToWall}
-      />
-
-      {/* 5. Chronologisches Privates Logbuch (AC-5) */}
-      <div className="p-5 sm:p-6 rounded-none bg-[#1E1E1E] border border-[#333333] space-y-4" data-testid="private-logbook-section">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-              <Compass className="w-4 h-4 text-[#C9A96E]" />
-              <span>Persönliches Logbuch ({logbook.length})</span>
-            </h3>
-            <p className="text-[11px] font-mono text-[#A89F91]">
-              Chronologische Liste deiner Begehungen (nur für dich sichtbar)
-            </p>
-          </div>
-          <span className="text-xs font-mono text-[#6B6358]">
-            Neueste zuerst
-          </span>
-        </div>
-
-        {logbook.length === 0 ? (
-          <div className="py-8 px-4 text-center rounded-none bg-[#121212] border border-[#333333] text-xs font-mono text-[#6B6358]" data-testid="empty-logbook">
-            Noch keine Begehungen für diesen Filter vorhanden.
-          </div>
-        ) : (
-          <div className="divide-y divide-[#333333] rounded-none bg-[#121212] border border-[#333333] overflow-hidden">
-            {logbook.map(entry => {
-              const isFlash = entry.type === 'flash';
-              const isTop = entry.type === 'top';
-              const isProject = entry.type === 'project';
-
-              return (
-                <div
-                  key={entry.id}
-                  onClick={() => handleOpenLogbookBoulder(entry)}
-                  className="p-3.5 sm:px-4 flex items-center justify-between hover:bg-[#1E1E1E] transition cursor-pointer group"
-                  data-testid={`logbook-entry-${entry.id}`}
-                  title="Tippen für Boulder-Detailansicht"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Grade Scale Color Badge - SPEC-005: 0px square badge */}
-                    <div
-                      className="w-8 h-8 rounded-none flex items-center justify-center border border-black/40 shrink-0"
-                      style={{ backgroundColor: entry.gradeScale.colorHex }}
-                    >
-                      <span className="text-xs font-mono font-bold text-black">
-                        {entry.gradeScale.colorName?.[0] || 'B'}
-                      </span>
-                    </div>
-
-                    <div className="truncate">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-[#E8E0D4] group-hover:text-[#F5F0E8] transition truncate">
-                          {entry.boulderName || `${entry.gradeScale.colorName} #${entry.boulderId.slice(-4)}`}
-                        </span>
-                        <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">
-                          ({entry.gradeScale.difficultyLabel})
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#A89F91] mt-0.5 truncate">
-                        <span>{entry.gymName}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-0.5">
-                          <Layers className="w-3 h-3 text-[#C9A96E]" />
-                          {entry.sectorName}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0 ml-2">
-                    {/* Ascent Style Badge */}
-                    <div>
-                      {isFlash && (
-                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
-                          <Zap className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
-                          <span className="hidden xs:inline">Flash</span>
-                        </span>
-                      )}
-                      {isTop && (
-                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#4A5D3A] border border-[#4A5D3A]/50 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-[#4A5D3A]" />
-                          <span className="hidden xs:inline">Top</span>
-                        </span>
-                      )}
-                      {isProject && (
-                        <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#A89F91] border border-[#333333] flex items-center gap-1">
-                          <Target className="w-3 h-3 text-[#A89F91]" />
-                          <span className="hidden xs:inline">Projekt</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Formatted Date */}
-                    <div className="text-right">
-                      <span className="text-[11px] font-mono text-[#A89F91]">
-                        {formatLogbookDate(entry.createdAt)}
-                      </span>
-                    </div>
-
-                    <ChevronRight className="w-4 h-4 text-[#6B6358] group-hover:text-[#E8E0D4] transition" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* 3. Segment Umschalter: Übersicht vs. Stil & Performance (SPEC-008 AC-1) */}
+      <div className="flex border-b border-[#333333] bg-[#1E1E1E]">
+        <button
+          type="button"
+          onClick={() => setActiveSegment('overview')}
+          className={`flex-1 py-3 px-4 text-xs font-headline font-bold uppercase tracking-wider transition-colors border-b-2 flex items-center justify-center gap-2 ${
+            activeSegment === 'overview'
+              ? 'border-[#C9A96E] text-[#F5F0E8] bg-[#252525]'
+              : 'border-transparent text-[#8B8680] hover:text-[#E8E0D4] hover:bg-[#222222]'
+          }`}
+          data-testid="tab-segment-overview"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Übersicht & Logbuch</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSegment('performance')}
+          className={`flex-1 py-3 px-4 text-xs font-headline font-bold uppercase tracking-wider transition-colors border-b-2 flex items-center justify-center gap-2 ${
+            activeSegment === 'performance'
+              ? 'border-[#C9A96E] text-[#F5F0E8] bg-[#252525]'
+              : 'border-transparent text-[#8B8680] hover:text-[#E8E0D4] hover:bg-[#222222]'
+          }`}
+          data-testid="tab-segment-performance"
+        >
+          <Compass className="w-3.5 h-3.5 text-[#C9A96E]" />
+          <span>Stil & Performance</span>
+          {performanceReport.isUnlocked && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block ml-1" />
+          )}
+        </button>
       </div>
+
+      {/* Content based on selected segment */}
+      {activeSegment === 'overview' ? (
+        <>
+          {/* 4. KPI-Kacheln (AC-2) */}
+          <ProfileKPIsBar kpis={kpis} />
+
+          {/* 5. Grad-Verteilung (AC-3, AC-8) */}
+          <GradeDistributionChart
+            distribution={gradeDistribution}
+            onNavigateToWall={onNavigateToWall}
+          />
+
+          {/* 6. Chronologisches Privates Logbuch (AC-5) */}
+          <div className="p-5 sm:p-6 rounded-none bg-[#1E1E1E] border border-[#333333] space-y-4" data-testid="private-logbook-section">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-[#C9A96E]" />
+                  <span>Persönliches Logbuch ({logbook.length})</span>
+                </h3>
+                <p className="text-[11px] font-mono text-[#A89F91]">
+                  Chronologische Liste deiner Begehungen (nur für dich sichtbar)
+                </p>
+              </div>
+              <span className="text-xs font-mono text-[#6B6358]">
+                Neueste zuerst
+              </span>
+            </div>
+
+            {logbook.length === 0 ? (
+              <div className="py-8 px-4 text-center rounded-none bg-[#121212] border border-[#333333] text-xs font-mono text-[#6B6358]" data-testid="empty-logbook">
+                Noch keine Begehungen für diesen Filter vorhanden.
+              </div>
+            ) : (
+              <div className="divide-y divide-[#333333] rounded-none bg-[#121212] border border-[#333333] overflow-hidden">
+                {logbook.map(entry => {
+                  const isFlash = entry.type === 'flash';
+                  const isTop = entry.type === 'top';
+                  const isProject = entry.type === 'project';
+
+                  return (
+                    <div
+                      key={entry.id}
+                      onClick={() => handleOpenLogbookBoulder(entry)}
+                      className="p-3.5 sm:px-4 flex items-center justify-between hover:bg-[#1E1E1E] transition cursor-pointer group"
+                      data-testid={`logbook-entry-${entry.id}`}
+                      title="Tippen für Boulder-Detailansicht"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Grade Scale Color Badge - SPEC-005: 0px square badge */}
+                        <div
+                          className="w-8 h-8 rounded-none flex items-center justify-center border border-black/40 shrink-0"
+                          style={{ backgroundColor: entry.gradeScale.colorHex }}
+                        >
+                          <span className="text-xs font-mono font-bold text-black">
+                            {entry.gradeScale.colorName?.[0] || 'B'}
+                          </span>
+                        </div>
+
+                        {/* Route & Sector Info */}
+                        <div className="min-w-0">
+                          <div className="text-sm font-headline font-bold text-[#E8E0D4] truncate group-hover:text-[#C9A96E] transition">
+                            {entry.boulderName || `${entry.gradeScale.colorName}-Route`}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] font-mono text-[#A89F91] mt-0.5">
+                            <span>{entry.gymName.split(' ')[0]}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-0.5">
+                              <Layers className="w-3 h-3 text-[#C9A96E]" />
+                              {entry.sectorName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 ml-2">
+                        {/* Ascent Style Badge */}
+                        <div>
+                          {isFlash && (
+                            <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
+                              <Zap className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
+                              <span className="hidden xs:inline">Flash</span>
+                            </span>
+                          )}
+                          {isTop && (
+                            <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#4A5D3A] border border-[#4A5D3A]/50 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-[#4A5D3A]" />
+                              <span className="hidden xs:inline">Top</span>
+                            </span>
+                          )}
+                          {isProject && (
+                            <span className="px-2 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#2A2A2A] text-[#A89F91] border border-[#333333] flex items-center gap-1">
+                              <Target className="w-3 h-3 text-[#A89F91]" />
+                              <span className="hidden xs:inline">Projekt</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Formatted Date */}
+                        <div className="text-right">
+                          <span className="text-[11px] font-mono text-[#A89F91]">
+                            {formatLogbookDate(entry.createdAt)}
+                          </span>
+                        </div>
+
+                        <ChevronRight className="w-4 h-4 text-[#6B6358] group-hover:text-[#E8E0D4] transition" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <AthletePerformanceView
+          report={performanceReport}
+          onSelectBoulder={handleOpenBoulderById}
+        />
+      )}
 
       {/* Settings Modal (AC-7) */}
       <ProfileSettingsModal
