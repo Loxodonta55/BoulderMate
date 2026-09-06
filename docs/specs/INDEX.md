@@ -1,5 +1,7 @@
 # Spec Index — BoulderMate
 
+> **Ideen & Backlog**: Siehe [IDEENSPEICHER.md](../IDEENSPEICHER.md) für neue Ideen, UX-Konzepte und Feature-Vorschläge.
+
 | ID | Title | Status | Owner | Created |
 |----|-------|--------|-------|---------|
 | [SPEC-000](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-000-authentication-and-access-control.md) | Authentifizierung, Rollen & Zugriffssteuerung (Feature 0) | DONE | Boris | 2026-09-05 |
