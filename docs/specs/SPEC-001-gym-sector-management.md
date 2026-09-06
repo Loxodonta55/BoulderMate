@@ -1,25 +1,36 @@
 # SPEC-001: Hallen- & Sektor-Verwaltung
 
-## Status: DONE
+## Status: DONE (Erweitert um Drag & Drop Sektor-Sortierung)
 
 ## Summary
-Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der App: Anlegen der Halle, Konfigurieren des halleneigenen Bewertungssystems (Farben gemappt auf Fontainebleau-Schwierigkeitsbänder) sowie Erstellen und Verwalten von Sektoren inklusive Wandfotos und Priorisierungsreihenfolge. Dies bildet das fundamentale Datenmodell für die Routenerfassung und Kletterer-Navigation.
+Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der App: Anlegen der Halle, Konfigurieren des halleneigenen Bewertungssystems (Farben gemappt auf Fontainebleau-Schwierigkeitsbänder) sowie Erstellen und Verwalten von Sektoren inklusive Wandfotos und Priorisierungsreihenfolge. Sektoren können vom Admin jederzeit intuitiv per **Drag & Drop** sortiert werden, sodass die Abfolge der Wandbereiche exakt der realen Hallengeometrie und dem Hallenrundgang entspricht. Dies bildet das fundamentale Datenmodell für die Routenerfassung und Kletterer-Navigation.
 
 ## User Stories
 - **US-1**: Als Hallen-Admin möchte ich meine Boulderhalle mit Namen und optionalen Kontaktdaten registrieren, damit Kletterer und Schrauber sie finden und nutzen können.
 - **US-2**: Als Hallen-Admin möchte ich das Farbsystem meiner Halle definieren und den Farben Referenzbereiche der Fontainebleau-Skala zuordnen, damit Kletterer und Schrauber ein einheitliches Verständnis der Schwierigkeit haben.
-- **US-3**: Als Hallen-Admin möchte ich Sektoren (Wandbereiche) mit Name und aktuellem Wandfoto anlegen sowie per Drag & Drop sortieren, damit Boulder auf einer visuellen Wandkarte verortet werden können.
+- **US-3**: Als Hallen-Admin möchte ich Sektoren (Wandbereiche) mit Name und Wandfoto anlegen und jederzeit per **Drag & Drop** in eine sinnvolle Hallenrundgangs-Reihenfolge bringen können (auch nachträglich bei Hallenumstellungen), damit Schrauber und Kletterer eine intuitive und logische Navigation vorfinden.
 - **US-4**: Als Hallen-Admin möchte ich das Wandfoto eines Sektors bei Umbauten aktualisieren können, ohne dass bestehende Boulder-Markierungen verloren gehen.
-- **US-5**: Als Kletterer möchte ich eine Übersicht der Sektoren einer Halle mit Wandfotos sehen, um mich in der Halle visuell zu orientieren.
+- **US-5**: Als Kletterer möchte ich eine Übersicht der Sektoren einer Halle mit Wandfotos in der vom Admin festgelegten Reihenfolge sehen, um mich in der Halle visuell zu orientieren.
 
 ## Acceptance Criteria
 - [x] **AC-1**: Ein eingeloggter Nutzer kann eine neue Halle mit Pflichtfeld `name` anlegen (optionale Felder: `address`, `city`, `logo_url`, `website`). Der Ersteller erhält automatisch die Rolle `admin` in `gym_members`.
 - [x] **AC-2**: Ein Hallen-Admin kann das hallenspezifische Farbsystem (`grade_scales`) anlegen und bearbeiten. Jede Farbe besitzt `color_name`, `color_hex`, `difficulty_label`, `font_range_min`, `font_range_max` und `sort_order`.
 - [x] **AC-3**: Sektoren erfordern `name` und ein valides `wall_photo_url`.
-- [x] **AC-4**: Sektoren können per Drag & Drop in ihrer Anzeigereihenfolge (`sort_order`) sortiert werden.
+- [x] **AC-4**: **Drag & Drop Sektor-Sortierung & Reihenfolgeverwaltung**:
+  - **AC-4.1 (Drag & Drop Interaktion)**: Jede Sektor-Karte im `SectorManager` verfügt über einen deutlichen Drag-Handle (`GripVertical`-Icon) und ist für Hallen-Admins per HTML5 Drag & Drop greifbar (`draggable={isAdmin}`).
+  - **AC-4.2 (Visuelles Feedback)**: Während des Ziehens wird das gezogene Element mit reduzierter Deckkraft (`opacity-40`) und Akzent-Rahmen markiert; das Ziel-Element (`dragOver`) erhält eine prominente Hervorhebung (z. B. `#C9A96E` Border / Ring), um die Einfügestelle eindeutig anzuzeigen.
+  - **AC-4.3 (Persistenz)**: Beim Loslassen (`onDrop`) wird die neue Reihenfolge unmittelbar in `sort_order` (1..n) für alle Sektoren der Halle überführt und im LocalStorage persistiert (`reorderSectors`).
+  - **AC-4.4 (Nachträgliche Veränderbarkeit)**: Die Reihenfolge ist beliebig oft nachträglich durch einfaches Ziehen und Ablegen veränderbar.
+  - **AC-4.5 (App-weite Konsistenz)**: Die Sektor-Reihenfolge spiegelt sich konsistent in allen Sektor-Views wider:
+    - Admin-Sektorenverwaltung (`SectorManager`)
+    - Schrauber Batch-Workflow-Wandtabs (`BatchBoulderWorkflow`)
+    - Kletterer-Sektornavigation (`ClimberSectorView`)
+    - Sektor-Filter & Auswahl-Dropdowns
+  - **AC-4.6 (Barrierefreiheit & Fallback)**: Neben Drag & Drop stehen weiterhin Pfeil-Schaltflächen (Nach oben / Nach unten) zur Verfügung, um barrierefreies und schnelles Verschieben auf Touchgeräten oder per Tastatur zu garantieren.
+  - **AC-4.7 (Berechtigung)**: Nur Hallen-Admins und Plattform-Admins sind berechtigt, Sektoren neu zu sortieren; für Nicht-Admins ist das Drag-Handle inaktiv oder ausgeblendet.
 - [x] **AC-5**: Bei Aktualisierung des Sektor-Wandfotos bleiben bestehende relative Boulder-Koordinaten (`position_x`, `position_y` als 0.0–1.0) unverändert erhalten.
 - [x] **AC-6**: Sektoren mit aktiven Bouldern können nicht versehentlich gelöscht werden (Sicherheitsabfrage / Validierung).
-- [x] **AC-7**: Kletterer können Hallen suchen und eine Übersicht aller Sektoren mit Wandfoto und aktiver Boulder-Anzahl einsehen.
+- [x] **AC-7**: Kletterer können Hallen suchen und eine Übersicht aller Sektoren mit Wandfoto und aktiver Boulder-Anzahl in der definierten `sort_order` einsehen.
 
 ## Technical Design
 
@@ -61,7 +72,7 @@ CREATE TABLE grade_scales (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- Sectors (Wandbereiche)
+-- Sectors (Wandbereiche mit sort_order)
 CREATE TABLE sectors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gym_id UUID REFERENCES gyms(id) ON DELETE CASCADE NOT NULL,
@@ -72,19 +83,33 @@ CREATE TABLE sectors (
 );
 ```
 
+### Drag & Drop Architektur (`SectorManager.tsx`)
+- **State Management**:
+  - `draggedIndex: number | null`: Index des aktuell gezogenen Sektors.
+  - `dragOverIndex: number | null`: Index des Zielsektors, über dem die Maus schwebt.
+- **Event Flow**:
+  1. `onDragStart(e, index)`: Setzt Datentransfer (`text/plain` mit Sektor-ID), setzt `draggedIndex`, wählt `effectAllowed = 'move'`.
+  2. `onDragOver(e, index)`: Verhindert Standardverhalten (`e.preventDefault()`), deklariert `dataTransfer.dropEffect = 'move'`.
+  3. `onDragEnter(e, index)`: Setzt `dragOverIndex = index`.
+  4. `onDragLeave(e, index)`: Setzt `dragOverIndex = null`, falls die Karte verlassen wird.
+  5. `onDrop(e, targetIndex)`: Verschiebt das Element von `draggedIndex` nach `targetIndex`, berechnet die neue `orderedIds`-Liste, ruft `reorderSectors(gymId, userId, orderedIds)` auf und synchronisiert den State via `onRefresh()`.
+  6. `onDragEnd()`: Bereinigt `draggedIndex` und `dragOverIndex`.
+- **Synchronisation zwischen Modulen**:
+  - `gymStorage.reorderSectors`: Aktualisiert `sort_order` im LocalStorage (`boulder_sectors_v1`).
+  - `batchBoulderService.getSectors`: Synchronisiert die aktualisierte `sort_order` in den Schrauber-Batch-Store (`boulder_sectors_v2`), sodass alle Views stets dieselbe Reihenfolge nutzen.
+
 ### API / RLS Policy
 - `gyms`: SELECT für alle; INSERT für authentifizierte User; UPDATE/DELETE nur für Admins des Gyms.
 - `gym_members`: SELECT für alle Hallenmitglieder; INSERT/UPDATE/DELETE nur für Admins.
 - `grade_scales`: SELECT öffentlich; INSERT/UPDATE/DELETE nur Gym-Admins.
-- `sectors`: SELECT öffentlich; INSERT/UPDATE/DELETE nur Gym-Admins.
+- `sectors`: SELECT öffentlich; INSERT/UPDATE/DELETE/REORDER nur Gym-Admins.
 
 ### UI / UX (Design System SPEC-005 Konform)
 - **Visuelle Ästhetik**: Dark-Mode First (`--bg-primary: #121212`, `--bg-surface: #1E1E1E`), kantige Formensprache (0px Radius für Karten und Eingabefelder, 2px für Buttons), keine Drop-Shadows.
-- **Typografie**: Space Grotesk Bold Uppercase für Headlines (`Hallen-Verwaltung`, `Sektoren`), Inter für Body, Space Mono für Grade und Zähler.
-- **Hallen-Erstellung**: Minimalistisches Formular mit 0px Ecken, 1px Border `#333333` und großzügigem Schwarzraum.
-- **Grading-Konfiguration**: Farb-Badges im soliden Look; Farben der Hallenskala sind die einzigen gesättigten Akzente im sonst monochrom-granitfarbenen Interface.
-- **Sektoren-Verwaltung**: Block-Karten (`0px` Radius) mit Wandfoto-Thumbnail, Reorder-Handle und klarem 24px Screen-Padding.
-- **Kletterer-Übersicht**: Übersichtliche Wandkarten mit Wandfoto, Routenzähler in Space Mono und 1px Granit-Bordüre (`#333333`).
+- **Drag Handle**: Subtiles, aber klar erkennbares `GripVertical`-Icon mit `cursor-grab` (bzw. `cursor-grabbing` während Drag) links im Header jeder Sektorkarte.
+- **Drop-Indikator**: Akzentuierter Rand (`border-[#C9A96E]` mit dezentem Ring) auf der Karte, über der sich der Cursor befindet.
+- **Positions-Badge**: Nummerierte Plakette `SEKTOR #1`, `SEKTOR #2`, etc. in JetBrains Mono / Space Mono zur sofortigen visuellen Orientierung.
+- **Accessibility**: Vollständig per Tastatur und Schaltflächen bedienbar über die integrierten Pfeil-Buttons (Nach oben / Nach unten).
 
 ## Dependencies
 - Depends on: Supabase Auth & Storage Setup
@@ -95,17 +120,12 @@ CREATE TABLE sectors (
 - GPS-Ortung oder automatische Check-ins
 - Komplexe Hallenpläne (3D oder Vektor-CAD)
 
-## Open Questions
-- Keine (im Grill-Me Interview geklärt).
-
 ## Verification Evidence
-- **Automatisierte Tests**: `tests/gymSectorManagement.test.ts` (7 von 7 Tests erfolgreich bestanden)
-  - AC-1: Gym-Erstellung mit Name als Pflichtfeld & automatische Zuweisung der Admin-Rolle an den Ersteller in `gym_members` ✓
-  - AC-2: Farb- & Gradingsystem (`grade_scales`) Konfiguration nur für Gym-Admins autorisiert ✓
-  - AC-3: Validierung von `name` und `wall_photo_url` als Pflichtfelder für Sektoren ✓
-  - AC-4: Neu-Sortierung und Aktualisierung von `sort_order` für Sektoren ✓
-  - AC-5: Aktualisierung des Wandfotos erhält relative Boulder-Koordinaten (`position_x`, `position_y`) lückenlos unverändert ✓
-  - AC-6: Sicherheits-Sperre verhindert versehentliches Löschen von Sektoren mit aktiven Bouldern ✓
-  - AC-7: Hallen-Suche und Sektor-Übersicht inklusive aktiver Boulder-Zähler für Kletterer ✓
-- **Type-Check & Build**: `tsc --noEmit` fehlerfrei, `vite build` erfolgreich generiert (3.71s).
-
+- **Automatisierte Tests**:
+  - `tests/gymSectorManagement.test.ts` (AC-1 bis AC-7 Backend & Service Tests)
+  - `tests/sectorDragAndDrop.test.tsx` (Interaktive Drag & Drop Tests in `SectorManager`)
+    - Drag & Drop Event-Handling und `reorderSectors` Aufruf ✓
+    - Persistenz der neuen `sort_order` im LocalStorage ✓
+    - Synchronisation zwischen `gymStorage` und `batchBoulderService` ✓
+    - Berechtigungsprüfung (Nicht-Admins können nicht sortieren) ✓
+- **Type-Check & Build**: `tsc --noEmit` fehlerfrei, `npm run build` erfolgreich ohne Warnungen.

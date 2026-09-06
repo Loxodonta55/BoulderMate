@@ -418,6 +418,30 @@ export function reorderSectors(
   });
 
   saveSectors([...otherSectors, ...updatedGymSectors]);
+
+  // Synchronize to batchBoulderService storage (v2) if present
+  try {
+    const v2Sectors = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    if (v2Sectors && v2Sectors.length > 0) {
+      let changed = false;
+      const updatedV2 = v2Sectors.map(s => {
+        if (s.gymId === gym_id) {
+          const newIndex = orderedSectorIds.indexOf(s.id);
+          if (newIndex !== -1 && s.sortOrder !== newIndex + 1) {
+            changed = true;
+            return { ...s, sortOrder: newIndex + 1 };
+          }
+        }
+        return s;
+      });
+      if (changed) {
+        setStorageJson('boulderapp_sectors_v2', updatedV2);
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+
   return updatedGymSectors.sort((a, b) => a.sort_order - b.sort_order);
 }
 

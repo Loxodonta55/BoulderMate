@@ -132,13 +132,52 @@ export function getSectors(gymId: string): Sector[] {
           createdAt: s.created_at,
         });
         existingIds.add(s.id);
+      } else {
+        const existingIdx = all.findIndex(item => item.id === s.id);
+        if (existingIdx !== -1 && (all[existingIdx].sortOrder !== s.sort_order || all[existingIdx].name !== s.name)) {
+          all[existingIdx] = {
+            ...all[existingIdx],
+            sortOrder: s.sort_order,
+            name: s.name || all[existingIdx].name,
+            wallPhotoUrl: s.wall_photo_url || all[existingIdx].wallPhotoUrl,
+          };
+          hasMigrated = true;
+        }
       }
     }
   } catch (e) {
     console.error('Error synchronizing sectors from gymStorage:', e);
   }
 
+  if (hasMigrated) {
+    setStorageJson(STORAGE_KEY_SECTORS, all);
+  }
+
   return all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function reorderSectors(gymId: string, orderedSectorIds: string[]): Sector[] {
+  // Update gymStorage first if possible
+  try {
+    gymStorage.reorderSectors(gymId, gymStorage.CURRENT_USER.id, orderedSectorIds);
+  } catch (e) {
+    // Non-admin or standalone test environment
+  }
+
+  const all = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
+  const gymSectors = all.filter(s => s.gymId === gymId);
+  const otherSectors = all.filter(s => s.gymId !== gymId);
+
+  const updatedGymSectors = gymSectors.map(sec => {
+    const newIndex = orderedSectorIds.indexOf(sec.id);
+    return {
+      ...sec,
+      sortOrder: newIndex !== -1 ? newIndex + 1 : sec.sortOrder,
+    };
+  });
+
+  setStorageJson(STORAGE_KEY_SECTORS, [...otherSectors, ...updatedGymSectors]);
+  return updatedGymSectors.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function getSectorById(sectorId: string): Sector | null {

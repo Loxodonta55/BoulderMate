@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sector } from '../types/gym';
 import { createSector, reorderSectors, updateSectorWallPhoto, deleteSector } from '../lib/gymStorage';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
-import { Layers, Plus, ArrowUp, ArrowDown, Trash2, AlertCircle, CheckCircle2, Upload } from 'lucide-react';
+import { Layers, Plus, ArrowUp, ArrowDown, Trash2, AlertCircle, CheckCircle2, Upload, GripVertical } from 'lucide-react';
 
 interface Props {
   gymId: string;
@@ -20,6 +20,10 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   const [isUploadForNewSector, setIsUploadForNewSector] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Drag & Drop State
+  const [draggedSectorIndex, setDraggedSectorIndex] = useState<number | null>(null);
+  const [dragOverSectorIndex, setDragOverSectorIndex] = useState<number | null>(null);
 
   const handleAddSector = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,13 +61,77 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
     if ((direction === 'up' && index === 0) || (direction === 'down' && index === sectors.length - 1)) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     const copy = [...sectors];
-    const temp = copy[index];
-    copy[index] = copy[targetIndex];
-    copy[targetIndex] = temp;
+    const [movedItem] = copy.splice(index, 1);
+    copy.splice(targetIndex, 0, movedItem);
 
     const orderedIds = copy.map(s => s.id);
-    reorderSectors(gymId, userId, orderedIds);
-    onRefresh();
+    try {
+      reorderSectors(gymId, userId, orderedIds);
+      setSuccessMsg(`Sektor "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
+      setTimeout(() => setSuccessMsg(null), 2500);
+      onRefresh();
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Ändern der Sektor-Reihenfolge.');
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isAdmin) return;
+    setDraggedSectorIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', sectors[index].id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!isAdmin || draggedSectorIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSectorIndex !== index) {
+      setDragOverSectorIndex(index);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    if (!isAdmin || draggedSectorIndex === null) return;
+    e.preventDefault();
+    setDragOverSectorIndex(index);
+  };
+
+  const handleDragLeave = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragOverSectorIndex === index) {
+      setDragOverSectorIndex(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverSectorIndex(null);
+    if (!isAdmin || draggedSectorIndex === null || draggedSectorIndex === targetIndex) {
+      setDraggedSectorIndex(null);
+      return;
+    }
+
+    const reordered = [...sectors];
+    const [movedItem] = reordered.splice(draggedSectorIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    setDraggedSectorIndex(null);
+
+    const orderedIds = reordered.map(s => s.id);
+    try {
+      reorderSectors(gymId, userId, orderedIds);
+      setSuccessMsg(`Reihenfolge geändert: "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
+      setTimeout(() => setSuccessMsg(null), 2500);
+      onRefresh();
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Ändern der Sektor-Reihenfolge.');
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedSectorIndex(null);
+    setDragOverSectorIndex(null);
   };
 
   const handleDelete = (sectorId: string) => {
@@ -174,84 +242,157 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
         </form>
       )}
 
+      {/* Sector ordering guide for Admins */}
+      {isAdmin && sectors.length > 1 && (
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#141210] border border-[#2e2a25] text-xs font-mono text-[#a89f91]">
+          <div className="flex items-center gap-2">
+            <GripVertical className="w-4 h-4 text-[#C9A96E] shrink-0" />
+            <span>
+              <strong className="text-[#f4efe6]">Drag & Drop Sortierung:</strong> Ziehe Karten an den Griffen oder nutze die Pfeile, um den Hallenrundgang logisch anzuordnen.
+            </span>
+          </div>
+          <span className="text-[10px] text-[#78716c] hidden md:inline">
+            {sectors.length} Sektoren
+          </span>
+        </div>
+      )}
+
       {/* Sectors Grid / Plates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {sectors.map((sector, idx) => (
-          <div
-            key={sector.id}
-            className="bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden flex flex-col group hover:border-[#8B8680] transition-all"
-          >
-            {/* Wall Photo Plate */}
-            <div className="relative aspect-video bg-black overflow-hidden">
-              <img
-                src={sector.wall_photo_url}
-                alt={sector.name}
-                className="w-full h-full object-cover transition-transform duration-200"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
+        {sectors.map((sector, idx) => {
+          const isDragging = draggedSectorIndex === idx;
+          const isDragOver = dragOverSectorIndex === idx && draggedSectorIndex !== idx;
 
-              {/* Status Badge */}
-              <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#121212]/90 px-2 py-0.5 rounded-none border border-[#333333] text-[11px] font-mono text-[#E8E0D4]">
-                <span className="w-1.5 h-1.5 rounded-none bg-[#4A5D3A]" />
-                {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
+          return (
+            <div
+              key={sector.id}
+              draggable={isAdmin}
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragEnter={(e) => handleDragEnter(e, idx)}
+              onDragLeave={(e) => handleDragLeave(e, idx)}
+              onDrop={(e) => handleDrop(e, idx)}
+              onDragEnd={handleDragEnd}
+              className={`bg-[#1E1E1E] border rounded-none overflow-hidden flex flex-col group transition-all duration-150 ${
+                isDragging
+                  ? 'opacity-40 border-dashed border-[#C9A96E] scale-[0.98]'
+                  : isDragOver
+                  ? 'border-[#C9A96E] ring-2 ring-[#C9A96E] bg-[#24211e] scale-[1.01]'
+                  : 'border-[#333333] hover:border-[#8B8680]'
+              }`}
+              data-testid={`sector-card-${sector.id}`}
+            >
+              {/* Wall Photo Plate */}
+              <div className="relative aspect-video bg-black overflow-hidden">
+                <img
+                  src={sector.wall_photo_url}
+                  alt={sector.name}
+                  className="w-full h-full object-cover transition-transform duration-200"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+
+                {/* Status Badge */}
+                <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#121212]/90 px-2 py-0.5 rounded-none border border-[#333333] text-[11px] font-mono text-[#E8E0D4]">
+                  <span className="w-1.5 h-1.5 rounded-none bg-[#4A5D3A]" />
+                  {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
+                </div>
+
+                {/* Drag Handle & Reorder Buttons (Admin) */}
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-[#121212]/95 p-1 rounded-none border border-[#333333] shadow-md">
+                    {/* Drag Handle */}
+                    <div
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-[#2A2A2A] text-[#A89F91] hover:text-[#C9A96E] cursor-grab active:cursor-grabbing transition-colors select-none"
+                      title="Per Drag & Drop verschieben (Reihenfolge anpassen)"
+                      data-testid={`drag-handle-${sector.id}`}
+                    >
+                      <GripVertical className="w-3.5 h-3.5 text-[#C9A96E]" />
+                      <span className="text-[10px] font-mono font-bold text-[#E8E0D4]">#{idx + 1}</span>
+                    </div>
+
+                    <div className="w-[1px] h-3.5 bg-[#333333]" />
+
+                    {/* Up / Down Arrows as Accessible Alternative */}
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'up');
+                      }}
+                      className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91] transition-colors"
+                      title="Nach oben verschieben"
+                      aria-label="Nach oben verschieben"
+                      data-testid={`move-up-${sector.id}`}
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === sectors.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMove(idx, 'down');
+                      }}
+                      className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91] transition-colors"
+                      title="Nach unten verschieben"
+                      aria-label="Nach unten verschieben"
+                      data-testid={`move-down-${sector.id}`}
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Move Sort Order Buttons (Admin) */}
-              {isAdmin && (
-                <div className="absolute top-2 right-2 flex gap-1 bg-[#121212]/90 p-1 rounded-none border border-[#333333]">
-                  <button
-                    disabled={idx === 0}
-                    onClick={() => handleMove(idx, 'up')}
-                    className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91]"
-                    title="Nach oben verschieben"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    disabled={idx === sectors.length - 1}
-                    onClick={() => handleMove(idx, 'down')}
-                    className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91]"
-                    title="Nach unten verschieben"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
+              {/* Info & Actions Footer */}
+              <div className="p-3.5 flex items-center justify-between border-t border-[#333333] bg-[#1E1E1E]">
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <div
+                      className="cursor-grab active:cursor-grabbing p-1 text-[#6B6358] hover:text-[#C9A96E] transition-colors hidden sm:block"
+                      title="Drag & Drop Anfasser"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-sm text-[#E8E0D4] font-headline uppercase tracking-wide">
+                      {sector.name}
+                    </h4>
+                    <div className="text-[10px] text-[#6B6358] font-mono">
+                      SECTOR #{sector.sort_order} {sector.sort_order !== idx + 1 && `(Anzeige: #${idx + 1})`}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Info & Actions Footer */}
-            <div className="p-3.5 flex items-center justify-between border-t border-[#333333] bg-[#1E1E1E]">
-              <div>
-                <h4 className="font-bold text-sm text-[#E8E0D4] font-headline uppercase tracking-wide">
-                  {sector.name}
-                </h4>
-                <div className="text-[10px] text-[#6B6358] font-mono">SECTOR #{sector.sort_order}</div>
+                {isAdmin && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveUploadSector(sector)}
+                      className="p-2 text-[#A89F91] hover:text-[#C9A96E] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333] flex items-center gap-1 text-xs"
+                      title="Wandfoto aktualisieren oder hochladen"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Foto ändern</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(sector.id)}
+                      className="p-2 text-[#A89F91] hover:text-[#A0522D] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333]"
+                      title="Sektor löschen"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {isAdmin && (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setActiveUploadSector(sector)}
-                    className="p-2 text-[#A89F91] hover:text-[#C9A96E] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333] flex items-center gap-1 text-xs"
-                    title="Wandfoto aktualisieren oder hochladen"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Foto ändern</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(sector.id)}
-                    className="p-2 text-[#A89F91] hover:text-[#A0522D] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333]"
-                    title="Sektor löschen"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {sectors.length === 0 && (
