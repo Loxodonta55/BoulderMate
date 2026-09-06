@@ -109,6 +109,20 @@ export function ensureInitialGymData(): void {
     }, CURRENT_USER.id);
   }
 
+  // Ensure 6a plus has all 7 official grade scales (Farbsystem)
+  const current6aScales = getGradeScales(gym6a.id);
+  if (current6aScales.length < 7 || !current6aScales.some(s => s.color_name === 'Lila')) {
+    setGymGradeScales(gym6a.id, CURRENT_USER.id, [
+      { id: 'scale_6a_gelb', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '3', font_range_max: '4', sort_order: 1 },
+      { id: 'scale_6a_gruen', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
+      { id: 'scale_6a_blau', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Mittel', font_range_min: '6A', font_range_max: '6B+', sort_order: 3 },
+      { id: 'scale_6a_rot', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '6C', font_range_max: '7A+', sort_order: 4 },
+      { id: 'scale_6a_schwarz', gym_id: gym6a.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 5 },
+      { id: 'scale_6a_weiss', gym_id: gym6a.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Extrem', font_range_min: '8A', font_range_max: '8B', sort_order: 6 },
+      { id: 'scale_6a_lila', gym_id: gym6a.id, color_name: 'Lila', color_hex: '#a855f7', difficulty_label: 'Elite', font_range_min: '8B+', font_range_max: '8C+', sort_order: 7 },
+    ]);
+  }
+
   // Ensure 6a plus has all 8 sectors from Bilder6aPlus
   const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id === gym6a.id);
   const needsEightSectorsUpgrade = current6aSectors.length < 8 || !current6aSectors.some(s => s.name === 'Cave');

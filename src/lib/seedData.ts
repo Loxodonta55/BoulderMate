@@ -21,6 +21,16 @@ export const SEED_GYM: Gym = {
   createdAt: '2026-09-01T10:00:00Z',
 };
 
+export const SEED_6A_PLUS_GRADE_SCALES: GymGradeScale[] = [
+  { id: 'scale_6a_gelb', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Sehr leicht', fontRangeMin: '3', fontRangeMax: '4', sortOrder: 1 },
+  { id: 'scale_6a_gruen', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Leicht', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 2 },
+  { id: 'scale_6a_blau', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Mittel', fontRangeMin: '6A', fontRangeMax: '6B+', sortOrder: 3 },
+  { id: 'scale_6a_rot', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Schwer', fontRangeMin: '6C', fontRangeMax: '7A+', sortOrder: 4 },
+  { id: 'scale_6a_schwarz', gymId: 'gym-6a-plus', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7B', fontRangeMax: '7C+', sortOrder: 5 },
+  { id: 'scale_6a_weiss', gymId: 'gym-6a-plus', colorName: 'Weiß', colorHex: '#f8fafc', difficultyLabel: 'Extrem', fontRangeMin: '8A', fontRangeMax: '8B', sortOrder: 6 },
+  { id: 'scale_6a_lila', gymId: 'gym-6a-plus', colorName: 'Lila', colorHex: '#a855f7', difficultyLabel: 'Elite', fontRangeMin: '8B+', fontRangeMax: '8C+', sortOrder: 7 },
+];
+
 export const SEED_GRADE_SCALES: GymGradeScale[] = [
   { id: 'scale-green', gymId: 'gym-minimum-zh', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Leicht', fontRangeMin: '4a', fontRangeMax: '5b', sortOrder: 1 },
   { id: 'scale-blue', gymId: 'gym-minimum-zh', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Fortgeschritten', fontRangeMin: '5c', fontRangeMax: '6b', sortOrder: 2 },
@@ -28,6 +38,7 @@ export const SEED_GRADE_SCALES: GymGradeScale[] = [
   { id: 'scale-red', gymId: 'gym-minimum-zh', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Schwer', fontRangeMin: '7a+', fontRangeMax: '7b+', sortOrder: 4 },
   { id: 'scale-black', gymId: 'gym-minimum-zh', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7c', fontRangeMax: '8a', sortOrder: 5 },
   { id: 'scale-white', gymId: 'gym-minimum-zh', colorName: 'Weiß', colorHex: '#f8fafc', difficultyLabel: 'Elite', fontRangeMin: '8a+', fontRangeMax: '8b+', sortOrder: 6 },
+  ...SEED_6A_PLUS_GRADE_SCALES
 ];
 
 export const SEED_SECTORS: Sector[] = [

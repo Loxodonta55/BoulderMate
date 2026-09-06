@@ -141,6 +141,54 @@ export async function syncFromSupabase(): Promise<boolean> {
       currentSyncStatus.syncedSectors = sectorMap.size;
     }
 
+    // 2.5 Farbskalen / Farbsystem laden
+    const { data: dbScales, error: scaleError } = await supabase
+      .from('grade_scales')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (!scaleError && dbScales && dbScales.length > 0) {
+      // V1 Cache (gymStorage)
+      const localV1Scales = gymStorage.getGradeScales();
+      const v1Map = new Map(localV1Scales.map(s => [s.id, s]));
+
+      // V2 Cache (batchBoulderService)
+      const localV2Scales = getStorageJson<any[]>('boulderapp_grade_scales_v2', []);
+      const v2Map = new Map(localV2Scales.map(s => [s.id, s]));
+
+      for (const sc of dbScales) {
+        const targetGymId = (sc.gym_id && sc.gym_id.includes('f2b11564')) ? 'gym-6a-plus' : sc.gym_id;
+
+        // V1 Format
+        v1Map.set(sc.id, {
+          id: sc.id,
+          gym_id: targetGymId,
+          color_name: sc.color_name,
+          color_hex: sc.color_hex,
+          difficulty_label: sc.difficulty_label,
+          font_range_min: sc.font_range_min || '3',
+          font_range_max: sc.font_range_max || '4',
+          sort_order: sc.sort_order || 1,
+          created_at: sc.created_at || new Date().toISOString(),
+        });
+
+        // V2 Format
+        v2Map.set(sc.id, {
+          id: sc.id,
+          gymId: targetGymId,
+          colorName: sc.color_name,
+          colorHex: sc.color_hex,
+          difficultyLabel: sc.difficulty_label,
+          fontRangeMin: sc.font_range_min || '3',
+          fontRangeMax: sc.font_range_max || '4',
+          sortOrder: sc.sort_order || 1,
+        });
+      }
+
+      gymStorage.saveGradeScales(Array.from(v1Map.values()));
+      setStorageJson('boulderapp_grade_scales_v2', Array.from(v2Map.values()));
+    }
+
     // 3. Boulder laden
     const { data: dbBoulders, error: boulderError } = await supabase
       .from('boulders')
