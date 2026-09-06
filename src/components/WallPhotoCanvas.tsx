@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { WallBoulder, GymGradeScale } from '../types/boulder';
-import { ZoomIn, ZoomOut, RotateCcw, Crosshair, Archive, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Crosshair, Archive, Sparkles, Camera } from 'lucide-react';
 
 interface WallPhotoCanvasProps {
   photoUrl: string;
@@ -12,6 +12,7 @@ interface WallPhotoCanvasProps {
   onPinClick: (boulder: WallBoulder) => void;
   onPinMove: (boulderId: string, newX: number, newY: number) => void;
   isAddingEnabled?: boolean;
+  onChangePhoto?: () => void;
 }
 
 export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
@@ -24,6 +25,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   onPinClick,
   onPinMove,
   isAddingEnabled = true,
+  onChangePhoto,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -134,6 +136,22 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
+        )}
+
+        {onChangePhoto && (
+          <>
+            <span className="w-px h-4 bg-[#333333] mx-0.5" />
+            <button
+              type="button"
+              onClick={onChangePhoto}
+              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono"
+              title="Foto aufnehmen oder hochladen"
+              data-testid="canvas-camera-btn"
+            >
+              <Camera className="w-4 h-4" />
+              <span className="hidden sm:inline">Foto</span>
+            </button>
+          </>
         )}
       </div>
 

@@ -293,10 +293,12 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
               type="button"
               onClick={() => setIsPhotoModalOpen(true)}
               className="px-3.5 py-1.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] text-xs font-mono border border-[#333333] flex items-center gap-1.5 transition"
-              title="Wandfoto aktualisieren (z.B. nach Neuschrauben)"
+              title="Wandfoto aktualisieren oder direkt mit Kamera aufnehmen"
+              data-testid="sector-new-photo-btn"
             >
               <Camera className="w-3.5 h-3.5 text-[#C9A96E]" />
-              <span className="hidden sm:inline">Neues Foto</span>
+              <span className="hidden sm:inline">Foto aufnehmen / hochladen</span>
+              <span className="sm:hidden">Foto</span>
             </button>
           </div>
         )}
@@ -330,6 +332,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             onPinClick={handlePinClick}
             onPinMove={handlePinMove}
             isAddingEnabled={true}
+            onChangePhoto={() => setIsPhotoModalOpen(true)}
           />
         )
       )}

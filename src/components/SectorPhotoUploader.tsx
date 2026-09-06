@@ -1,5 +1,5 @@
 import React, { useState, useRef, ChangeEvent, DragEvent } from 'react';
-import { Upload, Link as LinkIcon, Image as ImageIcon, X, Check, RefreshCw, AlertCircle, Laptop } from 'lucide-react';
+import { Upload, Link as LinkIcon, Image as ImageIcon, X, Check, RefreshCw, AlertCircle, Laptop, Camera } from 'lucide-react';
 import { processLocalImageFile, validateImageFile, formatBytes, ProcessedImageResult } from '../lib/imageUtils';
 
 interface SectorPhotoUploaderProps {
@@ -25,6 +25,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
   const [lastProcessed, setLastProcessed] = useState<ProcessedImageResult | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Handle local file selection
   const handleFileSelect = async (file: File) => {
@@ -95,12 +96,32 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+    }
   };
 
   const isBase64 = value && value.startsWith('data:');
 
   return (
     <div className="space-y-3">
+      {/* Hidden file & camera inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
+        onChange={handleInputChange}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleInputChange}
+        className="hidden"
+      />
+
       {/* Header & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
@@ -189,6 +210,15 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="px-2.5 py-1 text-xs font-mono text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1"
+                title="Foto direkt mit Kamera aufnehmen"
+              >
+                <Camera className="w-3 h-3 text-[#C9A96E]" />
+                <span>Kamera</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="px-2.5 py-1 text-xs font-mono text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1"
                 title="Anderes Foto wählen"
@@ -209,7 +239,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
           </div>
         </div>
       ) : activeMode === 'upload' ? (
-        /* Upload Mode: Dropzone & File Button */
+        /* Upload Mode: Dropzone & File/Camera Button */
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -221,14 +251,6 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
               : 'border-[#333333] hover:border-[#8B8680] bg-[#121212] hover:bg-[#1E1E1E]'
           }`}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
-            onChange={handleInputChange}
-            className="hidden"
-          />
-
           <div className="flex flex-col items-center justify-center space-y-2.5">
             <div className="w-12 h-12 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
               {isProcessing ? (
@@ -245,6 +267,19 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
               <p className="text-xs font-mono text-[#A89F91]">
                 oder <span className="text-[#C9A96E] underline underline-offset-2">Datei auswählen</span> (JPG, PNG, WebP bis 25 MB)
               </p>
+              <div className="pt-2 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cameraInputRef.current?.click();
+                  }}
+                  className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#C9A96E]/40 text-xs font-mono text-[#E8E0D4] inline-flex items-center gap-1.5 transition"
+                >
+                  <Camera className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <span>Foto direkt aufnehmen</span>
+                </button>
+              </div>
             </div>
 
             <p className="text-[10px] font-mono text-[#6B6358]">

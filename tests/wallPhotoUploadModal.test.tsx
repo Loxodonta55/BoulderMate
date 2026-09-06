@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WallPhotoUploadModal } from '../src/components/WallPhotoUploadModal';
 import { SectorPhotoUploader } from '../src/components/SectorPhotoUploader';
 import { WALL_PRESETS } from '../src/lib/imageUtils';
@@ -96,6 +96,47 @@ describe('WallPhotoUploadModal & SectorPhotoUploader (SPEC-005 UI)', () => {
       fireEvent.click(screen.getByText(/Abbrechen/i));
       expect(onClose).toHaveBeenCalled();
     });
+
+    it('supports direct in-app camera capture and system camera trigger', async () => {
+      const onPhotoSelected = vi.fn();
+      const onClose = vi.fn();
+
+      render(
+        <WallPhotoUploadModal
+          isOpen={true}
+          sectorName="Dach"
+          onClose={onClose}
+          onPhotoSelected={onPhotoSelected}
+        />
+      );
+
+      // Verify "Foto machen" tab is present
+      const cameraTab = screen.getByRole('button', { name: /Foto machen/i });
+      expect(cameraTab).toBeInTheDocument();
+
+      // Click "Foto machen" tab
+      fireEvent.click(cameraTab);
+
+      // Verify camera options are displayed
+      expect(screen.getByText(/Direkt aus der App fotografieren/i)).toBeInTheDocument();
+      expect(screen.getByTestId('open-system-camera-button')).toBeInTheDocument();
+      expect(screen.getByTestId('start-camera-button')).toBeInTheDocument();
+
+      // Simulate native camera capture through file input with capture="environment"
+      const nativeCameraInput = screen.getByTestId('native-camera-input') as HTMLInputElement;
+      expect(nativeCameraInput).toBeInTheDocument();
+      expect(nativeCameraInput.getAttribute('capture')).toBe('environment');
+
+      const mockPhoto = new File(['mock-camera-pixels'], 'live_wall.jpg', { type: 'image/jpeg' });
+      fireEvent.change(nativeCameraInput, { target: { files: [mockPhoto] } });
+
+      // Confirm photo after async processing finishes
+      await waitFor(() => {
+        expect(screen.getByText(/live_wall\.jpg/)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText(/Wandfoto übernehmen/i));
+      expect(onPhotoSelected).toHaveBeenCalled();
+    });
   });
 
   describe('SectorPhotoUploader', () => {
@@ -151,6 +192,23 @@ describe('WallPhotoUploadModal & SectorPhotoUploader (SPEC-005 UI)', () => {
       // Click "Entfernen"
       fireEvent.click(screen.getByText(/Entfernen/i));
       expect(onChange).toHaveBeenCalledWith('');
+    });
+
+    it('includes direct camera button and native camera capture input in SectorPhotoUploader', () => {
+      const onChange = vi.fn();
+      render(
+        <SectorPhotoUploader
+          value=""
+          onChange={onChange}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Foto direkt aufnehmen/i })).toBeInTheDocument();
+
+      // Check for camera input with capture attribute
+      const cameraInput = document.querySelector('input[capture="environment"]') as HTMLInputElement;
+      expect(cameraInput).toBeInTheDocument();
+      expect(cameraInput.getAttribute('accept')).toBe('image/*');
     });
   });
 });
