@@ -317,7 +317,8 @@ export function computeAggregatedRadar(
   const n = ratingsWithRadar.length;
 
   const axes: (keyof RadarAttributes)[] = [
-    'kraft',
+    'maximalkraft',
+    'kraftausdauer',
     'technik',
     'balance',
     'koordination',
@@ -327,12 +328,24 @@ export function computeAggregatedRadar(
   const result: Partial<RadarAttributes> = {};
 
   for (const axis of axes) {
-    const setterVal = setterRadar[axis] || 3;
-    const userSum = ratingsWithRadar.reduce((acc, r) => acc + (r.radar?.[axis] || 3), 0);
+    let setterVal = setterRadar[axis];
+    if (setterVal === undefined) {
+      setterVal = axis === 'maximalkraft' ? (setterRadar.kraft ?? 3) : 3;
+    }
+    const userSum = ratingsWithRadar.reduce((acc, r) => {
+      let uVal = r.radar?.[axis];
+      if (uVal === undefined) {
+        uVal = axis === 'maximalkraft' ? (r.radar?.kraft ?? 3) : 3;
+      }
+      return acc + uVal;
+    }, 0);
     const weighted = (W_SETTER * setterVal + userSum) / (W_SETTER + n);
     // Round to 1 decimal place
     result[axis] = Math.round(weighted * 10) / 10;
   }
+
+  // Preserve legacy kraft property
+  result.kraft = result.maximalkraft;
 
   return result as RadarAttributes;
 }

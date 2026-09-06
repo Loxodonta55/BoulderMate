@@ -103,7 +103,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         name: entry.boulderName || `${entry.gradeScale.colorName} #${entry.boulderId.slice(-4)}`,
         setterId: 'setter-1',
         status: 'active',
-        radar: { kraft: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 },
+        radar: {
+          maximalkraft: 3,
+          kraftausdauer: 3,
+          technik: 3,
+          balance: 3,
+          koordination: 3,
+          flexibilitaet: 3,
+          kraft: 3,
+        },
         createdAt: entry.createdAt,
       };
       setSelectedBoulder(fallback);

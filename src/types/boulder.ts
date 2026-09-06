@@ -175,23 +175,28 @@ export interface Sector {
 }
 
 export interface RadarAttributes {
-  kraft: number; // 1 - 5, default 3
+  maximalkraft?: number; // 1 - 5, default 3
+  kraftausdauer?: number; // 1 - 5, default 3
   technik: number; // 1 - 5, default 3
   balance: number; // 1 - 5, default 3
   koordination: number; // 1 - 5, default 3
   flexibilitaet: number; // 1 - 5, default 3
+  kraft?: number; // legacy backward compatibility alias
 }
 
 export const DEFAULT_RADAR: RadarAttributes = {
-  kraft: 3,
+  maximalkraft: 3,
+  kraftausdauer: 3,
   technik: 3,
   balance: 3,
   koordination: 3,
   flexibilitaet: 3,
+  kraft: 3,
 };
 
 export const RADAR_AXIS_KEYS: (keyof RadarAttributes)[] = [
-  'kraft',
+  'maximalkraft',
+  'kraftausdauer',
   'technik',
   'balance',
   'koordination',
@@ -208,7 +213,8 @@ export interface RadarAxisMeta {
 }
 
 export const RADAR_AXIS_DEFINITIONS: RadarAxisMeta[] = [
-  { key: 'kraft', label: 'Kraft', fullLabel: 'Kraft / Bouldermuskeln', emoji: '💪' },
+  { key: 'maximalkraft', label: 'Maximalkraft', fullLabel: 'Maximalkraft / Bouldermuskeln', emoji: '💪' },
+  { key: 'kraftausdauer', label: 'Kraft-Ausdauer', fullLabel: 'Kraft-Ausdauer / Pumptoleranz', emoji: '🔋' },
   { key: 'technik', label: 'Technik', fullLabel: 'Technik / Präzision', emoji: '🦶' },
   { key: 'balance', label: 'Balance', fullLabel: 'Balance / Körpergefühl', emoji: '⚖️' },
   { key: 'koordination', label: 'Koordination', fullLabel: 'Koordination / Dynos', emoji: '🎯' },

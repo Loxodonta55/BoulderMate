@@ -12,7 +12,8 @@ import { getAscents } from './ratingAndAscentService';
 import { getWallBoulders, getSectors, getGradeScales, getGyms } from './batchBoulderService';
 
 const ATTRIBUTE_KEYS: (keyof RadarAttributes)[] = [
-  'kraft',
+  'maximalkraft',
+  'kraftausdauer',
   'technik',
   'balance',
   'koordination',
@@ -20,17 +21,23 @@ const ATTRIBUTE_KEYS: (keyof RadarAttributes)[] = [
 ];
 
 const ATTRIBUTE_LABELS: Record<keyof RadarAttributes, string> = {
-  kraft: 'Kraft',
+  maximalkraft: 'Maximalkraft',
+  kraftausdauer: 'Kraft-Ausdauer',
   technik: 'Technik',
   balance: 'Balance',
   koordination: 'Koordination',
   flexibilitaet: 'Flexibilität',
+  kraft: 'Maximalkraft',
 };
 
 const ATTRIBUTE_HEADLINES: Record<keyof RadarAttributes, { strength: string; weakness: string }> = {
-  kraft: {
-    strength: 'KRAFT & ZUGKRAFT',
-    weakness: 'FINGER- & BLOCKIERKRAFT',
+  maximalkraft: {
+    strength: 'MAXIMALKRAFT & FINGERSTÄRKE',
+    weakness: 'EXPLOSIVE ZUG- & BLOCKIERKRAFT',
+  },
+  kraftausdauer: {
+    strength: 'KRAFT-AUSDAUER & PUMPTOLERANZ',
+    weakness: 'KRAFT-AUSDAUER & LANGE SEQUENZEN',
   },
   technik: {
     strength: 'TECHNIK & FUSSARBEIT',
@@ -48,12 +55,20 @@ const ATTRIBUTE_HEADLINES: Record<keyof RadarAttributes, { strength: string; wea
     strength: 'FLEXIBILITÄT & BEWEGLICHKEIT',
     weakness: 'BEWEGLICHKEIT & HOHE TRITTE',
   },
+  kraft: {
+    strength: 'MAXIMALKRAFT & FINGERSTÄRKE',
+    weakness: 'EXPLOSIVE ZUG- & BLOCKIERKRAFT',
+  },
 };
 
 const ATTRIBUTE_DESCRIPTIONS: Record<keyof RadarAttributes, { strength: string; weakness: string }> = {
-  kraft: {
-    strength: 'Überdurchschnittliche Zug- und Fingerkraft. Du meisterst steile Überhänge und kleine Leisten mit hoher Entschlossenheit.',
-    weakness: 'Schwierigkeiten bei kräftigen Zügen und langen Blockierpositionen. Ein gezieltes Krafttraining erschließt den nächsten Grad.',
+  maximalkraft: {
+    strength: 'Überdurchschnittliche maximale Zug- und Fingerkraft. Du meisterst steile Überhänge und kleine Leisten mit hoher Entschlossenheit.',
+    weakness: 'Schwierigkeiten bei explosiven Einzelzügen und maximalen Blockierpositionen. Ein gezieltes Krafttraining erschließt den nächsten Grad.',
+  },
+  kraftausdauer: {
+    strength: 'Hervorragende Ausdauer über lange Zugsequenzen. Auch in pumpigen Dachrouten behältst du bis zum Topgriff volle Körperspannung.',
+    weakness: 'Schneller Kraftverlust und Pump bei Boulderproblemen mit vielen Zügen. Kontinuierliche Traversen steigern deine Ausdauer.',
   },
   technik: {
     strength: 'Exzellente Trittpräzision und ökonomische Körperspannung. Du sparst Kraft durch saubere Schwerpunktverlagerung.',
@@ -70,6 +85,10 @@ const ATTRIBUTE_DESCRIPTIONS: Record<keyof RadarAttributes, { strength: string; 
   flexibilitaet: {
     strength: 'Große Reichweite und Beweglichkeit. Hohe Tritte und weite Spreizschritte nutzt du spielerisch als Schlüsselsequenz.',
     weakness: 'Einschränkungen bei extrem hohen Antritten, Hook-Varianten und engem Raum. Hüftmobilität eröffnet neue Lösungswege.',
+  },
+  kraft: {
+    strength: 'Überdurchschnittliche maximale Zug- und Fingerkraft. Du meisterst steile Überhänge und kleine Leisten mit hoher Entschlossenheit.',
+    weakness: 'Schwierigkeiten bei explosiven Einzelzügen und maximalen Blockierpositionen. Ein gezieltes Krafttraining erschließt den nächsten Grad.',
   },
 };
 
@@ -138,13 +157,25 @@ export function getAthletePerformanceReport(
   const activeGymBoulders = gymBoulders.filter(b => b.status === 'active');
   const referenceBoulders = activeGymBoulders.length > 0 ? activeGymBoulders : gymBoulders;
 
-  const gymRadar: RadarAttributes = { kraft: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 };
+  const gymRadar: RadarAttributes = {
+    maximalkraft: 3,
+    kraftausdauer: 3,
+    technik: 3,
+    balance: 3,
+    koordination: 3,
+    flexibilitaet: 3,
+    kraft: 3,
+  };
 
   if (referenceBoulders.length > 0) {
     for (const key of ATTRIBUTE_KEYS) {
-      const sum = referenceBoulders.reduce((acc, b) => acc + (b.radar[key] || 3), 0);
+      const sum = referenceBoulders.reduce((acc, b) => {
+        const val = b.radar[key] ?? (key === 'maximalkraft' ? b.radar.kraft ?? 3 : 3);
+        return acc + val;
+      }, 0);
       gymRadar[key] = parseFloat((sum / referenceBoulders.length).toFixed(1));
     }
+    gymRadar.kraft = gymRadar.maximalkraft;
   }
 
   const loggedAscentsCount = scopedAscents.length;
@@ -160,7 +191,15 @@ export function getAthletePerformanceReport(
       loggedAscentsCount,
       minRequiredAscents,
       medianGradeOrder: 0,
-      userRadar: { kraft: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 },
+      userRadar: {
+        maximalkraft: 3,
+        kraftausdauer: 3,
+        technik: 3,
+        balance: 3,
+        koordination: 3,
+        flexibilitaet: 3,
+        kraft: 3,
+      },
       gymRadar,
       strength: null,
       weakness: null,
@@ -185,19 +224,23 @@ export function getAthletePerformanceReport(
 
   // 4. Calculate User Performance Scores via GNPI
   const weightedScores: Record<keyof RadarAttributes, number> = {
-    kraft: 0,
+    maximalkraft: 0,
+    kraftausdauer: 0,
     technik: 0,
     balance: 0,
     koordination: 0,
     flexibilitaet: 0,
+    kraft: 0,
   };
 
   const weightTotals: Record<keyof RadarAttributes, number> = {
-    kraft: 0,
+    maximalkraft: 0,
+    kraftausdauer: 0,
     technik: 0,
     balance: 0,
     koordination: 0,
     flexibilitaet: 0,
+    kraft: 0,
   };
 
   for (const { ascent, boulder, gradeScale } of scopedAscents) {
@@ -219,15 +262,23 @@ export function getAthletePerformanceReport(
       success = deltaG < 0 ? Math.max(0.05, 0.15 + 0.1 * deltaG) : 0.2 * (1 + 0.15 * deltaG);
     }
 
+    const mkVal = boulder.radar.maximalkraft ?? boulder.radar.kraft ?? 3;
+    const kaVal = boulder.radar.kraftausdauer ?? 3;
     const radarSum =
-      (boulder.radar.kraft || 3) +
+      mkVal +
+      kaVal +
       (boulder.radar.technik || 3) +
       (boulder.radar.balance || 3) +
       (boulder.radar.koordination || 3) +
       (boulder.radar.flexibilitaet || 3);
 
     for (const key of ATTRIBUTE_KEYS) {
-      const val = boulder.radar[key] || 3;
+      const val =
+        key === 'maximalkraft'
+          ? mkVal
+          : key === 'kraftausdauer'
+          ? kaVal
+          : boulder.radar[key] || 3;
       const weight = val / Math.max(1, radarSum);
       const effectiveWeight = relevance * weight;
 
@@ -238,11 +289,13 @@ export function getAthletePerformanceReport(
 
   // Raw scores Pa
   const rawScores: Record<keyof RadarAttributes, number> = {
-    kraft: 0,
+    maximalkraft: 0,
+    kraftausdauer: 0,
     technik: 0,
     balance: 0,
     koordination: 0,
     flexibilitaet: 0,
+    kraft: 0,
   };
 
   let rawTotal = 0;
@@ -252,15 +305,17 @@ export function getAthletePerformanceReport(
     rawTotal += raw;
   }
 
-  const meanRawScore = rawTotal / 5;
+  const meanRawScore = rawTotal / ATTRIBUTE_KEYS.length;
 
   // Normalized 1.0 to 5.0 scale centered around 3.0
   const userRadar: RadarAttributes = {
-    kraft: 3,
+    maximalkraft: 3,
+    kraftausdauer: 3,
     technik: 3,
     balance: 3,
     koordination: 3,
     flexibilitaet: 3,
+    kraft: 3,
   };
 
   for (const key of ATTRIBUTE_KEYS) {
@@ -268,13 +323,21 @@ export function getAthletePerformanceReport(
     const normalized = Math.max(1.0, Math.min(5.0, 3.0 + deviation * 1.5));
     userRadar[key] = parseFloat(normalized.toFixed(1));
   }
+  userRadar.kraft = userRadar.maximalkraft;
 
   // 5. Build Style Attribute Metrics Table
   const attributeMetrics: StyleAttributeMetric[] = ATTRIBUTE_KEYS.map(key => {
     // Find ascents where this attribute is dominant (val >= 4, fallback to >= 3)
-    let matched = scopedAscents.filter(item => (item.boulder.radar[key] || 3) >= 4);
+    const getAttr = (b: WallBoulder) =>
+      key === 'maximalkraft'
+        ? b.radar.maximalkraft ?? b.radar.kraft ?? 3
+        : key === 'kraftausdauer'
+        ? b.radar.kraftausdauer ?? 3
+        : b.radar[key] || 3;
+
+    let matched = scopedAscents.filter(item => getAttr(item.boulder) >= 4);
     if (matched.length === 0) {
-      matched = scopedAscents.filter(item => (item.boulder.radar[key] || 3) >= 3);
+      matched = scopedAscents.filter(item => getAttr(item.boulder) >= 3);
     }
 
     const attemptsCount = matched.length;
@@ -301,8 +364,8 @@ export function getAthletePerformanceReport(
       }
     }
 
-    const userScore = userRadar[key];
-    const gymScore = gymRadar[key];
+    const userScore = userRadar[key] ?? 3;
+    const gymScore = gymRadar[key] ?? 3;
     const delta = parseFloat((userScore - gymScore).toFixed(1));
 
     return {
@@ -328,9 +391,15 @@ export function getAthletePerformanceReport(
     attributeKey: keyof RadarAttributes
   ): RecommendedBoulderInsight | undefined => {
     // Active boulders with high attribute value
-    const candidates = referenceBoulders.filter(
-      b => b.status === 'active' && (b.radar[attributeKey] || 3) >= 4
-    );
+    const candidates = referenceBoulders.filter(b => {
+      const val =
+        attributeKey === 'maximalkraft'
+          ? b.radar.maximalkraft ?? b.radar.kraft ?? 3
+          : attributeKey === 'kraftausdauer'
+          ? b.radar.kraftausdauer ?? 3
+          : b.radar[attributeKey] || 3;
+      return b.status === 'active' && val >= 4;
+    });
 
     if (candidates.length === 0) return undefined;
 
@@ -345,6 +414,13 @@ export function getAthletePerformanceReport(
     const sector = sectorMap.get(chosen.sectorId);
     const scale = scaleMap.get(chosen.gradeScaleId);
 
+    const chosenAttrVal =
+      attributeKey === 'maximalkraft'
+        ? chosen.radar.maximalkraft ?? chosen.radar.kraft ?? 4
+        : attributeKey === 'kraftausdauer'
+        ? chosen.radar.kraftausdauer ?? 4
+        : chosen.radar[attributeKey] || 4;
+
     return {
       id: chosen.id,
       name: chosen.name || `${scale?.colorName || 'Boulder'} #${chosen.id.slice(-4)}`,
@@ -352,7 +428,7 @@ export function getAthletePerformanceReport(
       gradeColorHex: scale?.colorHex || '#3b82f6',
       gradeColorName: scale?.colorName || 'Blau',
       difficultyLabel: scale?.difficultyLabel || 'Mittel',
-      attributeValue: chosen.radar[attributeKey] || 4,
+      attributeValue: chosenAttrVal,
     };
   };
 

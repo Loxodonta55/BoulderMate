@@ -1,9 +1,9 @@
-﻿# SPEC-008: Persönliche Kletterer-Performance & Stärken/Schwächen-Statistik
+# SPEC-008: Persönliche Kletterer-Performance & Stärken/Schwächen-Statistik
 
 ## Status: APPROVED (SDD Autonomous Mode)
 
 ## Summary
-Erweitert das persönliche Kletterer-Profil (SPEC-004) um eine tiefgehende multidimensionale Performance-Analyse. Das Feature setzt individuelle Begehungserfolge (Flash, Top, Projekt) in direkte mathematische Relation zu den 5 Boulder-Attributen (**Kraft**, **Technik**, **Balance**, **Koordination**, **Flexibilität**) und dem jeweiligen Schwierigkeitsgrad. Über einen grad-normalisierten Performance-Index (GNPI) mit Relevanz-Filterung für den Grenzbereich (Limit-Klettern) wird ein persönliches **Athleten-Radar** berechnet. Dieses wird dem **Hallen-Anforderungsprofil** gegenübergestellt, leitet automatisch die primäre **Stärke** und die wichtigste **Baustelle (Schwäche)** ab und liefert kletterspezifische Trainingsempfehlungen.
+Erweitert das persönliche Kletterer-Profil (SPEC-004) um eine tiefgehende multidimensionale Performance-Analyse. Das Feature setzt individuelle Begehungserfolge (Flash, Top, Projekt) in direkte mathematische Relation zu den 6 Boulder-Attributen (**Maximalkraft**, **Kraft-Ausdauer**, **Technik**, **Balance**, **Koordination**, **Flexibilität**) und dem jeweiligen Schwierigkeitsgrad. Über einen grad-normalisierten Performance-Index (GNPI) mit Relevanz-Filterung für den Grenzbereich (Limit-Klettern) wird ein persönliches **Athleten-Radar** berechnet. Dieses wird dem **Hallen-Anforderungsprofil** gegenübergestellt, leitet automatisch die primäre **Stärke** und die wichtigste **Baustelle (Schwäche)** ab und liefert kletterspezifische Trainingsempfehlungen. Bei bestehenden Routen wird die bisherige Kraft als Maximalkraft übernommen und Kraft-Ausdauer mit 3 initialisiert.
 
 ---
 
@@ -36,31 +36,31 @@ Die bloße Zählung von Tops führt zu groben Verzerrungen: Ein Aufwärmboulder 
 
 4. **Grade-Ceiling pro Attribut (Härtester Top je Stil)**:
    * Neben dem Radar-Wert wird für jedes Attribut der maximal erreichte Grad bei dominanten Routen (Attribut $\ge 4$) festgehalten.
-   * *Beispiel*: Kraft-Ceiling = *Rot (7A)* vs. Balance-Ceiling = *Grün (6A)* $\rightarrow$ 2 Stufen Delta belegen das Ungleichgewicht objektiv.
+   * *Beispiel*: Maximalkraft-Ceiling = *Rot (7A)* vs. Kraft-Ausdauer-Ceiling = *Blau (6B)* $\rightarrow$ belegt gezielte Optimierungspotenziale.
 
 ---
 
 ## 2. Hallenschnitt vs. Deine Leistung (Referenzierung)
 
 ### 2.1 Was stellt der Hallenschnitt dar?
-Der Hallenschnitt bildet das **Schrauber- und Anforderungsprofil** der gewählten Halle ab. Er berechnet sich aus dem Mittelwert aller aktiven Boulder dieser Halle über die 5 Achsen:
+Der Hallenschnitt bildet das **Schrauber- und Anforderungsprofil** der gewählten Halle ab. Er berechnet sich aus dem Mittelwert aller aktiven Boulder dieser Halle über die 6 Achsen:
 $$H_a = \frac{1}{|B_{\text{Gym}}|} \sum_{b \in B_{\text{Gym}}} r_{b, a}$$
 
 ### 2.2 Der visuelle Mehrwert (Doppel-Radar)
-Im 5-Achsen Radar-Chart werden zwei Polygone übereinandergelegt:
+Im hexagonalen 6-Achsen Radar-Chart werden zwei Polygone übereinandergelegt:
 - **Fläche mit Sandstein-Glow**: Dein persönliches Performance-Profil ($P_a$).
 - **Gestrichelte Granit-Linie**: Das Anforderungsprofil der Halle ($H_a$).
 
 **Erkenntnis für den Kletterer**:
 - *Polygon beult über die Hallenlinie hinaus*: „Du beherrschst diesen Stil besser, als die Halle ihn durchschnittlich fordert.“
-- *Polygon bleibt deutlich hinter der Hallenlinie zurück*: „Die Halle verlangt hier viel (z.B. Koordination 4.0), während du bei 2.6 stehst – der Hauptgrund für Fehlversuche in dieser Halle!“
+- *Polygon bleibt deutlich hinter der Hallenlinie zurück*: „Die Halle verlangt hier viel (z.B. Kraft-Ausdauer 4.0), während du bei 2.6 stehst – der Hauptgrund für Pump-Abwürfe in dieser Halle!“
 
 ---
 
 ## 3. Berechnungslogik für Stärken & Schwächen
 
 ### 3.1 Attribut-Gewichtung eines Boulders
-$$w_{B, a} = \frac{r_{B, a}}{\sum_{k=1}^5 r_{B, k}}$$
+$$w_{B, a} = \frac{r_{B, a}}{\sum_{k=1}^6 r_{B, k}}$$
 
 ### 3.2 Aggregierter Achsen-Score $P_a$
 $$P_a = \frac{\sum_{i} R(G_i) \cdot w_{B_i, a} \cdot S_i \cdot r_{B_i, a}}{\sum_{i} R(G_i) \cdot w_{B_i, a}}$$
@@ -78,7 +78,7 @@ $$\text{AthletenRadar}_a = \text{clamp}\left(1.0, \, 5.0, \, 3.0 + 1.5 \cdot (P_
 
 ### User Stories
 - **US-1**: Als Kletterer möchte ich, dass leichte Aufwärmboulder mein Stärken/Schwächen-Profil nicht verfälschen, sondern Routen an meinem Limit zählen.
-- **US-2**: Als Kletterer möchte ich mein Athleten-Radar direkt im Vergleich zum Anforderungsprofil der Halle sehen (Doppel-Polygon).
+- **US-2**: Als Kletterer möchte ich mein Athleten-Radar direkt im Vergleich zum Anforderungsprofil der Halle über alle 6 Achsen (inkl. Maximalkraft und Kraft-Ausdauer) sehen.
 - **US-3**: Als Kletterer möchte ich in zwei markanten Infokarten meine größte Stärke und meine größte Schwachstelle mit konkreten Daten und Empfehlungen lesen.
 - **US-4**: Als Kletterer möchte ich das Grade-Ceiling (härtester Top) pro Klettereigenschaft sehen.
 - **US-5**: Als Kletterer möchte ich aktive Routenempfehlungen der aktuellen Halle erhalten, die genau meine Schwachstelle trainieren.
@@ -86,7 +86,7 @@ $$\text{AthletenRadar}_a = \text{clamp}\left(1.0, \, 5.0, \, 3.0 + 1.5 \cdot (P_
 
 ### Acceptance Criteria
 - [x] **AC-1**: Profil-Screen bietet Segmentierung: `[ÜBERSICHT]` und `[STIL & PERFORMANCE]`.
-- [x] **AC-2**: 5-Achsen SVG-Chart rendert dein Profil (Sandstein-Glow) + Hallen-Anforderungsprofil (gestrichelte Granit-Linie).
+- [x] **AC-2**: 6-Achsen SVG-Chart rendert dein Profil (Sandstein-Glow) + Hallen-Anforderungsprofil (gestrichelte Granit-Linie).
 - [x] **AC-3**: Grad-Normalisierung filtert Aufwärmboulder mit geringerem Gewicht und gewichtet Limit-Tops/Drops exponentiell.
 - [x] **AC-4**: Stärken-Karte (Moosgrün `#4A5D3A`) und Baustellen-Karte (Lehmrot `#A0522D`) nennen konkrete Kennzahlen (Send-Quote, Delta zum Hallenschnitt, Grade-Ceiling).
 - [x] **AC-5**: Konkrete Boulder-Empfehlung: Schlägt 1–2 aktive Boulder der Halle vor, die genau die aktuelle Baustelle trainieren.

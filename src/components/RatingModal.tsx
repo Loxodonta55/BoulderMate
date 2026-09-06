@@ -49,17 +49,37 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   // Expandable Radar sliders (AC-6)
   const [isRadarExpanded, setIsRadarExpanded] = useState<boolean>(false);
   const [radarValues, setRadarValues] = useState<RadarAttributes>({
-    kraft: existingRating?.radar?.kraft || boulder.radar.kraft || 3,
+    maximalkraft:
+      existingRating?.radar?.maximalkraft ||
+      existingRating?.radar?.kraft ||
+      boulder.radar.maximalkraft ||
+      boulder.radar.kraft ||
+      3,
+    kraftausdauer:
+      existingRating?.radar?.kraftausdauer ||
+      boulder.radar.kraftausdauer ||
+      3,
     technik: existingRating?.radar?.technik || boulder.radar.technik || 3,
     balance: existingRating?.radar?.balance || boulder.radar.balance || 3,
     koordination: existingRating?.radar?.koordination || boulder.radar.koordination || 3,
     flexibilitaet: existingRating?.radar?.flexibilitaet || boulder.radar.flexibilitaet || 3,
+    kraft:
+      existingRating?.radar?.maximalkraft ||
+      existingRating?.radar?.kraft ||
+      boulder.radar.maximalkraft ||
+      boulder.radar.kraft ||
+      3,
   });
 
   if (!isOpen) return null;
 
   const handleSliderChange = (axis: keyof RadarAttributes, val: number) => {
-    setRadarValues(prev => ({ ...prev, [axis]: val }));
+    setRadarValues(prev => {
+      const next = { ...prev, [axis]: val };
+      if (axis === 'maximalkraft') next.kraft = val;
+      if (axis === 'kraft') next.maximalkraft = val;
+      return next;
+    });
   };
 
   const handleSave = () => {
@@ -214,7 +234,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             {isRadarExpanded && (
               <div className="p-4 space-y-4 border-t border-[#333333] bg-[#1E1E1E] animate-in slide-in-from-top-2 duration-150">
                 <p className="text-[11px] font-mono text-[#A89F91]">
-                  Passe die 5 Achsen nach deinem Empfinden an (1 = minimal, 5 = dominant).
+                  Passe die 6 Achsen nach deinem Empfinden an (1 = minimal, 5 = dominant).
                   Fließt mit in den Community-Schnitt ein!
                 </p>
 

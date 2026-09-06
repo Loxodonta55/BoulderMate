@@ -14,6 +14,8 @@ import {
 import { resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
 
 const sampleRadar: RadarAttributes = {
+  maximalkraft: 4,
+  kraftausdauer: 3,
   kraft: 4,
   technik: 3,
   balance: 2,
@@ -68,10 +70,11 @@ describe('SPEC-003: UI Components Integration', () => {
   });
 
   describe('RadarChart (AC-2)', () => {
-    it('renders all 5 axes with correct German labels and values', () => {
+    it('renders all 6 axes with correct German labels and values', () => {
       render(<RadarChart data={sampleRadar} size={280} />);
 
-      expect(screen.getByText('Kraft')).toBeInTheDocument();
+      expect(screen.getByText('Max-Kraft')).toBeInTheDocument();
+      expect(screen.getByText('Kraft-Ausd.')).toBeInTheDocument();
       expect(screen.getByText('Technik')).toBeInTheDocument();
       expect(screen.getByText('Balance')).toBeInTheDocument();
       expect(screen.getByText('Koordination')).toBeInTheDocument();
@@ -79,7 +82,7 @@ describe('SPEC-003: UI Components Integration', () => {
 
       // Check values rendered
       expect(screen.getByText('4.0/5')).toBeInTheDocument();
-      expect(screen.getByText('3.0/5')).toBeInTheDocument();
+      expect(screen.getAllByText('3.0/5').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('5.0/5')).toBeInTheDocument();
     });
   });

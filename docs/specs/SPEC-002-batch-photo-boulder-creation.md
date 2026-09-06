@@ -3,13 +3,13 @@
 ## Status: DONE
 
 ## Summary
-Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder einer Wand in unter 3 Minuten direkt auf dem Wandfoto zu erfassen und veraltete Boulder zu archivieren. Durch einfachen Tap auf das Wandfoto wird die Position markiert, ein schlankes Bottom-Sheet öffnet sich und erfordert lediglich die Auswahl der Hallenfarbe. Zusätzliche Charakteristiken (Radar-Chart mit 5 Achsen, Name, Notizen) sind optional mit Smart-Defaults belegt. Änderungen werden gesammelt als Draft geführt und am Ende per Bestätigung im Batch veröffentlicht.
+Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder einer Wand in unter 3 Minuten direkt auf dem Wandfoto zu erfassen und veraltete Boulder zu archivieren. Durch einfachen Tap auf das Wandfoto wird die Position markiert, ein schlankes Bottom-Sheet öffnet sich und erfordert lediglich die Auswahl der Hallenfarbe. Zusätzliche Charakteristiken (Radar-Chart mit 6 Achsen: Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität, Name, Notizen) sind optional mit Smart-Defaults belegt. Änderungen werden gesammelt als Draft geführt und am Ende per Bestätigung im Batch veröffentlicht. Bestehende Routen werden mit Kraft $\rightarrow$ Maximalkraft und Kraft-Ausdauer $= 3$ migriert.
 
 ## User Stories
 - **US-1**: Als Schrauber möchte ich nach dem Schrauben ein frisches Foto der Wand aufnehmen oder das bestehende Foto wählen, um den aktuellen Griffzustand der Wand abzubilden.
 - **US-2**: Als Schrauber möchte ich durch Antippen der Wandposition im Foto direkt einen Boulder-Pin setzen können, um die Position intuitiv festzuhalten.
 - **US-3**: Als Schrauber möchte ich im Bottom-Sheet mit einem einzigen Tap die Farbe/Schwierigkeit festlegen, wobei die zuletzt genutzte Farbe vorausgewählt ist, um minimale Zeit pro Boulder zu benötigen.
-- **US-4**: Als Schrauber möchte ich optional ein 5-Achsen Radar-Chart (Kraft, Technik, Balance, Koordination, Flexibilität) zur Stil-Charakterisierung ausfüllen (Default 3/3/3/3/3).
+- **US-4**: Als Schrauber möchte ich optional ein 6-Achsen Radar-Chart (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität) zur Stil-Charakterisierung ausfüllen (Default 3/3/3/3/3/3). Bei bestehenden Routen wird die bisherige Kraft als Maximalkraft übernommen und Kraft-Ausdauer initial auf 3 gesetzt.
 - **US-5**: Als Schrauber möchte ich bestehende Boulder an der Wand als halbtransparente Pins sehen und durch Antippen unkompliziert als "abgeschraubt" archivieren können.
 - **US-6**: Als Schrauber möchte ich gesetzte Pins nachträglich per Drag verschieben oder per Tap bearbeiten können.
 - **US-7**: Als Schrauber möchte ich vor Veröffentlichung eine Zusammenfassung aller neuen und archivierten Boulder prüfen und die Veröffentlichung im Batch bestätigen.
@@ -18,7 +18,7 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
 - [x] **AC-1**: Der Workflow ist nur für Nutzer mit Rolle `setter` oder `admin` für das gewählte Gym zugänglich. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-2**: Schrauber kann für einen Sektor ein neues Wandfoto hochladen (welches das Sektorfoto aktualisiert) oder das vorhandene nutzen. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-3**: Tap auf eine freie Stelle des Fotos erzeugt einen neuen Pin mit relativen Koordinaten `position_x` und `position_y` (0.0 bis 1.0) und öffnet das Bottom-Sheet. *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
-- [x] **AC-4**: Das Bottom-Sheet verlangt als einziges Pflichtfeld die Auswahl einer aktiven Hallenfarbe (`grade_scale_id`). Radar-Slider (1-5), Name und Notizen sind optional. *(Getestet in `tests/spec002.test.ts`)*
+- [x] **AC-4**: Das Bottom-Sheet verlangt als einziges Pflichtfeld die Auswahl einer aktiven Hallenfarbe (`grade_scale_id`). Die 6 Radar-Slider (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität von 1-5, Default 3), Name und Notizen sind optional. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-5**: Nach Speichern eines Pins schließt sich das Sheet sofort und der Nutzer kann direkt den nächsten Pin setzen. Die zuletzt gewählte Farbe bleibt als Vorauswahl aktiv. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-6**: Bestehende aktive Boulder des Sektors werden als semitransparente Marker gerendert. Ein Klick darauf bietet "Archivieren" und "Bearbeiten". *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
 - [x] **AC-7**: Pins können per Long-Press und Drag auf dem Bild verschoben werden; Pinch-to-Zoom unterstützt präzise Platzierung. *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
@@ -42,7 +42,8 @@ CREATE TABLE boulders (
   notes TEXT,
   setter_id UUID REFERENCES auth.users(id) NOT NULL,
   status boulder_status NOT NULL DEFAULT 'draft',
-  radar_kraft SMALLINT CHECK (radar_kraft BETWEEN 1 AND 5) DEFAULT 3,
+  radar_maximalkraft SMALLINT CHECK (radar_maximalkraft BETWEEN 1 AND 5) DEFAULT 3,
+  radar_kraftausdauer SMALLINT CHECK (radar_kraftausdauer BETWEEN 1 AND 5) DEFAULT 3,
   radar_technik SMALLINT CHECK (radar_technik BETWEEN 1 AND 5) DEFAULT 3,
   radar_balance SMALLINT CHECK (radar_balance BETWEEN 1 AND 5) DEFAULT 3,
   radar_koordination SMALLINT CHECK (radar_koordination BETWEEN 1 AND 5) DEFAULT 3,

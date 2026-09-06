@@ -3,28 +3,28 @@
 ## Status: DONE
 
 ## Summary
-Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwierigkeitsband, Community-Qualität, Grade-Feeling und Radar-Chart zu Klettereigenschaften), das Loggen eigener Begehungen (Flash, Top, Projekt) sowie die direkte Bewertung nach dem Durchstieg. Das Bewertungssystem umfasst ein 3-stufiges Grad-Empfinden (Soft / Fair / Stiff), eine 5-Sterne Qualitäts-/Spaßwertung sowie eine 5-Achsen-Charakterisierung (Kraft, Technik, Balance, Koordination, Flexibilität), deren Durchschnitt gemeinsam mit der initialen Schrauber-Einschätzung aggregiert wird.
+Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwierigkeitsband, Community-Qualität, Grade-Feeling und Radar-Chart zu Klettereigenschaften), das Loggen eigener Begehungen (Flash, Top, Projekt) sowie die direkte Bewertung nach dem Durchstieg. Das Bewertungssystem umfasst ein 3-stufiges Grad-Empfinden (Soft / Fair / Stiff), eine 5-Sterne Qualitäts-/Spaßwertung sowie eine 6-Achsen-Charakterisierung (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität), deren Durchschnitt gemeinsam mit der initialen Schrauber-Einschätzung aggregiert wird. Bei bestehenden Routen wird die bisherige Kraft als Maximalkraft übernommen und Kraft-Ausdauer initial auf 3 gesetzt.
 
 ## User Stories
 - **US-1**: Als Kletterer möchte ich auf einen Boulder-Pin im Wandfoto tippen, um eine Vollbild-Detailansicht mit allen Kriterien und Bewertungen zu öffnen.
-- **US-2**: Als Kletterer möchte ich auf einen Blick sehen, ob der Boulder eher kraftig, technisch, koordinativ oder balance-lastig ist (5-Achsen Radar-Chart).
+- **US-2**: Als Kletterer möchte ich auf einen Blick sehen, ob der Boulder eher Maximalkraft, Kraft-Ausdauer, Technik, Koordination oder Balance erfordert (6-Achsen Radar-Chart).
 - **US-3**: Als Kletterer möchte ich den Boulder als `Flash`, `Top` oder `Projekt` in mein persönliches Logbuch eintragen können.
 - **US-4**: Als Kletterer möchte ich direkt nach dem Loggen eines Tops/Flashs ein kompaktes Bewertungs-Sheet erhalten, um ohne Reibung mein Feedback abzugeben (oder zu überspringen).
 - **US-5**: Als Kletterer möchte ich bewerten können, ob der Boulder für seinen Grad `Soft`, `Fair` oder `Stiff` ist, sowie 1–5 Sterne für die Routenqualität vergeben.
-- **US-6**: Als Kletterer möchte ich optional meine eigene Einschätzung im Radar-Chart anpassen können.
+- **US-6**: Als Kletterer möchte ich optional meine eigene Einschätzung im 6-Achsen Radar-Chart anpassen können.
 - **US-7**: Als Kletterer möchte ich sehen, welche anderen Nutzer den Boulder bereits getoppt oder geflasht haben.
 - **US-8**: Als Kletterer möchte ich auf einen Blick direkt am Wandfoto und auf den Routenkarten sehen, wie gut die Boulder im Schnitt bewertet und wie beliebt sie sind, ohne viel Platz zu verbrauchen oder jede Route einzeln öffnen zu müssen.
 
 ## Acceptance Criteria
 - [x] **AC-1: Navigation & Detailansicht**: Antippen eines aktiven Boulder-Pins navigiert zur vollständigen Detailseite mit Header (Farb-Badge, Schwierigkeitsband, Sternedurchschnitt, Soft/Fair/Stiff-Barometer), Radar-Chart und Aktionen.
-- [x] **AC-2: Radar-Chart Aggregation**: Das Radar-Chart zeigt den gewichteten Mittelwert aus Schrauber-Initialbewertung und Community-Ratings (Schrauber-Gewichtung anfangs dominant, Community-Einfluss steigt mit Bewertungsanzahl).
+- [x] **AC-2: Radar-Chart Aggregation**: Das Radar-Chart zeigt den gewichteten Mittelwert aus Schrauber-Initialbewertung und Community-Ratings über alle 6 Achsen (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität).
 - [x] **AC-3: Begehungs-Logging (Ascents)**: Nutzer können pro Boulder den Status `flash`, `top` oder `project` setzen. Ein neuer Top/Flash überschreibt vorherigen Projekt-Status.
 - [x] **AC-4: Automatischer Bewertungs-Trigger**: Direkt nach erfolgreichem Speichern eines `top` oder `flash` Logs öffnet sich ein Bewertungs-Sheet (mit "Überspringen"-Button).
 - [x] **AC-5: Manuelle Bewertung**: Auf der Detailseite existiert ein separater "Bewerten"-Button, um auch unabhängig vom Logzeitpunkt Feedback abzugeben oder anzupassen.
 - [x] **AC-6: Kompaktes Bewertungs-Formular**:
   - 3 prominente Buttons für Grad-Empfinden: `Soft` (🟢), `Fair` (🟡), `Stiff` (🔴).
   - 1–5 Sterne-Rating für Qualität/Spaß.
-  - Einklappbarer Bereich für 5 Slider des Radar-Charts (Kraft, Technik, Balance, Koordination, Flexibilität von 1 bis 5).
+  - Einklappbarer Bereich für 6 Slider des Radar-Charts (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität von 1 bis 5).
   - Speichern mit maximal 2–3 Taps möglich.
 - [x] **AC-7: Einmalige Wertung pro Nutzer**: Ein Nutzer kann pro Boulder genau eine Bewertung abgeben; spätere Aufrufe aktualisieren seine bestehende Bewertung.
 - [x] **AC-8: Community-Aggregat-Anzeige**:
@@ -64,7 +64,8 @@ CREATE TABLE boulder_ratings (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   grade_feel grade_feel,
   quality_stars SMALLINT CHECK (quality_stars BETWEEN 1 AND 5),
-  radar_kraft SMALLINT CHECK (radar_kraft BETWEEN 1 AND 5),
+  radar_maximalkraft SMALLINT CHECK (radar_maximalkraft BETWEEN 1 AND 5),
+  radar_kraftausdauer SMALLINT CHECK (radar_kraftausdauer BETWEEN 1 AND 5),
   radar_technik SMALLINT CHECK (radar_technik BETWEEN 1 AND 5),
   radar_balance SMALLINT CHECK (radar_balance BETWEEN 1 AND 5),
   radar_koordination SMALLINT CHECK (radar_koordination BETWEEN 1 AND 5),
@@ -92,9 +93,10 @@ GROUP BY b.id;
 ```
 
 ### Radar-Chart Aggregationsformel
-Für jede Achse $A \in \{\text{Kraft}, \text{Technik}, \text{Balance}, \text{Koordination}, \text{Flexibilität}\}$:
+Für jede Achse $A \in \{\text{Maximalkraft}, \text{Kraft-Ausdauer}, \text{Technik}, \text{Balance}, \text{Koordination}, \text{Flexibilität}\}$:
 $$\text{Wert}_A = \frac{W_{\text{setter}} \cdot \text{Initial}_A + \sum_{i=1}^N \text{User}_{i, A}}{W_{\text{setter}} + N}$$
 wobei $W_{\text{setter}} = 5$ als Basisgewicht der Schrauber-Wertung dient und $N$ die Anzahl der Community-Ratings ist.
+Für Altdaten wird `Initial_Maximalkraft = Initial_Kraft` und `Initial_KraftAusdauer = 3` gesetzt.
 
 ### UI / UX (Design System SPEC-005 Konform)
 - **Detail-Modal / View**:

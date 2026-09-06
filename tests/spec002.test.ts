@@ -157,7 +157,7 @@ describe('SPEC-002: Batch-Foto-Boulder-Erfassung (Service & Logic)', () => {
       ).toThrow(/Farbauswahl.*ist erforderlich/);
     });
 
-    it('belegt Radar-Werte automatisch mit Smart-Default 3/3/3/3/3 wenn nicht angegeben', () => {
+    it('belegt Radar-Werte automatisch mit Smart-Default 3/3/3/3/3/3 wenn nicht angegeben', () => {
       const draft = createDraftBoulder(
         {
           sectorId: 'sector-overhang',
@@ -170,6 +170,8 @@ describe('SPEC-002: Batch-Foto-Boulder-Erfassung (Service & Logic)', () => {
       );
 
       expect(draft.radar).toEqual({
+        maximalkraft: 3,
+        kraftausdauer: 3,
         kraft: 3,
         technik: 3,
         balance: 3,

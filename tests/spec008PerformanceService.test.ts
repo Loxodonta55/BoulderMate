@@ -22,10 +22,10 @@ describe('SPEC-008: Athlete Performance & Style Statistics Service', () => {
       expect(report.gymName).toContain('Minimum');
     });
 
-    it('calculates 5-axis user radar and gym radar', () => {
+    it('calculates 6-axis user radar and gym radar', () => {
       const report = getAthletePerformanceReport('user-boris', 'gym-minimum-zh');
 
-      const axes = ['kraft', 'technik', 'balance', 'koordination', 'flexibilitaet'] as const;
+      const axes = ['maximalkraft', 'kraftausdauer', 'kraft', 'technik', 'balance', 'koordination', 'flexibilitaet'] as const;
 
       axes.forEach(axis => {
         expect(report.userRadar[axis]).toBeGreaterThanOrEqual(1.0);
@@ -36,14 +36,14 @@ describe('SPEC-008: Athlete Performance & Style Statistics Service', () => {
       });
     });
 
-    it('identifies Kraft as a primary strength and Koordination as a weakness for Boris', () => {
+    it('identifies Maximalkraft as a primary strength and Koordination as a weakness for Boris', () => {
       const report = getAthletePerformanceReport('user-boris', 'gym-minimum-zh');
 
       expect(report.strength).not.toBeNull();
       expect(report.weakness).not.toBeNull();
 
       // Boris has logged multiple red tops and flashes on power overhangs
-      expect(['kraft', 'balance']).toContain(report.strength?.attribute);
+      expect(['maximalkraft', 'kraft', 'balance']).toContain(report.strength?.attribute);
 
       // Boris has open projects on high-coordination dynos (Dyno King, Wettkampf-Sprung)
       expect(report.weakness?.attribute).toBe('koordination');
@@ -97,17 +97,21 @@ describe('SPEC-008: Athlete Performance & Style Statistics Service', () => {
   });
 
   describe('AC-4: Attribute Metrics Table', () => {
-    it('calculates send-rate, flash-rate, and deltas for all 5 attributes', () => {
+    it('calculates send-rate, flash-rate, and deltas for all 6 attributes', () => {
       const report = getAthletePerformanceReport('user-boris', 'gym-minimum-zh');
 
-      expect(report.attributeMetrics).toHaveLength(5);
+      expect(report.attributeMetrics).toHaveLength(6);
 
-      const kraftMetric = report.attributeMetrics.find(m => m.key === 'kraft');
+      const kraftMetric = report.attributeMetrics.find(m => m.key === 'maximalkraft' || m.key === 'kraft');
       expect(kraftMetric).toBeDefined();
       expect(kraftMetric?.attemptsCount).toBeGreaterThan(0);
       expect(kraftMetric?.sendRatePercent).toBeGreaterThanOrEqual(0);
       expect(kraftMetric?.flashRatePercent).toBeGreaterThanOrEqual(0);
       expect(kraftMetric?.highestGradeTopped).toBeDefined();
+
+      const kaMetric = report.attributeMetrics.find(m => m.key === 'kraftausdauer');
+      expect(kaMetric).toBeDefined();
+      expect(kaMetric?.attemptsCount).toBeGreaterThan(0);
     });
   });
 

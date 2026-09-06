@@ -10,11 +10,12 @@ interface RadarChartProps {
 }
 
 const AXIS_CONFIG: { key: keyof RadarAttributes; label: string; angle: number }[] = [
-  { key: 'kraft', label: 'Kraft', angle: -Math.PI / 2 }, // Top
-  { key: 'technik', label: 'Technik', angle: -Math.PI / 2 + (2 * Math.PI) / 5 }, // Top-Right
-  { key: 'balance', label: 'Balance', angle: -Math.PI / 2 + (4 * Math.PI) / 5 }, // Bottom-Right
-  { key: 'koordination', label: 'Koordination', angle: -Math.PI / 2 + (6 * Math.PI) / 5 }, // Bottom-Left
-  { key: 'flexibilitaet', label: 'Flexibilität', angle: -Math.PI / 2 + (8 * Math.PI) / 5 }, // Top-Left
+  { key: 'maximalkraft', label: 'Max-Kraft', angle: -Math.PI / 2 }, // Top (12:00)
+  { key: 'kraftausdauer', label: 'Kraft-Ausd.', angle: -Math.PI / 2 + Math.PI / 3 }, // Top-Right (02:00)
+  { key: 'technik', label: 'Technik', angle: -Math.PI / 2 + (2 * Math.PI) / 3 }, // Bottom-Right (04:00)
+  { key: 'balance', label: 'Balance', angle: -Math.PI / 2 + Math.PI }, // Bottom (06:00)
+  { key: 'koordination', label: 'Koordination', angle: -Math.PI / 2 + (4 * Math.PI) / 3 }, // Bottom-Left (08:00)
+  { key: 'flexibilitaet', label: 'Flexibilität', angle: -Math.PI / 2 + (5 * Math.PI) / 3 }, // Top-Left (10:00)
 ];
 
 export const RadarChart: React.FC<RadarChartProps> = ({
@@ -41,7 +42,12 @@ export const RadarChart: React.FC<RadarChartProps> = ({
   // Build polygon points string for a given RadarAttributes set
   const getPolygonPoints = (radar: RadarAttributes) => {
     return AXIS_CONFIG.map(({ key, angle }) => {
-      const val = radar[key] || 3;
+      let val = radar[key];
+      if (val === undefined) {
+        if (key === 'maximalkraft') val = radar.kraft ?? 3;
+        else if (key === 'kraftausdauer') val = 3;
+        else val = 3;
+      }
       const { x, y } = getCoordinates(val, angle);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
@@ -126,7 +132,10 @@ export const RadarChart: React.FC<RadarChartProps> = ({
 
         {/* Data points on vertices */}
         {AXIS_CONFIG.map(({ key, angle }, idx) => {
-          const val = data[key] || 3;
+          let val = data[key];
+          if (val === undefined) {
+            val = (key === 'maximalkraft' ? data.kraft : 3) ?? 3;
+          }
           const { x, y } = getCoordinates(val, angle);
           return (
             <circle
@@ -148,7 +157,10 @@ export const RadarChart: React.FC<RadarChartProps> = ({
             const labelDist = maxRadius + 24;
             const lx = center + labelDist * Math.cos(angle);
             const ly = center + labelDist * Math.sin(angle);
-            const val = data[key] || 3;
+            let val = data[key];
+            if (val === undefined) {
+              val = (key === 'maximalkraft' ? data.kraft : 3) ?? 3;
+            }
 
             // Alignment based on angle
             let textAnchor: 'middle' | 'start' | 'end' = 'middle';

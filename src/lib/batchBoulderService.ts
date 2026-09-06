@@ -283,6 +283,30 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     }
   }
 
+  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3
+  let hasMigrated = false;
+  all = all.map(b => {
+    if (b.radar && (b.radar.maximalkraft === undefined || b.radar.kraftausdauer === undefined)) {
+      hasMigrated = true;
+      const mk = b.radar.maximalkraft ?? b.radar.kraft ?? 3;
+      const ka = b.radar.kraftausdauer ?? 3;
+      return {
+        ...b,
+        radar: {
+          ...b.radar,
+          maximalkraft: mk,
+          kraftausdauer: ka,
+          kraft: mk,
+        },
+      };
+    }
+    return b;
+  });
+
+  if (hasMigrated) {
+    setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
+  }
+
   if (sectorId) {
     return all.filter(b => b.sectorId === sectorId);
   }
@@ -336,12 +360,16 @@ export function createDraftBoulder(
     throw new Error('Ungültige relative Koordinaten: Werte müssen zwischen 0.0 und 1.0 liegen.');
   }
 
+  const mk = input.radar?.maximalkraft ?? input.radar?.kraft ?? DEFAULT_RADAR.maximalkraft;
+  const ka = input.radar?.kraftausdauer ?? DEFAULT_RADAR.kraftausdauer;
   const radar: RadarAttributes = {
-    kraft: input.radar?.kraft ?? DEFAULT_RADAR.kraft,
+    maximalkraft: mk,
+    kraftausdauer: ka,
     technik: input.radar?.technik ?? DEFAULT_RADAR.technik,
     balance: input.radar?.balance ?? DEFAULT_RADAR.balance,
     koordination: input.radar?.koordination ?? DEFAULT_RADAR.koordination,
     flexibilitaet: input.radar?.flexibilitaet ?? DEFAULT_RADAR.flexibilitaet,
+    kraft: mk,
   };
 
   const newBoulder: WallBoulder = {
@@ -406,13 +434,20 @@ export function updateBoulderDetails(
     throw new Error(`Boulder mit ID "${boulderId}" existiert nicht.`);
   }
 
+  const updatedRadar: RadarAttributes = {
+    ...all[idx].radar,
+    ...(updates.radar || {}),
+  };
+  if (updates.radar?.maximalkraft !== undefined) {
+    updatedRadar.kraft = updates.radar.maximalkraft;
+  } else if (updates.radar?.kraft !== undefined) {
+    updatedRadar.maximalkraft = updates.radar.kraft;
+  }
+
   all[idx] = {
     ...all[idx],
     ...updates,
-    radar: {
-      ...all[idx].radar,
-      ...(updates.radar || {}),
-    },
+    radar: updatedRadar,
   };
 
   saveWallBoulders(all);
