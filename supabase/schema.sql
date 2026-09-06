@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- BoulderMate — Supabase Schema & Initial Setup
 -- ============================================================
 
@@ -63,11 +63,12 @@ CREATE TABLE IF NOT EXISTS public.grade_scales (
 );
 
 -- 7. BOULDERS (Routen & Pins)
-DO  BEGIN
+DO $$
+BEGIN
   CREATE TYPE boulder_status AS ENUM ('draft', 'active', 'archived');
 EXCEPTION
   WHEN duplicate_object THEN null;
-END ;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.boulders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -123,11 +124,13 @@ VALUES ('sector-photos', 'sector-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage Policy: Jeder darf Fotos lesen
+DROP POLICY IF EXISTS "Public read for sector photos" ON storage.objects;
 CREATE POLICY "Public read for sector photos"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'sector-photos');
 
 -- Storage Policy: Authentifizierte & Anon Upload (damit es direkt funktioniert)
+DROP POLICY IF EXISTS "Public upload for sector photos" ON storage.objects;
 CREATE POLICY "Public upload for sector photos"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'sector-photos');
@@ -143,16 +146,36 @@ ALTER TABLE public.ascents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
 
 -- Leserechte fuer alle (Open Access fuer Kletterer)
+DROP POLICY IF EXISTS "Public read gyms" ON public.gyms;
 CREATE POLICY "Public read gyms" ON public.gyms FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read sectors" ON public.sectors;
 CREATE POLICY "Public read sectors" ON public.sectors FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read grade_scales" ON public.grade_scales;
 CREATE POLICY "Public read grade_scales" ON public.grade_scales FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read boulders" ON public.boulders;
 CREATE POLICY "Public read boulders" ON public.boulders FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read profiles" ON public.user_profiles;
 CREATE POLICY "Public read profiles" ON public.user_profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read ascents" ON public.ascents;
 CREATE POLICY "Public read ascents" ON public.ascents FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read ratings" ON public.ratings;
 CREATE POLICY "Public read ratings" ON public.ratings FOR SELECT USING (true);
 
 -- Schreibrechte (fuer schnellen Start zulaessig fuer authentifizierte Nutzer)
+DROP POLICY IF EXISTS "Allow insert sectors" ON public.sectors;
 CREATE POLICY "Allow insert sectors" ON public.sectors FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow insert boulders" ON public.boulders;
 CREATE POLICY "Allow insert boulders" ON public.boulders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow insert grade_scales" ON public.grade_scales;
 CREATE POLICY "Allow insert grade_scales" ON public.grade_scales FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow insert gyms" ON public.gyms;
 CREATE POLICY "Allow insert gyms" ON public.gyms FOR ALL USING (true) WITH CHECK (true);

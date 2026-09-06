@@ -1,8 +1,8 @@
-﻿-- ============================================================
+-- ============================================================
 -- Seed Data: 6a plus Winterthur mit Halle 1
 -- ============================================================
 
-DO 
+DO $$ 
 DECLARE
   v_gym_id UUID;
   v_yellow_id UUID;
@@ -64,4 +64,4 @@ BEGIN
   INSERT INTO public.sectors (gym_id, name, wall_photo_url, sort_order)
   VALUES (v_gym_id, 'Platte (Slab & Reibung)', '/images/walls/six-a-slab.jpg', 4);
 
-END ;
+END $$;
