@@ -18,6 +18,7 @@ import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, AuthUser } from './lib/authService';
+import { syncFromSupabase } from './lib/syncService';
 import { Mountain, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
@@ -162,6 +163,16 @@ export const App: React.FC = () => {
     } else {
       setBoulders(loaded);
     }
+
+    // Non-destruktiver Live-Sync aus Supabase (aktualisiert Sektoren, Hallen & Boulder)
+    syncFromSupabase().then((synced) => {
+      if (synced) {
+        refreshGyms();
+        setBoulders(getStoredBoulders());
+      }
+    }).catch(err => {
+      console.warn('[Supabase Sync] Background sync warning:', err);
+    });
   }, []);
 
   const refreshData = () => {

@@ -94,7 +94,10 @@ Every feature starts as a specification that aligns user requirements before imp
 Jedes Deployment MUSS vollständig und geschlossen über diese 4 Schritte laufen:
 1. **Pre-Flight (Lokal)**: `npm run build` und `npm test -- --run` müssen fehlerfrei grün sein.
 2. **Git & GitHub**: Saubere Semantic Commits auf `main` und `git push origin main`.
-3. **Supabase Sync**: Schema- und Migrationsstand in Supabase per Supabase-MCP verifizieren (Tabellen, RLS, DDL).
+3. **Supabase Sync (Non-destructive Upward Data Sync)**: 
+   - Schema- und Migrationsstand in Supabase per Supabase-MCP verifizieren.
+   - Alle Wandfotos und Stammdaten (Gyms, Farbskalen, Sektoren, Boulder) via `node scripts/sync-all-to-supabase.js` aufwärts synchronisieren.
+   - **STRIKTE REGEL**: Immer nur aufwärts synchronisieren, **NIEMALS** Daten auf `bouldermate.ch` / Supabase löschen (`DELETE`, `TRUNCATE`, `DROP`).
 4. **Vercel & Domain Verification**: Vercel-Deployment per Vercel-MCP auf Status `READY` prüfen und `https://bouldermate.ch` live verifizieren.
 
 ## Tech Stack

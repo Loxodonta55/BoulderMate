@@ -50,13 +50,21 @@ npm test -- --run
 
 ---
 
-## 3. Stufe: Supabase Schema & Migration Check
-Falls neue Tabellen, RLS-Policies oder Spalten in `supabase/schema.sql` oder `supabase/migrations/` hinzukamen:
-1. Supabase-Tabellen und Status prüfen via Supabase MCP:
-   - Tool: `supabase` -> `list_tables`
-   - Tool: `supabase` -> `list_migrations`
-2. Bei Schema-Änderungen: Entsprechende DDL-Statements via `supabase` -> `execute_sql` ausführen.
-3. RLS (Row Level Security) für alle neuen Tabellen verifizieren.
+## 3. Stufe: Supabase Schema & Non-destructive Upward Data Sync
+> **⚠️ ZWINGENDE REGEL (NON-DESTRUCTIVE / IMMER NUR AUFWÄRTS)**:
+> Es darf **NIEMALS** etwas auf der Produktions-Umgebung (`bouldermate.ch` / Supabase) gelöscht oder zurückgesetzt werden (`DELETE`, `TRUNCATE`, `DROP`). Alle Synchronisationen erfolgen **ausschließlich aufwärts (Local ──► Supabase)** im **Append-Only / Upsert-Modus** (`ON CONFLICT DO UPDATE` oder `ON CONFLICT DO NOTHING`).
+
+1. **Schema & Migrationen prüfen**:
+   - Supabase-Tabellen und Status prüfen via Supabase MCP (`list_tables`, `list_migrations`).
+   - Neue Tabellen, RLS-Policies oder Spalten bei Bedarf via `execute_sql` anlegen.
+2. **Wandfotos nach Supabase Storage synchronisieren**:
+   - Alle lokalen Wandfotos aus `public/images/walls/` in den Storage-Bucket `sector-photos` abgleichen (`node scripts/sync-images-to-supabase.js`).
+3. **Stammdaten & Sektoren aufwärts synchronisieren**:
+   - Hallen, Farbskalen, Sektoren und Boulder non-destruktiv via Sync-Skript synchronisieren:
+     ```powershell
+     node scripts/sync-all-to-supabase.js
+     ```
+   - Verifizieren, dass alle Sektoren beider Hallen (6a plus mit 8 Sektoren, Minimum mit 3 Sektoren) in Supabase vorhanden sind.
 
 ---
 
