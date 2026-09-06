@@ -230,7 +230,7 @@ describe('SPEC-003: UI Components Integration', () => {
     });
   });
 
-  describe('ClimberSectorView (AC-1)', () => {
+  describe('ClimberSectorView (AC-1, AC-10, AC-11)', () => {
     it('renders sector name and wall photo with active boulder pins', () => {
       render(<ClimberSectorView currentUser={sampleUser} />);
 
@@ -240,6 +240,47 @@ describe('SPEC-003: UI Components Integration', () => {
 
       // Pins on photo have labels
       expect(screen.getAllByText('Dyno King').length).toBeGreaterThan(0);
+    });
+
+    it('renders compact micro-ratings and favorite highlights on pins and route cards (AC-10)', () => {
+      render(<ClimberSectorView currentUser={sampleUser} />);
+
+      // Dyno King has 3 ratings (5, 4, 4) -> avg 4.3 stars
+      // Check micro-rating rendered on pin label / route cards
+      expect(screen.getAllByText('4.3').length).toBeGreaterThan(0);
+
+      // Dyno King has 4.3 stars >= 4.2, so it has favorite aura / title
+      const favoritePin = screen.getByTitle(/Dyno King \(4.3 ★\) \(Tippen für Details\)/i);
+      expect(favoritePin).toBeInTheDocument();
+    });
+
+    it('provides quick-filter pills and sort dropdown to filter and order routes (AC-11)', () => {
+      render(<ClimberSectorView currentUser={sampleUser} />);
+
+      // Filter pills exist
+      const allFilter = screen.getByRole('button', { name: /Alle/i });
+      const topRatedFilter = screen.getByRole('button', { name: /Top-Bewertet/i });
+      const popularFilter = screen.getByRole('button', { name: /Beliebt/i });
+      const projectsFilter = screen.getByRole('button', { name: /Meine Projekte/i });
+
+      expect(allFilter).toBeInTheDocument();
+      expect(topRatedFilter).toBeInTheDocument();
+      expect(popularFilter).toBeInTheDocument();
+      expect(projectsFilter).toBeInTheDocument();
+
+      // Sort select exists
+      expect(screen.getByText(/Sortierung:/i)).toBeInTheDocument();
+
+      // Click "Top-Bewertet"
+      fireEvent.click(topRatedFilter);
+
+      // "Filter zurücksetzen" link appears
+      const resetBtn = screen.getByText('Filter zurücksetzen');
+      expect(resetBtn).toBeInTheDocument();
+
+      // Click reset
+      fireEvent.click(resetBtn);
+      expect(screen.queryByText('Filter zurücksetzen')).not.toBeInTheDocument();
     });
   });
 });

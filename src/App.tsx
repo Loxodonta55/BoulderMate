@@ -34,7 +34,6 @@ export const App: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
-  const [isGuestBrowsing, setIsGuestBrowsing] = useState<boolean>(false);
   const [hasChosenModeForUser, setHasChosenModeForUser] = useState<Record<string, boolean>>({});
 
   const [gyms, setGyms] = useState<Gym[]>([]);
@@ -159,17 +158,15 @@ export const App: React.FC = () => {
   };
 
   // Dedicated Standalone Landing Page for unauthenticated visitors
-  if (!authSession && !isGuestBrowsing) {
+  if (!authSession) {
     return (
       <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
         <LandingPage
           onOpenLogin={() => setIsLoginModalOpen(true)}
-          onExploreAsGuest={() => setIsGuestBrowsing(true)}
           onQuickLogin={(user) => {
             const updated = setSessionUser(user);
             setAuthSession(updated);
             setClimberId(updated.id);
-            setIsGuestBrowsing(false);
           }}
         />
 
@@ -181,7 +178,6 @@ export const App: React.FC = () => {
             if (user) {
               setAuthSession(user);
               setClimberId(user.id);
-              setIsGuestBrowsing(false);
             } else {
               setAuthSession(null);
               setClimberId(null);
@@ -411,48 +407,29 @@ export const App: React.FC = () => {
             {/* Header Actions */}
             <div className="flex items-center gap-2">
               {/* Active Climber Switcher / Auth indicator */}
-              {authSession ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
-                  <User className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
-                  <select
-                    value={climberId || ''}
-                    onChange={e => {
-                      const newId = e.target.value;
-                      if (newId) {
-                        setSessionUser(newId);
-                        setAuthSession(getCurrentAuthUser());
-                        setClimberId(newId);
-                      }
-                    }}
-                    className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
-                    title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
-                  >
-                    {AVAILABLE_CLIMBERS.map(c => (
-                      <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
-                        {c.nickname}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs text-[#A89F91] font-mono">
-                    <User className="w-3.5 h-3.5 text-[#6B6358]" />
-                    <span>Gast</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsGuestBrowsing(false)}
-                    className="px-2 py-1 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-xs font-mono text-[#C9A96E] hover:text-[#E8E0D4] transition flex items-center gap-1"
-                    title="Zurück zur Landing Page"
-                    data-testid="back-to-landing-btn"
-                  >
-                    <Mountain className="w-3 h-3" />
-                    <span className="hidden sm:inline">Landing Page</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
+                <User className="w-3.5 h-3.5 text-[#C9A96E]" />
+                <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
+                <select
+                  value={climberId || ''}
+                  onChange={e => {
+                    const newId = e.target.value;
+                    if (newId) {
+                      setSessionUser(newId);
+                      setAuthSession(getCurrentAuthUser());
+                      setClimberId(newId);
+                    }
+                  }}
+                  className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
+                  title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
+                >
+                  {AVAILABLE_CLIMBERS.map(c => (
+                    <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                      {c.nickname}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Login / Profile Modal Trigger (SPEC-000) */}
               <button
@@ -533,7 +510,6 @@ export const App: React.FC = () => {
               signOut();
               setAuthSession(null);
               setClimberId(null);
-              setIsGuestBrowsing(false);
               setActiveTab('wall');
             }}
             onNavigateToWall={() => setActiveTab('wall')}

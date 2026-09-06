@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 dist
 .system_generated
 *.log
@@ -6,3 +6,4 @@ dist
 .env.local
 .env.*.local
 .agent/mcp_config.json
+Bilder6aPlus/

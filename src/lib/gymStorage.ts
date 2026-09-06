@@ -107,43 +107,37 @@ export function ensureInitialGymData(): void {
       website: 'https://sechsaplus.ch',
       logo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=128&auto=format&fit=crop'
     }, CURRENT_USER.id);
+  }
 
-    createSector(gym6a.id, CURRENT_USER.id, {
-      name: 'Halle 1',
-      wall_photo_url: '/images/walls/six-a-comp.jpg',
-      sort_order: 1
-    });
-
-    const s1 = createSector(gym6a.id, CURRENT_USER.id, {
-      name: 'Wettkampfwand (Comp Wall)',
-      wall_photo_url: '/images/walls/six-a-comp.jpg',
-      sort_order: 2
-    });
-
-    const s2 = createSector(gym6a.id, CURRENT_USER.id, {
-      name: 'Dachgrotte & Überhang',
-      wall_photo_url: '/images/walls/six-a-roof.jpg',
-      sort_order: 3
-    });
-
-    const s3 = createSector(gym6a.id, CURRENT_USER.id, {
-      name: 'Platte (Slab & Reibung)',
-      wall_photo_url: '/images/walls/six-a-slab.jpg',
-      sort_order: 4
-    });
+  // Ensure 6a plus has all 8 sectors from Bilder6aPlus
+  const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id === gym6a.id);
+  const needsEightSectorsUpgrade = current6aSectors.length < 8 || !current6aSectors.some(s => s.name === 'Cave');
+  if (needsEightSectorsUpgrade) {
+    const otherSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id !== gym6a.id);
+    const new6aSectors: Sector[] = [
+      { id: 'sec_6a_slab_vorne', gym_id: gym6a.id, name: 'Slab Vorne', wall_photo_url: '/images/walls/6aplus/SlapVorne.jpg', sort_order: 1, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ecke_vorne', gym_id: gym6a.id, name: 'Ecke Vorne', wall_photo_url: '/images/walls/6aplus/EckeVorne.jpg', sort_order: 2, created_at: new Date().toISOString() },
+      { id: 'sec_6a_zwischenwand_vorne', gym_id: gym6a.id, name: 'Zwischenwand Vorne', wall_photo_url: '/images/walls/6aplus/ZwischenwandVorne.jpg', sort_order: 3, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ueberhang_vorne', gym_id: gym6a.id, name: 'Überhang Vorne', wall_photo_url: '/images/walls/6aplus/UerberhangVorne.jpg', sort_order: 4, created_at: new Date().toISOString() },
+      { id: 'sec_6a_verlaengerung_ueberhang', gym_id: gym6a.id, name: 'Verlängerung Überhang', wall_photo_url: '/images/walls/6aplus/VerlaengerungUeberhang.jpg', sort_order: 5, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ecke_mitte', gym_id: gym6a.id, name: 'Ecke Mitte', wall_photo_url: '/images/walls/6aplus/EckeMitte.jpg', sort_order: 6, created_at: new Date().toISOString() },
+      { id: 'sec_6a_cave', gym_id: gym6a.id, name: 'Cave', wall_photo_url: '/images/walls/6aplus/Cave.jpg', sort_order: 7, created_at: new Date().toISOString() },
+      { id: 'sec_6a_cave_wand', gym_id: gym6a.id, name: 'Cave Wand', wall_photo_url: '/images/walls/6aplus/CaveWand.jpg', sort_order: 8, created_at: new Date().toISOString() },
+    ];
+    saveSectors([...otherSectors, ...new6aSectors]);
 
     const scales = getGradeScales(gym6a.id);
     const yellowScale = scales[0]?.id || 's_yellow_6a';
     const blueScale = scales[2]?.id || 's_blue_6a';
     const redScale = scales[3]?.id || 's_red_6a';
 
-    const existingBoulders = getBoulders();
+    const otherBoulders = getBoulders().filter(b => !current6aSectors.some(s => s.id === b.sector_id));
     saveBoulders([
-      ...existingBoulders,
-      { id: 'b_6a_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
-      { id: 'b_6a_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Boulder-Crux' },
-      { id: 'b_6a_3', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Dach-Problem Rot' },
-      { id: 'b_6a_4', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Platten-Traverse' }
+      ...otherBoulders,
+      { id: 'b_6a_1', sector_id: 'sec_6a_slab_vorne', grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
+      { id: 'b_6a_2', sector_id: 'sec_6a_ueberhang_vorne', grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Überhang-Crux' },
+      { id: 'b_6a_3', sector_id: 'sec_6a_cave', grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Cave Power Rot' },
+      { id: 'b_6a_4', sector_id: 'sec_6a_zwischenwand_vorne', grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Zwischenwand-Traverse' }
     ]);
   }
 

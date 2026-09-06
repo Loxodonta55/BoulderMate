@@ -13,6 +13,7 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
 - **US-5**: Als Kletterer möchte ich bewerten können, ob der Boulder für seinen Grad `Soft`, `Fair` oder `Stiff` ist, sowie 1–5 Sterne für die Routenqualität vergeben.
 - **US-6**: Als Kletterer möchte ich optional meine eigene Einschätzung im Radar-Chart anpassen können.
 - **US-7**: Als Kletterer möchte ich sehen, welche anderen Nutzer den Boulder bereits getoppt oder geflasht haben.
+- **US-8**: Als Kletterer möchte ich auf einen Blick direkt am Wandfoto und auf den Routenkarten sehen, wie gut die Boulder im Schnitt bewertet und wie beliebt sie sind, ohne viel Platz zu verbrauchen oder jede Route einzeln öffnen zu müssen.
 
 ## Acceptance Criteria
 - [x] **AC-1: Navigation & Detailansicht**: Antippen eines aktiven Boulder-Pins navigiert zur vollständigen Detailseite mit Header (Farb-Badge, Schwierigkeitsband, Sternedurchschnitt, Soft/Fair/Stiff-Barometer), Radar-Chart und Aktionen.
@@ -30,6 +31,13 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
   - Soft/Fair/Stiff wird als prozentualer Balken oder dominanter Trend (z.B. "Eher Soft (62%)") visualisiert.
   - Sterne werden als dezimaler Durchschnitt (z.B. "4.6 ★ (18)") gerendert.
 - [x] **AC-9: Ascent-Feed / Begehungsliste**: Die Detailseite listet Kletterer auf, die den Boulder getoppt oder geflasht haben (Avatar, Nickname, Datum).
+- [x] **AC-10: Kompakte Bewertungs-Präsenz auf Wandfoto & Pins (Micro-Rating & Favoriten-Aura)**:
+  - Bei bewerteten Bouldern zeigt das Pin-Label unter dem Wandfoto-Pin ultra-kompakt die Durchschnittsnote an (z.B. `[Name • ★ 4.7]`).
+  - Boulder mit herausragender Community-Beliebtheit ($\ge 4.2$ Sterne bei $\ge 2$ Wertungen) erhalten einen leuchtenden Sandstein-Gold-Ring (`#C9A96E`) als "Favoriten-Aura" und ein dezentes Kronen-/Stern-Abzeichen am Pin, sodass die "Schmuckstücke" der Wand sofort ins Auge stechen, ohne Platz zu vergeuden.
+- [x] **AC-11: Sektor-Filter & Sortierung nach Community-Qualität**:
+  - Über dem Wandfoto und der Routenliste existieren Schnellfilter-Pills: `Alle`, `★ Top-Bewertet (≥ 4.0)`, `🔥 Beliebt` und `Meine Projekte`.
+  - Bei aktivem "Top-Bewertet"-Filter werden unpassende Pins abgedunkelt und Top-Boulder hervorgehoben.
+  - Routen-Karten zeigen im Header ein kompaktes goldenes Rating-Badge (`★ 4.8 Favorit`) und bieten eine Sortierung nach `Beste Bewertung ↓`.
 
 ## Technical Design
 

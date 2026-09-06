@@ -104,23 +104,15 @@ export function getSectors(gymId: string): Sector[] {
       hasMigrated = true;
       return { ...s, wallPhotoUrl: '/images/walls/roof.jpg' };
     }
-    // 6a plus sectors: ensure they have their own dedicated photos instead of Minimum's
+    // 6a plus sectors: ensure only the 8 real sectors from Bilder6aPlus are used
     if (s.gymId === 'gym-6a-plus') {
-      if (s.name.includes('Wettkampf') && s.wallPhotoUrl === '/images/walls/overhang.jpg') {
+      if (s.name === 'Halle 1' || s.name.includes('Wettkampf') || s.name.includes('Dachgrotte')) {
         hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/six-a-comp.jpg' };
-      }
-      if (s.name.includes('Dach') && s.wallPhotoUrl === '/images/walls/roof.jpg') {
-        hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/six-a-roof.jpg' };
-      }
-      if (s.name.includes('Platte') && s.wallPhotoUrl === '/images/walls/slab.jpg') {
-        hasMigrated = true;
-        return { ...s, wallPhotoUrl: '/images/walls/six-a-slab.jpg' };
+        return null as any;
       }
     }
     return s;
-  });
+  }).filter(Boolean);
   if (hasMigrated) {
     setStorageJson(STORAGE_KEY_SECTORS, all);
   }

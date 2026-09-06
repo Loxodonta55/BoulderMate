@@ -49,19 +49,16 @@ BEGIN
   VALUES 
     (v_gym_id, 'Lila', '#a855f7', 'Elite', '8B+', '8C+', 7) RETURNING id INTO v_purple_id;
 
-  -- Sektoren anlegen, inklusive 'Halle 1'!
+  -- Sektoren fuer 6a plus anlegen (8 Sektoren aus Hallenaufnahmen)
   INSERT INTO public.sectors (gym_id, name, wall_photo_url, sort_order)
-  VALUES (v_gym_id, 'Halle 1', '/images/walls/six-a-comp.jpg', 1)
-  RETURNING id INTO v_sec_halle1;
-
-  INSERT INTO public.sectors (gym_id, name, wall_photo_url, sort_order)
-  VALUES (v_gym_id, 'Wettkampfwand (Comp Wall)', '/images/walls/six-a-comp.jpg', 2)
-  RETURNING id INTO v_sec_comp;
-
-  INSERT INTO public.sectors (gym_id, name, wall_photo_url, sort_order)
-  VALUES (v_gym_id, 'Dachgrotte & Überhang', '/images/walls/six-a-roof.jpg', 3);
-
-  INSERT INTO public.sectors (gym_id, name, wall_photo_url, sort_order)
-  VALUES (v_gym_id, 'Platte (Slab & Reibung)', '/images/walls/six-a-slab.jpg', 4);
+  VALUES 
+    (v_gym_id, 'Slab Vorne', '/images/walls/6aplus/SlapVorne.jpg', 1),
+    (v_gym_id, 'Ecke Vorne', '/images/walls/6aplus/EckeVorne.jpg', 2),
+    (v_gym_id, 'Zwischenwand Vorne', '/images/walls/6aplus/ZwischenwandVorne.jpg', 3),
+    (v_gym_id, 'Überhang Vorne', '/images/walls/6aplus/UerberhangVorne.jpg', 4),
+    (v_gym_id, 'Verlängerung Überhang', '/images/walls/6aplus/VerlaengerungUeberhang.jpg', 5),
+    (v_gym_id, 'Ecke Mitte', '/images/walls/6aplus/EckeMitte.jpg', 6),
+    (v_gym_id, 'Cave', '/images/walls/6aplus/Cave.jpg', 7),
+    (v_gym_id, 'Cave Wand', '/images/walls/6aplus/CaveWand.jpg', 8);
 
 END $$;

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LandingPage } from '../src/components/LandingPage';
 import { App } from '../src/App';
 import { resetAllGymData } from '../src/lib/gymStorage';
 import { signOut, setSessionUser } from '../src/lib/authService';
 
-describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)', () => {
+describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate)', () => {
   beforeEach(() => {
     resetAllGymData();
     localStorage.clear();
@@ -13,14 +13,12 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
   });
 
   describe('Komponenten-Tests: LandingPage.tsx', () => {
-    it('rendert Brand, Headline und Kletterer-Fokus standardmäßig', () => {
+    it('rendert Brand, Headline und Kletterer-Fokus standardmäßig ohne Gast-Bypass', () => {
       const onOpenLogin = vi.fn();
-      const onExploreGuest = vi.fn();
 
       render(
         <LandingPage
           onOpenLogin={onOpenLogin}
-          onExploreAsGuest={onExploreGuest}
         />
       );
 
@@ -29,9 +27,13 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       expect(screen.getByText('Digitales Wand-Topo')).toBeInTheDocument();
       expect(screen.getByText('Gast')).toBeInTheDocument();
 
-      // 2. Hero Headline
-      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
-      expect(screen.getByText(/Erfolge & Community/i)).toBeInTheDocument();
+      // Keine Gast-Bypass-Buttons
+      expect(screen.queryByTestId('explore-guest-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('hero-explore-guest-btn')).not.toBeInTheDocument();
+
+      // 2. Hero Headline & Information
+      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+      expect(screen.getByText(/direkt an die Wand/i)).toBeInTheDocument();
 
       // 3. Rollen-Tabs: Kletterer ist standardmäßig aktiv mit Fokus-Tag
       const climberTab = screen.getByTestId('role-tab-climber');
@@ -39,17 +41,16 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       expect(climberTab).toHaveTextContent(/Fokus/i);
 
       // Kletterer-Features sind sichtbar
-      expect(screen.getByText('Faire Grade & Beliebte Boulder')).toBeInTheDocument();
-      expect(screen.getByText('Routen-Diskussion & Beta-Tipps')).toBeInTheDocument();
-      expect(screen.getByText('Erfolge tracken & Selbsteinschätzung')).toBeInTheDocument();
-      expect(screen.getByText('Interaktive Wand & 2-Tap Logging')).toBeInTheDocument();
+      expect(screen.getByText('Interaktive Wand & Sektoren')).toBeInTheDocument();
+      expect(screen.getByText('Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
+      expect(screen.getByText('Profil & Performance-Radar')).toBeInTheDocument();
+      expect(screen.getByText('Community Barometer')).toBeInTheDocument();
     });
 
     it('erlaubt das Umschalten auf die Schrauber-Rolle und zeigt deren Workflow', () => {
       render(
         <LandingPage
           onOpenLogin={vi.fn()}
-          onExploreAsGuest={vi.fn()}
         />
       );
 
@@ -67,70 +68,85 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       render(
         <LandingPage
           onOpenLogin={vi.fn()}
-          onExploreAsGuest={vi.fn()}
         />
       );
 
-      // Klick auf "Routen-Diskussion & Beta-Tipps"
-      const discussionCard = screen.getByText('Routen-Diskussion & Beta-Tipps');
-      fireEvent.click(discussionCard);
+      // Klick auf "Chalk-Proof 2-Tap Logging"
+      const loggingCard = screen.getByText('Chalk-Proof 2-Tap Logging');
+      fireEvent.click(loggingCard);
 
-      expect(screen.getByText('Vorschau: Routen-Diskussion & Beta-Tipps')).toBeInTheDocument();
-      expect(screen.getByText(/Die Hallen-Diskussion direkt an der Route/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Routen-Diskussion & Beta/i).length).toBeGreaterThan(0);
-      expect(screen.getByText(/Rechten Fuß hoch auf die Kante/i)).toBeInTheDocument();
+      expect(screen.getByText('Vorschau: Chalk-Proof 2-Tap Logging')).toBeInTheDocument();
+      expect(screen.getByText(/Für eingekreidete Hände optimiert/i)).toBeInTheDocument();
+      expect(screen.getByText('FLASH ⚡')).toBeInTheDocument();
+      expect(screen.getByText('TOP ✅')).toBeInTheDocument();
     });
 
-    it('triggert onOpenLogin und onExploreAsGuest bei Klick auf die entsprechenden Buttons', () => {
+    it('triggert onOpenLogin bei Klick auf Login & Registrier-Buttons', () => {
       const onOpenLogin = vi.fn();
-      const onExploreGuest = vi.fn();
 
       render(
         <LandingPage
           onOpenLogin={onOpenLogin}
-          onExploreAsGuest={onExploreGuest}
         />
       );
 
-      // Hero Login Button
+      // Hero Register Button
       fireEvent.click(screen.getByTestId('hero-login-btn'));
       expect(onOpenLogin).toHaveBeenCalledTimes(1);
-
-      // Hero Explore Guest Button
-      fireEvent.click(screen.getByTestId('hero-explore-guest-btn'));
-      expect(onExploreGuest).toHaveBeenCalledTimes(1);
 
       // Header Login Button
       fireEvent.click(screen.getByTestId('login-modal-btn'));
       expect(onOpenLogin).toHaveBeenCalledTimes(2);
+
+      // Header Register Button
+      fireEvent.click(screen.getByTestId('landing-primary-start-btn'));
+      expect(onOpenLogin).toHaveBeenCalledTimes(3);
     });
   });
 
-  describe('Integration in App.tsx: Unangemeldeter vs. angemeldeter User-Flow', () => {
-    it('zeigt unbegleiteten/unangemeldeten Besuchern die Landing Page als Einstiegsansicht', () => {
+  describe('Integration in App.tsx: Ausschließlich Landing Page für unangemeldete User', () => {
+    it('zeigt unangemeldeten Besuchern NUR die Landing Page und keine internen App-Sektoren', () => {
       render(<App />);
 
       // Standalone Landing Page ist aktiv
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
+
+      // Interne App-Navigation und Hallenwände sind für unangemeldete User NICHT sichtbar
+      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('tab-profile')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('header-gym-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('studio-gym-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('admin-gym-select')).not.toBeInTheDocument();
     });
 
-    it('ermöglicht den Wechsel in den Gast-Modus und zurück zur Landing Page', () => {
+    it('erlaubt das einfache Erstellen eines neuen Kletterer-Kontos direkt im Modal', async () => {
       render(<App />);
 
-      // Gast klickt "Halle als Gast ansehen"
-      const exploreBtn = screen.getByTestId('hero-explore-guest-btn');
-      fireEvent.click(exploreBtn);
+      // Klick auf "Kostenlos Konto erstellen"
+      const registerBtn = screen.getByTestId('hero-login-btn');
+      fireEvent.click(registerBtn);
 
-      // Nun ist der Besucher in der Wand & Sektoren Ansicht
-      expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
-      expect(screen.getByTestId('back-to-landing-btn')).toBeInTheDocument();
+      // Modal öffnet sich mit Registrierungs-Formular
+      expect(screen.getByText('Anmeldung & Konto')).toBeInTheDocument();
+      expect(screen.getByTestId('input-register-nickname')).toBeInTheDocument();
+      expect(screen.getByTestId('input-register-email')).toBeInTheDocument();
 
-      // Klick auf "Landing Page" bringt den Besucher zurück
-      fireEvent.click(screen.getByTestId('back-to-landing-btn'));
-      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
+      // Neue Nutzerdaten eingeben
+      fireEvent.change(screen.getByTestId('input-register-nickname'), {
+        target: { value: 'Petra' }
+      });
+      fireEvent.change(screen.getByTestId('input-register-email'), {
+        target: { value: 'petra@klettern.ch' }
+      });
+
+      // Absenden
+      fireEvent.click(screen.getByTestId('btn-register-submit'));
+
+      // Nach erfolgreicher Registrierung gelangt der neue User in die App
+      await waitFor(() => {
+        expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
+      });
     });
 
     it('führt nach Login über Quick-Login oder Modal zur daraus resultierenden Wahl (Role Gateway für Boris)', () => {
@@ -178,9 +194,10 @@ describe('Landing Page für unangemeldete User (SPEC-005 Standalone Experience)'
       const logoutBtn = screen.getByTestId('btn-logout');
       fireEvent.click(logoutBtn);
 
-      // Nun befindet sich der Nutzer wieder auf der Landing Page
-      expect(screen.getByText(/Faire Grade\. Beliebte Boulder\./i)).toBeInTheDocument();
+      // Nun befindet sich der Nutzer wieder exklusiv auf der Landing Page
+      expect(screen.getByText(/Vom Schrauberschlüssel/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
+      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
     });
   });
 });

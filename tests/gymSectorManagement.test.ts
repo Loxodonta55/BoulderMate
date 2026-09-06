@@ -278,10 +278,12 @@ describe('SPEC-001: Hallen- & Sektor-Verwaltung', () => {
     const minPhotos = minSectors.map(s => s.wall_photo_url);
     const sixAPhotos = sixASectors.map(s => s.wall_photo_url);
 
-    // Verify 6a plus has its own dedicated wall photos
-    expect(sixAPhotos).toContain('/images/walls/six-a-comp.jpg');
-    expect(sixAPhotos).toContain('/images/walls/six-a-roof.jpg');
-    expect(sixAPhotos).toContain('/images/walls/six-a-slab.jpg');
+    // Verify 6a plus has its 8 dedicated wall photos from Bilder6aPlus
+    expect(sixASectors.length).toBe(8);
+    expect(sixAPhotos).toContain('/images/walls/6aplus/Cave.jpg');
+    expect(sixAPhotos).toContain('/images/walls/6aplus/CaveWand.jpg');
+    expect(sixAPhotos).toContain('/images/walls/6aplus/SlapVorne.jpg');
+    expect(sixAPhotos).toContain('/images/walls/6aplus/UerberhangVorne.jpg');
 
     // Verify no sector in 6a plus shares the exact same photo as a sector in Minimum
     minPhotos.forEach(photo => {

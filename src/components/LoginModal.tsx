@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { X, Shield, Check, Crown, Wrench, Building2, Mountain } from 'lucide-react';
+import { X, Shield, Check, Crown, Wrench, Building2, Mountain, UserPlus, Globe } from 'lucide-react';
 import {
   getCurrentAuthUser,
   signOut,
   setSessionUser,
   getAvailableTestUsers,
+  signInWithGoogle,
+  signInWithEmail,
   AuthUser
 } from '../lib/authService';
 
@@ -21,6 +23,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(getCurrentAuthUser());
   const [message, setMessage] = useState<string | null>(null);
+  const [newEmail, setNewEmail] = useState('');
+  const [newNickname, setNewNickname] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -41,6 +47,56 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setCurrentUser(null);
     setMessage('Erfolgreich abgemeldet.');
     onUserChanged?.(null);
+  };
+
+  const handleRegisterNewUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail || !newEmail.includes('@')) {
+      setErrorMsg('Bitte eine gültige E-Mail-Adresse angeben.');
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const user = await signInWithEmail(newEmail);
+      if (newNickname.trim()) {
+        user.nickname = newNickname.trim();
+        setSessionUser(user);
+      }
+      setCurrentUser(user);
+      setMessage(`Konto erfolgreich erstellt! Angemeldet als ${user.nickname}`);
+      onUserChanged?.(user);
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Fehler beim Erstellen des Kontos';
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const user = await signInWithGoogle({
+        nickname: newNickname.trim() || undefined,
+        email: newEmail.trim() || undefined
+      });
+      setCurrentUser(user);
+      setMessage(`Google-Login erfolgreich! Angemeldet als ${user.nickname}`);
+      onUserChanged?.(user);
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Fehler beim Google-Login';
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getRoleIcon = (u: AuthUser) => {
@@ -135,10 +191,74 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
+          {/* Quick Registration / Account Creation Form */}
+          <div className="p-4 bg-[#161616] border border-[#333333] rounded-none space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-[#C9A96E]" />
+                <span>Neues Kletterer-Konto erstellen</span>
+              </span>
+              <span className="text-[10px] font-mono text-[#86efac] bg-[#4A5D3A]/30 border border-[#86efac]/30 px-1.5 py-0.5">
+                Kostenlos & sofort
+              </span>
+            </div>
+
+            <form onSubmit={handleRegisterNewUser} className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Kletter-Name (z.B. Alex)"
+                  value={newNickname}
+                  onChange={e => setNewNickname(e.target.value)}
+                  className="px-3 py-1.5 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                  data-testid="input-register-nickname"
+                />
+                <input
+                  type="email"
+                  placeholder="E-Mail-Adresse"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  required
+                  className="px-3 py-1.5 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                  data-testid="input-register-email"
+                />
+              </div>
+
+              {errorMsg && (
+                <div className="text-[11px] text-[#ef4444] font-mono" data-testid="register-error-msg">
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs tracking-wider transition rounded-[2px] disabled:opacity-50"
+                  data-testid="btn-register-submit"
+                >
+                  Konto erstellen & starten
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isSubmitting}
+                  className="px-3 py-2 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#8B8680] font-mono text-xs transition rounded-[2px] disabled:opacity-50 flex items-center gap-1.5"
+                  title="Mit Google anmelden"
+                  data-testid="btn-google-login"
+                >
+                  <Globe className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <span>Google</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
           {/* 6 Profile Cards Grid */}
           <div>
             <div className="text-[11px] text-[#A89F91] uppercase font-headline tracking-wider font-bold mb-3 flex items-center gap-2">
-              <span>Verfügbare Test-Profile ({testUsers.length})</span>
+              <span>Oder mit bestehendem Test-Profil einloggen ({testUsers.length})</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
