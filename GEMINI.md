@@ -82,18 +82,26 @@ Every feature starts as a specification that aligns user requirements before imp
 5. **Schrauber unprominent**: Kletterer sehen 2 Tabs (Halle + Profil), Setter/Admins sehen 3 (+Schrauben). Admin-Tools drängen sich nicht auf.
 6. **Nur funktionale Animationen**: Mikro-Transitions (250ms max). Kein Bounce, kein Confetti, kein Parallax.
 
-## Code Quality
+## Code Quality & Deployment Pipeline
 
-- Run `lint` and `type-check` before committing
-- All code changes require tests
+- Run `lint` and `type-check` (`npm run build`) before committing
+- All code changes require tests (`npm test -- --run`)
 - Follow clean-code principles
 - Use the spec as acceptance criteria
 - **Niemals unaufgefordert mocken/faken**: Echte Services und Protokolle implementieren; keine Fake-Logins oder Mocks ohne expliziten User-Befehl.
 
+### 🚀 End-to-End Deployment Pipeline (Git ──► Supabase ──► Vercel)
+Jedes Deployment MUSS vollständig und geschlossen über diese 4 Schritte laufen:
+1. **Pre-Flight (Lokal)**: `npm run build` und `npm test -- --run` müssen fehlerfrei grün sein.
+2. **Git & GitHub**: Saubere Semantic Commits auf `main` und `git push origin main`.
+3. **Supabase Sync**: Schema- und Migrationsstand in Supabase per Supabase-MCP verifizieren (Tabellen, RLS, DDL).
+4. **Vercel & Domain Verification**: Vercel-Deployment per Vercel-MCP auf Status `READY` prüfen und `https://bouldermate.ch` live verifizieren.
+
 ## Tech Stack
 
-- **Frontend**: React Native (Cross-Platform: iOS + Android)
+- **Frontend**: React Native / Web (Cross-Platform: iOS + Android + Web via Vite)
 - **Backend**: Supabase (PostgreSQL + Auth + Storage + Realtime)
+- **Deployment**: Vercel (Production Domain: bouldermate.ch)
 - **Auth**: Social Login (Google / Apple) + E-Mail
 - **Styling**: Dark-Mode First, kantige Formensprache (siehe SPEC-005)
 - **Testing**: Vitest & React Testing Library
