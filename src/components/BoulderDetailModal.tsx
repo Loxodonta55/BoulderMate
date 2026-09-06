@@ -37,7 +37,8 @@ import {
   Layers,
   MessageSquare,
   Send,
-  Trash2
+  Trash2,
+  Sparkles,
 } from 'lucide-react';
 
 interface BoulderDetailModalProps {
@@ -177,6 +178,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                       Fb {gradeScale.fontRangeMin} - {gradeScale.fontRangeMax}
                     </span>
                   )}
+                  {stats.avgStars >= 4.2 && stats.totalRatings >= 1 && (
+                    <span className="px-2 py-0.5 rounded-none text-xs font-mono font-bold bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/50 flex items-center gap-1 shadow-sm">
+                      <Sparkles className="w-3 h-3 text-[#C9A96E]" />
+                      <span>Community-Favorit</span>
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 text-xs font-mono text-[#A89F91]">
@@ -229,9 +236,17 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-mono text-[#A89F91]">
-                  {stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs font-mono text-[#A89F91]">
+                    {stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'}
+                  </span>
+                  {stats.avgStars >= 4.2 && stats.totalRatings >= 1 && (
+                    <span className="px-1.5 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-[#C9A96E]" />
+                      <span>Favorit</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Soft / Fair / Stiff Barometer Card */}

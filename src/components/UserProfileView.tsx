@@ -6,6 +6,7 @@ import {
   deleteAccount,
 } from '../lib/profileService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
+import { getRatings } from '../lib/ratingAndAscentService';
 import { formatRelativeDate } from '../lib/formatUtils';
 import { ProfileKPIsBar } from './ProfileKPIsBar';
 import { GradeDistributionChart } from './GradeDistributionChart';
@@ -24,6 +25,7 @@ import {
   Compass,
   Layers,
   Wrench,
+  Star,
 } from 'lucide-react';
 
 interface UserProfileViewProps {
@@ -270,6 +272,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   const isFlash = entry.type === 'flash';
                   const isTop = entry.type === 'top';
                   const isProject = entry.type === 'project';
+                  const bRatings = getRatings(entry.boulderId);
+                  const avgStars = bRatings.length > 0
+                    ? bRatings.reduce((acc, r) => acc + (r.qualityStars || 0), 0) / bRatings.length
+                    : 0;
 
                   return (
                     <div
@@ -302,6 +308,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                               <Layers className="w-3 h-3 text-[#C9A96E]" />
                               {entry.sectorName}
                             </span>
+                            {avgStars > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-0.5 text-[#C9A96E] font-bold" title={`Durchschnittliche Bewertung: ${avgStars.toFixed(1)} ★ (${bRatings.length} Wertungen)`}>
+                                  <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
+                                  <span>{avgStars.toFixed(1)}</span>
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
