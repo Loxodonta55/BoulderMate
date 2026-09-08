@@ -193,8 +193,8 @@ export async function syncFromSupabase(): Promise<boolean> {
         }
 
         const v1Id = foundV1Key || sc.id;
-        v1Map.set(v1Id, {
-          id: v1Id,
+        const v1Obj = {
+          id: sc.id,
           gym_id: targetGymId,
           color_name: sc.color_name,
           color_hex: sc.color_hex,
@@ -203,7 +203,11 @@ export async function syncFromSupabase(): Promise<boolean> {
           font_range_max: sc.font_range_max || '4',
           sort_order: sc.sort_order || 1,
           created_at: sc.created_at || new Date().toISOString(),
-        });
+        };
+        v1Map.set(sc.id, v1Obj);
+        if (v1Id !== sc.id) {
+          v1Map.set(v1Id, { ...v1Obj, id: v1Id });
+        }
 
         // V2: Deduplizierung nach ID oder semantisch nach (gymId, colorName)
         let foundV2Key: string | null = null;
@@ -218,8 +222,8 @@ export async function syncFromSupabase(): Promise<boolean> {
         }
 
         const v2Id = foundV2Key || sc.id;
-        v2Map.set(v2Id, {
-          id: v2Id,
+        const v2Obj = {
+          id: sc.id,
           gymId: targetGymId,
           colorName: sc.color_name,
           colorHex: sc.color_hex,
@@ -227,7 +231,11 @@ export async function syncFromSupabase(): Promise<boolean> {
           fontRangeMin: sc.font_range_min || '3',
           fontRangeMax: sc.font_range_max || '4',
           sortOrder: sc.sort_order || 1,
-        });
+        };
+        v2Map.set(sc.id, v2Obj);
+        if (v2Id !== sc.id) {
+          v2Map.set(v2Id, { ...v2Obj, id: v2Id });
+        }
       }
 
       gymStorage.saveGradeScales(Array.from(v1Map.values()));
@@ -462,6 +470,23 @@ export function stringToUuid(str: string): string {
   return `00000000-${hex1.slice(0, 4)}-4000-8000-${hex1.slice(4)}${hex2}`.slice(0, 36);
 }
 
+export const KNOWN_AUTH_USER_UUIDS = new Set([
+  '00000000-1d0e-4000-8000-e92d69136f33', // Boris
+  '00000000-37e7-4000-8000-0743462b539d', // Admin6APlus
+  '00000000-08ca-4000-8000-6e6f5bce818f', // Schrauber6aPlus
+  '00000000-4553-4000-8000-3dd13fac9e0f', // HansDereinfacheKletterer
+  '00000000-2ff9-4000-8000-b7902cb24230', // AdminMinimum
+  '00000000-5a7c-4000-8000-7702607a9a42', // Schrauber Minimum
+]);
+
+export function toKnownAuthUserUuid(userId?: string): string {
+  if (!userId) return '00000000-1d0e-4000-8000-e92d69136f33';
+  if (KNOWN_AUTH_USER_UUIDS.has(userId)) return userId;
+  const converted = stringToUuid(userId);
+  if (KNOWN_AUTH_USER_UUIDS.has(converted)) return converted;
+  return '00000000-1d0e-4000-8000-e92d69136f33';
+}
+
 /**
  * Synchronisiert einen Sektor in Echtzeit aufwärts nach Supabase.
  */
@@ -558,7 +583,7 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
       if (!resolvedSectorId || !resolvedScaleId) continue;
 
       const boulderUuid = isValidUuid(b.id) ? b.id : stringToUuid(b.id);
-      const setterUuid = isValidUuid(b.setterId) ? b.setterId : stringToUuid(b.setterId);
+      const setterUuid = toKnownAuthUserUuid(b.setterId);
 
       upsertRows.push({
         id: boulderUuid,
@@ -607,7 +632,7 @@ export async function syncAscentToSupabase(ascent: Ascent): Promise<boolean> {
   try {
     const ascentUuid = isValidUuid(ascent.id) ? ascent.id : stringToUuid(ascent.id);
     const boulderUuid = isValidUuid(ascent.boulderId) ? ascent.boulderId : stringToUuid(ascent.boulderId);
-    const userUuid = isValidUuid(ascent.userId) ? ascent.userId : stringToUuid(ascent.userId);
+    const userUuid = toKnownAuthUserUuid(ascent.userId);
 
     const payload = {
       id: ascentUuid,
@@ -639,7 +664,7 @@ export async function syncRatingToSupabase(rating: BoulderRating): Promise<boole
   try {
     const ratingUuid = isValidUuid(rating.id) ? rating.id : stringToUuid(rating.id);
     const boulderUuid = isValidUuid(rating.boulderId) ? rating.boulderId : stringToUuid(rating.boulderId);
-    const userUuid = isValidUuid(rating.userId) ? rating.userId : stringToUuid(rating.userId);
+    const userUuid = toKnownAuthUserUuid(rating.userId);
 
     const payload = {
       id: ratingUuid,

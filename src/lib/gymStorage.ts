@@ -1,5 +1,6 @@
 import { Gym, GymMember, GradeScale, Sector, BoulderReference, GymRole, User } from '../types/gym';
 import { isPlatformAdmin } from './authService';
+import { SEED_EXISTING_BOULDERS } from './seedData';
 
 export type { GradeScale };
 
@@ -60,19 +61,19 @@ export function ensureInitialGymData(): void {
       logo_url: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=128&auto=format&fit=crop'
     }, CURRENT_USER.id);
 
-    const s1 = createSector(defaultGym.id, CURRENT_USER.id, {
+    createSector(defaultGym.id, CURRENT_USER.id, {
       name: 'Überhang 45° (Comp Wall)',
       wall_photo_url: '/images/walls/overhang.jpg',
       sort_order: 1
     });
 
-    const s2 = createSector(defaultGym.id, CURRENT_USER.id, {
+    createSector(defaultGym.id, CURRENT_USER.id, {
       name: 'Dachbereich & Cave',
       wall_photo_url: '/images/walls/roof.jpg',
       sort_order: 2
     });
 
-    const s3 = createSector(defaultGym.id, CURRENT_USER.id, {
+    createSector(defaultGym.id, CURRENT_USER.id, {
       name: 'Platte (Slab & Balance)',
       wall_photo_url: '/images/walls/slab.jpg',
       sort_order: 3
@@ -87,19 +88,7 @@ export function ensureInitialGymData(): void {
       { id: 'scale-white', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 }
     ]);
 
-    const yellowScale = 'scale-yellow';
-    const blueScale = 'scale-blue';
-    const redScale = 'scale-red';
-
-    if (getBoulders().length === 0) {
-      saveBoulders([
-        { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
-        { id: 'b_sample_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.42, status: 'active', name: 'Blaues Volumen-Problem' },
-        { id: 'b_sample_3', sector_id: s1.id, grade_scale_id: redScale, position_x: 0.74, position_y: 0.31, status: 'active', name: 'Rote Leiste' },
-        { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' },
-        { id: 'b_sample_5', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.35, position_y: 0.60, status: 'active', name: 'Platten-Reibung' }
-      ]);
-    }
+    // (Boulders will be comprehensively populated from SEED_EXISTING_BOULDERS below)
   }
 
   // 2. Ensure 6a plus (Winterthur) exists & Boris has setter permissions
@@ -152,21 +141,7 @@ export function ensureInitialGymData(): void {
     ];
     saveSectors([...otherSectors, ...new6aSectors]);
 
-    // Only seed sample boulders if there are no boulders at all
-    const currentBoulders = getBoulders();
-    if (currentBoulders.length === 0) {
-      const scales = getGradeScales(gym6a.id);
-      const yellowScale = scales[0]?.id || 's_yellow_6a';
-      const blueScale = scales[2]?.id || 's_blue_6a';
-      const redScale = scales[3]?.id || 's_red_6a';
-
-      saveBoulders([
-        { id: 'b_6a_1', sector_id: 'sec_6a_slab_vorne', grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
-        { id: 'b_6a_2', sector_id: 'sec_6a_ueberhang_vorne', grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Überhang-Crux' },
-        { id: 'b_6a_3', sector_id: 'sec_6a_cave', grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Cave Power Rot' },
-        { id: 'b_6a_4', sector_id: 'sec_6a_zwischenwand_vorne', grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Zwischenwand-Traverse' }
-      ]);
-    }
+    // (Boulders will be comprehensively populated from SEED_EXISTING_BOULDERS below)
   }
 
   // 3. Register default roles for fake personas across gyms
@@ -205,6 +180,24 @@ export function ensureInitialGymData(): void {
 
   if (membersChanged) {
     saveMembers(currentMembers);
+  }
+
+  // 4. Ensure all seed boulders exist in local storage for both gyms
+  const currentBoulders = getBoulders();
+  const existingIds = new Set(currentBoulders.map(b => b.id));
+  const missingSeedBoulders = SEED_EXISTING_BOULDERS
+    .filter(b => !existingIds.has(b.id))
+    .map(b => ({
+      id: b.id,
+      sector_id: b.sectorId,
+      grade_scale_id: b.gradeScaleId,
+      position_x: b.positionX,
+      position_y: b.positionY,
+      status: b.status,
+      name: b.name
+    }));
+  if (missingSeedBoulders.length > 0) {
+    saveBoulders([...currentBoulders, ...missingSeedBoulders]);
   }
 }
 

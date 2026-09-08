@@ -86,7 +86,7 @@ export function getGyms(): Gym[] {
   return v2Gyms;
 }
 
-export function getSectors(gymId: string): Sector[] {
+export function getSectors(gymId?: string): Sector[] {
   let all = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
 
   // Auto-migrate legacy generic Unsplash placeholder images to realistic indoor gym photos
@@ -117,7 +117,7 @@ export function getSectors(gymId: string): Sector[] {
 
   // Also include sectors created via gymStorage for this gym without creating duplicates by name
   try {
-    const v1Sectors = gymStorage.getSectors(gymId);
+    const v1Sectors = gymId && gymId !== 'all' ? gymStorage.getSectors(gymId) : gymStorage.getSectors();
     for (const s of v1Sectors) {
       const existingByName = all.find(item => 
         (item.gymId === s.gym_id || (item.gymId.includes('6a') && s.gym_id.includes('6a'))) && 
@@ -169,6 +169,10 @@ export function getSectors(gymId: string): Sector[] {
   if (hasMigrated || deduped.length !== all.length) {
     setStorageJson(STORAGE_KEY_SECTORS, deduped);
     all = deduped;
+  }
+
+  if (!gymId || gymId === 'all') {
+    return all.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a')) ? 'gym-6a-plus' : gymId;
@@ -233,10 +237,52 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
   };
 
   setStorageJson(STORAGE_KEY_SECTORS, sectors);
+
+  // Synchronize to gymStorage
+  try {
+    const v1Sectors = gymStorage.getSectors();
+    const v1Sec = v1Sectors.find(s => s.id === sectorId || s.name.trim().toLowerCase() === sectors[idx].name.trim().toLowerCase());
+    if (v1Sec) {
+      v1Sec.wall_photo_url = newPhotoUrl.trim();
+      gymStorage.saveSectors(v1Sectors);
+    }
+  } catch (e) {}
+
+  // Asynchronous real-time upload to Supabase
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncSectorToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(sectors[idx]).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return sectors[idx];
 }
 
-export function getGradeScales(gymId: string): GymGradeScale[] {
+export function getGradeScales(gymId?: string): GymGradeScale[] {
+  if (!gymId || gymId === 'all') {
+    let v1Scales: gymStorage.GradeScale[] = [];
+    try {
+      v1Scales = gymStorage.getGradeScales();
+    } catch (e) {}
+
+    if (v1Scales && v1Scales.length > 0) {
+      return v1Scales.map(sc => ({
+        id: sc.id,
+        gymId: sc.gym_id,
+        colorName: sc.color_name,
+        colorHex: sc.color_hex,
+        difficultyLabel: sc.difficulty_label,
+        fontRangeMin: sc.font_range_min,
+        fontRangeMax: sc.font_range_max,
+        sortOrder: sc.sort_order,
+      })).sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, [...SEED_GRADE_SCALES]).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
     ? 'gym-6a-plus'
     : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
@@ -359,6 +405,20 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     } catch {
       all = [...SEED_EXISTING_BOULDERS];
     }
+  }
+
+  // Ensure all seed boulders are present in wall boulders
+  const existingSeedIds = new Set(all.map(b => b.id));
+  let hasMissingSeed = false;
+  for (const sb of SEED_EXISTING_BOULDERS) {
+    if (!existingSeedIds.has(sb.id)) {
+      all.push(sb);
+      existingSeedIds.add(sb.id);
+      hasMissingSeed = true;
+    }
+  }
+  if (hasMissingSeed) {
+    setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
   }
 
   // Also include boulders from gymStorage so no boulders are missed

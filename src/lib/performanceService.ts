@@ -105,8 +105,8 @@ export function getAthletePerformanceReport(
   const userAscents = allAscents.filter(a => a.userId === userId);
 
   const allBoulders = getWallBoulders(); // Includes active AND archived boulders
-  const allSectors = getSectors(activeGymId);
-  const allScales = getGradeScales(activeGymId);
+  const allSectors = getSectors();
+  const allScales = getGradeScales();
 
   // Mappings
   const boulderMap = new Map<string, WallBoulder>();
@@ -118,6 +118,15 @@ export function getAthletePerformanceReport(
   const scaleMap = new Map<string, GymGradeScale>();
   allScales.forEach(s => scaleMap.set(s.id, s));
 
+  const isMatchGym = (g1: string, g2: string) => {
+    if (g1 === g2) return true;
+    if ((g1 === 'gym-6a-plus' || g1.includes('6a') || g1.includes('f2b11564')) &&
+        (g2 === 'gym-6a-plus' || g2.includes('6a') || g2.includes('f2b11564'))) return true;
+    if ((g1 === 'gym-minimum-zh' || g1.includes('minimum') || g1.includes('814696b2')) &&
+        (g2 === 'gym-minimum-zh' || g2.includes('minimum') || g2.includes('814696b2'))) return true;
+    return false;
+  };
+
   // 1. Filter user ascents by gym (if not 'all')
   const scopedAscents: { ascent: Ascent; boulder: WallBoulder; gradeScale: GymGradeScale }[] = [];
 
@@ -128,7 +137,7 @@ export function getAthletePerformanceReport(
     const sector = sectorMap.get(boulder.sectorId);
     const gymId = sector?.gymId || defaultGym?.id || 'gym-minimum-zh';
 
-    if (selectedGymId !== 'all' && gymId !== selectedGymId) {
+    if (selectedGymId !== 'all' && !isMatchGym(gymId, selectedGymId)) {
       continue;
     }
 
@@ -151,7 +160,7 @@ export function getAthletePerformanceReport(
   const gymBoulders = allBoulders.filter(b => {
     const sector = sectorMap.get(b.sectorId);
     const gId = sector?.gymId || defaultGym?.id || 'gym-minimum-zh';
-    return selectedGymId === 'all' || gId === selectedGymId;
+    return selectedGymId === 'all' || isMatchGym(gId, selectedGymId);
   });
 
   const activeGymBoulders = gymBoulders.filter(b => b.status === 'active');
