@@ -283,88 +283,90 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               </span>
             </div>
 
-            <div className="relative w-full rounded-none overflow-hidden border border-[#333333]">
-              <div className="relative w-full max-h-[600px] overflow-hidden flex items-center justify-center bg-black">
-                <img
-                  src={selectedSector.wallPhotoUrl}
-                  alt={selectedSector.name}
-                  className="w-full h-auto object-cover max-h-[600px] block select-none pointer-events-none"
-                />
+            <div className="relative w-full rounded-none overflow-hidden border border-[#333333] bg-black">
+              <div className="relative w-full overflow-hidden flex items-center justify-center">
+                <div className="relative inline-block w-full max-w-full">
+                  <img
+                    src={selectedSector.wallPhotoUrl}
+                    alt={selectedSector.name}
+                    className="block w-full h-auto select-none pointer-events-none rounded-none"
+                  />
 
-                {/* Pin Overlay (AC-1 & AC-10) - Pins on photo are circular with compact ratings */}
-                {boulders.map(boulder => {
-                  const scale = scaleMap.get(boulder.gradeScaleId);
-                  const userAscent = userAscentMap.get(boulder.id);
-                  const stats = statsMap.get(boulder.id);
-                  const isFlash = userAscent?.type === 'flash';
-                  const isTop = userAscent?.type === 'top';
-                  const isProject = userAscent?.type === 'project';
-                  const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
-                  const isDimmed = filterMode !== 'all' && !processedBoulders.some(p => p.id === boulder.id);
+                  {/* Pin Overlay (AC-1 & AC-10) - Pins on photo are circular with compact ratings */}
+                  {boulders.map(boulder => {
+                    const scale = scaleMap.get(boulder.gradeScaleId);
+                    const userAscent = userAscentMap.get(boulder.id);
+                    const stats = statsMap.get(boulder.id);
+                    const isFlash = userAscent?.type === 'flash';
+                    const isTop = userAscent?.type === 'top';
+                    const isProject = userAscent?.type === 'project';
+                    const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
+                    const isDimmed = filterMode !== 'all' && !processedBoulders.some(p => p.id === boulder.id);
 
-                  return (
-                    <button
-                      key={boulder.id}
-                      type="button"
-                      onClick={() => setSelectedBoulder(boulder)}
-                      style={{
-                        left: `${boulder.positionX * 100}%`,
-                        top: `${boulder.positionY * 100}%`,
-                      }}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 group focus:outline-none transition-all ${
-                        isDimmed ? 'opacity-25 hover:opacity-100 scale-90' : 'hover:scale-125'
-                      }`}
-                      title={`${boulder.name || scale?.colorName || 'Boulder'}${stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''} (Tippen für Details)`}
-                    >
-                      {/* Pulse Ring / Favorite Sandstone Aura */}
-                      <span
-                        className={`absolute -inset-1.5 rounded-full ${
-                          isFavorite
-                            ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
-                            : 'opacity-75 animate-ping'
+                    return (
+                      <button
+                        key={boulder.id}
+                        type="button"
+                        onClick={() => setSelectedBoulder(boulder)}
+                        style={{
+                          left: `${boulder.positionX * 100}%`,
+                          top: `${boulder.positionY * 100}%`,
+                        }}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 group focus:outline-none transition-all flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 ${
+                          isDimmed ? 'opacity-25 hover:opacity-100 scale-90' : 'hover:scale-125'
                         }`}
-                        style={{ backgroundColor: isFavorite ? '#C9A96E' : (scale?.colorHex || '#F5F0E8') }}
-                      />
-
-                      {/* Main Pin Disc (SPEC-005: 50% circle) */}
-                      <div
-                        className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8]"
-                        style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                        title={`${boulder.name || scale?.colorName || 'Boulder'}${stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''} (Tippen für Details)`}
                       >
-                        {/* Favorite Micro Star/Sparkle Badge */}
-                        {isFavorite && (
-                          <span
-                            className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
-                            title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
-                          >
-                            <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
-                          </span>
-                        )}
+                        {/* Pulse Ring / Favorite Sandstone Aura */}
+                        <span
+                          className={`absolute -inset-1.5 rounded-full pointer-events-none ${
+                            isFavorite
+                              ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
+                              : 'opacity-75 animate-ping'
+                          }`}
+                          style={{ backgroundColor: isFavorite ? '#C9A96E' : (scale?.colorHex || '#F5F0E8') }}
+                        />
 
-                        {/* Status Icon Indicator */}
-                        {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
-                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
-                        {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
-                        {!userAscent && (
-                          <span className="text-[11px] font-mono font-bold text-[#121212]">
-                            {scale?.colorName?.[0] || '●'}
-                          </span>
-                        )}
-                      </div>
+                        {/* Main Pin Disc (SPEC-005: 50% circle) */}
+                        <div
+                          className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md"
+                          style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                        >
+                          {/* Favorite Micro Star/Sparkle Badge */}
+                          {isFavorite && (
+                            <span
+                              className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
+                              title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
+                            >
+                              <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+                            </span>
+                          )}
 
-                      {/* Pin Label Tag with Compact Rating (AC-10) */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-90 group-hover:opacity-100 flex items-center gap-1.5 shadow-md">
-                        <span>{boulder.name || scale?.colorName || 'Route'}</span>
-                        {stats && stats.totalRatings > 0 && (
-                          <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
-                            <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
-                            <span>{stats.avgStars.toFixed(1)}</span>
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                          {/* Status Icon Indicator */}
+                          {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
+                          {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
+                          {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
+                          {!userAscent && (
+                            <span className="text-[11px] font-mono font-bold text-[#121212]">
+                              {scale?.colorName?.[0] || '●'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Pin Label Tag with Compact Rating (AC-10) */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-90 group-hover:opacity-100 flex items-center gap-1.5 shadow-md pointer-events-none">
+                          <span>{boulder.name || scale?.colorName || 'Route'}</span>
+                          {stats && stats.totalRatings > 0 && (
+                            <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
+                              <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
+                              <span>{stats.avgStars.toFixed(1)}</span>
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

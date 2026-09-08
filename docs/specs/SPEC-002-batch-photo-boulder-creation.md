@@ -24,6 +24,7 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
 - [x] **AC-7**: Pins können per Long-Press und Drag auf dem Bild verschoben werden; Pinch-to-Zoom unterstützt präzise Platzierung. *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
 - [x] **AC-8**: Neu erfasste Boulder verbleiben im Status `draft`, bis der Nutzer in der Zusammenfassungsansicht auf "Veröffentlichen" tippt. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-9**: Beim Klick auf "Veröffentlichen" werden alle Drafts transaktional auf `active` gesetzt und als archiviert markierte Boulder auf `archived` gesetzt. *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
+- [x] **AC-10**: **Präzise 1:1 Koordinaten-Ausrichtung (Schrauber ⟷ Kletterer)**: Das Wandfoto wird in beiden Bereichen (`WallPhotoCanvas` und `ClimberSectorView`) unbeschnitten im natürlichen Seitenverhältnis gerendert (ohne `object-cover` und ohne ungleiche vertikale Höhenbeschränkungen), sodass relative Koordinaten `(position_x, position_y)` auf allen Bildschirmgrößen und Geräten exakt auf denselben Griffen liegen. Pin-Marker sind über identische Pin-Dimensionen und `-translate-x-1/2 -translate-y-1/2` mathematisch zentriert. *(Getestet in `tests/pinCoordinateAlignment.test.tsx`)*
 
 ## Technical Design
 

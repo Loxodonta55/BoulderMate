@@ -157,7 +157,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
       {/* Wall Photo & Canvas Area */}
       <div
-        className="relative overflow-auto max-h-[70vh] flex items-center justify-center p-2 cursor-crosshair bg-black"
+        className="relative overflow-auto max-h-[75vh] flex items-center justify-center p-0 cursor-crosshair bg-black"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
@@ -165,12 +165,12 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           ref={containerRef}
           onClick={handleContainerClick}
           style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}
-          className="relative inline-block transition-transform duration-150 ease-out max-w-full rounded-none overflow-hidden border border-[#333333]"
+          className="relative inline-block transition-transform duration-150 ease-out w-full max-w-full rounded-none overflow-hidden border border-[#333333]"
         >
           <img
             src={photoUrl}
             alt="Wandfoto des Sektors"
-            className="block w-full h-auto object-cover max-h-[650px] pointer-events-none rounded-none"
+            className="block w-full h-auto select-none pointer-events-none rounded-none"
           />
 
           {/* Render Boulders / Pins (SPEC-005: 50% circle is sole exception for wall pins) */}
@@ -190,7 +190,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   left: `${boulder.positionX * 100}%`,
                   top: `${boulder.positionY * 100}%`,
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group"
+                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group flex items-center justify-center"
                 onMouseDown={e => handlePinMouseDown(e, boulder.id)}
                 onClick={e => {
                   e.stopPropagation();
@@ -205,8 +205,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                     isDraft
                       ? 'w-9 h-9 rounded-full ring-2 ring-[#F5F0E8] scale-105'
                       : isMarkedForArchive
-                      ? 'w-7 h-7 rounded-full opacity-35 grayscale'
-                      : 'w-7 h-7 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[#F5F0E8]/70'
+                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-35 grayscale'
+                      : 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[#F5F0E8]/70'
                   } ${isSelected ? 'ring-2 ring-[#C9A96E] scale-125 z-30' : ''} ${
                     isDragging ? 'scale-125 opacity-90 cursor-grabbing' : ''
                   }`}
