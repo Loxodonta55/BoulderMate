@@ -76,3 +76,34 @@ Nach dem Push triggert Vercel automatisch den Production-Build.
 2. Live-Domain prüfen:
    - Production URL: `https://bouldermate.ch` (bzw. `https://boulder-mate.vercel.app`)
    - HTTP Status 200 sicherstellen und verifizieren, dass die App fehlerfrei lädt.
+
+---
+
+## 🚨 Watch Outs: Niemals Daten doppelt deployen / duplizieren
+
+Beim Deployment und Datenabgleich zwischen lokaler Umgebung und Supabase/Vercel muss strikt darauf geachtet werden, dass **keine Entitäten doppelt angelegt oder deployed werden**:
+
+### 1. Watch Out: Keine doppelten Sektoren (Semantic Key statt ID)
+- **Problem**: Supabase generiert UUIDs (z. B. `8656b5d8-...`), während lokale Bestandsdaten historische String-IDs (z. B. `sec_6a_slab_vorne`) nutzen können.
+- **Fehlerfall**: Ein reiner ID-Vergleich (`existingIds.has(s.id)`) erkennt namensgleiche Sektoren nicht und fügt sie doppelt ein. Kletterer und Schrauber sehen Sektoren dann doppelt!
+- **Zwingende Regel**:
+  - Sektoren dürfen **niemals nur nach ID** verglichen werden.
+  - Immer strikt nach normalisiertem semantischen Schlüssel deduplizieren: `(gymId, name.trim().toLowerCase())`.
+  - Wandfotos, Sortierungen und Metadaten non-destruktiv mergen, niemals Duplikate anlegen.
+
+### 2. Watch Out: Keine doppelten Schwierigkeitsgrade (Farbsystem / Grade Scales)
+- **Problem**: Grade Scales existieren lokal oft mit sprechenden IDs (`scale_6a_gelb`, `scale_6a_gruen`) und auf Supabase mit UUIDs (`fce60743-...`).
+- **Fehlerfall**: Werden Remote-Skalen blind in lokale Stores eingefügt, hat jede Farbe zwei Einträge (z. B. 2x Gelb, 2x Grün).
+- **Zwingende Regel**:
+  - Farbskalen pro Halle strikt nach `(gymId, color_name.trim().toLowerCase())` deduplizieren.
+  - Gym-IDs zwischen lokal und Cloud stets abbilden (`gym-6a-plus` <-> `f2b11564-...`, `gym-minimum-zh` <-> `814696b2-...`).
+  - Beim Upward-Sync (`syncGradeScalesToSupabase`) vorhandene Remote-UUIDs wiederverwenden (Upsert), statt neue Zeilen zu erzeugen.
+  - Farbsystem-Änderungen im Adminbereich müssen sofort synchron in beiden lokalen Stores (V1 `gymStorage` und V2 `boulderapp_grade_scales_v2`) gespeichert und non-destruktiv nach Supabase übertragen werden.
+
+### 3. Watch Out: Dual-Cache Konsistenz (V1 `gymStorage` vs. V2 `batchBoulderService`)
+- **Problem**: Hallenbereich (`GymManagement`) liest aus V1 (`boulder_*_v1`), während Kletterer (`ClimberSectorView`) und Schrauber (`BatchBoulderWorkflow`) aus V2 (`boulderapp_*_v2`) lesen.
+- **Fehlerfall**: Ein Store wird aktualisiert, der andere vergessen -> Desynchronisation zwischen Hallenbereich und Routenansicht.
+- **Zwingende Regel**:
+  - Jede Erstellung, Mutation oder Synchronisation von Sektoren, Farbskalen und aktiven Bouldern muss **immer synchron in beiden Caches** erfolgen.
+  - Unveröffentlichte Schrauber-Drafts (`status === 'draft'`) dürfen **nicht** vorzeitig in den V1-Routenbestand einfließen, sondern erst beim Batch-Publishing.
+

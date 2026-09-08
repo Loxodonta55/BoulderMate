@@ -194,13 +194,65 @@ export function ensureInitialGymData(): void {
   }
 }
 
+export function deduplicateGradeScales(scales: GradeScale[]): GradeScale[] {
+  const map = new Map<string, GradeScale>();
+  for (const s of scales) {
+    const normGym = (s.gym_id && (s.gym_id === 'gym-6a-plus' || s.gym_id.includes('6a') || s.gym_id.includes('f2b11564')))
+      ? 'gym-6a-plus'
+      : (s.gym_id && (s.gym_id === 'gym-minimum-zh' || s.gym_id.includes('minimum') || s.gym_id.includes('814696b2')))
+      ? 'gym-minimum-zh'
+      : s.gym_id;
+    const key = `${normGym}:::${s.color_name.trim().toLowerCase()}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, { ...s, gym_id: normGym });
+    } else {
+      map.set(key, {
+        ...existing,
+        ...s,
+        id: existing.id || s.id,
+        gym_id: normGym,
+        color_hex: s.color_hex || existing.color_hex,
+        difficulty_label: s.difficulty_label || existing.difficulty_label,
+        font_range_min: s.font_range_min || existing.font_range_min,
+        font_range_max: s.font_range_max || existing.font_range_max,
+        sort_order: s.sort_order ?? existing.sort_order,
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
 export function getGradeScales(gym_id?: string): GradeScale[] {
-  const all = getStorageJson<GradeScale[]>(GRADE_SCALES_KEY, []);
-  return gym_id ? all.filter(g => g.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
+  let all = getStorageJson<GradeScale[]>(GRADE_SCALES_KEY, []);
+  const deduped = deduplicateGradeScales(all);
+  if (deduped.length !== all.length) {
+    setStorageJson(GRADE_SCALES_KEY, deduped);
+    all = deduped;
+  }
+  if (!gym_id) return all;
+
+  const targetGymNorm = (gym_id === 'gym-6a-plus' || gym_id.includes('6a') || gym_id.includes('f2b11564'))
+    ? 'gym-6a-plus'
+    : (gym_id === 'gym-minimum-zh' || gym_id.includes('minimum') || gym_id.includes('814696b2'))
+    ? 'gym-minimum-zh'
+    : gym_id;
+
+  return all
+    .filter(g => {
+      const gGymNorm = (g.gym_id === 'gym-6a-plus' || g.gym_id.includes('6a') || g.gym_id.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (g.gym_id === 'gym-minimum-zh' || g.gym_id.includes('minimum') || g.gym_id.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : g.gym_id;
+      return gGymNorm === targetGymNorm;
+    })
+    .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export function saveGradeScales(scales: GradeScale[]): void {
-  setStorageJson(GRADE_SCALES_KEY, scales);
+  const deduped = deduplicateGradeScales(scales);
+  setStorageJson(GRADE_SCALES_KEY, deduped);
 }
 
 export function getSectors(gym_id?: string): Sector[] {
@@ -369,8 +421,46 @@ export function setGymGradeScales(
   });
 
   const all = getGradeScales();
-  const others = all.filter(s => s.gym_id !== gym_id);
+  const targetGymNorm = (gym_id === 'gym-6a-plus' || gym_id.includes('6a') || gym_id.includes('f2b11564'))
+    ? 'gym-6a-plus'
+    : (gym_id === 'gym-minimum-zh' || gym_id.includes('minimum') || gym_id.includes('814696b2'))
+    ? 'gym-minimum-zh'
+    : gym_id;
+
+  const others = all.filter(s => {
+    const sNorm = (s.gym_id === 'gym-6a-plus' || s.gym_id.includes('6a') || s.gym_id.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gym_id === 'gym-minimum-zh' || s.gym_id.includes('minimum') || s.gym_id.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gym_id;
+    return sNorm !== targetGymNorm;
+  });
   saveGradeScales([...others, ...validated]);
+
+  // Synchronize with V2 store (batchBoulderService) immediately
+  try {
+    const v2Scales = getStorageJson<any[]>('boulderapp_grade_scales_v2', []);
+    const otherV2 = v2Scales.filter(s => {
+      const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gymId;
+      return sNorm !== targetGymNorm;
+    });
+    const newV2 = validated.map(sc => ({
+      id: sc.id,
+      gymId: sc.gym_id,
+      colorName: sc.color_name,
+      colorHex: sc.color_hex,
+      difficultyLabel: sc.difficulty_label,
+      fontRangeMin: sc.font_range_min,
+      fontRangeMax: sc.font_range_max,
+      sortOrder: sc.sort_order,
+    }));
+    setStorageJson('boulderapp_grade_scales_v2', [...otherV2, ...newV2]);
+  } catch (e) {}
+
   return validated.sort((a, b) => a.sort_order - b.sort_order);
 }
 

@@ -43,6 +43,14 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     }
   };
 
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nickname.trim()) return;
@@ -52,7 +60,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       avatarUrl: avatarUrl.trim() || undefined,
     });
     setSaveSuccess(true);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setSaveSuccess(false);
       onClose();
     }, 600);

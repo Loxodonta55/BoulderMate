@@ -239,30 +239,58 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
 export function getGradeScales(gymId: string): GymGradeScale[] {
   const all = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, [...SEED_GRADE_SCALES]);
 
+  const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+    ? 'gym-6a-plus'
+    : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+    ? 'gym-minimum-zh'
+    : gymId;
+
   // Also include grade scales from gymStorage
   try {
-    const v1Scales = gymStorage.getGradeScales(gymId);
-    const existingIds = new Set(all.map(s => s.id));
+    const v1Scales = gymStorage.getGradeScales(targetGymNorm);
     for (const sc of v1Scales) {
-      if (!existingIds.has(sc.id)) {
-        all.push({
-          id: sc.id,
-          gymId: sc.gym_id,
-          colorName: sc.color_name,
-          colorHex: sc.color_hex,
-          difficultyLabel: sc.difficulty_label,
-          fontRangeMin: sc.font_range_min,
-          fontRangeMax: sc.font_range_max,
-          sortOrder: sc.sort_order,
-        });
-        existingIds.add(sc.id);
-      }
+      all.push({
+        id: sc.id,
+        gymId: sc.gym_id,
+        colorName: sc.color_name,
+        colorHex: sc.color_hex,
+        difficultyLabel: sc.difficulty_label,
+        fontRangeMin: sc.font_range_min,
+        fontRangeMax: sc.font_range_max,
+        sortOrder: sc.sort_order,
+      });
     }
   } catch (e) {
     console.error('Error synchronizing grade scales from gymStorage:', e);
   }
 
-  const gymScales = all.filter(s => s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
+  // Deduplicate strictly by colorName (lowercase) for this gym!
+  const byColor = new Map<string, GymGradeScale>();
+  for (const s of all) {
+    const sGymNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gymId;
+
+    if (sGymNorm === targetGymNorm) {
+      const colorKey = s.colorName.trim().toLowerCase();
+      const existing = byColor.get(colorKey);
+      if (!existing) {
+        byColor.set(colorKey, { ...s, gymId });
+      } else {
+        byColor.set(colorKey, {
+          ...existing,
+          ...s,
+          id: existing.id || s.id,
+          gymId,
+          sortOrder: s.sortOrder ?? existing.sortOrder,
+        });
+      }
+    }
+  }
+
+  const gymScales = Array.from(byColor.values()).sort((a, b) => a.sortOrder - b.sortOrder);
   if (gymScales.length > 0) {
     return gymScales;
   }

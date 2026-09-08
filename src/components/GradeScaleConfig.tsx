@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GradeScale } from '../types/gym';
 import { setGymGradeScales } from '../lib/gymStorage';
+import { syncGradeScalesToSupabase } from '../lib/syncService';
 import { Plus, Trash2, ArrowUp, ArrowDown, Save, Check, Palette } from 'lucide-react';
 
 interface Props {
@@ -56,6 +57,9 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
     try {
       setError(null);
       setGymGradeScales(gymId, userId, scales);
+      syncGradeScalesToSupabase(gymId, scales).catch(err => {
+        console.warn('Background sync grade scales to Supabase failed:', err);
+      });
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
       onSaved();
