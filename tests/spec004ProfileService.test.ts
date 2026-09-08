@@ -96,34 +96,73 @@ describe('SPEC-004: Profile, Statistics & Logbook Service', () => {
       // Flashes count as tops, so 1 flash + 1 top = 2 tops total
       expect(data.kpis.totalTops).toBe(2);
       expect(data.kpis.totalFlashes).toBe(1);
-      // Best top is yellow (sortOrder 3 > blue sortOrder 2)
+      // Best top is yellow (sortOrder 3 > blue sortOrder 2, stiff feel -> 7a)
       expect(data.kpis.bestTop?.colorName).toBe('Gelb');
-      // Best flash is blue
+      expect(data.kpis.bestTopFont).toBe('7a');
+      // Best flash is blue (soft feel -> 5c)
       expect(data.kpis.bestFlash?.colorName).toBe('Blau');
+      expect(data.kpis.bestFlashFont).toBe('5c');
     });
   });
 
-  describe('AC-3: Grade Distribution', () => {
-    it('groups tops and flashes correctly per grade scale band', () => {
+  describe('AC-3: Grade Distribution (Fontainebleau Scale)', () => {
+    it('groups tops and flashes correctly per Fontainebleau grade with gym scale styling', () => {
       const userId = 'user-distribution-test';
 
-      // Log flash on blue, and top on blue, and flash on yellow
-      logAscent(userId, 'Tester', 'boulder-existing-1', 'flash'); // blue
-      logAscent(userId, 'Tester', 'boulder-existing-2', 'flash'); // yellow
+      // Log flash on blue (dominant soft -> 5c), and flash on yellow (dominant stiff -> 7a)
+      logAscent(userId, 'Tester', 'boulder-existing-1', 'flash');
+      logAscent(userId, 'Tester', 'boulder-existing-2', 'flash');
 
       const data = getProfileData(userId);
 
-      const blueBand = data.gradeDistribution.find(d => d.gradeScale.colorName === 'Blau');
-      const yellowBand = data.gradeDistribution.find(d => d.gradeScale.colorName === 'Gelb');
-      const greenBand = data.gradeDistribution.find(d => d.gradeScale.colorName === 'Grün');
+      const blueItem = data.gradeDistribution.find(d => d.fontGrade === '5c');
+      const yellowItem = data.gradeDistribution.find(d => d.fontGrade === '7a');
+      const greenItem = data.gradeDistribution.find(d => d.fontGrade === '4a');
 
-      expect(blueBand?.flashCount).toBe(1);
-      expect(blueBand?.totalCount).toBe(1);
+      expect(blueItem?.flashCount).toBe(1);
+      expect(blueItem?.totalCount).toBe(1);
+      expect(blueItem?.gradeScale.colorName).toBe('Blau');
 
-      expect(yellowBand?.flashCount).toBe(1);
-      expect(yellowBand?.totalCount).toBe(1);
+      expect(yellowItem?.flashCount).toBe(1);
+      expect(yellowItem?.totalCount).toBe(1);
+      expect(yellowItem?.gradeScale.colorName).toBe('Gelb');
 
-      expect(greenBand?.totalCount).toBe(0);
+      expect(greenItem?.totalCount).toBe(0);
+    });
+
+    it('smartly translates red gym color band [7a+, 7b+] to midpoint by default and upper bound when rated stiff', () => {
+      const userId = 'user-smart-translate-test';
+
+      const scales = getGradeScales('gym-minimum-zh');
+      const redScale = scales[3]; // red: fontRangeMin 7a+, fontRangeMax 7b+
+
+      const newBoulder = createDraftBoulder({
+        sectorId: 'sector-overhang',
+        gradeScaleId: redScale.id,
+        positionX: 0.5,
+        positionY: 0.5,
+        setterId: 'setter-1',
+        name: 'Smart Red Route',
+      });
+      publishBatch('sector-overhang', 'setter-1');
+
+      // 1. Initial ascent without ratings -> midpoint of Red [7a+, 7b+] is 7b
+      logAscent(userId, 'Tester', newBoulder.id, 'top');
+      let data = getProfileData(userId);
+      expect(data.logbook[0].fontGrade).toBe('7b');
+      expect(data.kpis.bestTopFont).toBe('7b');
+
+      // 2. User rates it stiff -> should resolve to 7b+
+      saveRating(userId, 'Tester', newBoulder.id, { gradeFeel: 'stiff' });
+      data = getProfileData(userId);
+      expect(data.logbook[0].fontGrade).toBe('7b+');
+      expect(data.kpis.bestTopFont).toBe('7b+');
+
+      // 3. User updates rating to soft -> should resolve to 7a+
+      saveRating(userId, 'Tester', newBoulder.id, { gradeFeel: 'soft' });
+      data = getProfileData(userId);
+      expect(data.logbook[0].fontGrade).toBe('7a+');
+      expect(data.kpis.bestTopFont).toBe('7a+');
     });
   });
 

@@ -40,19 +40,23 @@ describe('SPEC-004: UI Components Integration', () => {
   });
 
   describe('ProfileKPIsBar (AC-2, AC-8)', () => {
-    it('renders 4 KPI tiles with values and badges', () => {
+    it('renders 4 KPI tiles with values and badges, showing Fontainebleau grade prominently', () => {
       const kpis: ProfileKPIs = {
         totalTops: 14,
         totalFlashes: 5,
         bestTop: mockScale,
         bestFlash: mockScaleBlue,
+        bestTopFont: '7b+',
+        bestFlashFont: '6b',
       };
 
       render(<ProfileKPIsBar kpis={kpis} />);
 
       expect(screen.getByTestId('kpi-total-tops').textContent).toBe('14');
       expect(screen.getByTestId('kpi-total-flashes').textContent).toBe('5');
+      expect(screen.getByTestId('kpi-best-top').textContent).toContain('Fb 7b+');
       expect(screen.getByTestId('kpi-best-top').textContent).toContain('Rot');
+      expect(screen.getByTestId('kpi-best-flash').textContent).toContain('Fb 6b');
       expect(screen.getByTestId('kpi-best-flash').textContent).toContain('Blau');
     });
 
@@ -76,7 +80,7 @@ describe('SPEC-004: UI Components Integration', () => {
   describe('GradeDistributionChart (AC-3, AC-8)', () => {
     it('renders empty state message when 0 ascents exist (AC-8)', () => {
       const emptyDistribution: GradeDistributionItem[] = [
-        { gradeScale: mockScaleBlue, topCount: 0, flashCount: 0, totalCount: 0 },
+        { gradeScale: mockScaleBlue, fontGrade: '6a', topCount: 0, flashCount: 0, totalCount: 0 },
       ];
 
       render(<GradeDistributionChart distribution={emptyDistribution} />);
@@ -85,16 +89,18 @@ describe('SPEC-004: UI Components Integration', () => {
       expect(screen.getByText(/Noch keine Begehungen erfasst/i)).toBeInTheDocument();
     });
 
-    it('renders horizontal bars when ascents exist (AC-3)', () => {
+    it('renders horizontal bars when ascents exist with Fontainebleau grades (AC-3)', () => {
       const distribution: GradeDistributionItem[] = [
-        { gradeScale: mockScaleBlue, topCount: 3, flashCount: 2, totalCount: 5 },
-        { gradeScale: mockScale, topCount: 1, flashCount: 0, totalCount: 1 },
+        { gradeScale: mockScaleBlue, fontGrade: '6a', topCount: 3, flashCount: 2, totalCount: 5 },
+        { gradeScale: mockScale, fontGrade: '7b+', topCount: 1, flashCount: 0, totalCount: 1 },
       ];
 
       render(<GradeDistributionChart distribution={distribution} />);
 
       expect(screen.getByTestId('grade-distribution-bars')).toBeInTheDocument();
+      expect(screen.getByText('Fb 6a')).toBeInTheDocument();
       expect(screen.getByText('Blau')).toBeInTheDocument();
+      expect(screen.getByText('Fb 7b+')).toBeInTheDocument();
       expect(screen.getByText('Rot')).toBeInTheDocument();
     });
   });

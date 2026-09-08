@@ -354,10 +354,14 @@ export interface ProfileKPIs {
   totalFlashes: number; // Flashes only (AC-2)
   bestTop: GymGradeScale | null; // Highest color band topped (AC-2)
   bestFlash: GymGradeScale | null; // Highest color band flashed (AC-2)
+  bestTopFont?: string | null; // Highest Fontainebleau grade topped (AC-2)
+  bestFlashFont?: string | null; // Highest Fontainebleau grade flashed (AC-2)
 }
 
 export interface GradeDistributionItem {
-  gradeScale: GymGradeScale;
+  fontGrade?: string; // Fontainebleau grade (e.g. '6a', '6c+')
+  displayGrade?: string; // Display label (e.g. 'Fb 6c')
+  gradeScale: GymGradeScale; // Matching gym color scale for swatches/bars
   flashCount: number;
   topCount: number; // regular tops (excluding flash)
   totalCount: number; // flashCount + topCount
@@ -375,6 +379,7 @@ export interface LogbookEntry {
   sectorId: string;
   sectorName: string;
   gradeScale: GymGradeScale;
+  fontGrade: string; // Fontainebleau grade (e.g. '6c', '6c+')
 }
 
 export interface ProfileData {

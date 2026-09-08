@@ -6,9 +6,18 @@ import {
   ProfileData,
   GymGradeScale,
   WallBoulder,
+  GradeFeel,
+  BoulderRating,
 } from '../types/boulder';
-import { getAscents, deleteUserAscentsAndRatings } from './ratingAndAscentService';
+import { getAscents, deleteUserAscentsAndRatings, getRatings } from './ratingAndAscentService';
 import { getWallBoulders, getSectors, getGradeScales, getGyms } from './batchBoulderService';
+import {
+  resolveBoulderFontGrade,
+  compareFontGrades,
+  findMatchingGradeScale,
+  FONT_GRADE_LADDER,
+  getFontGradeIndex,
+} from './gradeConverter';
 
 import { SEED_PROFILES } from './seedData';
 import {
@@ -103,19 +112,37 @@ export function deleteAccount(userId: string): void {
   deleteUserAscentsAndRatings(userId);
 }
 
+function getBoulderDominantGradeFeel(bRatings: BoulderRating[]): GradeFeel | null {
+  if (!bRatings || bRatings.length === 0) return null;
+  const counts = { soft: 0, fair: 0, stiff: 0 };
+  bRatings.forEach(r => {
+    if (r.gradeFeel && counts[r.gradeFeel] !== undefined) {
+      counts[r.gradeFeel]++;
+    }
+  });
+  const totalFeels = counts.soft + counts.fair + counts.stiff;
+  if (totalFeels === 0) return null;
+  if (counts.soft > counts.fair && counts.soft > counts.stiff) return 'soft';
+  if (counts.stiff > counts.fair && counts.stiff > counts.soft) return 'stiff';
+  if (counts.fair >= counts.soft && counts.fair >= counts.stiff) return 'fair';
+  return null;
+}
+
 /**
  * Aggregates all statistics, KPIs, grade distribution and chronological logbook
  * for a user, optionally filtered by a specific gym (AC-2, AC-3, AC-4, AC-5, AC-8).
+ * All statistics are resolved to universal Fontainebleau grades.
  */
 export function getProfileData(userId: string, selectedGymId: string = 'all'): ProfileData {
   const profile = getProfile(userId);
   const allAscents = getAscents();
+  const allRatings = getRatings();
   const userAscents = allAscents.filter(a => a.userId === userId);
 
   const gyms = getGyms();
   const defaultGym = gyms[0];
-  const allSectors = getSectors(defaultGym?.id || 'gym-minimum-zh');
-  const allScales = getGradeScales(defaultGym?.id || 'gym-minimum-zh');
+  const allSectors = gyms.length > 0 ? gyms.flatMap(g => getSectors(g.id)) : getSectors('gym-minimum-zh');
+  const allScales = gyms.length > 0 ? gyms.flatMap(g => getGradeScales(g.id)) : getGradeScales('gym-minimum-zh');
   const wallBoulders = getWallBoulders();
 
   // Create lookup maps
@@ -131,7 +158,7 @@ export function getProfileData(userId: string, selectedGymId: string = 'all'): P
   const scaleMap = new Map<string, GymGradeScale>();
   allScales.forEach(s => scaleMap.set(s.id, s));
 
-  // Build logbook items with full resolved metadata
+  // Build logbook items with full resolved metadata & Fontainebleau grades
   const resolvedLogbook: LogbookEntry[] = [];
 
   for (const ascent of userAscents) {
@@ -163,6 +190,18 @@ export function getProfileData(userId: string, selectedGymId: string = 'all'): P
       continue;
     }
 
+    // Resolve Fontainebleau grade using smart translation:
+    // If the user himself submitted a gradeFeel for this boulder, prioritize the user's perception.
+    // Otherwise fallback to the community's dominant grade feel (or neutral midpoint).
+    const userRating = allRatings.find(r => r.boulderId === ascent.boulderId && r.userId === userId);
+    const bRatings = allRatings.filter(r => r.boulderId === ascent.boulderId);
+    const dominantGradeFeel = userRating?.gradeFeel ?? getBoulderDominantGradeFeel(bRatings);
+    const fontGrade = resolveBoulderFontGrade(
+      safeScale,
+      dominantGradeFeel,
+      boulder?.fontGrade
+    );
+
     resolvedLogbook.push({
       id: `log-${ascent.id}`,
       ascentId: ascent.id,
@@ -175,6 +214,7 @@ export function getProfileData(userId: string, selectedGymId: string = 'all'): P
       sectorId,
       sectorName,
       gradeScale: safeScale,
+      fontGrade,
     });
   }
 
@@ -188,46 +228,87 @@ export function getProfileData(userId: string, selectedGymId: string = 'all'): P
   const totalTops = toppedEntries.length;
   const totalFlashes = flashEntries.length;
 
-  let bestTop: GymGradeScale | null = null;
-  let bestTopOrder = -1;
+  let bestTopEntry: LogbookEntry | null = null;
   for (const entry of toppedEntries) {
-    if (entry.gradeScale.sortOrder > bestTopOrder) {
-      bestTopOrder = entry.gradeScale.sortOrder;
-      bestTop = entry.gradeScale;
+    if (!bestTopEntry || compareFontGrades(entry.fontGrade, bestTopEntry.fontGrade) > 0) {
+      bestTopEntry = entry;
     }
   }
 
-  let bestFlash: GymGradeScale | null = null;
-  let bestFlashOrder = -1;
+  let bestFlashEntry: LogbookEntry | null = null;
   for (const entry of flashEntries) {
-    if (entry.gradeScale.sortOrder > bestFlashOrder) {
-      bestFlashOrder = entry.gradeScale.sortOrder;
-      bestFlash = entry.gradeScale;
+    if (!bestFlashEntry || compareFontGrades(entry.fontGrade, bestFlashEntry.fontGrade) > 0) {
+      bestFlashEntry = entry;
     }
   }
 
   const kpis: ProfileKPIs = {
     totalTops,
     totalFlashes,
-    bestTop,
-    bestFlash,
+    bestTop: bestTopEntry ? bestTopEntry.gradeScale : null,
+    bestFlash: bestFlashEntry ? bestFlashEntry.gradeScale : null,
+    bestTopFont: bestTopEntry ? bestTopEntry.fontGrade : null,
+    bestFlashFont: bestFlashEntry ? bestFlashEntry.fontGrade : null,
   };
 
-  // Compute Grade Distribution (AC-3, AC-4, AC-8)
-  // Determine list of grade scales to represent
-  const activeGymId = selectedGymId !== 'all' ? selectedGymId : defaultGym?.id || 'gym-minimum-zh';
+  // Compute Grade Distribution on Fontainebleau Scale (AC-3, AC-4, AC-8)
+  const inferredGymId = userAscents.length > 0
+    ? (boulderMap.get(userAscents[0].boulderId)?.sectorId ? sectorMap.get(boulderMap.get(userAscents[0].boulderId)!.sectorId)?.gymId : undefined)
+    : undefined;
+  const activeGymId = selectedGymId !== 'all' ? selectedGymId : (inferredGymId || defaultGym?.id || 'gym-minimum-zh');
   const targetScales = getGradeScales(activeGymId);
+  const safeScales = targetScales.length > 0 ? targetScales : allScales;
 
-  const gradeDistribution: GradeDistributionItem[] = targetScales.map(scale => {
-    const scaleTops = toppedEntries.filter(e => e.gradeScale.id === scale.id && e.type === 'top').length;
-    const scaleFlashes = flashEntries.filter(e => e.gradeScale.id === scale.id).length;
-    return {
-      gradeScale: scale,
-      topCount: scaleTops,
-      flashCount: scaleFlashes,
-      totalCount: scaleTops + scaleFlashes,
+  let minIdx = safeScales.length > 0
+    ? getFontGradeIndex(safeScales[0].fontRangeMin)
+    : getFontGradeIndex('4a');
+  let maxIdx = safeScales.length > 0
+    ? getFontGradeIndex(safeScales[safeScales.length - 1].fontRangeMax)
+    : getFontGradeIndex('8a');
+
+  if (minIdx === -1) minIdx = 1; // 4a
+  if (maxIdx === -1) maxIdx = 17; // 8a
+
+  if (minIdx > maxIdx) {
+    const t = minIdx;
+    minIdx = maxIdx;
+    maxIdx = t;
+  }
+
+  for (const entry of toppedEntries) {
+    const idx = getFontGradeIndex(entry.fontGrade);
+    if (idx !== -1) {
+      if (idx < minIdx) minIdx = idx;
+      if (idx > maxIdx) maxIdx = idx;
+    }
+  }
+
+  const gradeDistribution: GradeDistributionItem[] = [];
+  for (let i = minIdx; i <= maxIdx; i++) {
+    const fg = FONT_GRADE_LADDER[i];
+    const scale = findMatchingGradeScale(fg, safeScales) || safeScales[0] || {
+      id: `scale-${fg}`,
+      gymId: activeGymId,
+      colorName: fg,
+      colorHex: '#3b82f6',
+      difficultyLabel: fg,
+      fontRangeMin: fg,
+      fontRangeMax: fg,
+      sortOrder: i,
     };
-  });
+
+    const tops = toppedEntries.filter(e => e.fontGrade === fg && e.type === 'top').length;
+    const flashes = flashEntries.filter(e => e.fontGrade === fg).length;
+
+    gradeDistribution.push({
+      fontGrade: fg,
+      displayGrade: `Fb ${fg}`,
+      gradeScale: scale,
+      topCount: tops,
+      flashCount: flashes,
+      totalCount: tops + flashes,
+    });
+  }
 
   return {
     profile,

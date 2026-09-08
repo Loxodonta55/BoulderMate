@@ -537,6 +537,16 @@ export function updateBoulderPosition(
   };
 
   saveWallBoulders(all);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncBouldersToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn([all[idx]]).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return all[idx];
 }
 
@@ -568,6 +578,16 @@ export function updateBoulderDetails(
   };
 
   saveWallBoulders(all);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncBouldersToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn([all[idx]]).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return all[idx];
 }
 
@@ -619,6 +639,15 @@ export function publishBatch(
   });
 
   saveWallBoulders(updated);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncBouldersToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(updated).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
 
   return {
     sectorId,

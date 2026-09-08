@@ -56,10 +56,10 @@ export const ProfileKPIsBar: React.FC<ProfileKPIsBarProps> = ({ kpis }) => {
               />
               <div className="truncate">
                 <span className="text-base font-headline uppercase font-bold text-[#E8E0D4] block truncate">
-                  {kpis.bestTop.colorName}
+                  {kpis.bestTopFont ? `Fb ${kpis.bestTopFont}` : kpis.bestTop.colorName}
                 </span>
                 <span className="text-[10px] font-mono text-[#A89F91] block">
-                  {kpis.bestTop.difficultyLabel} {kpis.bestTop.fontRangeMax ? `(Fb ${kpis.bestTop.fontRangeMax})` : ''}
+                  {kpis.bestTop.colorName} ({kpis.bestTop.difficultyLabel})
                 </span>
               </div>
             </div>
@@ -67,7 +67,7 @@ export const ProfileKPIsBar: React.FC<ProfileKPIsBarProps> = ({ kpis }) => {
             <span className="text-2xl font-mono font-bold text-[#6B6358]">–</span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-[#6B6358] mt-1">Höchstes Farbband</span>
+        <span className="text-[10px] font-mono text-[#6B6358] mt-1">Fontainebleau-Maximum</span>
       </div>
 
       {/* 4. Bester Flash */}
@@ -85,10 +85,10 @@ export const ProfileKPIsBar: React.FC<ProfileKPIsBarProps> = ({ kpis }) => {
               />
               <div className="truncate">
                 <span className="text-base font-headline uppercase font-bold text-[#E8E0D4] block truncate">
-                  {kpis.bestFlash.colorName}
+                  {kpis.bestFlashFont ? `Fb ${kpis.bestFlashFont}` : kpis.bestFlash.colorName}
                 </span>
                 <span className="text-[10px] font-mono text-[#A89F91] block">
-                  {kpis.bestFlash.difficultyLabel} {kpis.bestFlash.fontRangeMax ? `(Fb ${kpis.bestFlash.fontRangeMax})` : ''}
+                  {kpis.bestFlash.colorName} ({kpis.bestFlash.difficultyLabel})
                 </span>
               </div>
             </div>
@@ -96,7 +96,7 @@ export const ProfileKPIsBar: React.FC<ProfileKPIsBarProps> = ({ kpis }) => {
             <span className="text-2xl font-mono font-bold text-[#6B6358]">–</span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-[#6B6358] mt-1">Geflashtes Maximum</span>
+        <span className="text-[10px] font-mono text-[#6B6358] mt-1">Geflashtes Fb-Maximum</span>
       </div>
     </div>
   );

@@ -112,6 +112,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           flexibilitaet: 3,
           kraft: 3,
         },
+        fontGrade: entry.fontGrade,
         createdAt: entry.createdAt,
       };
       setSelectedBoulder(fallback);
@@ -306,8 +307,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
                         {/* Route & Sector Info */}
                         <div className="min-w-0">
-                          <div className="text-sm font-headline font-bold text-[#E8E0D4] truncate group-hover:text-[#C9A96E] transition">
-                            {entry.boulderName || `${entry.gradeScale.colorName}-Route`}
+                          <div className="text-sm font-headline font-bold text-[#E8E0D4] truncate group-hover:text-[#C9A96E] transition flex items-center gap-2">
+                            <span className="truncate">{entry.boulderName || `${entry.gradeScale.colorName}-Route`}</span>
+                            {entry.fontGrade && (
+                              <span className="px-1.5 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] border border-[#333333] text-[#C9A96E] shrink-0" data-testid="logbook-font-grade">
+                                Fb {entry.fontGrade}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-[11px] font-mono text-[#A89F91] mt-0.5">
                             <span>{entry.gymName.split(' ')[0]}</span>

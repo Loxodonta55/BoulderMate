@@ -91,13 +91,15 @@ export function ensureInitialGymData(): void {
     const blueScale = 'scale-blue';
     const redScale = 'scale-red';
 
-    saveBoulders([
-      { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
-      { id: 'b_sample_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.42, status: 'active', name: 'Blaues Volumen-Problem' },
-      { id: 'b_sample_3', sector_id: s1.id, grade_scale_id: redScale, position_x: 0.74, position_y: 0.31, status: 'active', name: 'Rote Leiste' },
-      { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' },
-      { id: 'b_sample_5', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.35, position_y: 0.60, status: 'active', name: 'Platten-Reibung' }
-    ]);
+    if (getBoulders().length === 0) {
+      saveBoulders([
+        { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
+        { id: 'b_sample_2', sector_id: s1.id, grade_scale_id: blueScale, position_x: 0.52, position_y: 0.42, status: 'active', name: 'Blaues Volumen-Problem' },
+        { id: 'b_sample_3', sector_id: s1.id, grade_scale_id: redScale, position_x: 0.74, position_y: 0.31, status: 'active', name: 'Rote Leiste' },
+        { id: 'b_sample_4', sector_id: s2.id, grade_scale_id: redScale, position_x: 0.45, position_y: 0.55, status: 'active', name: 'Dach-Crux' },
+        { id: 'b_sample_5', sector_id: s3.id, grade_scale_id: blueScale, position_x: 0.35, position_y: 0.60, status: 'active', name: 'Platten-Reibung' }
+      ]);
+    }
   }
 
   // 2. Ensure 6a plus (Winterthur) exists & Boris has setter permissions
@@ -108,6 +110,7 @@ export function ensureInitialGymData(): void {
     g.name.toLowerCase().includes('6aplus')
   );
 
+  const gym6aNewlyCreated = !gym6a;
   if (!gym6a) {
     gym6a = createGym({
       id: 'gym-6a-plus',
@@ -119,9 +122,9 @@ export function ensureInitialGymData(): void {
     }, CURRENT_USER.id);
   }
 
-  // Ensure 6a plus has all 7 official grade scales (Farbsystem)
+  // Ensure 6a plus has all 7 official grade scales when newly created or if none exist
   const current6aScales = getGradeScales(gym6a.id);
-  if (current6aScales.length < 7 || !current6aScales.some(s => s.color_name === 'Lila')) {
+  if (gym6aNewlyCreated || current6aScales.length === 0) {
     setGymGradeScales(gym6a.id, CURRENT_USER.id, [
       { id: 'scale_6a_gelb', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '3', font_range_max: '4', sort_order: 1 },
       { id: 'scale_6a_gruen', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
@@ -133,10 +136,9 @@ export function ensureInitialGymData(): void {
     ]);
   }
 
-  // Ensure 6a plus has all 8 sectors from Bilder6aPlus
+  // Ensure 6a plus has default sectors if none exist yet
   const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id === gym6a.id);
-  const needsEightSectorsUpgrade = current6aSectors.length < 8 || !current6aSectors.some(s => s.name === 'Cave');
-  if (needsEightSectorsUpgrade) {
+  if (current6aSectors.length === 0) {
     const otherSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id !== gym6a.id);
     const new6aSectors: Sector[] = [
       { id: 'sec_6a_slab_vorne', gym_id: gym6a.id, name: 'Slab Vorne', wall_photo_url: '/images/walls/6aplus/SlapVorne.jpg', sort_order: 1, created_at: new Date().toISOString() },
@@ -150,19 +152,21 @@ export function ensureInitialGymData(): void {
     ];
     saveSectors([...otherSectors, ...new6aSectors]);
 
-    const scales = getGradeScales(gym6a.id);
-    const yellowScale = scales[0]?.id || 's_yellow_6a';
-    const blueScale = scales[2]?.id || 's_blue_6a';
-    const redScale = scales[3]?.id || 's_red_6a';
+    // Only seed sample boulders if there are no boulders at all
+    const currentBoulders = getBoulders();
+    if (currentBoulders.length === 0) {
+      const scales = getGradeScales(gym6a.id);
+      const yellowScale = scales[0]?.id || 's_yellow_6a';
+      const blueScale = scales[2]?.id || 's_blue_6a';
+      const redScale = scales[3]?.id || 's_red_6a';
 
-    const otherBoulders = getBoulders().filter(b => !current6aSectors.some(s => s.id === b.sector_id));
-    saveBoulders([
-      ...otherBoulders,
-      { id: 'b_6a_1', sector_id: 'sec_6a_slab_vorne', grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
-      { id: 'b_6a_2', sector_id: 'sec_6a_ueberhang_vorne', grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Überhang-Crux' },
-      { id: 'b_6a_3', sector_id: 'sec_6a_cave', grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Cave Power Rot' },
-      { id: 'b_6a_4', sector_id: 'sec_6a_zwischenwand_vorne', grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Zwischenwand-Traverse' }
-    ]);
+      saveBoulders([
+        { id: 'b_6a_1', sector_id: 'sec_6a_slab_vorne', grade_scale_id: yellowScale, position_x: 0.32, position_y: 0.62, status: 'active', name: 'Gelber Auftakt' },
+        { id: 'b_6a_2', sector_id: 'sec_6a_ueberhang_vorne', grade_scale_id: blueScale, position_x: 0.52, position_y: 0.38, status: 'active', name: '6a+ Überhang-Crux' },
+        { id: 'b_6a_3', sector_id: 'sec_6a_cave', grade_scale_id: redScale, position_x: 0.65, position_y: 0.45, status: 'active', name: 'Cave Power Rot' },
+        { id: 'b_6a_4', sector_id: 'sec_6a_zwischenwand_vorne', grade_scale_id: blueScale, position_x: 0.38, position_y: 0.52, status: 'active', name: '6A+ Zwischenwand-Traverse' }
+      ]);
+    }
   }
 
   // 3. Register default roles for fake personas across gyms
@@ -522,6 +526,16 @@ export function createSector(
 
   const all = getSectors();
   saveSectors([...all, newSector]);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncSectorToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(newSector).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return newSector;
 }
 
@@ -604,6 +618,15 @@ export function updateSectorWallPhoto(
 
   sector.wall_photo_url = new_wall_photo_url.trim();
   saveSectors(all);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncSectorToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(sector).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
 
   // Assert coordinates remain untouched (AC-5 verification guarantee)
   const currentBoulders = getBoulders(sector_id);

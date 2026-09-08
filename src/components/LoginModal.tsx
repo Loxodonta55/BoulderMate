@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Shield, Check, Crown, Wrench, Building2, Mountain, UserPlus, Globe } from 'lucide-react';
 import {
   getCurrentAuthUser,
@@ -27,6 +27,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [newNickname, setNewNickname] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -37,7 +46,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setCurrentUser(updated);
     setMessage(`Angemeldet als ${u.nickname} (${u.roleDescription || 'Kletterer'})`);
     onUserChanged?.(updated);
-    setTimeout(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
       onClose();
     }, 500);
   };

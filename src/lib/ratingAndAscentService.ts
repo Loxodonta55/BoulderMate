@@ -145,6 +145,16 @@ export function logAscent(
   }
 
   setStorageJson(STORAGE_KEY_ASCENTS, all);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncAscentToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(resultAscent).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return { ascent: resultAscent, isFirstTopOrFlash };
 }
 
@@ -237,6 +247,16 @@ export function saveRating(
   }
 
   setStorageJson(STORAGE_KEY_RATINGS, all);
+
+  try {
+    import('./syncService').then(m => {
+      const syncFn = (m as any)?.syncRatingToSupabase;
+      if (typeof syncFn === 'function') {
+        syncFn(result).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
   return result;
 }
 

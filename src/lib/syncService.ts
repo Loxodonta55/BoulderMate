@@ -9,13 +9,15 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Sector, WallBoulder } from '../types/boulder';
+import { Sector, WallBoulder, Ascent, BoulderRating } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson } from './storageUtils';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
+const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
+const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
 
 export interface SyncStatus {
   lastSyncTime: string | null;
@@ -311,6 +313,55 @@ export async function syncFromSupabase(): Promise<boolean> {
       currentSyncStatus.syncedBoulders = boulderMap.size;
     }
 
+    // 4. Ascents laden & mergen (non-destructive)
+    const { data: dbAscents } = await supabase.from('ascents').select('*');
+    if (dbAscents && dbAscents.length > 0) {
+      const localAscents = getStorageJson<Ascent[]>(STORAGE_KEY_ASCENTS, []);
+      const ascentMap = new Map(localAscents.map(a => [a.id, a]));
+      for (const a of dbAscents) {
+        if (!ascentMap.has(a.id)) {
+          ascentMap.set(a.id, {
+            id: a.id,
+            userId: a.user_id,
+            userNickname: 'Kletterer',
+            boulderId: a.boulder_id,
+            type: (a.ascent_style as any) || 'top',
+            createdAt: a.created_at,
+          });
+        }
+      }
+      setStorageJson(STORAGE_KEY_ASCENTS, Array.from(ascentMap.values()));
+    }
+
+    // 5. Ratings laden & mergen (non-destructive)
+    const { data: dbRatings } = await supabase.from('ratings').select('*');
+    if (dbRatings && dbRatings.length > 0) {
+      const localRatings = getStorageJson<BoulderRating[]>(STORAGE_KEY_RATINGS, []);
+      const ratingMap = new Map(localRatings.map(r => [r.id, r]));
+      for (const r of dbRatings) {
+        if (!ratingMap.has(r.id)) {
+          ratingMap.set(r.id, {
+            id: r.id,
+            boulderId: r.boulder_id,
+            userId: r.user_id,
+            userNickname: 'Kletterer',
+            gradeFeel: (r.perceived_difficulty as any) || undefined,
+            qualityStars: r.stars || undefined,
+            radar: {
+              kraft: r.radar_kraft || 3,
+              technik: r.radar_technik || 3,
+              balance: r.radar_balance || 3,
+              koordination: r.radar_koordination || 3,
+              flexibilitaet: r.radar_flexibilitaet || 3,
+            },
+            createdAt: r.created_at,
+            updatedAt: r.created_at,
+          });
+        }
+      }
+      setStorageJson(STORAGE_KEY_RATINGS, Array.from(ratingMap.values()));
+    }
+
     currentSyncStatus.lastSyncTime = new Date().toISOString();
     return true;
   } catch (err: any) {
@@ -382,4 +433,238 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
     return false;
   }
 }
+
+/**
+ * Prüft, ob ein gegebener String eine gültige UUID v4 ist.
+ */
+export function isValidUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+/**
+ * Konvertiert beliebige lokale String-IDs deterministisch in eine valide UUID,
+ * damit Supabase UUID-Spalten und Foreign Keys niemals scheitern.
+ */
+export function stringToUuid(str: string): string {
+  if (isValidUuid(str)) return str;
+  let hash1 = 0;
+  let hash2 = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash1 = ((hash1 << 5) - hash1) + str.charCodeAt(i);
+    hash1 |= 0;
+  }
+  for (let i = str.length - 1; i >= 0; i--) {
+    hash2 = ((hash2 << 5) - hash2) + str.charCodeAt(i);
+    hash2 |= 0;
+  }
+  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
+  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
+  return `00000000-${hex1.slice(0, 4)}-4000-8000-${hex1.slice(4)}${hex2}`.slice(0, 36);
+}
+
+/**
+ * Synchronisiert einen Sektor in Echtzeit aufwärts nach Supabase.
+ */
+export async function syncSectorToSupabase(sector: any): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !sector) return false;
+  try {
+    const rawGymId = sector.gym_id || sector.gymId;
+    const targetGymId = (rawGymId === 'gym-6a-plus' || rawGymId?.includes('6a') || rawGymId?.includes('f2b11564'))
+      ? 'f2b11564-ca86-4ed4-b51c-3affb346144b'
+      : (rawGymId === 'gym-minimum-zh' || rawGymId?.includes('minimum') || rawGymId?.includes('814696b2'))
+      ? '814696b2-303e-4897-9bdb-d83505a63489'
+      : rawGymId;
+
+    const { data: existingSectors } = await supabase
+      .from('sectors')
+      .select('id, name')
+      .eq('gym_id', targetGymId);
+
+    const match = existingSectors?.find(s => s.name.trim().toLowerCase() === sector.name.trim().toLowerCase());
+    const sectorUuid = match?.id || (isValidUuid(sector.id) ? sector.id : stringToUuid(sector.id));
+
+    const payload = {
+      id: sectorUuid,
+      gym_id: targetGymId,
+      name: sector.name.trim(),
+      wall_photo_url: sector.wall_photo_url || sector.wallPhotoUrl || null,
+      sort_order: sector.sort_order || sector.sortOrder || 1,
+      created_at: sector.created_at || sector.createdAt || new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('sectors').upsert(payload);
+    if (error) {
+      console.warn('[Sync] Fehler beim Aufwärts-Sync des Sektors:', error.message);
+      return false;
+    }
+    console.log(`[Sync] Sektor "${payload.name}" (${payload.id}) erfolgreich nach Supabase synchronisiert.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync des Sektors:', e);
+    return false;
+  }
+}
+
+/**
+ * Synchronisiert neu erstellte oder geänderte Boulder in Echtzeit aufwärts nach Supabase.
+ */
+export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !boulders || boulders.length === 0) return false;
+  try {
+    const [sectorsRes, scalesRes] = await Promise.all([
+      supabase.from('sectors').select('id, name, gym_id'),
+      supabase.from('grade_scales').select('id, color_name, gym_id')
+    ]);
+
+    const remoteSectors = sectorsRes.data || [];
+    const remoteScales = scalesRes.data || [];
+
+    const localSectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+    const localScales = gymStorage.getGradeScales();
+
+    const upsertRows: any[] = [];
+
+    for (const b of boulders) {
+      // 1. Sektor auflösen
+      let resolvedSectorId: string | null = null;
+      if (isValidUuid(b.sectorId) && remoteSectors.some(s => s.id === b.sectorId)) {
+        resolvedSectorId = b.sectorId;
+      } else {
+        const localSec = localSectors.find(s => s.id === b.sectorId);
+        if (localSec) {
+          const matchedRemote = remoteSectors.find(rs => rs.name.trim().toLowerCase() === localSec.name.trim().toLowerCase());
+          if (matchedRemote) resolvedSectorId = matchedRemote.id;
+        }
+      }
+      if (!resolvedSectorId && remoteSectors.length > 0) {
+        resolvedSectorId = remoteSectors[0].id;
+      }
+
+      // 2. Farbskala auflösen
+      let resolvedScaleId: string | null = null;
+      if (isValidUuid(b.gradeScaleId) && remoteScales.some(s => s.id === b.gradeScaleId)) {
+        resolvedScaleId = b.gradeScaleId;
+      } else {
+        const localSc = localScales.find(s => s.id === b.gradeScaleId);
+        if (localSc) {
+          const matchedScale = remoteScales.find(rs => rs.color_name.trim().toLowerCase() === localSc.color_name.trim().toLowerCase());
+          if (matchedScale) resolvedScaleId = matchedScale.id;
+        }
+      }
+      if (!resolvedScaleId && remoteScales.length > 0) {
+        resolvedScaleId = remoteScales[0].id;
+      }
+
+      if (!resolvedSectorId || !resolvedScaleId) continue;
+
+      const boulderUuid = isValidUuid(b.id) ? b.id : stringToUuid(b.id);
+      const setterUuid = isValidUuid(b.setterId) ? b.setterId : stringToUuid(b.setterId);
+
+      upsertRows.push({
+        id: boulderUuid,
+        sector_id: resolvedSectorId,
+        grade_scale_id: resolvedScaleId,
+        position_x: b.positionX,
+        position_y: b.positionY,
+        name: b.name || 'Unbenannter Boulder',
+        notes: b.notes || '',
+        setter_id: setterUuid,
+        status: b.status || 'active',
+        radar_kraft: b.radar?.kraft ?? 3,
+        radar_technik: b.radar?.technik ?? 3,
+        radar_balance: b.radar?.balance ?? 3,
+        radar_koordination: b.radar?.koordination ?? 3,
+        radar_flexibilitaet: b.radar?.flexibilitaet ?? 3,
+        radar_maximalkraft: b.radar?.maximalkraft ?? b.radar?.kraft ?? 3,
+        radar_kraftausdauer: b.radar?.kraftausdauer ?? b.radar?.kraft ?? 3,
+        font_grade: b.fontGrade || null,
+        created_at: b.createdAt || new Date().toISOString(),
+        published_at: b.publishedAt || null,
+        archived_at: b.archivedAt || null,
+      });
+    }
+
+    if (upsertRows.length === 0) return true;
+
+    const { error } = await supabase.from('boulders').upsert(upsertRows);
+    if (error) {
+      console.warn('[Sync] Fehler beim Aufwärts-Sync der Boulder:', error.message);
+      return false;
+    }
+    console.log(`[Sync] ${upsertRows.length} Boulder erfolgreich nach Supabase synchronisiert.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync der Boulder:', e);
+    return false;
+  }
+}
+
+/**
+ * Synchronisiert eine Begehung in Echtzeit aufwärts nach Supabase.
+ */
+export async function syncAscentToSupabase(ascent: Ascent): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !ascent) return false;
+  try {
+    const ascentUuid = isValidUuid(ascent.id) ? ascent.id : stringToUuid(ascent.id);
+    const boulderUuid = isValidUuid(ascent.boulderId) ? ascent.boulderId : stringToUuid(ascent.boulderId);
+    const userUuid = isValidUuid(ascent.userId) ? ascent.userId : stringToUuid(ascent.userId);
+
+    const payload = {
+      id: ascentUuid,
+      boulder_id: boulderUuid,
+      user_id: userUuid,
+      ascent_style: ascent.type,
+      attempts: ascent.type === 'flash' ? 1 : 1,
+      notes: null,
+      created_at: ascent.createdAt || new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('ascents').upsert(payload);
+    if (error) {
+      console.warn('[Sync] Fehler beim Aufwärts-Sync der Begehung:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync der Begehung:', e);
+    return false;
+  }
+}
+
+/**
+ * Synchronisiert eine Bewertung in Echtzeit aufwärts nach Supabase.
+ */
+export async function syncRatingToSupabase(rating: BoulderRating): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !rating) return false;
+  try {
+    const ratingUuid = isValidUuid(rating.id) ? rating.id : stringToUuid(rating.id);
+    const boulderUuid = isValidUuid(rating.boulderId) ? rating.boulderId : stringToUuid(rating.boulderId);
+    const userUuid = isValidUuid(rating.userId) ? rating.userId : stringToUuid(rating.userId);
+
+    const payload = {
+      id: ratingUuid,
+      boulder_id: boulderUuid,
+      user_id: userUuid,
+      perceived_difficulty: rating.gradeFeel || null,
+      stars: rating.qualityStars || null,
+      radar_kraft: rating.radar?.kraft || null,
+      radar_technik: rating.radar?.technik || null,
+      radar_balance: rating.radar?.balance || null,
+      radar_koordination: rating.radar?.koordination || null,
+      radar_flexibilitaet: rating.radar?.flexibilitaet || null,
+      created_at: rating.createdAt || new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('ratings').upsert(payload);
+    if (error) {
+      console.warn('[Sync] Fehler beim Aufwärts-Sync der Bewertung:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync der Bewertung:', e);
+    return false;
+  }
+}
+
 

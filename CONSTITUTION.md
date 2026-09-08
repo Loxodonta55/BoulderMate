@@ -189,14 +189,14 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 ## 8. Logbuch & Statistiken
 
 - **Begehungsarten**: `Flash` (⚡), `Top` (✅), `Projekt` (🎯)
-- **Persönliche Statistiken**: Grad-Verteilung (Balkendiagramm) sowie multidimensionale Stil- & Performance-Statistik (Athleten-Radar & Stärken/Baustellen-Analyse vs. Hallenschnitt, SPEC-008)
+- **Persönliche Statistiken**: Grad-Verteilung (Balkendiagramm) basierend auf der allgemeingültigen Fontainebleau-Skala (dynamisch und klug übersetzt aus Hallen-Farbbändern und Community-Grad-Feel Soft/Fair/Stiff, SPEC-004) sowie multidimensionale Stil- & Performance-Statistik (Athleten-Radar & Stärken/Baustellen-Analyse vs. Hallenschnitt, SPEC-008)
 
 ---
 
 ## 9. Grading-System
 
-- **Primär**: Hallen-eigenes Bewertungssystem (Farben, Nummern, Schwierigkeitsbänder – pro Halle konfigurierbar).
-- **Sekundär / Optional**: Fontainebleau-Skala (4a, 5c, 6b+, 7a, ...) – Mapping durch Admin oder Schätzung durch Community.
+- **Primär (Hallenalltag & Griffe)**: Hallen-eigenes Bewertungssystem (Farben, Nummern, Schwierigkeitsbänder – pro Halle konfigurierbar).
+- **Allgemeingültige Kletterer-Statistik**: Statistiken basieren stets auf der Übersetzung auf die Fontainebleau-Skala (3, 4, 5, 6a, 6a+, 6b, 6b+, 6c, 6c+, 7a, ...). Eine Hallenfarbe (z. B. Rot: 6b+ bis 6c+) wird initial mit dem Mittelwert (z. B. 6c) bewertet; bewertet die Community den Boulder als "taff" / "stiff", wandert er auf 6c+; wird er als "soft" eingestuft, auf 6b+. Dies garantiert objektive, hallenübergreifende Vergleichbarkeit.
 
 ---
 

@@ -1,30 +1,34 @@
 # SPEC-004: Profil, Statistiken & Logbuch
 
-## Status: DONE
+## Status: APPROVED (Aktualisiert für Fontainebleau-Grading & dynamische Übersetzung)
 
 ## Summary
-Stellt Kletterern ein persönliches Profil mit vier Kernkennzahlen (Anzahl Tops, Anzahl Flashes, bester Top, bester Flash), einer visuellen Grad-Verteilung als gestapeltes horizontales Balkendiagramm (Flash/Top pro Hallenfarbe) und einem chronologischen Logbuch der eigenen Begehungen bereit. Ein Hallenfilter erlaubt das Umschalten zwischen globalem Gesamtüberblick und hallenspezifischer Auswertung. Das Profil ist als eigener Tab in der Bottom-Navigation erreichbar. Header und Statistiken sind öffentlich sichtbar, das Logbuch ist privat.
+Stellt Kletterern ein persönliches Profil mit vier Kernkennzahlen (Anzahl Tops, Anzahl Flashes, bester Top, bester Flash), einer visuellen Grad-Verteilung als gestapeltes horizontales Balkendiagramm auf Basis der allgemeingültigen **Fontainebleau-Skala** (dynamisch und klug übersetzt aus Hallen-Farbbändern und Community-Grad-Feel Soft/Fair/Stiff) und einem chronologischen Logbuch der eigenen Begehungen bereit. Die Statistiken basieren nicht auf hallenspezifischen Farben, sondern stets auf der allgemeingültigen Fontainebleau-Skala, um hallenübergreifende Vergleichbarkeit zu gewährleisten. Ein Hallenfilter erlaubt das Umschalten zwischen globalem Gesamtüberblick („Alle Hallen“) und hallenspezifischer Auswertung. Das Profil ist als eigener Tab in der Bottom-Navigation erreichbar. Header und Statistiken sind öffentlich sichtbar, das Logbuch ist privat.
 
 ## User Stories
 - **US-1**: Als Kletterer möchte ich einen eigenen Profil-Tab mit meinem Nickname, Avatar und „Mitglied seit"-Datum sehen, damit ich eine persönliche Heimat in der App habe.
-- **US-2**: Als Kletterer möchte ich auf einen Blick vier Kennzahlen sehen (Total Tops, Total Flashes, bester Top, bester Flash), um meinen aktuellen Leistungsstand zu kennen.
-- **US-3**: Als Kletterer möchte ich ein horizontales Balkendiagramm meiner getoppten Boulder pro Hallenfarbe/Schwierigkeitsband sehen, mit visueller Unterscheidung zwischen Flashes und regulären Tops.
-- **US-4**: Als Kletterer möchte ich die Statistiken nach einer bestimmten Halle filtern können oder „Alle Hallen" als Gesamtüberblick sehen.
-- **US-5**: Als Kletterer möchte ich unter den Statistiken eine chronologische Liste meiner letzten Begehungen (Logbuch) sehen und per Tap zur Boulder-Detailseite navigieren.
+- **US-2**: Als Kletterer möchte ich auf einen Blick vier Kennzahlen sehen (Total Tops, Total Flashes, bester Top in Fontainebleau-Graden, bester Flash in Fontainebleau-Graden), um meinen aktuellen Leistungsstand objektiv und allgemeingültig zu kennen.
+- **US-3**: Als Kletterer möchte ich ein horizontales Balkendiagramm meiner getoppten Boulder übersetzt auf die allgemeingültige Fontainebleau-Skala (z. B. 5c, 6a, 6a+, 6b, 6b+, 6c, 6c+, 7a) sehen, mit visueller Unterscheidung zwischen Flashes und regulären Tops und kluger Feinjustierung durch die Community-Grad-Einschätzung (Soft / Fair / Stiff).
+- **US-4**: Als Kletterer möchte ich die Fontainebleau-Statistiken nach einer bestimmten Halle filtern können oder „Alle Hallen" als globalen Gesamtüberblick sehen.
+- **US-5**: Als Kletterer möchte ich unter den Statistiken eine chronologische Liste meiner letzten Begehungen (Logbuch) sehen, inklusive Farb-Badge und übersetztem Fontainebleau-Grad, und per Tap zur Boulder-Detailseite navigieren.
 - **US-6**: Als Kletterer möchte ich meinen Nickname und mein Profilbild über einen Settings-Screen ändern können, sowie mich ausloggen oder meinen Account löschen.
-- **US-7**: Als Kletterer möchte ich, dass andere User mein öffentliches Profil (Header + KPIs + Grad-Verteilung) sehen können, wenn sie in einem Ascent-Feed auf meinen Namen tippen, aber mein Logbuch privat bleibt.
+- **US-7**: Als Kletterer möchte ich, dass andere User mein öffentliches Profil (Header + KPIs + Fontainebleau-Grad-Verteilung) sehen können, wenn sie in einem Ascent-Feed auf meinen Namen tippen, aber mein Logbuch privat bleibt.
 
 ## Acceptance Criteria
 - [x] **AC-1: Profil-Tab**: Ein dedizierter Tab in der Navigation zeigt das eigene Profil mit Header (Avatar, Nickname, Mitglied seit) und einem Gear-Icon für Settings.
-- [x] **AC-2: KPI-Kacheln**: Vier Kennzahl-Kacheln werden prominent über der Grad-Verteilung angezeigt:
+- [x] **AC-2: KPI-Kacheln (Fontainebleau-Basis)**: Vier Kennzahl-Kacheln werden prominent über der Grad-Verteilung angezeigt:
   - Anzahl getoppte Boulder (Flash + Top)
   - Anzahl Flashes
-  - Bester Top (höchstes Farbband getoppt)
-  - Bester Flash (höchstes Farbband geflasht)
-- [x] **AC-3: Grad-Verteilung**: Horizontales gestapeltes Balkendiagramm mit einer Zeile pro Hallenfarbe/Schwierigkeitsband. Balken in der Hallenfarbe, visuell unterteilt in Flashes (hellerer Abschnitt) und Tops (dunklerer Abschnitt). Gesamtzahl als Label am Balkenende.
-- [x] **AC-4: Hallenfilter**: Ein Dropdown oder Chip-Leiste oberhalb der Statistiken erlaubt die Auswahl zwischen „Alle Hallen" (Default) und einzelnen Hallen. Filter wirkt auf KPIs, Grad-Verteilung und Logbuch gleichzeitig.
-- [x] **AC-5: Logbuch (privat)**: Unterhalb der Grad-Verteilung zeigt eine scrollbare Liste die eigenen Begehungen in umgekehrt chronologischer Reihenfolge. Jede Zeile enthält: Farb-Badge, Hallenname, Sektorname, Begehungstyp-Icon (⚡/✅/🎯) und Datum. Tap navigiert zur Boulder-Detailseite.
-- [x] **AC-6: Öffentliches Profil**: Wenn ein anderer User auf den Nickname/Avatar (z.B. im Ascent-Feed der Boulder-Detailseite) tippt, sieht er Header + KPIs + Grad-Verteilung. Das Logbuch wird dort **nicht** angezeigt.
+  - Bester Top (höchster erreichter Fontainebleau-Grad, z. B. `Fb 7a` oder `Fb 6c+`, abgeleitet aus dem Hallenfarbband und Nutzerbewertung)
+  - Bester Flash (höchster geflashter Fontainebleau-Grad, z. B. `Fb 6c`, abgeleitet aus dem Hallenfarbband und Nutzerbewertung)
+- [x] **AC-3: Grad-Verteilung (Fontainebleau-Skala)**: Horizontales gestapeltes Balkendiagramm mit einer Zeile pro allgemeingültigem Fontainebleau-Schwierigkeitsgrad (z. B. 5c, 6a, 6a+, 6b, 6b+, 6c, 6c+, 7a, ...). Die Hallenfarben werden anhand des konfigurierten Font-Bandes (`font_range_min`, `font_range_max`) und der Community-Bewertung (`soft` / `fair` / `stiff`) dynamisch auf die Fontainebleau-Skala übersetzt:
+  - **Initial / Fair (Standard)**: Mittlerer Grad des Bandes (z. B. Rot [6b+ .. 6c+] -> initial `6c`).
+  - **Stiff (taff nach Nutzerbewertung)**: Oberer Grad des Bandes (z. B. `6c+`).
+  - **Soft (leicht nach Nutzerbewertung)**: Unterer Grad des Bandes (z. B. `6b+`).
+  Balken visuell unterteilt in Flashes (hellerer Abschnitt mit ⚡) und Tops (dunklerer Abschnitt). Gesamtzahl als Label am Balkenende.
+- [x] **AC-4: Hallenfilter**: Ein Dropdown oberhalb der Statistiken erlaubt die Auswahl zwischen „Alle Hallen" (Default) und einzelnen Hallen. Filter wirkt auf KPIs, die Fontainebleau-Grad-Verteilung und das Logbuch gleichzeitig.
+- [x] **AC-5: Logbuch (privat)**: Unterhalb der Grad-Verteilung zeigt eine scrollbare Liste die eigenen Begehungen in umgekehrt chronologischer Reihenfolge. Jede Zeile enthält: Farb-Badge, übersetzten Fontainebleau-Grad (`Fb 6c+`), Hallenname, Sektorname, Begehungstyp-Icon (⚡/✅/🎯) und Datum. Tap navigiert zur Boulder-Detailseite.
+- [x] **AC-6: Öffentliches Profil**: Wenn ein anderer User auf den Nickname/Avatar (z.B. im Ascent-Feed der Boulder-Detailseite) tippt, sieht er Header + KPIs + Fontainebleau-Grad-Verteilung. Das Logbuch wird dort **nicht** angezeigt.
 - [x] **AC-7: Settings-Screen**: Erreichbar über Gear-Icon im Profil-Header. Bietet: Nickname ändern, Avatar-Foto hochladen/ändern, Logout-Button, Account-löschen-Button (mit Bestätigungsdialog).
 - [x] **AC-8: Leerer Zustand**: Bei null Begehungen zeigen KPIs „0" / „–" und die Grad-Verteilung einen motivierenden Leer-Zustand (z.B. „Logge deinen ersten Boulder!").
 

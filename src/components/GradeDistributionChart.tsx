@@ -23,7 +23,7 @@ export const GradeDistributionChart: React.FC<GradeDistributionChartProps> = ({
             Grad-Verteilung
           </h3>
           <p className="text-[11px] font-mono text-[#A89F91]">
-            Erfolgreiche Begehungen nach Hallenfarben
+            Erfolgreiche Begehungen nach Fontainebleau-Skala
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono text-[#A89F91]">
@@ -70,16 +70,23 @@ export const GradeDistributionChart: React.FC<GradeDistributionChartProps> = ({
             const topRatio = item.totalCount > 0 ? (item.topCount / item.totalCount) * 100 : 0;
 
             return (
-              <div key={item.gradeScale.id} className="flex items-center gap-3 text-xs">
+              <div key={item.fontGrade ? `fg-${item.fontGrade}` : item.gradeScale.id} className="flex items-center gap-3 text-xs">
                 {/* Grade / Color label */}
-                <div className="w-24 sm:w-28 shrink-0 flex items-center gap-2">
+                <div className="w-28 sm:w-32 shrink-0 flex items-center gap-2">
                   <span
                     className="w-3 h-3 rounded-none shrink-0 border border-black/30"
                     style={{ backgroundColor: item.gradeScale.colorHex }}
                   />
-                  <span className="font-mono font-bold text-[#E8E0D4] truncate text-[11px] sm:text-xs">
-                    {item.gradeScale.colorName}
-                  </span>
+                  <div className="flex items-baseline gap-1.5 truncate">
+                    <span className="font-mono font-bold text-[#E8E0D4] text-[11px] sm:text-xs">
+                      {item.fontGrade ? `Fb ${item.fontGrade}` : item.gradeScale.colorName}
+                    </span>
+                    {item.fontGrade && item.gradeScale.colorName && (
+                      <span className="text-[10px] font-mono text-[#A89F91] truncate">
+                        {item.gradeScale.colorName}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bar track container (0px radius) */}

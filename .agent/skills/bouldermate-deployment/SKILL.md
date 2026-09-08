@@ -107,3 +107,29 @@ Beim Deployment und Datenabgleich zwischen lokaler Umgebung und Supabase/Vercel 
   - Jede Erstellung, Mutation oder Synchronisation von Sektoren, Farbskalen und aktiven Bouldern muss **immer synchron in beiden Caches** erfolgen.
   - Unveröffentlichte Schrauber-Drafts (`status === 'draft'`) dürfen **nicht** vorzeitig in den V1-Routenbestand einfließen, sondern erst beim Batch-Publishing.
 
+### 4. Watch Out: Zero-Data-Loss Garantie — Keine zerstörerischen Initialisierungen
+- **Problem**: Harte Initialisierungs-Skripte oder Client-Methoden (wie `ensureInitialGymData`) prüfen oft nur, ob bestimmte Seed-Daten vorhanden sind. Wenn sie fehlen oder ein Update ansteht, überschreiben sie unbemerkt bestehende Routen, Sektoren oder Farbskalen im Browser-Storage mit statischen Mock-Arrays.
+- **Fehlerfall**: Ein neues Deployment triggert die Initialisierung in einem neuen Tab oder auf einem anderen Endgerät -> alle auf Produktion erstellten Routen, benutzerdefinierten Farben und Sektoren werden gelöscht!
+- **Zwingende Regel**:
+  - Initialisierungs-Routinen dürfen **niemals destruktiv** sein. Bestehende Routen (`boulders`), Sektoren (`sectors`) und Farbskalen (`grade_scales`) dürfen unter keinen Umständen mit Beispieldaten überschrieben werden.
+  - Initialisierungen dürfen nur dann Standarddaten anlegen, wenn in der jeweiligen Tabelle/Kategorie **absolut 0 Einträge** existieren.
+  - Auf Produktion ist stets Supabase die **Single Source of Truth**.
+
+### 5. Watch Out: Real-Time Upward Persistence (Echtzeit Cloud-Speicherung)
+- **Problem**: Werden Aktionen wie das Veröffentlichen von Bouldern (`publishBatch`), das Anlegen von Sektoren (`createSector`) oder das Loggen von Begehungen (`logAscent`) nur im `localStorage` des Browsers gehalten, existieren die Daten nur auf diesem einen Gerät.
+- **Fehlerfall**: Bei neuem Deployment, Cache-Bereinigung oder Aufruf über Mobilgerät scheinen alle Daten „überschrieben“ oder verloren.
+- **Zwingende Regel**:
+  - Jede schreibende Nutzeraktion MUSS sofort und non-destruktiv via Upsert an Supabase gesendet werden (`syncBouldersToSupabase`, `syncSectorToSupabase`, `syncGradeScalesToSupabase`, `syncAscentToSupabase`).
+  - `localStorage` dient ausschließlich als lokaler Cache und Offline-Fallback, niemals als alleiniger Speicherort für Produktionsdaten.
+
+---
+
+## 5. Stufe: Pre- & Post-Deployment Data Integrity Gate
+Vor und nach jedem Release MUSS die Datenbank-Integrität auf Supabase verifiziert werden:
+```powershell
+node scripts/sync-all-to-supabase.js
+```
+- Die Anzahl der Hallen, Sektoren, Farbskalen, Boulder und Begehungen darf nach einem Deployment **niemals geringer** sein als zuvor.
+- Alle benutzerdefinierten Farben (z. B. Sonnengelb, Pink, Türkis) und alle vom Schrauber erstellten Routen müssen auf Supabase und bouldermate.ch lückenlos erhalten bleiben.
+
+

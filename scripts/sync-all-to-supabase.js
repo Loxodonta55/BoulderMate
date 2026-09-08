@@ -104,26 +104,28 @@ async function syncGradeScales() {
 
     const existingMap = new Map((existing || []).map(e => [e.color_name.trim().toLowerCase(), e.id]));
 
-    const payload = scalesToSync.map((s, idx) => {
-      const matchId = existingMap.get(s.color_name.trim().toLowerCase());
-      const item = {
-        gym_id: gym.id,
-        color_name: s.color_name,
-        color_hex: s.color_hex,
-        difficulty_label: s.difficulty_label,
-        font_range_min: s.font_range_min,
-        font_range_max: s.font_range_max,
-        sort_order: s.sort_order || idx + 1,
-      };
-      if (matchId) item.id = matchId;
-      return item;
-    });
+    // Nur Skalen einfügen, deren Farbname in Supabase noch fehlt (Strict Additive!)
+    const missingScales = scalesToSync.filter(s => !existingMap.has(s.color_name.trim().toLowerCase()));
+    if (missingScales.length === 0) {
+      console.log(`  ✓ Alle Basis-Farbskalen für ${gym.name} bereits vorhanden (${existing?.length || 0} gesamt inkl. benutzerdefinierter Farben). Keine Änderungen nötig.`);
+      continue;
+    }
+
+    const payload = missingScales.map((s, idx) => ({
+      gym_id: gym.id,
+      color_name: s.color_name,
+      color_hex: s.color_hex,
+      difficulty_label: s.difficulty_label,
+      font_range_min: s.font_range_min,
+      font_range_max: s.font_range_max,
+      sort_order: (existing?.length || 0) + idx + 1,
+    }));
 
     const { error } = await supabase.from('grade_scales').upsert(payload);
     if (error) {
-      console.warn(`  ! Fehler beim Sync der Farbskalen für ${gym.name}:`, error.message);
+      console.warn(`  ! Fehler beim Sync der fehlenden Farbskalen für ${gym.name}:`, error.message);
     } else {
-      console.log(`  ✓ ${payload.length} Farbskalen für ${gym.name} synchronisiert.`);
+      console.log(`  ✓ ${payload.length} fehlende Farbskalen für ${gym.name} non-destruktiv ergänzt.`);
     }
   }
 }
