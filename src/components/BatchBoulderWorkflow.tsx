@@ -323,7 +323,9 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         /* Main Interactive Canvas */
         selectedSector && (
           <WallPhotoCanvas
+            mode="setter"
             photoUrl={selectedSector.wallPhotoUrl}
+            sectorName={selectedSector.name}
             boulders={boulders}
             gradeScales={gradeScales}
             pendingArchiveIds={pendingArchiveIds}

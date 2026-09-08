@@ -122,4 +122,50 @@ describe('Pin Coordinate Alignment & Wall Photo Aspect Ratio (Setter <-> Climber
     expect(setterStyle.left).toBe(climberStyle.left);
     expect(setterStyle.top).toBe(climberStyle.top);
   });
+
+  it('WallPhotoCanvas provides 1:1 identical layout wrapper in both setter and climber modes', () => {
+    const { container: setterContainer } = render(
+      <WallPhotoCanvas
+        mode="setter"
+        photoUrl="/images/walls/overhang.jpg"
+        boulders={[testBoulder]}
+        gradeScales={sampleGradeScales}
+        pendingArchiveIds={[]}
+        selectedBoulderId={null}
+        onPhotoClick={vi.fn()}
+        onPinClick={vi.fn()}
+        onPinMove={vi.fn()}
+      />
+    );
+
+    const { container: climberContainer } = render(
+      <WallPhotoCanvas
+        mode="climber"
+        photoUrl="/images/walls/overhang.jpg"
+        boulders={[testBoulder]}
+        gradeScales={sampleGradeScales}
+        onPinClick={vi.fn()}
+      />
+    );
+
+    // Both containers must have the exact same outer border and overflow styling
+    const setterOuter = setterContainer.firstElementChild as HTMLElement;
+    const climberOuter = climberContainer.firstElementChild as HTMLElement;
+    expect(setterOuter.className).toBe(climberOuter.className);
+
+    // Both images must have the exact same class list
+    const setterImg = setterContainer.querySelector('img') as HTMLImageElement;
+    const climberImg = climberContainer.querySelector('img') as HTMLImageElement;
+    expect(setterImg.className).toBe(climberImg.className);
+    expect(setterImg.src).toBe(climberImg.src);
+
+    // Both pins must have the exact same style left and top
+    const setterPin = setterContainer.querySelector('[data-testid="pin-boulder-coord-test-1"]') as HTMLElement;
+    const climberPin = climberContainer.querySelector('[data-testid="pin-boulder-coord-test-1"]') as HTMLElement;
+    expect(setterPin.style.left).toBe('45.67%');
+    expect(climberPin.style.left).toBe('45.67%');
+    expect(setterPin.style.top).toBe('78.91%');
+    expect(climberPin.style.top).toBe('78.91%');
+  });
 });
+

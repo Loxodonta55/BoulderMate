@@ -1,31 +1,60 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { WallBoulder, GymGradeScale } from '../types/boulder';
-import { ZoomIn, ZoomOut, RotateCcw, Crosshair, Archive, Sparkles, Camera } from 'lucide-react';
+import { WallBoulder, GymGradeScale, Ascent, BoulderStatsAggregate } from '../types/boulder';
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Crosshair,
+  Archive,
+  Sparkles,
+  Camera,
+  Info,
+  Zap,
+  Trophy,
+  Clock,
+  Star,
+} from 'lucide-react';
 
-interface WallPhotoCanvasProps {
+export interface WallPhotoCanvasProps {
+  mode?: 'setter' | 'climber';
   photoUrl: string;
+  sectorName?: string;
   boulders: WallBoulder[];
   gradeScales: GymGradeScale[];
-  pendingArchiveIds: string[];
-  selectedBoulderId: string | null;
-  onPhotoClick: (x: number, y: number) => void;
-  onPinClick: (boulder: WallBoulder) => void;
-  onPinMove: (boulderId: string, newX: number, newY: number) => void;
+
+  // Setter mode props
+  pendingArchiveIds?: string[];
+  selectedBoulderId?: string | null;
+  onPhotoClick?: (x: number, y: number) => void;
+  onPinClick?: (boulder: WallBoulder) => void;
+  onPinMove?: (boulderId: string, newX: number, newY: number) => void;
   isAddingEnabled?: boolean;
   onChangePhoto?: () => void;
+
+  // Climber mode props
+  filterMode?: 'all' | 'top_rated' | 'popular' | 'projects';
+  filteredBoulderIds?: Set<string>;
+  statsMap?: Map<string, BoulderStatsAggregate>;
+  userAscentMap?: Map<string, Ascent | null>;
 }
 
 export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
+  mode = 'setter',
   photoUrl,
+  sectorName,
   boulders,
   gradeScales,
-  pendingArchiveIds,
-  selectedBoulderId,
+  pendingArchiveIds = [],
+  selectedBoulderId = null,
   onPhotoClick,
   onPinClick,
   onPinMove,
   isAddingEnabled = true,
   onChangePhoto,
+  filterMode = 'all',
+  filteredBoulderIds,
+  statsMap,
+  userAscentMap,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -38,53 +67,57 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
   // Compute click coordinates relative to image (0.0 to 1.0)
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (mode !== 'setter') return;
     // If just finished dragging, prevent click
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       return;
     }
-    if (!containerRef.current || !isAddingEnabled) return;
+    if (!containerRef.current || !isAddingEnabled || !onPhotoClick) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / rect.width;
     const clickY = (e.clientY - rect.top) / rect.height;
 
-    // Clamp between 0.0 and 1.0
-    const clampedX = Math.max(0, Math.min(1, clickX));
-    const clampedY = Math.max(0, Math.min(1, clickY));
+    // Clamp between 0.01 and 0.99 with 4 decimals precision
+    const clampedX = Math.max(0.01, Math.min(0.99, Number(clickX.toFixed(4))));
+    const clampedY = Math.max(0.01, Math.min(0.99, Number(clickY.toFixed(4))));
 
     onPhotoClick(clampedX, clampedY);
   };
 
-  // Drag handling
+  // Drag handling (Setter mode only)
   const handlePinMouseDown = (e: React.MouseEvent, boulderId: string) => {
+    if (mode !== 'setter' || !onPinMove) return;
     e.stopPropagation();
     setDraggingPinId(boulderId);
     setDragStartPos({ x: e.clientX, y: e.clientY });
     isDraggingRef.current = false;
   };
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggingPinId || !containerRef.current || !dragStartPos) return;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (mode !== 'setter' || !draggingPinId || !containerRef.current || !dragStartPos || !onPinMove) return;
 
-    const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
-    if (dist > 5) {
-      isDraggingRef.current = true;
-    }
+      const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
+      if (dist > 5) {
+        isDraggingRef.current = true;
+      }
 
-    if (isDraggingRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const newX = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / rect.width));
-      const newY = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / rect.height));
-      onPinMove(draggingPinId, newX, newY);
-    }
-  }, [draggingPinId, dragStartPos, onPinMove]);
+      if (isDraggingRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const newX = Math.max(0.01, Math.min(0.99, Number(((e.clientX - rect.left) / rect.width).toFixed(4))));
+        const newY = Math.max(0.01, Math.min(0.99, Number(((e.clientY - rect.top) / rect.height).toFixed(4))));
+        onPinMove(draggingPinId, newX, newY);
+      }
+    },
+    [mode, draggingPinId, dragStartPos, onPinMove]
+  );
 
   const handleMouseUp = () => {
     if (draggingPinId) {
       setDraggingPinId(null);
       setDragStartPos(null);
-      // Small timeout so click doesn't trigger immediately
       setTimeout(() => {
         isDraggingRef.current = false;
       }, 50);
@@ -92,25 +125,35 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   };
 
   const handleZoom = (delta: number) => {
-    setZoomLevel(prev => Math.max(1, Math.min(2.5, Number((prev + delta).toFixed(1)))));
+    setZoomLevel(prev => Math.max(1, Math.min(2.5, Number((prev + delta).toFixed(2)))));
   };
 
   return (
-    <div className="relative w-full rounded-none overflow-hidden border border-[#333333] select-none">
-      {/* Zoom & Instruction Toolbar */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#1E1E1E] px-3 py-1.5 rounded-none border border-[#333333] text-xs font-mono text-[#E8E0D4]">
-        <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
-        <span>Tippe auf Wand für Pin</span>
-        <span className="text-[#6B6358]">|</span>
-        <span>Drag = Verschieben</span>
+    <div className="relative w-full rounded-none overflow-hidden border border-[#333333] bg-black select-none">
+      {/* Top-Left Mode & Instruction Badge */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#1E1E1E] px-3 py-1.5 rounded-none border border-[#333333] text-xs font-mono text-[#E8E0D4] shadow-md pointer-events-none">
+        {mode === 'setter' ? (
+          <>
+            <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
+            <span>Tippe auf Wand für Pin</span>
+            <span className="text-[#6B6358]">|</span>
+            <span>Drag = Verschieben</span>
+          </>
+        ) : (
+          <>
+            <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
+            <span>Tippe auf Pin für Details & Logging</span>
+          </>
+        )}
       </div>
 
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1E1E1E] p-1 rounded-none border border-[#333333]">
+      {/* Top-Right Zoom & Tooling Bar */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1E1E1E] p-1 rounded-none border border-[#333333] shadow-md">
         <button
           type="button"
           onClick={() => handleZoom(0.25)}
           disabled={zoomLevel >= 2.5}
-          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition"
+          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
           title="Vergrößern"
         >
           <ZoomIn className="w-4 h-4" />
@@ -122,7 +165,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           type="button"
           onClick={() => handleZoom(-0.25)}
           disabled={zoomLevel <= 1}
-          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition"
+          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
           title="Verkleinern"
         >
           <ZoomOut className="w-4 h-4" />
@@ -131,20 +174,20 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           <button
             type="button"
             onClick={() => setZoomLevel(1)}
-            className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition"
+            className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
             title="Zoom zurücksetzen"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         )}
 
-        {onChangePhoto && (
+        {mode === 'setter' && onChangePhoto && (
           <>
             <span className="w-px h-4 bg-[#333333] mx-0.5" />
             <button
               type="button"
               onClick={onChangePhoto}
-              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono"
+              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
               title="Foto aufnehmen oder hochladen"
               data-testid="canvas-camera-btn"
             >
@@ -155,28 +198,116 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         )}
       </div>
 
-      {/* Wall Photo & Canvas Area */}
+      {/* Scrollable Canvas Viewport */}
       <div
-        className="relative overflow-auto max-h-[75vh] flex items-center justify-center p-0 cursor-crosshair bg-black"
+        className="relative w-full overflow-auto bg-black"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
         <div
           ref={containerRef}
           onClick={handleContainerClick}
-          style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}
-          className="relative inline-block transition-transform duration-150 ease-out w-full max-w-full rounded-none overflow-hidden border border-[#333333]"
+          style={{
+            width: `${zoomLevel * 100}%`,
+            minWidth: '100%',
+          }}
+          className={`relative block ${
+            mode === 'setter' && isAddingEnabled ? 'cursor-crosshair' : 'cursor-default'
+          }`}
         >
           <img
             src={photoUrl}
-            alt="Wandfoto des Sektors"
+            alt={sectorName || 'Wandfoto des Sektors'}
             className="block w-full h-auto select-none pointer-events-none rounded-none"
+            draggable={false}
           />
 
-          {/* Render Boulders / Pins (SPEC-005: 50% circle is sole exception for wall pins) */}
+          {/* Render Boulders / Pins */}
           {boulders.map(boulder => {
             const scale = scaleMap.get(boulder.gradeScaleId);
             const colorHex = scale?.colorHex || '#3b82f6';
+
+            if (mode === 'climber') {
+              const userAscent = userAscentMap?.get(boulder.id);
+              const stats = statsMap?.get(boulder.id);
+              const isFlash = userAscent?.type === 'flash';
+              const isTop = userAscent?.type === 'top';
+              const isProject = userAscent?.type === 'project';
+              const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
+              const isDimmed =
+                filterMode !== 'all' && filteredBoulderIds && !filteredBoulderIds.has(boulder.id);
+
+              return (
+                <button
+                  key={boulder.id}
+                  type="button"
+                  data-testid={`pin-${boulder.id}`}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (onPinClick) onPinClick(boulder);
+                  }}
+                  style={{
+                    left: `${boulder.positionX * 100}%`,
+                    top: `${boulder.positionY * 100}%`,
+                  }}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 group focus:outline-none transition-all flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 cursor-pointer ${
+                    isDimmed ? 'opacity-25 hover:opacity-100 scale-90' : 'hover:scale-125'
+                  }`}
+                  title={`${boulder.name || scale?.colorName || 'Boulder'}${
+                    stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''
+                  } (Tippen für Details)`}
+                >
+                  {/* Pulse Ring / Favorite Sandstone Aura */}
+                  <span
+                    className={`absolute -inset-1.5 rounded-full pointer-events-none ${
+                      isFavorite
+                        ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
+                        : 'opacity-75 animate-ping'
+                    }`}
+                    style={{ backgroundColor: isFavorite ? '#C9A96E' : colorHex }}
+                  />
+
+                  {/* Main Pin Disc (SPEC-005: 50% circle) */}
+                  <div
+                    className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md"
+                    style={{ backgroundColor: colorHex }}
+                  >
+                    {/* Favorite Micro Star/Sparkle Badge */}
+                    {isFavorite && (
+                      <span
+                        className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
+                        title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
+                      >
+                        <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </span>
+                    )}
+
+                    {/* Status Icon Indicator */}
+                    {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
+                    {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
+                    {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
+                    {!userAscent && (
+                      <span className="text-[11px] font-mono font-bold text-[#121212]">
+                        {scale?.colorName?.[0] || '●'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pin Label Tag with Compact Rating (AC-10) */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-90 group-hover:opacity-100 flex items-center gap-1.5 shadow-md pointer-events-none">
+                    <span>{boulder.name || scale?.colorName || 'Route'}</span>
+                    {stats && stats.totalRatings > 0 && (
+                      <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
+                        <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
+                        <span>{stats.avgStars.toFixed(1)}</span>
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            }
+
+            // Setter Mode
             const isDraft = boulder.status === 'draft';
             const isMarkedForArchive = pendingArchiveIds.includes(boulder.id) || boulder.status === 'archived';
             const isSelected = selectedBoulderId === boulder.id;
@@ -190,18 +321,18 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   left: `${boulder.positionX * 100}%`,
                   top: `${boulder.positionY * 100}%`,
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group flex items-center justify-center"
+                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group flex items-center justify-center cursor-pointer"
                 onMouseDown={e => handlePinMouseDown(e, boulder.id)}
                 onClick={e => {
                   e.stopPropagation();
-                  if (!isDraggingRef.current) {
+                  if (!isDraggingRef.current && onPinClick) {
                     onPinClick(boulder);
                   }
                 }}
               >
                 {/* Pin Circle */}
                 <div
-                  className={`relative flex items-center justify-center cursor-pointer transition-all duration-200 border-2 border-[#121212] ${
+                  className={`relative flex items-center justify-center transition-all duration-200 border-2 border-[#121212] ${
                     isDraft
                       ? 'w-9 h-9 rounded-full ring-2 ring-[#F5F0E8] scale-105'
                       : isMarkedForArchive
@@ -215,12 +346,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   }}
                 >
                   {/* Inner Pin Icon / Details */}
-                  {isDraft && (
-                    <Sparkles className="w-4 h-4 text-[#121212]" />
-                  )}
-                  {isMarkedForArchive && (
-                    <Archive className="w-3.5 h-3.5 text-[#121212]" />
-                  )}
+                  {isDraft && <Sparkles className="w-4 h-4 text-[#121212]" />}
+                  {isMarkedForArchive && <Archive className="w-3.5 h-3.5 text-[#121212]" />}
                   {!isDraft && !isMarkedForArchive && (
                     <div className="w-2 h-2 rounded-full bg-[#121212]/80" />
                   )}
