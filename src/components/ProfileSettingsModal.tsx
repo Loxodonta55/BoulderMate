@@ -25,6 +25,13 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -42,14 +49,6 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       setIsProcessingImage(false);
     }
   };
-
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

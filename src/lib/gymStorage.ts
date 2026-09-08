@@ -1,6 +1,8 @@
 import { Gym, GymMember, GradeScale, Sector, BoulderReference, GymRole, User } from '../types/gym';
 import { isPlatformAdmin } from './authService';
 
+export type { GradeScale };
+
 const GYMS_KEY = 'boulder_gyms_v1';
 const MEMBERS_KEY = 'boulder_gym_members_v1';
 const GRADE_SCALES_KEY = 'boulder_grade_scales_v1';
@@ -76,10 +78,18 @@ export function ensureInitialGymData(): void {
       sort_order: 3
     });
 
-    const scales = getGradeScales(defaultGym.id);
-    const yellowScale = scales[0]?.id || 's_yellow';
-    const blueScale = scales[2]?.id || 's_blue';
-    const redScale = scales[3]?.id || 's_red';
+    setGymGradeScales(defaultGym.id, CURRENT_USER.id, [
+      { id: 'scale-green', gym_id: defaultGym.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '4a', font_range_max: '5b', sort_order: 1 },
+      { id: 'scale-blue', gym_id: defaultGym.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Fortgeschritten', font_range_min: '5c', font_range_max: '6b', sort_order: 2 },
+      { id: 'scale-yellow', gym_id: defaultGym.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sportlich', font_range_min: '6b+', font_range_max: '7a', sort_order: 3 },
+      { id: 'scale-red', gym_id: defaultGym.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '7a+', font_range_max: '7b+', sort_order: 4 },
+      { id: 'scale-black', gym_id: defaultGym.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7c', font_range_max: '8a', sort_order: 5 },
+      { id: 'scale-white', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 }
+    ]);
+
+    const yellowScale = 'scale-yellow';
+    const blueScale = 'scale-blue';
+    const redScale = 'scale-red';
 
     saveBoulders([
       { id: 'b_sample_1', sector_id: s1.id, grade_scale_id: yellowScale, position_x: 0.28, position_y: 0.65, status: 'active', name: 'Gelbe 1' },
@@ -446,11 +456,11 @@ export function setGymGradeScales(
         : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
         ? 'gym-minimum-zh'
         : s.gymId;
-      return sNorm !== targetGymNorm;
+      return sNorm !== targetGymNorm && s.gymId !== gym_id;
     });
     const newV2 = validated.map(sc => ({
       id: sc.id,
-      gymId: sc.gym_id,
+      gymId: gym_id,
       colorName: sc.color_name,
       colorHex: sc.color_hex,
       difficultyLabel: sc.difficulty_label,
@@ -459,6 +469,22 @@ export function setGymGradeScales(
       sortOrder: sc.sort_order,
     }));
     setStorageJson('boulderapp_grade_scales_v2', [...otherV2, ...newV2]);
+  } catch (e) {}
+
+  // SPEC-001 AC-2.1: Reaktivität für Schrauber- und Kletterer-Bereich auslösen
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:gradescales_updated', {
+      detail: { gymId: gym_id, normalizedGymId: targetGymNorm }
+    }));
+  }
+
+  // Asynchroner non-destruktiver Aufwärts-Sync nach Supabase
+  try {
+    import('./syncService').then(m => {
+      if (m && typeof m.syncGradeScalesToSupabase === 'function') {
+        m.syncGradeScalesToSupabase(gym_id, validated).catch(() => {});
+      }
+    }).catch(() => {});
   } catch (e) {}
 
   return validated.sort((a, b) => a.sort_order - b.sort_order);

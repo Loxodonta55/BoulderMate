@@ -1,4 +1,4 @@
-﻿# 💡 Ideenspeicher & Backlog — BoulderMate
+# 💡 Ideenspeicher & Backlog — BoulderMate
 
 > **Status**: Aktiv & gepflegt  
 > **Konzept**: Spec Driven Development (SDD) — Sammlungsort für produktstrategische Ideen, UX-Optimierungen und Architektur-Konzepte vor der Spezifikationsreife.
@@ -11,6 +11,8 @@
 |---|---|---|---|---|
 | **IDEA-001** | **UX-Klarheit & Entrümpelung im Klettererbereich** | Kletterer-App / UI/UX | Hoch | In Konzeption |
 | **IDEA-002** | **Universelles Skalen-Mapping für hallenübergreifende Statistiken** | Analytics / Kletterer-Profil | Hoch | In Konzeption / Entwurf |
+| **IDEA-003** | **Der Turnier-Event (Hallen-Cups, Live-Scoring & Leaderboards)** | Events / Gamification | Hoch | Spezifiziert in [SPEC-012](specs/SPEC-012-tournament-events.md) |
+
 
 ---
 

@@ -237,62 +237,93 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
 }
 
 export function getGradeScales(gymId: string): GymGradeScale[] {
-  const all = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, [...SEED_GRADE_SCALES]);
-
   const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
     ? 'gym-6a-plus'
     : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
     ? 'gym-minimum-zh'
     : gymId;
 
-  // Also include grade scales from gymStorage
+  // 1. gymStorage is the single authoritative source of truth for configured grade scales
+  let v1Scales: gymStorage.GradeScale[] = [];
   try {
-    const v1Scales = gymStorage.getGradeScales(targetGymNorm);
-    for (const sc of v1Scales) {
-      all.push({
-        id: sc.id,
-        gymId: sc.gym_id,
-        colorName: sc.color_name,
-        colorHex: sc.color_hex,
-        difficultyLabel: sc.difficulty_label,
-        fontRangeMin: sc.font_range_min,
-        fontRangeMax: sc.font_range_max,
-        sortOrder: sc.sort_order,
-      });
-    }
+    v1Scales = gymStorage.getGradeScales(targetGymNorm);
   } catch (e) {
-    console.error('Error synchronizing grade scales from gymStorage:', e);
+    console.error('Error reading grade scales from gymStorage:', e);
   }
 
-  // Deduplicate strictly by colorName (lowercase) for this gym!
-  const byColor = new Map<string, GymGradeScale>();
-  for (const s of all) {
-    const sGymNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+  if (v1Scales && v1Scales.length > 0) {
+    const converted: GymGradeScale[] = v1Scales.map(sc => ({
+      id: sc.id,
+      gymId: gymId,
+      colorName: sc.color_name,
+      colorHex: sc.color_hex,
+      difficultyLabel: sc.difficulty_label,
+      fontRangeMin: sc.font_range_min,
+      fontRangeMax: sc.font_range_max,
+      sortOrder: sc.sort_order,
+    })).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    // Keep v2 storage strictly synchronized with gymStorage
+    try {
+      const allV2 = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, []);
+      const otherV2 = allV2.filter(s => {
+        const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+          ? 'gym-6a-plus'
+          : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+          ? 'gym-minimum-zh'
+          : s.gymId;
+        return sNorm !== targetGymNorm;
+      });
+      setStorageJson(STORAGE_KEY_GRADE_SCALES, [...otherV2, ...converted]);
+    } catch (e) {}
+
+    return converted;
+  }
+
+  // 2. Fallback to v2 storage if gymStorage was not yet populated
+  const allV2 = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, [...SEED_GRADE_SCALES]);
+  const gymScales = allV2.filter(s => {
+    const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
       ? 'gym-6a-plus'
       : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
       ? 'gym-minimum-zh'
       : s.gymId;
+    return sNorm === targetGymNorm;
+  }).sort((a, b) => a.sortOrder - b.sortOrder);
 
-    if (sGymNorm === targetGymNorm) {
-      const colorKey = s.colorName.trim().toLowerCase();
-      const existing = byColor.get(colorKey);
-      if (!existing) {
-        byColor.set(colorKey, { ...s, gymId });
-      } else {
-        byColor.set(colorKey, {
-          ...existing,
-          ...s,
-          id: existing.id || s.id,
-          gymId,
-          sortOrder: s.sortOrder ?? existing.sortOrder,
-        });
-      }
-    }
+  if (gymScales.length > 0) {
+    // Seed back into gymStorage so Admin and other areas immediately see it
+    try {
+      const currentV1 = gymStorage.getGradeScales();
+      const otherV1 = currentV1.filter(s => {
+        const sNorm = (s.gym_id === 'gym-6a-plus' || s.gym_id.includes('6a') || s.gym_id.includes('f2b11564'))
+          ? 'gym-6a-plus'
+          : (s.gym_id === 'gym-minimum-zh' || s.gym_id.includes('minimum') || s.gym_id.includes('814696b2'))
+          ? 'gym-minimum-zh'
+          : s.gym_id;
+        return sNorm !== targetGymNorm;
+      });
+      const seededV1: gymStorage.GradeScale[] = gymScales.map(sc => ({
+        id: sc.id,
+        gym_id: targetGymNorm,
+        color_name: sc.colorName,
+        color_hex: sc.colorHex,
+        difficulty_label: sc.difficultyLabel,
+        font_range_min: sc.fontRangeMin,
+        font_range_max: sc.fontRangeMax,
+        sort_order: sc.sortOrder,
+        created_at: new Date().toISOString(),
+      }));
+      gymStorage.saveGradeScales([...otherV1, ...seededV1]);
+    } catch (e) {}
+
+    return gymScales;
   }
 
-  const gymScales = Array.from(byColor.values()).sort((a, b) => a.sortOrder - b.sortOrder);
-  if (gymScales.length > 0) {
-    return gymScales;
+  // 3. Fallback to seed templates
+  const seedForGym = SEED_GRADE_SCALES.filter(s => s.gymId === targetGymNorm);
+  if (seedForGym.length > 0) {
+    return seedForGym;
   }
 
   return SEED_GRADE_SCALES.map((scale, idx) => ({

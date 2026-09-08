@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GradeScale } from '../types/gym';
 import { setGymGradeScales } from '../lib/gymStorage';
 import { syncGradeScalesToSupabase } from '../lib/syncService';
@@ -15,6 +15,10 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
   const [scales, setScales] = useState<GradeScale[]>(initialScales);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setScales(initialScales);
+  }, [initialScales]);
 
   const handleFieldChange = (index: number, field: keyof GradeScale, value: any) => {
     const next = [...scales];

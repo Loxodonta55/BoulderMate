@@ -349,7 +349,7 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
     const upsertPayload = scales.map((s, idx) => {
       // Wenn es bereits eine passende UUID in Supabase gibt, diese wiederverwenden
       const remoteId = remoteByName.get(s.color_name.trim().toLowerCase()) ||
-        (s.id && s.id.includes('-') && s.id.length > 30 ? s.id : undefined);
+        (s.id && s.id.includes('-') && s.id.length > 30 ? s.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined));
 
       const item: any = {
         gym_id: supabaseGymId,

@@ -68,6 +68,29 @@ export function useGymSectorData(
     }
   }, [activeGymId, loadGymData]);
 
+  // SPEC-001 AC-2.1: Reaktiv auf Änderungen im Admin-Farbsystem hören und sofort synchronisieren
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleGradeScalesUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ gymId?: string; normalizedGymId?: string }>;
+      const updatedGymId = customEvent.detail?.gymId;
+      const normalizedGymId = customEvent.detail?.normalizedGymId;
+      if (
+        !updatedGymId ||
+        updatedGymId === selectedGymId ||
+        updatedGymId === activeGymId ||
+        normalizedGymId === selectedGymId ||
+        normalizedGymId === activeGymId
+      ) {
+        refreshGymData();
+      }
+    };
+    window.addEventListener('bouldermate:gradescales_updated', handleGradeScalesUpdated);
+    return () => {
+      window.removeEventListener('bouldermate:gradescales_updated', handleGradeScalesUpdated);
+    };
+  }, [selectedGymId, activeGymId, refreshGymData]);
+
   const handleGymChange = useCallback((newGymId: string) => {
     setSelectedGymId(newGymId);
     onSelectGym?.(newGymId);

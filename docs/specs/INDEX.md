@@ -16,3 +16,5 @@
 | [SPEC-009](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-009-user-flow-and-journey.md) | End-to-End User Flow & Journey (Registrierung bis Kletterer-Herzstück) | APPROVED | Boris | 2026-09-06 |
 | [SPEC-010](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-010-spatial-2.5d-gyro-parallax-wall-depth.md) | Spatial 2.5D Gyro-Parallax & Multi-Facet Wall Depth Engine | APPROVED | Boris | 2026-09-06 |
 | [SPEC-011](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-011-landing-page-and-unauthenticated-experience.md) | Standalone Landing Page & Unangemeldete Besucher-Experience | APPROVED | Boris | 2026-09-06 |
+| [SPEC-012](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-012-tournament-events.md) | Turnier & Boulder Jam Events (Live-Scoring & Leaderboard) | APPROVED | Boris | 2026-09-08 |
+

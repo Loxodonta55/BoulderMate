@@ -13,8 +13,14 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
 - **US-5**: Als Kletterer möchte ich eine Übersicht der Sektoren einer Halle mit Wandfotos in der vom Admin festgelegten Reihenfolge sehen, um mich in der Halle visuell zu orientieren.
 
 ## Acceptance Criteria
-- [x] **AC-1**: Ein eingeloggter Nutzer kann eine neue Halle mit Pflichtfeld `name` anlegen (optionale Felder: `address`, `city`, `logo_url`, `website`). Der Ersteller erhält automatisch die Rolle `admin` in `gym_members`.
 - [x] **AC-2**: Ein Hallen-Admin kann das hallenspezifische Farbsystem (`grade_scales`) anlegen und bearbeiten. Jede Farbe besitzt `color_name`, `color_hex`, `difficulty_label`, `font_range_min`, `font_range_max` und `sort_order`.
+  - **AC-2.1 (Cross-Area Reaktiv-Synchronisation)**:
+    - Jede im Admin-Bereich konfigurierte Änderung am Farbsystem (Hinzufügen neuer Farben, Ändern von Farbname, Hex-Farbcode, Schwierigkeitsgrad, Font-Bändern, Umsortieren oder Löschen) synchronisiert sofort und ohne Seitenreload in das Schrauber-Studio (`BatchBoulderWorkflow`) und die Kletterer-App (`ClimberSectorView`).
+    - `gymStorage.getGradeScales` fungiert als Single Source of Truth für das Hallen-Farbsystem.
+    - `batchBoulderService.getGradeScales` übernimmt stets die autoritativen Farbskalen aus `gymStorage` und hält den V2-Cache (`boulderapp_grade_scales_v2`) 1:1 synchron, sodass keine Geisterfarben oder gelöschten Skalen verbleiben.
+    - Das Speichern im Admin löst das Event `bouldermate:gradescales_updated` aus, worauf der Hook `useGymSectorData` in allen aktiven Ansichten reaktiv anspricht.
+  - **AC-2.2 (Non-destruktive Cloud-Synchronisation)**:
+    - Änderungen an Farbskalen werden via `syncGradeScalesToSupabase` / `sync-all-to-supabase.js` non-destruktiv aufwärts mit der Supabase-Tabelle `grade_scales` abgeglichen (strikte Regel: niemals Remote-Löschung).
 - [x] **AC-3**: Sektoren erfordern `name` und ein valides `wall_photo_url`.
 - [x] **AC-4**: **Drag & Drop Sektor-Sortierung & Reihenfolgeverwaltung**:
   - **AC-4.1 (Drag & Drop Interaktion)**: Jede Sektor-Karte im `SectorManager` verfügt über einen deutlichen Drag-Handle (`GripVertical`-Icon) und ist für Hallen-Admins per HTML5 Drag & Drop greifbar (`draggable={isAdmin}`).
@@ -97,6 +103,9 @@ CREATE TABLE sectors (
 - **Synchronisation zwischen Modulen**:
   - `gymStorage.reorderSectors`: Aktualisiert `sort_order` im LocalStorage (`boulder_sectors_v1`).
   - `batchBoulderService.getSectors`: Synchronisiert die aktualisierte `sort_order` in den Schrauber-Batch-Store (`boulder_sectors_v2`), sodass alle Views stets dieselbe Reihenfolge nutzen.
+  - `gymStorage.setGymGradeScales`: Verwaltet die autoritativen Farbskalen (`boulder_grade_scales_v1`), aktualisiert synchron den V2-Store (`boulderapp_grade_scales_v2`) und feuert das Browser-Event `bouldermate:gradescales_updated`.
+  - `batchBoulderService.getGradeScales`: Verwendet `gymStorage` als Single Source of Truth, konvertiert die autoritativen Skalen zu `GymGradeScale[]` und hält Schrauber- sowie Kletterer-Bereich ohne Geisterfarben synchron.
+  - `useGymSectorData`: Lauscht reaktiv auf `bouldermate:gradescales_updated` und aktualisiert `gradeScales` und `scaleMap` komponentenweit ohne Seiten-Reload.
 
 ### API / RLS Policy
 - `gyms`: SELECT für alle; INSERT für authentifizierte User; UPDATE/DELETE nur für Admins des Gyms.
