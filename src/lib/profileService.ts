@@ -156,7 +156,33 @@ export function getProfileData(userId: string, selectedGymId: string = 'all'): P
   gyms.forEach(g => gymMap.set(g.id, g.name));
 
   const scaleMap = new Map<string, GymGradeScale>();
-  allScales.forEach(s => scaleMap.set(s.id, s));
+  allScales.forEach(s => {
+    scaleMap.set(s.id, s);
+    if (s.colorName) {
+      const colorLower = s.colorName.toLowerCase().trim();
+      const colorAscii = colorLower === 'weiß' ? 'weiss' : colorLower;
+      scaleMap.set(`scale-${colorAscii}`, s);
+      scaleMap.set(`scale-${colorLower}`, s);
+      scaleMap.set(`scale_6a_${colorAscii}`, s);
+      scaleMap.set(`scale_minimum_${colorAscii}`, s);
+      scaleMap.set(colorLower, s);
+      scaleMap.set(colorAscii, s);
+
+      const enMap: Record<string, string> = {
+        'grün': 'green',
+        'gruen': 'green',
+        'blau': 'blue',
+        'gelb': 'yellow',
+        'rot': 'red',
+        'schwarz': 'black',
+        'weiß': 'white',
+        'weiss': 'white',
+      };
+      if (enMap[colorLower]) {
+        scaleMap.set(`scale-${enMap[colorLower]}`, s);
+      }
+    }
+  });
 
   // Build logbook items with full resolved metadata & Fontainebleau grades
   const resolvedLogbook: LogbookEntry[] = [];
