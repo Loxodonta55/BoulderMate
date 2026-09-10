@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { App } from '../src/App';
 import { BoulderBottomSheet } from '../src/components/BoulderBottomSheet';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import { SectorManager } from '../src/components/SectorManager';
-import { GymGradeScale, WallBoulder } from '../src/types/boulder';
+import { GymGradeScale, WallBoulder, DEFAULT_RADAR } from '../src/types/boulder';
 import { Sector } from '../src/types/gym';
 import { resetAllGymData, createGym, createSector, CURRENT_USER } from '../src/lib/gymStorage';
 import { clearBatchServiceStorage } from '../src/lib/batchBoulderService';
@@ -25,7 +25,7 @@ const mockDraftBoulder: WallBoulder = {
   status: 'draft',
   setterId: 'setter-1',
   createdAt: new Date().toISOString(),
-  radar: { maximalkraft: 3, kraftausdauer: 3, kraft: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 },
+  radar: DEFAULT_RADAR,
 };
 
 describe('Mobile-First Experience Test Suite', () => {
