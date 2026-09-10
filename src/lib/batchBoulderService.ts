@@ -23,6 +23,8 @@ import {
   setStorageJson,
   removeStorageItem,
 } from './storageUtils';
+import { deleteBoulderInteractions } from './ratingAndAscentService';
+import { deleteBoulder } from './storage';
 
 // Re-export seed constants for backward compatibility
 export {
@@ -665,6 +667,45 @@ export function deleteDraftBoulder(boulderId: string): void {
     const existing = gymStorage.getBoulders();
     gymStorage.saveBoulders(existing.filter(b => b.id !== boulderId));
   } catch (e) {}
+}
+
+// Permanent Delete Boulder (Climber, Setter, and Admin Areas)
+export function deleteWallBoulder(boulderId: string): void {
+  // 1. Remove from STORAGE_KEY_WALL_BOULDERS
+  const all = getWallBoulders();
+  const filtered = all.filter(b => b.id !== boulderId);
+  setStorageJson(STORAGE_KEY_WALL_BOULDERS, filtered);
+
+  // 2. Remove from gymStorage
+  try {
+    gymStorage.deleteGymBoulder(boulderId);
+  } catch (e) {}
+
+  // 3. Remove from storage.ts if present
+  try {
+    deleteBoulder(boulderId);
+  } catch (e) {}
+
+  // 4. Remove ascents, ratings, comments synchronously
+  try {
+    deleteBoulderInteractions(boulderId);
+  } catch (e) {}
+
+  // 5. Remote delete in Supabase asynchronously
+  try {
+    import('./syncService').then(m => {
+      if (typeof m.deleteBoulderFromSupabase === 'function') {
+        m.deleteBoulderFromSupabase(boulderId).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {}
+
+  // 6. Reactive event dispatch
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+      detail: { boulderId, action: 'deleted' }
+    }));
+  }
 }
 
 // AC-9: Transactional Batch Publish

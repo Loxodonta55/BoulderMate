@@ -115,6 +115,24 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   };
 
 
+  // Listen to cross-component boulder events (such as deletion or batch publish)
+  useEffect(() => {
+    const handleBouldersUpdated = () => {
+      setDataVersion(v => v + 1);
+      setSelectedBoulder(prev => {
+        if (!prev) return null;
+        const all = getWallBoulders();
+        const stillExists = all.find(b => b.id === prev.id && b.status === 'active');
+        return stillExists || null;
+      });
+    };
+
+    window.addEventListener('bouldermate:boulders_updated', handleBouldersUpdated);
+    return () => {
+      window.removeEventListener('bouldermate:boulders_updated', handleBouldersUpdated);
+    };
+  }, []);
+
   // Reload boulders when sector changes or data updates
   useEffect(() => {
     if (selectedSectorId) {
@@ -183,9 +201,9 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const handleRefreshData = () => {
     setDataVersion(v => v + 1);
     if (selectedBoulder) {
-      // Refresh current selected boulder object as well
-      const updated = getWallBoulders(selectedSectorId).find(b => b.id === selectedBoulder.id);
-      if (updated) setSelectedBoulder(updated);
+      // Refresh current selected boulder object or deselect if deleted
+      const updated = getWallBoulders(selectedSectorId).find(b => b.id === selectedBoulder.id && b.status === 'active');
+      setSelectedBoulder(updated || null);
     }
   };
 

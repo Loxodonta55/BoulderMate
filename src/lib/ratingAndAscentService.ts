@@ -67,6 +67,15 @@ export function resetAscentAndRatingStorage(): void {
   removeStorageItem(STORAGE_KEY_COMMENTS);
 }
 
+export function deleteBoulderInteractions(boulderId: string): void {
+  const ascents = getAscents().filter(a => a.boulderId !== boulderId);
+  setStorageJson(STORAGE_KEY_ASCENTS, ascents);
+  const ratings = getRatings().filter(r => r.boulderId !== boulderId);
+  setStorageJson(STORAGE_KEY_RATINGS, ratings);
+  const comments = getComments().filter(c => c.boulderId !== boulderId);
+  setStorageJson(STORAGE_KEY_COMMENTS, comments);
+}
+
 // ----------------------------------------------------
 // Ascents (AC-3, AC-4, AC-9)
 // ----------------------------------------------------

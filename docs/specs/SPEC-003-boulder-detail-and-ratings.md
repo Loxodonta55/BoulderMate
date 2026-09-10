@@ -49,6 +49,10 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
     5. **Weiss** — *Böse* (7a – 7b)
     6. **Beige** — *Bestial* (7b+ und schwerer)
   - Jegliche Modifikation durch den Hallen-Admin wirkt sich ohne Seitenreload sofort auf Pin-Farben, Schwierigkeits-Header und Noten-Filter aus. *(Getestet in `tests/gradeScaleSync.test.tsx`)*
+- [x] **AC-13: Dauerhaftes Löschen von Routen (Permanentes Löschen statt Abschrauben)**:
+  - Ermöglicht berechtigten Benutzern (Schrauber, Hallen-Admins, Plattform-Admins, Routenersteller und Boris) das endgültige und unwiderrufliche Löschen einer Route direkt aus der Detailansicht im Kletterbereich (`BoulderDetailModal`).
+  - Ein Sicherheitsdialog ("Route unwiderruflich löschen?") verhindert versehentliches Auslösen.
+  - Das Löschen entfernt die Route kaskadierend aus allen lokalen Caches (`boulderapp_wall_boulders_v2`, `boulderapp_gym_boulders`, `boulderapp_boulders`), bereinigt zugehörige Begehungen, Bewertungen und Kommentare, synchronisiert die Löschung nach Supabase (`boulders`, `ratings`, `ascents`) und aktualisiert die Ansicht sofort reaktiv ohne Reload (`bouldermate:boulders_updated`).
 
 ## Technical Design
 

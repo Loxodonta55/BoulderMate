@@ -23,6 +23,7 @@ import {
   addComment,
   deleteComment
 } from '../lib/ratingAndAscentService';
+import { deleteWallBoulder } from '../lib/batchBoulderService';
 import {
   X,
   Star,
@@ -67,6 +68,31 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [commentsVersion, setCommentsVersion] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const canDeleteBoulder = Boolean(
+    currentUser.isPlatformAdmin ||
+    currentUser.role === 'admin' ||
+    currentUser.role === 'setter' ||
+    currentUser.id === boulder.setterId ||
+    currentUser.id === 'user-boris' ||
+    currentUser.id?.includes('admin') ||
+    currentUser.id?.includes('schrauber')
+  );
+
+  const handleDeleteBoulder = () => {
+    setIsDeleting(true);
+    try {
+      deleteWallBoulder(boulder.id);
+      onDataChanged?.();
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (err) {
+      console.error('Fehler beim Löschen des Boulders:', err);
+      setIsDeleting(false);
+    }
+  };
 
   // Compute live aggregates from storage
   const stats = React.useMemo(() => {
@@ -199,13 +225,27 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
-              aria-label="Schließen"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {canDeleteBoulder && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-red-400 hover:bg-red-950/30 transition cursor-pointer"
+                  title="Route löschen"
+                  aria-label="Route löschen"
+                  data-testid="delete-boulder-btn"
+                >
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition cursor-pointer"
+                aria-label="Schließen"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Scrollable Modal Content */}
@@ -587,9 +627,79 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Action Bar for Route Management (AC-13 Delete Route) */}
+            {canDeleteBoulder && (
+              <div className="pt-4 border-t border-[#333333] flex items-center justify-between">
+                <span className="text-xs font-mono text-[#8B8680]">
+                  Verwaltung
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3 py-1.5 rounded-none bg-red-950/20 hover:bg-red-950/40 border border-red-500/30 hover:border-red-500/60 text-red-400 text-xs font-mono font-bold uppercase transition flex items-center gap-1.5 cursor-pointer"
+                  data-testid="delete-boulder-footer-btn"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Route löschen</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Sub-modal: Delete Confirmation Dialog (AC-13) */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-[#1E1E1E] border border-red-500/50 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="p-2 rounded-none bg-red-950/40 border border-red-500/40">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <h3 className="text-lg font-headline uppercase font-bold text-[#E8E0D4]">
+                Route unwiderruflich löschen?
+              </h3>
+            </div>
+            <p className="text-sm font-sans text-[#A89F91] leading-relaxed">
+              Möchtest du die Route <span className="font-bold text-[#E8E0D4]">„{boulder.name || `${gradeScale?.colorName || 'Boulder'} #${boulder.id.slice(-4)}`}“</span> wirklich vollständig aus dem Kletterbereich löschen?
+            </p>
+            <p className="text-xs font-mono text-[#8B8680]">
+              Hinweis: Alle Begehungen, Bewertungen und Kommentare für diese Route werden ebenfalls unwiderruflich gelöscht.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#333333]">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] text-xs font-mono font-bold uppercase transition cursor-pointer"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteBoulder}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-mono font-bold uppercase transition flex items-center gap-2 cursor-pointer shadow-md"
+                data-testid="confirm-delete-boulder-btn"
+              >
+                {isDeleting ? (
+                  <span>Wird gelöscht...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Endgültig löschen</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sub-modal: Rating Modal */}
       {isRatingModalOpen && (

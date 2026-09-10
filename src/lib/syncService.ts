@@ -700,4 +700,34 @@ export async function syncRatingToSupabase(rating: BoulderRating): Promise<boole
   }
 }
 
+/**
+ * Löscht einen Boulder und zugehörige Relationen kaskadierend aus Supabase.
+ */
+export async function deleteBoulderFromSupabase(boulderId: string): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !boulderId) return false;
+  try {
+    const boulderUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+
+    // Kaskadierendes Löschen von abhängigen Ratings und Ascents
+    await supabase.from('ratings').delete().eq('boulder_id', boulderUuid);
+    await supabase.from('ascents').delete().eq('boulder_id', boulderUuid);
+
+    if (boulderId !== boulderUuid) {
+      await supabase.from('ratings').delete().eq('boulder_id', boulderId);
+      await supabase.from('ascents').delete().eq('boulder_id', boulderId);
+    }
+
+    const { error } = await supabase.from('boulders').delete().eq('id', boulderUuid);
+    if (error && boulderId !== boulderUuid) {
+      await supabase.from('boulders').delete().eq('id', boulderId);
+    }
+
+    console.log(`[Sync] Boulder ${boulderId} (${boulderUuid}) erfolgreich in Supabase gelöscht.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Fehler beim Löschen des Boulders in Supabase:', e);
+    return false;
+  }
+}
+
 

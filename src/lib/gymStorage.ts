@@ -327,6 +327,16 @@ export function saveBoulders(boulders: BoulderReference[]): void {
   setStorageJson(BOULDERS_KEY, boulders);
 }
 
+export function deleteGymBoulder(boulder_id: string): boolean {
+  const all = getStorageJson<BoulderReference[]>(BOULDERS_KEY, []);
+  const remaining = all.filter(b => b.id !== boulder_id);
+  if (remaining.length !== all.length) {
+    saveBoulders(remaining);
+    return true;
+  }
+  return false;
+}
+
 // User role check in gym
 export function getUserRoleInGym(gym_id: string, user_id: string): GymRole | null {
   const members = getMembers();
