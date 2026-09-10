@@ -53,6 +53,11 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
   - Ermöglicht berechtigten Benutzern (Schrauber, Hallen-Admins, Plattform-Admins, Routenersteller und Boris) das endgültige und unwiderrufliche Löschen einer Route direkt aus der Detailansicht im Kletterbereich (`BoulderDetailModal`).
   - Ein Sicherheitsdialog ("Route unwiderruflich löschen?") verhindert versehentliches Auslösen.
   - Das Löschen entfernt die Route kaskadierend aus allen lokalen Caches (`boulderapp_wall_boulders_v2`, `boulderapp_gym_boulders`, `boulderapp_boulders`), bereinigt zugehörige Begehungen, Bewertungen und Kommentare, synchronisiert die Löschung nach Supabase (`boulders`, `ratings`, `ascents`) und aktualisiert die Ansicht sofort reaktiv ohne Reload (`bouldermate:boulders_updated`).
+- [x] **AC-14: Löschen von eigenen Bewertungen**:
+  - Kletterer können eine abgegebene Bewertung (Sterne, Grad-Gefühl, Radar-Attribute) jederzeit aus der Boulder-Detailansicht (`BoulderDetailModal`) oder direkt im Bewertungs-Dialog (`RatingModal`) löschen.
+  - Das Löschen entfernt die Bewertung sofort lokal aus `boulderapp_ratings_v3` und synchronisiert die Löschung nach Supabase (`ratings`-Tabelle via `deleteRatingFromSupabase`).
+  - Nach dem Löschen werden die Community-Durchschnittsnoten (Sterne, Grad-Barometer, Radar-Klettercharakter) in Echtzeit reaktiv neu berechnet und die UI aktualisiert, ohne dass ein Seiten-Reload erforderlich ist.
+  - Der Kletterer kann danach jederzeit wieder eine neue Bewertung abgeben ("Jetzt bewerten").
 
 ## Technical Design
 

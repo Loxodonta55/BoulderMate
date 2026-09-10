@@ -172,6 +172,16 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
   const filtered = all.filter(a => !(a.userId === userId && a.boulderId === boulderId));
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_ASCENTS, filtered);
+
+    try {
+      import('./syncService').then(m => {
+        const syncFn = (m as any)?.deleteAscentFromSupabase;
+        if (typeof syncFn === 'function') {
+          syncFn(userId, boulderId).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (e) {}
+
     return true;
   }
   return false;
@@ -267,6 +277,30 @@ export function saveRating(
   } catch (e) {}
 
   return result;
+}
+
+/**
+ * Löscht die persönliche Bewertung eines Kletterers für einen Boulder.
+ * Re-kalkuliert aggregierte Werte in Echtzeit und stößt den Supabase-Sync an.
+ */
+export function deleteRating(userId: string, boulderId: string): boolean {
+  const all = getRatings();
+  const filtered = all.filter(r => !(r.userId === userId && r.boulderId === boulderId));
+  if (filtered.length !== all.length) {
+    setStorageJson(STORAGE_KEY_RATINGS, filtered);
+
+    try {
+      import('./syncService').then(m => {
+        const syncFn = (m as any)?.deleteRatingFromSupabase;
+        if (typeof syncFn === 'function') {
+          syncFn(userId, boulderId).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (e) {}
+
+    return true;
+  }
+  return false;
 }
 
 // ----------------------------------------------------

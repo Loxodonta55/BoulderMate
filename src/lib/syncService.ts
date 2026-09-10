@@ -718,4 +718,67 @@ export async function deleteBoulderFromSupabase(boulderId: string): Promise<bool
   }
 }
 
+/**
+ * Löscht eine Bewertung eines Kletterers aus Supabase.
+ */
+export async function deleteRatingFromSupabase(userId: string, boulderId: string): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !userId || !boulderId) return false;
+  try {
+    const boulderUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+    const userUuid = toKnownAuthUserUuid(userId);
+
+    await supabase
+      .from('ratings')
+      .delete()
+      .eq('user_id', userUuid)
+      .eq('boulder_id', boulderUuid);
+
+    if (boulderId !== boulderUuid) {
+      await supabase
+        .from('ratings')
+        .delete()
+        .eq('user_id', userUuid)
+        .eq('boulder_id', boulderId);
+    }
+
+    console.log(`[Sync] Rating für User ${userId} (${userUuid}) bei Boulder ${boulderId} gelöscht.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Fehler beim Löschen der Bewertung in Supabase:', e);
+    return false;
+  }
+}
+
+/**
+ * Löscht eine Begehung eines Kletterers aus Supabase.
+ */
+export async function deleteAscentFromSupabase(userId: string, boulderId: string): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !userId || !boulderId) return false;
+  try {
+    const boulderUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+    const userUuid = toKnownAuthUserUuid(userId);
+
+    await supabase
+      .from('ascents')
+      .delete()
+      .eq('user_id', userUuid)
+      .eq('boulder_id', boulderUuid);
+
+    if (boulderId !== boulderUuid) {
+      await supabase
+        .from('ascents')
+        .delete()
+        .eq('user_id', userUuid)
+        .eq('boulder_id', boulderId);
+    }
+
+    console.log(`[Sync] Begehung für User ${userId} (${userUuid}) bei Boulder ${boulderId} gelöscht.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Fehler beim Löschen der Begehung in Supabase:', e);
+    return false;
+  }
+}
+
+
 

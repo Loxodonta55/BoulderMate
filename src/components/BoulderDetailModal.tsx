@@ -15,6 +15,7 @@ import {
   getUserRating,
   logAscent,
   deleteAscent,
+  deleteRating,
   saveRating,
   computeBoulderStatsAggregate,
   getRatings,
@@ -68,6 +69,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [commentsVersion, setCommentsVersion] = useState(0);
+  const [dataVersion, setDataVersion] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -100,10 +102,16 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     const ascents = getAscents(boulder.id);
     const comments = getComments(boulder.id);
     return computeBoulderStatsAggregate(boulder, ratings, ascents, comments);
-  }, [boulder, commentsVersion]);
+  }, [boulder, commentsVersion, dataVersion]);
 
   const currentUserAscent = getUserAscent(currentUser.id, boulder.id);
   const currentUserRating = getUserRating(currentUser.id, boulder.id);
+
+  const handleDeleteRating = () => {
+    deleteRating(currentUser.id, boulder.id);
+    setDataVersion(v => v + 1);
+    onDataChanged?.();
+  };
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +138,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     // If clicking same active type, option to remove
     if (currentUserAscent?.type === type) {
       deleteAscent(currentUser.id, boulder.id);
+      setDataVersion(v => v + 1);
       onDataChanged?.();
       return;
     }
@@ -142,6 +151,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       currentUser.avatarUrl
     );
 
+    setDataVersion(v => v + 1);
     onDataChanged?.();
 
     // AC-4: Trigger rating modal if top/flash was just achieved
@@ -153,6 +163,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   const handleSaveRating = (input: RatingInput) => {
     saveRating(currentUser.id, currentUser.nickname, boulder.id, input);
+    setDataVersion(v => v + 1);
     setIsRatingModalOpen(false);
     setRatingTriggeredByAscent(false);
     onDataChanged?.();
@@ -403,10 +414,38 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => deleteAscent(currentUser.id, boulder.id) && onDataChanged?.()}
+                    onClick={() => {
+                      deleteAscent(currentUser.id, boulder.id);
+                      setDataVersion(v => v + 1);
+                      onDataChanged?.();
+                    }}
                     className="text-[#6B6358] hover:text-[#A0522D] underline transition text-[10px]"
                   >
                     Logbucheintrag löschen
+                  </button>
+                </div>
+              )}
+
+              {currentUserRating && (
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1.5 border-t border-[#333333]/60">
+                  <span className="flex items-center gap-1.5">
+                    <span>Deine Bewertung:</span>
+                    <strong className="text-[#C9A96E] flex items-center gap-0.5">
+                      {currentUserRating.qualityStars} <Star className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
+                    </strong>
+                    {currentUserRating.gradeFeel && (
+                      <span className="text-[#E8E0D4] capitalize">({currentUserRating.gradeFeel})</span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="delete-rating-btn"
+                    onClick={handleDeleteRating}
+                    className="text-rose-400 hover:text-rose-300 hover:underline transition text-[10px] flex items-center gap-1 cursor-pointer"
+                    title="Eigene Bewertung löschen"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Bewertung löschen</span>
                   </button>
                 </div>
               )}
@@ -722,6 +761,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             }
           }}
           onSave={handleSaveRating}
+          onDeleteRating={handleDeleteRating}
         />
       )}
 
