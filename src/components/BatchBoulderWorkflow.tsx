@@ -158,6 +158,33 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     setSelectedBoulder(null);
   };
 
+  // AC-13: Permanently delete an individual boulder (draft or active)
+  const handleDeleteBoulder = (boulderId: string) => {
+    deleteWallBoulder(boulderId);
+    if (selectedSectorId) {
+      setBoulders(getWallBoulders(selectedSectorId));
+    } else {
+      setBoulders(prev => prev.filter(b => b.id !== boulderId));
+    }
+    setPendingArchiveIds(prev => prev.filter(id => id !== boulderId));
+    setSelectedBoulderIds(prev => prev.filter(id => id !== boulderId));
+    setIsSheetOpen(false);
+    setSelectedBoulder(null);
+    showToast('Route erfolgreich gelöscht!');
+  };
+
+  // Listen to cross-component boulder events (e.g. deletion from Climber area)
+  useEffect(() => {
+    const handleBouldersUpdated = () => {
+      if (selectedSectorId) {
+        setBoulders(getWallBoulders(selectedSectorId));
+      }
+    };
+
+    window.addEventListener('bouldermate:boulders_updated', handleBouldersUpdated);
+    return () => window.removeEventListener('bouldermate:boulders_updated', handleBouldersUpdated);
+  }, [selectedSectorId]);
+
   // AC-12: Delete multi-selected boulders (drafts and active)
   const handleDeleteMultiSelection = () => {
     if (selectedBoulderIds.length === 0) return;
@@ -465,6 +492,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         onSave={handleSaveSheet}
         onDeleteDraft={handleDeleteDraft}
         onToggleArchive={handleToggleArchive}
+        onDeleteBoulder={handleDeleteBoulder}
       />
 
       {/* Summary & Batch Publish Modal */}

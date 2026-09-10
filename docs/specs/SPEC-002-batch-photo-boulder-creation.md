@@ -14,6 +14,7 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
 - **US-6**: Als Schrauber möchte ich gesetzte Pins nachträglich per Drag verschieben oder per Tap bearbeiten können.
 - **US-7**: Als Schrauber möchte ich vor Veröffentlichung eine Zusammenfassung aller neuen und archivierten Boulder prüfen und die Veröffentlichung im Batch bestätigen.
 - **US-8**: Als Schrauber möchte ich durch Gedrückt-Halten der Maus ein Auswahl-Quadrat (Rechteck) aufziehen können, um mehrere Boulder auf einmal zu markieren und im Batch zu löschen.
+- **US-9**: Als Schrauber möchte ich eine Route direkt im Schrauberbereich vollständig und endgültig löschen können (nicht nur als "abgeschraubt" archivieren), wenn sie versehentlich angelegt wurde oder komplett entfernt werden soll.
 
 ## Acceptance Criteria
 - [x] **AC-1**: Der Workflow ist nur für Nutzer mit Rolle `setter` oder `admin` für das gewählte Gym zugänglich. *(Getestet in `tests/spec002.test.ts`)*
@@ -43,6 +44,11 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
   - Alle Boulder-Pins, deren Koordinaten innerhalb des aufgespannten Bereichs liegen, werden visuell hervorgehoben (Goldener Auswahlring und Selektionsbadge) und in die Mehrfachauswahl übernommen.
   - Eine schwebende Aktionsleiste zeigt die Anzahl der markierten Boulder („X Boulder ausgewählt“) und bietet die Aktionen „Ausgewählte löschen“ (sowie Tastatur-Shortcut `Delete`/`Backspace`) und „Abbrechen“.
   - Beim Klick auf „Löschen“ werden alle selektierten Boulder (sowohl Entwürfe als auch bestehende Routen) aus dem System entfernt. *(Getestet in `tests/boxSelectionDelete.test.tsx`)*
+- [x] **AC-13**: **Permanentes Löschen von Routen im Schrauber-Bereich (Einzel-Löschung statt Archivierung)**:
+  - Im Bottom-Sheet (`BoulderBottomSheet`) existiert für bestehende Routen neben der Archivierungsoption ("Abgeschraubt") ein expliziter Button zum endgültigen Löschen der Route ("Route löschen").
+  - Ein Bestätigungsdialog fragt vor der Durchführung ab ("Route unwiderruflich löschen?"), um versehentliche Klicks abzufangen.
+  - Nach Bestätigung wird die Route über `deleteWallBoulder` kaskadierend aus allen lokalen Stores (`boulderapp_wall_boulders_v2`, `boulderapp_gym_boulders`, `boulderapp_boulders`), allen verknüpften Begehungen, Bewertungen und Kommentaren sowie aus Supabase entfernt.
+  - Das Wandfoto und die Routenliste aktualisieren sich ohne Seiten-Reload in Echtzeit. *(Getestet in `tests/spec002Components.test.tsx`)*
 
 ## Technical Design
 

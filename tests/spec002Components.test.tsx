@@ -139,4 +139,45 @@ describe('SPEC-002: UI Components Integration', () => {
     fireEvent.click(screen.getByText('Jetzt veröffentlichen'));
     expect(onConfirmPublish).toHaveBeenCalledTimes(1);
   });
+
+  it('renders delete buttons for existing active boulder in BoulderBottomSheet and confirms deletion (AC-13)', () => {
+    const onDeleteBoulder = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <BoulderBottomSheet
+        isOpen={true}
+        boulder={sampleActive}
+        gradeScales={sampleGradeScales}
+        defaultGradeScaleId="scale-blue"
+        isMarkedForArchive={false}
+        onClose={onClose}
+        onSave={vi.fn()}
+        onDeleteBoulder={onDeleteBoulder}
+      />
+    );
+
+    // Delete buttons should be present in header, status card, and footer
+    expect(screen.getByTestId('delete-boulder-sheet-header-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('delete-boulder-sheet-status-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('delete-boulder-sheet-footer-btn')).toBeInTheDocument();
+
+    // Click footer delete button
+    fireEvent.click(screen.getByTestId('delete-boulder-sheet-footer-btn'));
+
+    // Confirmation dialog should be visible
+    expect(screen.getByText(/Route unwiderruflich löschen\?/i)).toBeInTheDocument();
+    expect(screen.getByTestId('confirm-delete-boulder-sheet-btn')).toBeInTheDocument();
+
+    // Test cancel
+    fireEvent.click(screen.getByRole('button', { name: /Abbrechen/i }));
+    expect(screen.queryByText(/Route unwiderruflich löschen\?/i)).not.toBeInTheDocument();
+    expect(onDeleteBoulder).not.toHaveBeenCalled();
+
+    // Open again and confirm deletion
+    fireEvent.click(screen.getByTestId('delete-boulder-sheet-status-btn'));
+    fireEvent.click(screen.getByTestId('confirm-delete-boulder-sheet-btn'));
+
+    expect(onDeleteBoulder).toHaveBeenCalledWith(sampleActive.id);
+  });
 });
