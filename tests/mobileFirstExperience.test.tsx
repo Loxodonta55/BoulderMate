@@ -1,9 +1,10 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { App } from '../src/App';
 import { BoulderBottomSheet } from '../src/components/BoulderBottomSheet';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import { SectorManager } from '../src/components/SectorManager';
+import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
 import { GymGradeScale, WallBoulder, DEFAULT_RADAR } from '../src/types/boulder';
 import { Sector } from '../src/types/gym';
 import { resetAllGymData, createGym, createSector, CURRENT_USER } from '../src/lib/gymStorage';
@@ -175,4 +176,70 @@ describe('Mobile-First Experience Test Suite', () => {
     fireEvent.click(touchMoveDown);
     expect(onRefresh).toHaveBeenCalled();
   });
+
+  it('6) Schnelle Interaktion: BoulderDetailModal schließt sofort nach Bewertungsabgabe & Überspringen', () => {
+    const handleClose = vi.fn();
+    const handleDataChanged = vi.fn();
+
+    const sampleBoulder: WallBoulder = {
+      id: 'boulder-fast-close-1',
+      sectorId: 'sec-1',
+      gradeScaleId: 'scale-1',
+      setterId: 'setter-1',
+      positionX: 0.5,
+      positionY: 0.5,
+      status: 'active',
+      radar: { maximalkraft: 3, kraftausdauer: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 },
+      createdAt: new Date().toISOString(),
+      name: 'Speed Route',
+    };
+
+    const { rerender } = render(
+      <BoulderDetailModal
+        boulder={sampleBoulder}
+        currentUser={{ id: 'climber-speed', nickname: 'Speedy', role: 'member', isPlatformAdmin: false }}
+        isOpen={true}
+        onClose={handleClose}
+        onDataChanged={handleDataChanged}
+      />
+    );
+
+    // Klick auf "Jetzt bewerten"
+    const rateBtn = screen.getByText('Jetzt bewerten');
+    fireEvent.click(rateBtn);
+
+    // RatingModal erscheint
+    expect(screen.getByText('Soft')).toBeInTheDocument();
+
+    // Soft auswählen & speichern
+    fireEvent.click(screen.getByText('Soft'));
+    fireEvent.click(screen.getByText('Bewertung speichern'));
+
+    // Detailfenster muss sich sofort geschlossen haben (handleClose aufgerufen)
+    expect(handleClose).toHaveBeenCalledTimes(1);
+
+    // Zweiter Test: Bei automatischer Bewertung nach Top -> Klick auf Überspringen schließt auch direkt
+    handleClose.mockClear();
+    rerender(
+      <BoulderDetailModal
+        boulder={sampleBoulder}
+        currentUser={{ id: 'climber-speed-2', nickname: 'Speedy2', role: 'member', isPlatformAdmin: false }}
+        isOpen={true}
+        onClose={handleClose}
+        onDataChanged={handleDataChanged}
+      />
+    );
+
+    // Top loggen -> löst automatisches RatingModal aus
+    const topBtn = screen.getByRole('button', { name: /Top/i });
+    fireEvent.click(topBtn);
+
+    // Überspringen klicken
+    const skipBtn = screen.getByText('Überspringen');
+    fireEvent.click(skipBtn);
+
+    // Detailfenster schließt sich direkt und bringt User zurück zur Wand
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });
+

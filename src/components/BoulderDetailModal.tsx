@@ -156,6 +156,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     setIsRatingModalOpen(false);
     setRatingTriggeredByAscent(false);
     onDataChanged?.();
+    // Nach der Bewertung im Kletterbereich sofort das Fenster schliessen (schneller, daumenfreundlicher Flow)
+    onClose();
   };
 
   // Helper for human-readable feel label
@@ -711,8 +713,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           isOpen={isRatingModalOpen}
           isTriggeredByAscent={ratingTriggeredByAscent}
           onClose={() => {
+            const wasTriggeredByAscent = ratingTriggeredByAscent;
             setIsRatingModalOpen(false);
             setRatingTriggeredByAscent(false);
+            // Wenn nach Begehung übersprungen wird, auch direkt zurück zur Wand für schnellen Flow
+            if (wasTriggeredByAscent) {
+              onClose();
+            }
           }}
           onSave={handleSaveRating}
         />

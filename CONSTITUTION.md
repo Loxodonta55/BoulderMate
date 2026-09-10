@@ -248,3 +248,6 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
    - Die Anordnung von Sektoren im Hallen-Admin-Bereich darf nicht auf Desktop-Maus-Drag-and-Drop beschränkt sein.
    - Große, fingerbedienbare Rauf-/Runter-Tasten (Move Up / Move Down) und ein touch-optimierter Sortier-Modus ermöglichen müheloses Umordnen direkt am Smartphone.
 
+### 11.2 Blitzschnelle Interaktion: Unmittelbares Schließen nach Bewertung
+- **Fokus Kletterflow**: Nach dem Speichern (oder Überspringen) einer Bewertung schließt sich das Bewertungs- und Detailfenster im Kletterbereich augenblicklich. Der Kletterer landet sofort wieder auf der interaktiven Wandansicht, ohne zusätzliche Schließen-Klicks durchführen zu müssen.
+
