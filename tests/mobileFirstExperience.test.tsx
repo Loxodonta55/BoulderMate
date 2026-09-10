@@ -241,5 +241,73 @@ describe('Mobile-First Experience Test Suite', () => {
     // Detailfenster schließt sich direkt und bringt User zurück zur Wand
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('7) 2-Stufen-Bewertung & Abhaken ganz oben im Frame', () => {
+    const handleClose = vi.fn();
+    const handleDataChanged = vi.fn();
+
+    const sampleBoulder: WallBoulder = {
+      id: 'boulder-2step-1',
+      sectorId: 'sec-1',
+      gradeScaleId: 'scale-1',
+      setterId: 'setter-1',
+      positionX: 0.5,
+      positionY: 0.5,
+      status: 'active',
+      radar: { maximalkraft: 3, kraftausdauer: 3, technik: 3, balance: 3, koordination: 3, flexibilitaet: 3 },
+      createdAt: new Date().toISOString(),
+      name: 'Flow Route',
+    };
+
+    render(
+      <BoulderDetailModal
+        boulder={sampleBoulder}
+        currentUser={{ id: 'climber-flow', nickname: 'Flowy', role: 'member', isPlatformAdmin: false }}
+        isOpen={true}
+        onClose={handleClose}
+        onDataChanged={handleDataChanged}
+      />
+    );
+
+    // 1) Verify Ascent card is at the top of scrollable modal content
+    const ascentCard = screen.getByTestId('ascent-logging-card');
+    expect(ascentCard).toBeInTheDocument();
+    // Verify it contains Flash, Top, Projekt
+    expect(screen.getByRole('button', { name: /Flash/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Top/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Projekt/i })).toBeInTheDocument();
+
+    // 2) Top anklicken -> löst Rating-Modal aus
+    const topBtn = screen.getByRole('button', { name: /Top/i });
+    fireEvent.click(topBtn);
+
+    // 3) Fenster Schritt 1: NUR Grad-Empfinden sichtbar
+    expect(screen.getByText('Schritt 1/2')).toBeInTheDocument();
+    expect(screen.getByText('Soft')).toBeInTheDocument();
+    expect(screen.getByText('Fair')).toBeInTheDocument();
+    expect(screen.getByText('Stiff')).toBeInTheDocument();
+    // Sterne und Radar sind in Schritt 1 NICHT sichtbar
+    expect(screen.queryByText(/von 5 Sternen/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Klettereigenschaften bewerten/i)).not.toBeInTheDocument();
+
+    // 4) Klick auf "Fair" -> schaltet direkt zu Schritt 2
+    fireEvent.click(screen.getByText('Fair'));
+
+    // 5) Fenster Schritt 2: Qualität 1-5 Sterne & optional Radar
+    expect(screen.getByText('Schritt 2/2')).toBeInTheDocument();
+    expect(screen.getAllByText(/Routenqualität & Spaß/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/5 von 5 Sternen/i)).toBeInTheDocument();
+    expect(screen.getByText(/Klettereigenschaften bewerten \(Radar-Chart\)/i)).toBeInTheDocument();
+    expect(screen.getByText('(optional)')).toBeInTheDocument();
+
+    // 6) 4 Sterne wählen und speichern
+    const star4 = screen.getByLabelText('4 Sterne');
+    fireEvent.click(star4);
+    expect(screen.getByText(/4 von 5 Sternen/i)).toBeInTheDocument();
+
+    // Speichern -> schließt Dialog
+    fireEvent.click(screen.getByText('Bewertung speichern'));
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });
 

@@ -263,7 +263,118 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
           {/* Scrollable Modal Content */}
           <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
-            {/* Quick Metrics Bar (AC-8) */}
+            {/* 1. Action Bar: Ascent Logging (AC-3) & Review Button (AC-5) - GANZ OBEN IM FRAME */}
+            <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] space-y-3" data-testid="ascent-logging-card">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <span>Deine Begehung ({currentUser.nickname})</span>
+                </span>
+
+                {/* AC-5: Manual Review Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRatingTriggeredByAscent(false);
+                    setIsRatingModalOpen(true);
+                  }}
+                  className="text-xs font-mono font-bold text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#1E1E1E] hover:bg-[#333333] border border-[#333333] hover:border-[#F5F0E8] px-3 py-1.5 rounded-[2px] transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5 fill-[#C9A96E] text-[#C9A96E]" />
+                  <span>{currentUserRating ? 'Bewertung anpassen' : 'Jetzt bewerten'}</span>
+                </button>
+              </div>
+
+              {/* 3 Prominent Log Buttons: Flash / Top / Project (AC-3) - 2px radius */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAscentClick('flash')}
+                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    currentUserAscent?.type === 'flash'
+                      ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold'
+                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                  }`}
+                >
+                  <Zap className="w-4 h-4 stroke-[2]" />
+                  <span>Flash</span>
+                  {currentUserAscent?.type === 'flash' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAscentClick('top')}
+                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    currentUserAscent?.type === 'top'
+                      ? 'bg-[#4A5D3A] text-[#F5F0E8] border-[#4A5D3A] font-bold'
+                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                  }`}
+                >
+                  <Trophy className="w-4 h-4 stroke-[2]" />
+                  <span>Top</span>
+                  {currentUserAscent?.type === 'top' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAscentClick('project')}
+                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    currentUserAscent?.type === 'project'
+                      ? 'bg-[#8B8680] text-[#121212] border-[#8B8680] font-bold'
+                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 stroke-[2]" />
+                  <span>Projekt</span>
+                  {currentUserAscent?.type === 'project' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
+                </button>
+              </div>
+
+              {currentUserAscent && (
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1">
+                  <span>
+                    Geloggt als <strong className="text-[#E8E0D4] uppercase">{currentUserAscent.type}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteAscent(currentUser.id, boulder.id);
+                      setDataVersion(v => v + 1);
+                      onDataChanged?.();
+                    }}
+                    className="text-[#6B6358] hover:text-[#A0522D] underline transition text-[10px] cursor-pointer"
+                  >
+                    Logbucheintrag löschen
+                  </button>
+                </div>
+              )}
+
+              {currentUserRating && (
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1.5 border-t border-[#333333]/60">
+                  <span className="flex items-center gap-1.5">
+                    <span>Deine Bewertung:</span>
+                    <strong className="text-[#C9A96E] flex items-center gap-0.5">
+                      {currentUserRating.qualityStars} <Star className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
+                    </strong>
+                    {currentUserRating.gradeFeel && (
+                      <span className="text-[#E8E0D4] capitalize">({currentUserRating.gradeFeel})</span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="delete-rating-btn"
+                    onClick={handleDeleteRating}
+                    className="text-rose-400 hover:text-rose-300 hover:underline transition text-[10px] flex items-center gap-1 cursor-pointer"
+                    title="Eigene Bewertung löschen"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Bewertung löschen</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Quick Metrics Bar (AC-8) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Star Rating Card */}
               <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-between">
@@ -338,117 +449,6 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   <span className="text-[#D97D5B]">🔴 {stats.gradeFeelCounts.stiff} Stiff</span>
                 </div>
               </div>
-            </div>
-
-            {/* Action Bar: Ascent Logging (AC-3) & Review Button (AC-5) */}
-            <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
-                  <Trophy className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span>Deine Begehung ({currentUser.nickname})</span>
-                </span>
-
-                {/* AC-5: Manual Review Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRatingTriggeredByAscent(false);
-                    setIsRatingModalOpen(true);
-                  }}
-                  className="text-xs font-mono font-bold text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#1E1E1E] hover:bg-[#333333] border border-[#333333] hover:border-[#F5F0E8] px-3 py-1.5 rounded-[2px] transition flex items-center gap-1.5"
-                >
-                  <Star className="w-3.5 h-3.5 fill-[#C9A96E] text-[#C9A96E]" />
-                  <span>{currentUserRating ? 'Bewertung anpassen' : 'Jetzt bewerten'}</span>
-                </button>
-              </div>
-
-              {/* 3 Prominent Log Buttons: Flash / Top / Project (AC-3) - 2px radius */}
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAscentClick('flash')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 ${
-                    currentUserAscent?.type === 'flash'
-                      ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
-                  }`}
-                >
-                  <Zap className="w-4 h-4 stroke-[2]" />
-                  <span>Flash</span>
-                  {currentUserAscent?.type === 'flash' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleAscentClick('top')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 ${
-                    currentUserAscent?.type === 'top'
-                      ? 'bg-[#4A5D3A] text-[#F5F0E8] border-[#4A5D3A] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
-                  }`}
-                >
-                  <Trophy className="w-4 h-4 stroke-[2]" />
-                  <span>Top</span>
-                  {currentUserAscent?.type === 'top' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleAscentClick('project')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 ${
-                    currentUserAscent?.type === 'project'
-                      ? 'bg-[#8B8680] text-[#121212] border-[#8B8680] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
-                  }`}
-                >
-                  <Clock className="w-4 h-4 stroke-[2]" />
-                  <span>Projekt</span>
-                  {currentUserAscent?.type === 'project' && <Check className="w-3.5 h-3.5 ml-0.5 stroke-[3]" />}
-                </button>
-              </div>
-
-              {currentUserAscent && (
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1">
-                  <span>
-                    Geloggt als <strong className="text-[#E8E0D4] uppercase">{currentUserAscent.type}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      deleteAscent(currentUser.id, boulder.id);
-                      setDataVersion(v => v + 1);
-                      onDataChanged?.();
-                    }}
-                    className="text-[#6B6358] hover:text-[#A0522D] underline transition text-[10px]"
-                  >
-                    Logbucheintrag löschen
-                  </button>
-                </div>
-              )}
-
-              {currentUserRating && (
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1.5 border-t border-[#333333]/60">
-                  <span className="flex items-center gap-1.5">
-                    <span>Deine Bewertung:</span>
-                    <strong className="text-[#C9A96E] flex items-center gap-0.5">
-                      {currentUserRating.qualityStars} <Star className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
-                    </strong>
-                    {currentUserRating.gradeFeel && (
-                      <span className="text-[#E8E0D4] capitalize">({currentUserRating.gradeFeel})</span>
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    data-testid="delete-rating-btn"
-                    onClick={handleDeleteRating}
-                    className="text-rose-400 hover:text-rose-300 hover:underline transition text-[10px] flex items-center gap-1 cursor-pointer"
-                    title="Eigene Bewertung löschen"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Bewertung löschen</span>
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Radar Chart (AC-2) */}
