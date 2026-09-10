@@ -50,21 +50,17 @@ npm test -- --run
 
 ---
 
-## 3. Stufe: Supabase Schema & Non-destructive Upward Data Sync
-> **⚠️ ZWINGENDE REGEL (NON-DESTRUCTIVE / IMMER NUR AUFWÄRTS)**:
-> Es darf **NIEMALS** etwas auf der Produktions-Umgebung (`bouldermate.ch` / Supabase) gelöscht oder zurückgesetzt werden (`DELETE`, `TRUNCATE`, `DROP`). Alle Synchronisationen erfolgen **ausschließlich aufwärts (Local ──► Supabase)** im **Append-Only / Upsert-Modus** (`ON CONFLICT DO UPDATE` oder `ON CONFLICT DO NOTHING`).
-
-1. **Schema & Migrationen prüfen**:
-   - Supabase-Tabellen und Status prüfen via Supabase MCP (`list_tables`, `list_migrations`).
-   - Neue Tabellen, RLS-Policies oder Spalten bei Bedarf via `execute_sql` anlegen.
-2. **Wandfotos nach Supabase Storage synchronisieren**:
-   - Alle lokalen Wandfotos aus `public/images/walls/` in den Storage-Bucket `sector-photos` abgleichen (`node scripts/sync-images-to-supabase.js`).
-3. **Stammdaten & Sektoren aufwärts synchronisieren**:
-   - Hallen, Farbskalen, Sektoren und Boulder non-destruktiv via Sync-Skript synchronisieren:
-     ```powershell
-     node scripts/sync-all-to-supabase.js
-     ```
-   - Verifizieren, dass alle Sektoren beider Hallen (6a plus mit 8 Sektoren, Minimum mit 3 Sektoren) in Supabase vorhanden sind.
+## 3. Stufe: STRIKTE REGEL — KEINE DATENÜBERTRAGUNG BEIM DEPLOYMENT
+> **⛔ ABSOLUTES VERBOT AUTOMATISCHER DATENÜBERTRAGUNGEN**:
+> Beim Deployment dürfen **KEINERLEI DATEN** (Farbskalen, Sektoren, Boulder, Begehungen, Fotos) übertragen, synchronisiert oder überschrieben werden!
+> Supabase auf PROD ist die lebende Single Source of Truth der Benutzerdaten.
+> 
+> - **Niemals automatisch `node scripts/sync-all-to-supabase.js` ausführen!**
+> - **Niemals automatisch `node scripts/sync-images-to-supabase.js` ausführen!**
+> - Daten-Sync-Skripte dürfen **AUSSCHLIESSLICH** dann ausgeführt werden, wenn der User **explizit darum bittet** (z. B. "Bitte Daten nach Supabase übertragen").
+> - Einzig bei echten Schema-Erweiterungen (neue Spalten oder RLS-Policies) darf Supabase via MCP (`execute_sql`) angepasst werden.
+> 
+> Ein Standard-Deployment ist **rein code-basiert**: Pre-Flight -> Git Push -> Vercel Build -> Domain Check.
 
 ---
 
@@ -124,12 +120,10 @@ Beim Deployment und Datenabgleich zwischen lokaler Umgebung und Supabase/Vercel 
 
 ---
 
-## 5. Stufe: Pre- & Post-Deployment Data Integrity Gate
-Vor und nach jedem Release MUSS die Datenbank-Integrität auf Supabase verifiziert werden:
-```powershell
-node scripts/sync-all-to-supabase.js
-```
-- Die Anzahl der Hallen, Sektoren, Farbskalen, Boulder und Begehungen darf nach einem Deployment **niemals geringer** sein als zuvor.
-- Alle benutzerdefinierten Farben (z. B. Sonnengelb, Pink, Türkis) und alle vom Schrauber erstellten Routen müssen auf Supabase und bouldermate.ch lückenlos erhalten bleiben.
+## 5. Stufe: Code-Only Deployment Garantie
+- Ein Deployment berührt **NIEMALS** die Supabase-Produktionsdaten.
+- Es werden beim Deployment **keine Daten-Synchronisationsskripte** (`sync-all-to-supabase.js`, `sync-images-to-supabase.js`) ausgeführt.
+- Alle Farbskalen, Sektoren, Boulder und Begehungen auf Supabase bleiben während des Deployments zu 100% unberührt.
+- Datenübertragungen nach Supabase finden **AUSSCHLIESSLICH** statt, wenn der User dies explizit anweist.
 
 

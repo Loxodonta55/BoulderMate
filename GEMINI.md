@@ -97,14 +97,15 @@ Every feature starts as a specification that aligns user requirements before imp
 - Use the spec as acceptance criteria
 - **Niemals unaufgefordert mocken/faken**: Echte Services und Protokolle implementieren; keine Fake-Logins oder Mocks ohne expliziten User-Befehl.
 
-### 🚀 End-to-End Deployment Pipeline (Git ──► Supabase ──► Vercel)
-Jedes Deployment MUSS vollständig und geschlossen über diese 4 Schritte laufen:
+### 🚀 End-to-End Deployment Pipeline (Code-Only: Git ──► Vercel)
+Jedes Deployment MUSS vollständig und geschlossen über diese Schritte laufen:
 1. **Pre-Flight (Lokal)**: `npm run build` und `npm test -- --run` müssen fehlerfrei grün sein.
 2. **Git & GitHub**: Saubere Semantic Commits auf `main` und `git push origin main`.
-3. **Supabase Sync (Non-destructive Upward Data Sync)**: 
-   - Schema- und Migrationsstand in Supabase per Supabase-MCP verifizieren.
-   - Alle Wandfotos und Stammdaten (Gyms, Farbskalen, Sektoren, Boulder) via `node scripts/sync-all-to-supabase.js` aufwärts synchronisieren.
-   - **STRIKTE REGEL**: Immer nur aufwärts synchronisieren, **NIEMALS** Daten auf `bouldermate.ch` / Supabase löschen (`DELETE`, `TRUNCATE`, `DROP`).
+3. **STRIKTE REGEL (KEINE DATENÜBERTRAGUNG BEIM DEPLOYMENT)**:
+   - Beim Deployment werden **KEINERLEI Daten** (Farbskalen, Boulder, Sektoren, Fotos) übertragen oder synchronisiert.
+   - Supabase auf PROD ist die Single Source of Truth.
+   - Daten-Sync-Skripte (`sync-all-to-supabase.js`, `sync-images-to-supabase.js`) dürfen beim Deployment **NIEMALS** automatisch ausgeführt werden, sondern **AUSSCHLIESSLICH**, wenn der User explizit darum bittet.
+   - Schema-Migrationen (neue Spalten/Tabellen via MCP) werden nur bei tatsächlichen Schema-Änderungen ausgeführt.
 4. **Vercel & Domain Verification**: Vercel-Deployment per Vercel-MCP auf Status `READY` prüfen und `https://bouldermate.ch` live verifizieren.
 
 ## Tech Stack
