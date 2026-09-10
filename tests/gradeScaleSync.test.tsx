@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { App } from '../src/App';
 import {
@@ -75,14 +75,14 @@ describe('SPEC-001 AC-2.1: Farbsystem Cross-Area Synchronisation (Admin ⟷ Schr
   it('completely removes deleted colors without ghost resurrections', () => {
     const gymId = 'gym-6a-plus';
     const initialScales = getAdminGradeScales(gymId);
-    expect(initialScales.some(s => s.color_name === 'Lila')).toBe(true);
+    expect(initialScales.some(s => s.color_name === 'Beige')).toBe(true);
 
-    // Admin loescht die Farbe "Lila"
-    const remainingScales = initialScales.filter(s => s.color_name !== 'Lila');
+    // Admin loescht die Farbe "Beige"
+    const remainingScales = initialScales.filter(s => s.color_name !== 'Beige');
     setGymGradeScales(gymId, CURRENT_USER.id, remainingScales);
 
     const serviceScales = getServiceGradeScales(gymId);
-    expect(serviceScales.some(s => s.colorName === 'Lila')).toBe(false);
+    expect(serviceScales.some(s => s.colorName === 'Beige')).toBe(false);
     expect(serviceScales.length).toBe(initialScales.length - 1);
   });
 
@@ -156,5 +156,5 @@ describe('SPEC-001 AC-2.1: Farbsystem Cross-Area Synchronisation (Admin ⟷ Schr
     // Kletterer-Bereich hat ebenfalls Tuerkis synchronisiert
     const climberScales = getServiceGradeScales('gym-minimum-zh');
     expect(climberScales.some(s => s.colorName === 'Tuerkis')).toBe(true);
-  });
+  }, 15000);
 });

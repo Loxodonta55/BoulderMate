@@ -81,29 +81,29 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 animate-in fade-in duration-150">
       <div
-        className="w-full sm:max-w-md bg-[#1E1E1E] border-t sm:border border-[#333333] rounded-none overflow-hidden max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-4 duration-150"
+        className="w-full sm:max-w-lg bg-[#1E1E1E] border-t sm:border border-[#333333] rounded-t-lg sm:rounded-none overflow-hidden max-h-[92vh] flex flex-col animate-in slide-in-from-bottom-4 duration-150 shadow-2xl"
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="py-3 px-5 flex flex-col items-center border-b border-[#333333] relative bg-[#121212]">
-          <div className="w-10 h-0.5 bg-[#333333] mb-3" />
+        {/* Sticky Header with Drag Handle */}
+        <div className="pt-2 pb-3 px-5 flex flex-col items-center border-b border-[#333333] relative bg-[#121212] shrink-0">
+          <div className="w-12 h-1 rounded-full bg-[#333333] mb-2.5" />
           <div className="w-full flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span
-                className="w-3.5 h-3.5 rounded-none border border-black/40"
+                className="w-4 h-4 rounded-none border border-black/40 shrink-0"
                 style={{ backgroundColor: selectedScale?.colorHex || '#C9A96E' }}
               />
-              <h3 className="font-headline text-base uppercase tracking-wider text-[#E8E0D4]">
-                {isDraft ? 'Neuer Boulder (Entwurf)' : 'Bestehender Boulder'}
+              <h3 className="font-headline text-base uppercase tracking-wider text-[#E8E0D4] truncate">
+                {isDraft ? 'Neuer Boulder (Entwurf)' : 'Boulder bearbeiten'}
               </h3>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
+              className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition cursor-pointer"
               title="Schließen"
             >
               <X className="w-5 h-5" />
@@ -111,8 +111,8 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
           </div>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-5 flex-1">
+        {/* Scrollable Form Body */}
+        <div className="overflow-y-auto p-4 sm:p-5 space-y-4 flex-1">
           {validationError && (
             <div className="p-3 rounded-none bg-[#A0522D]/20 border border-[#A0522D] text-[#D97D5B] text-xs font-mono">
               {validationError}
@@ -121,10 +121,10 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
 
           {/* If existing active boulder, show direct archive option */}
           {!isDraft && onToggleArchive && (
-            <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-between">
+            <div className="p-3.5 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-headline uppercase tracking-wide text-[#E8E0D4]">Routen-Status</p>
-                <p className="text-xs font-mono text-[#A89F91]">
+                <p className="text-xs font-headline uppercase tracking-wide text-[#E8E0D4]">Routen-Status</p>
+                <p className="text-[11px] font-mono text-[#A89F91]">
                   {isMarkedForArchive
                     ? 'Als abgeschraubt vorgemerkt'
                     : 'Aktiv an der Wand'}
@@ -133,32 +133,32 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
               <button
                 type="button"
                 onClick={() => onToggleArchive(boulder.id)}
-                className={`px-3 py-1.5 rounded-[2px] text-xs font-mono font-semibold flex items-center gap-1.5 transition ${
+                className={`px-3 py-2 rounded-[2px] text-xs font-mono font-semibold flex items-center gap-1.5 transition ${
                   isMarkedForArchive
                     ? 'bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/40 hover:bg-[#C9A96E]/30'
                     : 'bg-[#A0522D]/20 text-[#D97D5B] border border-[#A0522D] hover:bg-[#A0522D]/30'
                 }`}
               >
                 <Archive className="w-3.5 h-3.5" />
-                <span>{isMarkedForArchive ? 'Archivierung rückgängig' : 'Archivieren (abgeschraubt)'}</span>
+                <span>{isMarkedForArchive ? 'Wiederherstellen' : 'Abgeschraubt'}</span>
               </button>
             </div>
           )}
 
-          {/* Color & Grade Selection (MANDATORY) */}
+          {/* Color & Grade Selection (MANDATORY) — Mobile-First Grid with min 48px Touch Targets */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono font-semibold uppercase tracking-wider text-[#A89F91]">
-                Farbe / Schwierigkeit <span className="text-[#C9A96E]">*</span>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A89F91]">
+                Farbe / Grad <span className="text-[#C9A96E]">*</span>
               </label>
               {selectedScale && (
-                <span className="text-xs font-mono text-[#E8E0D4]">
-                  {selectedScale.colorName} · {selectedScale.difficultyLabel} ({selectedScale.fontRangeMin}–{selectedScale.fontRangeMax})
+                <span className="text-xs font-mono text-[#E8E0D4] font-bold">
+                  {selectedScale.colorName} · {selectedScale.difficultyLabel}
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {gradeScales.map(scale => {
                 const isSelected = selectedScaleId === scale.id;
                 return (
@@ -166,19 +166,23 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
                     key={scale.id}
                     type="button"
                     onClick={() => setSelectedScaleId(scale.id)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-[2px] border text-left transition-all ${
+                    className={`flex items-center gap-2.5 px-3 py-3 rounded-[2px] border text-left transition-all min-h-[48px] ${
                       isSelected
-                        ? 'bg-[#2A2A2A] border-2 border-[#F5F0E8]'
-                        : 'bg-[#121212] border-[#333333] hover:border-[#A89F91]'
+                        ? 'bg-[#2A2A2A] border-2 border-[#F5F0E8] shadow-md ring-1 ring-[#F5F0E8]'
+                        : 'bg-[#141414] border-[#333333] hover:border-[#A89F91] active:bg-[#222222]'
                     }`}
                   >
                     <span
-                      className="w-3.5 h-3.5 rounded-none shrink-0 border border-black/30"
+                      className="w-4 h-4 rounded-none shrink-0 border border-black/40 shadow-sm"
                       style={{ backgroundColor: scale.colorHex }}
                     />
-                    <div className="min-w-0">
-                      <p className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] truncate">{scale.colorName}</p>
-                      <p className="text-[10px] font-mono text-[#A89F91] truncate">{scale.difficultyLabel}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate">
+                        {scale.colorName}
+                      </p>
+                      <p className="text-[10px] font-mono text-[#A89F91] truncate">
+                        {scale.difficultyLabel} ({scale.fontRangeMin})
+                      </p>
                     </div>
                   </button>
                 );
@@ -186,37 +190,37 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
             </div>
           </div>
 
-          {/* Radar Attributes (1 - 5 with smart default 3) */}
-          <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] space-y-3">
+          {/* Radar Attributes — Mobile-First Touch Stepper with min 38-40px Touch Targets */}
+          <div className="p-3.5 sm:p-4 rounded-none bg-[#2A2A2A] border border-[#333333] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
+              <span className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5 font-bold">
                 <Sparkles className="w-3.5 h-3.5 text-[#C9A96E]" />
-                Charakteristik (Radar)
+                Charakteristik (1–5)
               </span>
               <span className="text-[10px] font-mono text-[#A89F91]">Standard: 3/5</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {RADAR_AXIS_DEFINITIONS.map(({ key, label, emoji }) => {
                 const currentVal = radar[key] ?? 3;
                 return (
-                  <div key={key} className="flex items-center justify-between text-xs">
-                    <span className="text-[#E8E0D4] w-28 flex items-center gap-1.5 font-medium">
+                  <div key={key} className="flex items-center justify-between py-0.5">
+                    <span className="text-[#E8E0D4] text-xs flex items-center gap-1.5 font-medium min-w-[100px]">
                       <span>{emoji}</span>
                       <span>{label}</span>
                     </span>
 
-                    {/* 1-5 Step selector */}
-                    <div className="flex items-center gap-1.5">
+                    {/* 1-5 Step selector with generous touch targets (36x36px min) */}
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       {[1, 2, 3, 4, 5].map(step => (
                         <button
                           key={step}
                           type="button"
                           onClick={() => handleRadarChange(key, step)}
-                          className={`w-6 h-6 rounded-[2px] text-[11px] font-mono font-bold transition-all ${
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-[2px] text-xs font-mono font-bold transition-all flex items-center justify-center ${
                             step <= currentVal
-                              ? 'bg-[#C9A96E] text-[#121212]'
-                              : 'bg-[#1E1E1E] text-[#6B6358] border border-[#333333] hover:border-[#A89F91]'
+                              ? 'bg-[#C9A96E] text-[#121212] font-extrabold shadow-sm'
+                              : 'bg-[#1A1A1A] text-[#6B6358] border border-[#333333] hover:border-[#A89F91] active:bg-[#333333]'
                           }`}
                         >
                           {step}
@@ -230,14 +234,14 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
           </div>
 
           {/* Optional Details Toggle */}
-          <div>
+          <div className="pt-1">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] flex items-center gap-1.5 transition"
+              className="text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] flex items-center gap-1.5 transition py-1"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-[#C9A96E]" />
-              <span>{showAdvanced ? 'Optionale Details verbergen' : 'Optionale Details (Name, Notizen) hinzufügen'}</span>
+              <span>{showAdvanced ? 'Details verbergen' : '+ Name & Notizen (optional)'}</span>
             </button>
 
             {showAdvanced && (
@@ -251,7 +255,7 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="z.B. 'Dynamo Extreme' oder '#14'"
-                    className="w-full px-3 py-2 bg-[#121212] border border-[#333333] rounded-none text-[#E8E0D4] text-xs font-mono placeholder:text-[#6B6358] focus:outline-none focus:border-[#F5F0E8]"
+                    className="w-full px-3 py-2.5 bg-[#121212] border border-[#333333] rounded-none text-[#E8E0D4] text-xs font-mono placeholder:text-[#6B6358] focus:outline-none focus:border-[#F5F0E8]"
                   />
                 </div>
 
@@ -270,30 +274,32 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
               </div>
             )}
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="pt-2 flex items-center gap-2">
-            {isDraft && onDeleteDraft && (
-              <button
-                type="button"
-                onClick={() => onDeleteDraft(boulder.id)}
-                className="p-2.5 rounded-[2px] bg-[#2A2A2A] text-[#D97D5B] hover:bg-[#A0522D]/20 border border-[#333333] hover:border-[#A0522D] transition"
-                title="Diesen Entwurf verwerfen"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-
+        {/* Sticky Action Footer (Never requires scrolling to save) */}
+        <div className="p-3 sm:p-4 bg-[#121212] border-t border-[#333333] flex items-center gap-2 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+          {isDraft && onDeleteDraft && (
             <button
-              type="submit"
-              className="flex-1 py-2.5 px-4 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center justify-center gap-2 transition"
+              type="button"
+              onClick={() => onDeleteDraft(boulder.id)}
+              className="p-3 rounded-[2px] bg-[#2A2A2A] text-[#D97D5B] hover:bg-[#A0522D]/20 border border-[#333333] hover:border-[#A0522D] transition min-h-[48px] flex items-center justify-center cursor-pointer"
+              title="Entwurf verwerfen"
             >
-              <Check className="w-4 h-4 stroke-[2.5]" />
-              <span>Speichern & Nächster Boulder</span>
+              <Trash2 className="w-4 h-4" />
             </button>
-          </div>
-        </form>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="flex-1 py-3 px-4 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs sm:text-sm flex items-center justify-center gap-2 transition min-h-[48px] shadow-lg cursor-pointer"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>Speichern & Weiter</span>
+          </button>
+        </div>
       </div>
     </div>
   );
 };
+

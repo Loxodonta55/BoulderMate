@@ -165,35 +165,26 @@ export async function syncFromSupabase(): Promise<boolean> {
       .order('sort_order', { ascending: true });
 
     if (!scaleError && dbScales && dbScales.length > 0) {
-      // V1 Cache (gymStorage)
-      const localV1Scales = gymStorage.getGradeScales();
-      const v1Map = new Map(localV1Scales.map(s => [s.id, s]));
-
-      // V2 Cache (batchBoulderService)
-      const localV2Scales = getStorageJson<any[]>('boulderapp_grade_scales_v2', []);
-      const v2Map = new Map(localV2Scales.map(s => [s.id, s]));
-
+      // Group remote scales by normalized gym
+      const scalesByGym = new Map<string, typeof dbScales>();
       for (const sc of dbScales) {
         const targetGymId = (sc.gym_id && sc.gym_id.includes('f2b11564'))
           ? 'gym-6a-plus'
           : (sc.gym_id && sc.gym_id.includes('814696b2'))
           ? 'gym-minimum-zh'
           : sc.gym_id;
-
-        // V1: Deduplizierung nach ID oder semantisch nach (gymId, color_name)
-        let foundV1Key: string | null = null;
-        for (const [k, localSc] of v1Map.entries()) {
-          const gymMatches = localSc.gym_id === targetGymId ||
-            (targetGymId === 'gym-6a-plus' && (localSc.gym_id.includes('6a') || localSc.gym_id.includes('f2b11564'))) ||
-            (targetGymId === 'gym-minimum-zh' && (localSc.gym_id.includes('minimum') || localSc.gym_id.includes('814696b2')));
-          if (k === sc.id || (gymMatches && localSc.color_name.trim().toLowerCase() === sc.color_name.trim().toLowerCase())) {
-            foundV1Key = k;
-            break;
-          }
+        if (!scalesByGym.has(targetGymId)) {
+          scalesByGym.set(targetGymId, []);
         }
+        scalesByGym.get(targetGymId)!.push(sc);
+      }
 
-        const v1Id = foundV1Key || sc.id;
-        const v1Obj = {
+      let allV1Scales = gymStorage.getGradeScales();
+      let allV2Scales = getStorageJson<any[]>('boulderapp_grade_scales_v2', []);
+
+      for (const [targetGymId, gymDbScales] of scalesByGym.entries()) {
+        const sorted = [...gymDbScales].sort((a, b) => (a.sort_order || 1) - (b.sort_order || 1));
+        const cleanV1: GradeScale[] = sorted.map((sc, idx) => ({
           id: sc.id,
           gym_id: targetGymId,
           color_name: sc.color_name,
@@ -201,45 +192,62 @@ export async function syncFromSupabase(): Promise<boolean> {
           difficulty_label: sc.difficulty_label,
           font_range_min: sc.font_range_min || '3',
           font_range_max: sc.font_range_max || '4',
-          sort_order: sc.sort_order || 1,
+          sort_order: sc.sort_order !== undefined ? sc.sort_order : idx + 1,
           created_at: sc.created_at || new Date().toISOString(),
-        };
-        v1Map.set(sc.id, v1Obj);
-        if (v1Id !== sc.id) {
-          v1Map.set(v1Id, { ...v1Obj, id: v1Id });
-        }
+        }));
 
-        // V2: Deduplizierung nach ID oder semantisch nach (gymId, colorName)
-        let foundV2Key: string | null = null;
-        for (const [k, localSc] of v2Map.entries()) {
-          const gymMatches = localSc.gymId === targetGymId ||
-            (targetGymId === 'gym-6a-plus' && (localSc.gymId?.includes('6a') || localSc.gymId?.includes('f2b11564'))) ||
-            (targetGymId === 'gym-minimum-zh' && (localSc.gymId?.includes('minimum') || localSc.gymId?.includes('814696b2')));
-          if (k === sc.id || (gymMatches && localSc.colorName.trim().toLowerCase() === sc.color_name.trim().toLowerCase())) {
-            foundV2Key = k;
-            break;
+        // Provide friendly local alias lookups (scale_6a_blau etc.)
+        const withAliasesV1 = [...cleanV1];
+        for (const item of cleanV1) {
+          const colorLower = item.color_name.toLowerCase().trim();
+          if (targetGymId === 'gym-6a-plus') {
+            const aliasId = `scale_6a_${colorLower === 'weiß' ? 'weiss' : colorLower}`;
+            if (!withAliasesV1.some(a => a.id === aliasId)) {
+              withAliasesV1.push({ ...item, id: aliasId });
+            }
           }
         }
 
-        const v2Id = foundV2Key || sc.id;
-        const v2Obj = {
+        allV1Scales = allV1Scales.filter(s => {
+          const sGym = (s.gym_id === 'gym-6a-plus' || s.gym_id.includes('6a') || s.gym_id.includes('f2b11564'))
+            ? 'gym-6a-plus'
+            : (s.gym_id === 'gym-minimum-zh' || s.gym_id.includes('minimum') || s.gym_id.includes('814696b2'))
+            ? 'gym-minimum-zh'
+            : s.gym_id;
+          return sGym !== targetGymId;
+        });
+        allV1Scales.push(...withAliasesV1);
+
+        const cleanV2 = withAliasesV1.map(sc => ({
           id: sc.id,
           gymId: targetGymId,
           colorName: sc.color_name,
           colorHex: sc.color_hex,
           difficultyLabel: sc.difficulty_label,
-          fontRangeMin: sc.font_range_min || '3',
-          fontRangeMax: sc.font_range_max || '4',
-          sortOrder: sc.sort_order || 1,
-        };
-        v2Map.set(sc.id, v2Obj);
-        if (v2Id !== sc.id) {
-          v2Map.set(v2Id, { ...v2Obj, id: v2Id });
-        }
+          fontRangeMin: sc.font_range_min,
+          fontRangeMax: sc.font_range_max,
+          sortOrder: sc.sort_order,
+        }));
+
+        allV2Scales = allV2Scales.filter(s => {
+          const sGym = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+            ? 'gym-6a-plus'
+            : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+            ? 'gym-minimum-zh'
+            : s.gymId;
+          return sGym !== targetGymId;
+        });
+        allV2Scales.push(...cleanV2);
       }
 
-      gymStorage.saveGradeScales(Array.from(v1Map.values()));
-      setStorageJson('boulderapp_grade_scales_v2', Array.from(v2Map.values()));
+      gymStorage.saveGradeScales(allV1Scales);
+      setStorageJson('boulderapp_grade_scales_v2', allV2Scales);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bouldermate:gradescales_updated', {
+          detail: {}
+        }));
+      }
     }
 
     // 3. Boulder laden & harmonisieren

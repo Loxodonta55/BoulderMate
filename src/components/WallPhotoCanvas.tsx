@@ -13,6 +13,8 @@ import {
   Trophy,
   Clock,
   Star,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 export interface WallPhotoCanvasProps {
@@ -36,7 +38,10 @@ export interface WallPhotoCanvasProps {
   filteredBoulderIds?: Set<string>;
   statsMap?: Map<string, BoulderStatsAggregate>;
   userAscentMap?: Map<string, Ascent | null>;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
+
 
 export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   mode = 'setter',
@@ -55,6 +60,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   filteredBoulderIds,
   statsMap,
   userAscentMap,
+  isFullscreen = false,
+  onToggleFullscreen,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -181,6 +188,26 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           </button>
         )}
 
+        {onToggleFullscreen && (
+          <>
+            <span className="w-px h-4 bg-[#333333] mx-0.5" />
+            <button
+              type="button"
+              onClick={onToggleFullscreen}
+              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
+              title={isFullscreen ? 'Vollbild beenden' : 'Sektor-Vollbildmodus'}
+              data-testid="canvas-fullscreen-btn"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{isFullscreen ? 'Verlassen' : 'Vollbild'}</span>
+            </button>
+          </>
+        )}
+
         {mode === 'setter' && onChangePhoto && (
           <>
             <span className="w-px h-4 bg-[#333333] mx-0.5" />
@@ -245,6 +272,9 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   onClick={e => {
                     e.stopPropagation();
                     if (onPinClick) onPinClick(boulder);
+                  }}
+                  onTouchStart={e => {
+                    e.stopPropagation();
                   }}
                   style={{
                     left: `${boulder.positionX * 100}%`,

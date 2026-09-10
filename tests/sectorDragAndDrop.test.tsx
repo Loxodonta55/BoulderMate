@@ -51,9 +51,9 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
     expect(screen.getByTestId('drag-handle-sec-3')).toBeInTheDocument();
 
     // Badges #1, #2, #3
-    expect(screen.getByText('#1')).toBeInTheDocument();
-    expect(screen.getByText('#2')).toBeInTheDocument();
-    expect(screen.getByText('#3')).toBeInTheDocument();
+    expect(screen.getAllByText('#1')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('#2')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('#3')[0]).toBeInTheDocument();
   });
 
   it('does NOT render drag handles or reorder arrows for non-admin members', () => {

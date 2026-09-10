@@ -1,4 +1,4 @@
-﻿# SPEC-009: End-to-End User Flow & Journey (Von der Registrierung bis zum Kletterer-Herzstück)
+# SPEC-009: End-to-End User Flow & Journey (Von der Registrierung bis zum Kletterer-Herzstück)
 
 ## Status: APPROVED
 
@@ -91,7 +91,7 @@ Boulderer stehen in der Halle – oft bereits mit Chalk an den Händen – und m
    - Dunkles, augenschonendes Hallen-Design (`#121212`, `#1E1E1E`, `#2A2A2A`, `#E8E0D4`).
    - Keine visuellen Ablenkungen, großzügiger Raum zwischen Interaktionselementen.
 2. **Fokusierte Navigation**:
-   - Für 95% der Nutzer gibt es nur 2 Haupt-Pfeiler: **Wand & Sektoren** und **Mein Profil** (inkl. Logbuch & Statistiken).
+   - Für 95% der Nutzer gibt es nur 2 Haupt-Pfeiler: **Wand & Sektoren** und **Meine Statistiken** (mit den beiden Sub-Bereichen „Overall Statistik“ und „Deep Dive“).
 3. **Dezente Werkzeuge**:
    - Schrauber- und Admin-Werkzeuge sind unaufdringlich im Profil oder über einen minimalistischen Header-Button erreichbar und für Standard-User komplett unsichtbar.
 4. **Feature-Isolation**:

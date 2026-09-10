@@ -446,23 +446,28 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     }
   } catch (e) {}
 
-  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3
+  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3, and deprecated scale_6a IDs -> scale_6a_beige
   all = all.map(b => {
-    if (b.radar && (b.radar.maximalkraft === undefined || b.radar.kraftausdauer === undefined)) {
+    let updated = b;
+    if (b.gradeScaleId === 'scale_6a_schwarz' || b.gradeScaleId === 'scale_6a_lila') {
       hasMigrated = true;
-      const mk = b.radar.maximalkraft ?? b.radar.kraft ?? 3;
-      const ka = b.radar.kraftausdauer ?? 3;
-      return {
-        ...b,
+      updated = { ...updated, gradeScaleId: 'scale_6a_beige' };
+    }
+    if (updated.radar && (updated.radar.maximalkraft === undefined || updated.radar.kraftausdauer === undefined)) {
+      hasMigrated = true;
+      const mk = updated.radar.maximalkraft ?? updated.radar.kraft ?? 3;
+      const ka = updated.radar.kraftausdauer ?? 3;
+      updated = {
+        ...updated,
         radar: {
-          ...b.radar,
+          ...updated.radar,
           maximalkraft: mk,
           kraftausdauer: ka,
           kraft: mk,
         },
       };
     }
-    return b;
+    return updated;
   });
 
   if (hasMigrated) {

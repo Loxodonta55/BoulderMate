@@ -5,7 +5,6 @@ import {
   createBoulder,
 } from './lib/storage';
 import { SEED_CRUD_BOULDERS } from './lib/seedData';
-import { LegacyLogbookView } from './components/LegacyLogbookView';
 import { BatchBoulderWorkflow } from './components/BatchBoulderWorkflow';
 import { GymManagement } from './components/GymManagement';
 import { ensureInitialGymData } from './lib/gymStorage';
@@ -19,7 +18,7 @@ import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, AuthUser } from './lib/authService';
 import { syncFromSupabase } from './lib/syncService';
-import { Mountain, Wrench, Compass, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
+import { Mountain, Wrench, BarChart3, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
@@ -31,7 +30,7 @@ export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
 ];
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'wall' | 'logbook' | 'profile'>('wall');
+  const [activeTab, setActiveTab] = useState<'wall' | 'stats'>('wall');
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
@@ -384,8 +383,8 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Primary Focused Navigation (Kletterer-Fokus: 2 Haupt-Tabs Halle & Profil + Logbuch) */}
-            <nav className="flex items-center p-0.5 rounded-none bg-[#121212] border border-[#333333]">
+            {/* Primary Focused Navigation (2 Säulen: Wand & Sektoren und Meine Statistiken) */}
+            <nav className="hidden md:flex items-center p-0.5 rounded-none bg-[#121212] border border-[#333333]">
               <button
                 type="button"
                 onClick={() => setActiveTab('wall')}
@@ -401,36 +400,23 @@ export const App: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setActiveTab('profile')}
+                onClick={() => setActiveTab('stats')}
                 className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
-                  activeTab === 'profile'
+                  activeTab === 'stats'
                     ? 'bg-[#2A2A2A] text-[#F5F0E8] border-b-2 border-[#F5F0E8] font-bold'
                     : 'text-[#A89F91] hover:text-[#E8E0D4]'
                 }`}
-                data-testid="tab-profile"
+                data-testid="tab-stats"
               >
-                <User className="w-3.5 h-3.5" />
-                <span>Mein Profil</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('logbook')}
-                className={`px-3.5 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 transition ${
-                  activeTab === 'logbook'
-                    ? 'bg-[#2A2A2A] text-[#F5F0E8] border-b-2 border-[#F5F0E8] font-bold'
-                    : 'text-[#6B6358] hover:text-[#A89F91]'
-                }`}
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Kletterer-Logbuch</span>
+                <BarChart3 className="w-3.5 h-3.5 text-[#C9A96E]" />
+                <span>Meine Statistiken</span>
               </button>
             </nav>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-2">
-              {/* Active Climber Switcher / Auth indicator */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Active Climber Switcher / Auth indicator (Hidden on narrow mobile to keep header clean) */}
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
                 <User className="w-3.5 h-3.5 text-[#C9A96E]" />
                 <span className="text-[#6B6358] text-[10px] uppercase font-mono hidden md:inline">Kletterer:</span>
                 <select
@@ -484,8 +470,8 @@ export const App: React.FC = () => {
         </header>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+      {/* Main Content Area — Mobile-First paddings with room for bottom navigation */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-2 sm:px-4 py-3 sm:py-6 pb-24 md:pb-8">
         {appMode === 'setter' ? (
           /* 1. Schrauber-Studio */
           <BatchBoulderWorkflow
@@ -517,10 +503,12 @@ export const App: React.FC = () => {
               refreshGyms();
             }}
           />
-        ) : activeTab === 'profile' ? (
-          /* 3. Kletterer-App: Mein Profil & Statistiken */
+        ) : (
+          /* 3. Kletterer-App: Meine Statistiken (Persönlicher Bereich mit Sub-Bereichen Overall Statistik & Deep Dive) */
           <UserProfileView
             currentUser={currentUser}
+            boulders={boulders}
+            onDataChanged={refreshData}
             onProfileUpdated={(newNickname) => {
               if (climberId) {
                 setClimberNicknames(prev => ({
@@ -542,22 +530,70 @@ export const App: React.FC = () => {
                 : undefined
             }
           />
-        ) : (
-          /* Feature 1: Legacy Kletterer-Logbuch & Dashboard */
-          <LegacyLogbookView
-            boulders={boulders}
-            onDataChanged={refreshData}
-          />
         )}
       </main>
 
       {/* Clean, quiet Footer (SPEC-005) */}
-      <footer className="border-t border-[#333333] bg-[#121212] py-5 text-center text-xs text-[#6B6358] font-mono">
+      <footer className="border-t border-[#333333] bg-[#121212] py-5 text-center text-xs text-[#6B6358] font-mono mb-14 md:mb-0">
         <div className="flex items-center justify-center gap-1.5">
           <Mountain className="w-3.5 h-3.5 text-[#C9A96E]" />
           <span>BOULDERMATE // SPEC-005 DESIGN SYSTEM AKTIV</span>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation Bar (SPEC-005 & Mobile-First Daumen-Ergonomie) */}
+      {appMode === 'climber' && (
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#333333] px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl"
+          data-testid="mobile-bottom-nav"
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('wall')}
+            data-testid="mobile-tab-wall"
+            className={`flex flex-col items-center justify-center py-1 px-3 text-[10px] font-headline uppercase tracking-wider transition ${
+              activeTab === 'wall'
+                ? 'text-[#F5F0E8] font-bold'
+                : 'text-[#8B8680] hover:text-[#E8E0D4]'
+            }`}
+          >
+            <div className={`p-1 rounded-none transition ${activeTab === 'wall' ? 'bg-[#2A2A2A] text-[#C9A96E]' : ''}`}>
+              <Layers className="w-5 h-5" />
+            </div>
+            <span className="mt-0.5">Wand</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('stats')}
+            data-testid="mobile-tab-stats"
+            className={`flex flex-col items-center justify-center py-1 px-3 text-[10px] font-headline uppercase tracking-wider transition ${
+              activeTab === 'stats'
+                ? 'text-[#F5F0E8] font-bold'
+                : 'text-[#8B8680] hover:text-[#E8E0D4]'
+            }`}
+          >
+            <div className={`p-1 rounded-none transition ${activeTab === 'stats' ? 'bg-[#2A2A2A] text-[#C9A96E]' : ''}`}>
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <span className="mt-0.5">Statistiken</span>
+          </button>
+
+          {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
+            <button
+              type="button"
+              onClick={() => setIsRoleGatewayOpen(true)}
+              data-testid="mobile-workspace-btn"
+              className="flex flex-col items-center justify-center py-1 px-3 text-[10px] font-headline uppercase tracking-wider text-[#C9A96E] hover:text-[#F5F0E8] transition"
+            >
+              <div className="p-1 rounded-none bg-[#2A2A2A] border border-[#333333]">
+                <Wrench className="w-5 h-5 text-[#C9A96E]" />
+              </div>
+              <span className="mt-0.5">Studio</span>
+            </button>
+          )}
+        </nav>
+      )}
 
       {/* Role Gateway Modal (Step 1 after login / switch) */}
       {climberId && (

@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { CurrentUser, WallBoulder, LogbookEntry } from '../types/boulder';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Boulder, CurrentUser, WallBoulder, LogbookEntry } from '../types/boulder';
 import {
   getProfileData,
   updateProfile,
   deleteAccount,
 } from '../lib/profileService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
+import { getStoredBoulders } from '../lib/storage';
 import { getRatings } from '../lib/ratingAndAscentService';
 import { formatRelativeDate } from '../lib/formatUtils';
 import { ProfileKPIsBar } from './ProfileKPIsBar';
@@ -13,6 +14,7 @@ import { GradeDistributionChart } from './GradeDistributionChart';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import { BoulderDetailModal } from './BoulderDetailModal';
 import { AthletePerformanceView } from './AthletePerformanceView';
+import { LegacyLogbookView } from './LegacyLogbookView';
 import { getAthletePerformanceReport } from '../lib/performanceService';
 import {
   Settings,
@@ -26,28 +28,49 @@ import {
   Layers,
   Wrench,
   Star,
+  BarChart3,
 } from 'lucide-react';
 
 interface UserProfileViewProps {
   currentUser: CurrentUser;
+  boulders?: Boulder[];
+  onDataChanged?: () => void;
   onProfileUpdated?: (newNickname: string, avatarUrl?: string) => void;
   onLogout?: () => void;
   onNavigateToWall?: () => void;
   onOpenRoleGateway?: () => void;
+  initialSubTab?: 'overall' | 'deep_dive';
 }
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
   currentUser,
+  boulders,
+  onDataChanged,
   onProfileUpdated,
   onLogout,
   onNavigateToWall,
   onOpenRoleGateway,
+  initialSubTab = 'overall',
 }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'overall' | 'deep_dive'>(initialSubTab);
+  const [localBoulders, setLocalBoulders] = useState<Boulder[]>(() => boulders || getStoredBoulders());
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [activeSegment, setActiveSegment] = useState<'overview' | 'performance'>('overview');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    if (boulders) {
+      setLocalBoulders(boulders);
+    }
+  }, [boulders]);
+
+  const handleDataChanged = () => {
+    setLocalBoulders(getStoredBoulders());
+    setVersion(v => v + 1);
+    onDataChanged?.();
+  };
 
   const gyms = useMemo(() => getGyms(), []);
   const profileData = useMemo(
@@ -146,8 +169,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               <h1 className="text-xl sm:text-2xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]" data-testid="profile-nickname">
                 {profile.nickname}
               </h1>
-              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
-                Mein Profil
+              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#2A2A2A] border border-[#333333] text-[#C9A96E]">
+                Meine Statistiken
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-mono text-[#A89F91] mt-1">
@@ -186,7 +209,40 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Hallenfilter (AC-4) */}
+      {/* Sub-Bereiche Umschalter: Overall Statistik vs. Deep Dive */}
+      <div className="flex border-b border-[#333333] bg-[#1E1E1E]">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('overall')}
+          className={`flex-1 py-3 px-4 text-xs font-headline font-bold uppercase tracking-wider transition-colors border-b-2 flex items-center justify-center gap-2 ${
+            activeSubTab === 'overall'
+              ? 'border-[#C9A96E] text-[#F5F0E8] bg-[#252525]'
+              : 'border-transparent text-[#8B8680] hover:text-[#E8E0D4] hover:bg-[#222222]'
+          }`}
+          data-testid="subtab-overall"
+        >
+          <BarChart3 className="w-3.5 h-3.5 text-[#C9A96E]" />
+          <span>Overall Statistik</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('deep_dive')}
+          className={`flex-1 py-3 px-4 text-xs font-headline font-bold uppercase tracking-wider transition-colors border-b-2 flex items-center justify-center gap-2 ${
+            activeSubTab === 'deep_dive'
+              ? 'border-[#C9A96E] text-[#F5F0E8] bg-[#252525]'
+              : 'border-transparent text-[#8B8680] hover:text-[#E8E0D4] hover:bg-[#222222]'
+          }`}
+          data-testid="subtab-deep-dive"
+        >
+          <Compass className="w-3.5 h-3.5 text-[#C9A96E]" />
+          <span>Deep Dive</span>
+        </button>
+      </div>
+
+      {/* Sub-Bereich Content */}
+      {activeSubTab === 'overall' ? (
+        <>
+          {/* 2. Hallenfilter (AC-4) */}
       <div className="p-3.5 rounded-none bg-[#1E1E1E] border border-[#333333] flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 text-xs font-mono text-[#A89F91]">
           <MapPin className="w-4 h-4 text-[#C9A96E]" />
@@ -380,6 +436,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onSelectBoulder={handleOpenBoulderById}
         />
       )}
+    </>
+  ) : (
+    /* Sub-Bereich 2: Deep Dive Logbook */
+    <LegacyLogbookView
+      boulders={localBoulders}
+      onDataChanged={handleDataChanged}
+    />
+  )}
 
       {/* Settings Modal (AC-7) */}
       <ProfileSettingsModal

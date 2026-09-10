@@ -197,11 +197,41 @@ describe('SPEC-004: UI Components Integration', () => {
       expect(screen.getByTestId('profile-nickname').textContent).toBe('HansDereinfacheKletterer');
       expect(screen.getByTestId('btn-open-settings')).toBeInTheDocument();
 
-      // AC-4: Gym filter dropdown
+      // AC-2: Sub-tabs Overall Statistik and Deep Dive are available
+      expect(screen.getByTestId('subtab-overall')).toBeInTheDocument();
+      expect(screen.getByTestId('subtab-deep-dive')).toBeInTheDocument();
+
+      // AC-4: Gym filter dropdown in Overall Statistik
       expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
 
-      // AC-5: Private Logbook section
+      // AC-5: Private Logbook section in Overall Statistik
       expect(screen.getByTestId('private-logbook-section')).toBeInTheDocument();
+    });
+
+    it('allows toggling between Overall Statistik and Deep Dive sub-areas', () => {
+      const user: CurrentUser = {
+        id: 'hans-kletterer',
+        nickname: 'HansDereinfacheKletterer',
+        role: 'member',
+      };
+
+      render(<UserProfileView currentUser={user} />);
+
+      // Initially in Overall Statistik
+      expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
+      expect(screen.queryByTestId('deep-dive-view')).not.toBeInTheDocument();
+
+      // Switch to Deep Dive
+      fireEvent.click(screen.getByTestId('subtab-deep-dive'));
+
+      // Deep Dive view is now displayed with search/filter and stats bar
+      expect(screen.getByTestId('deep-dive-view')).toBeInTheDocument();
+      expect(screen.queryByTestId('select-gym-filter')).not.toBeInTheDocument();
+
+      // Switch back to Overall Statistik
+      fireEvent.click(screen.getByTestId('subtab-overall'));
+      expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
+      expect(screen.queryByTestId('deep-dive-view')).not.toBeInTheDocument();
     });
   });
 });

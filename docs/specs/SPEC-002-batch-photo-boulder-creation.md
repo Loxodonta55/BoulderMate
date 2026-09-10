@@ -25,6 +25,18 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
 - [x] **AC-8**: Neu erfasste Boulder verbleiben im Status `draft`, bis der Nutzer in der Zusammenfassungsansicht auf "Veröffentlichen" tippt. *(Getestet in `tests/spec002.test.ts`)*
 - [x] **AC-9**: Beim Klick auf "Veröffentlichen" werden alle Drafts transaktional auf `active` gesetzt und als archiviert markierte Boulder auf `archived` gesetzt. *(Getestet in `tests/spec002.test.ts` & `spec002Components.test.tsx`)*
 - [x] **AC-10**: **Präzise 1:1 Koordinaten-Ausrichtung (Schrauber ⟷ Kletterer)**: Das Wandfoto und die Pins werden in beiden Bereichen (`BatchBoulderWorkflow` und `ClimberSectorView`) über dieselbe einheitliche Komponente `WallPhotoCanvas` (`mode="setter"` bzw. `mode="climber"`) unbeschnitten im natürlichen Seitenverhältnis gerendert (ohne `object-cover`, ohne Flexbox-Zentrierungsclipping und ohne ungleiche vertikale Höhenbeschränkungen), sodass relative Koordinaten `(position_x, position_y)` auf allen Bildschirmgrößen und Zoomstufen exakt auf denselben Griffen liegen. Pin-Marker sind über identische Pin-Zentrierung (`-translate-x-1/2 -translate-y-1/2`) mathematisch exakt ausgerichtet. *(Getestet in `tests/pinCoordinateAlignment.test.tsx`)*
+- [x] **AC-11**: **Dynamische Farbsystem-Alignierung (Schrauber ⟷ Admin & Single Source of Truth)**:
+  - Das Schrauber-Studio (`BatchBoulderWorkflow`, `BoulderBottomSheet`, `WallPhotoCanvas`) bindet keine statischen Farblisten ein, sondern bezieht alle Farbstufen dynamisch aus der Single Source of Truth des hallenspezifischen Farbsystems (`gymStorage` via `useGymSectorData`).
+  - Für "6a plus Winterthur" stehen exakt die 6 realen Hallenfarben zur Verfügung:
+    1. **Blau** — *Gemütlich* (Font 3 – 4+)
+    2. **Grün** — *Flott* (Font 5 – 5+)
+    3. **Gelb** — *Trick* (Font 6a – 6b)
+    4. **Rot** — *Rassig* (Font 6b+ – 6c+)
+    5. **Weiss** — *Böse* (Font 7a – 7b)
+    6. **Beige** — *Bestial* (Font 7b+ und schwerer)
+  - Im Bottom-Sheet (`BoulderBottomSheet`) wird die Farbauswahl-Palette direkt aus den aktiven `gradeScales` der ausgewählten Halle gerendert.
+  - Jede Admin-Änderung (Farbanpassungen, Umbenennungen, Reihenfolgen, Ergänzungen oder Deaktivierungen) wird reaktiv über das Event `bouldermate:gradescales_updated` ohne Neuladen der Seite sofort in die Schrauber-Farbauswahl übertragen.
+  - Gesetzte Pins erhalten ihren Hex-Farbcode strikt über das aufgelöste `gradeScale`-Objekt ihrer `grade_scale_id`. *(Getestet in `tests/gradeScaleSync.test.tsx`)*
 
 ## Technical Design
 

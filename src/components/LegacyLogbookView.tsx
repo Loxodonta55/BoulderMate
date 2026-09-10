@@ -73,7 +73,7 @@ export const LegacyLogbookView: React.FC<LegacyLogbookViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="deep-dive-view">
       <BoulderStatsBar stats={stats} />
 
       {isFormOpen && (

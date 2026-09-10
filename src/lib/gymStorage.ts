@@ -111,18 +111,35 @@ export function ensureInitialGymData(): void {
     }, CURRENT_USER.id);
   }
 
-  // Ensure 6a plus has all 7 official grade scales when newly created or if none exist
+  // Ensure 6a plus has all 6 official grade scales: Blau, Grün, Gelb, Rot, Weiss, Beige
   const current6aScales = getGradeScales(gym6a.id);
-  if (gym6aNewlyCreated || current6aScales.length === 0) {
+  const needs6aMigration = gym6aNewlyCreated || current6aScales.length === 0 ||
+    current6aScales.some(s => s.color_name === 'Schwarz' || s.color_name === 'Lila' || s.color_name === 'Weiß') ||
+    !current6aScales.some(s => s.color_name === 'Beige');
+
+  if (needs6aMigration) {
     setGymGradeScales(gym6a.id, CURRENT_USER.id, [
-      { id: 'scale_6a_gelb', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '3', font_range_max: '4', sort_order: 1 },
-      { id: 'scale_6a_gruen', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
-      { id: 'scale_6a_blau', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Mittel', font_range_min: '6A', font_range_max: '6B+', sort_order: 3 },
-      { id: 'scale_6a_rot', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '6C', font_range_max: '7A+', sort_order: 4 },
-      { id: 'scale_6a_schwarz', gym_id: gym6a.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 5 },
-      { id: 'scale_6a_weiss', gym_id: gym6a.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Extrem', font_range_min: '8A', font_range_max: '8B', sort_order: 6 },
-      { id: 'scale_6a_lila', gym_id: gym6a.id, color_name: 'Lila', color_hex: '#a855f7', difficulty_label: 'Elite', font_range_min: '8B+', font_range_max: '8C+', sort_order: 7 },
+      { id: 'scale_6a_blau', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
+      { id: 'scale_6a_gruen', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
+      { id: 'scale_6a_gelb', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 3 },
+      { id: 'scale_6a_rot', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 4 },
+      { id: 'scale_6a_weiss', gym_id: gym6a.id, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 5 },
+      { id: 'scale_6a_beige', gym_id: gym6a.id, color_name: 'Beige', color_hex: '#d2b48c', difficulty_label: 'Bestial', font_range_min: '7b+', font_range_max: '8c+', sort_order: 6 },
     ]);
+  }
+
+  // Auto-migrate legacy boulders referencing deprecated scale IDs
+  const allBoulders = getBoulders();
+  let bouldersMigrated = false;
+  const migratedBoulders = allBoulders.map(b => {
+    if (b.grade_scale_id === 'scale_6a_schwarz' || b.grade_scale_id === 'scale_6a_lila') {
+      bouldersMigrated = true;
+      return { ...b, grade_scale_id: 'scale_6a_beige' };
+    }
+    return b;
+  });
+  if (bouldersMigrated) {
+    saveBoulders(migratedBoulders);
   }
 
   // Ensure 6a plus has default sectors if none exist yet

@@ -81,6 +81,13 @@ Every feature starts as a specification that aligns user requirements before imp
 4. **Old School Kletterer Charakter**: Markante Typografie (Uppercase Headlines), subtile Granit-Texturen, Kreide-Patina. Patagonia-Katalog trifft Bergführer-Handbuch.
 5. **Schrauber unprominent**: Kletterer sehen 2 Tabs (Halle + Profil), Setter/Admins sehen 3 (+Schrauben). Admin-Tools drängen sich nicht auf.
 6. **Nur funktionale Animationen**: Mikro-Transitions (250ms max). Kein Bounce, kein Confetti, kein Parallax.
+7. **Mobile-First als Grundgesetz**: Die App wird konsequent für Smartphone-Einhandbedienung an der Wand gebaut.
+   - Sektor-Wandansicht vollflächig & optionaler Vollbild-Fokus
+   - Touch-optimierte Schrauber-Bottom-Sheets mit großen Touch-Zielen (≥ 44px) und sticky Actions
+   - Schlanke Menüführung mit Mobile Bottom Navigation Bar (Wand, Logbuch, Profil)
+   - Wischgesten (Horizontal Swipe) für flüssiges Wechseln zwischen Sektoren
+   - Vollwertiges mobiles Sektor-Umordnen (Große Rauf-/Runter-Buttons & Touch-Reorder)
+
 
 ## Code Quality & Deployment Pipeline
 

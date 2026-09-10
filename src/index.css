@@ -53,6 +53,18 @@
   }
 }
 
+/* Mobile & iOS Safe Area Helpers */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+
 /* SPEC-005: Formensprache & Komponenten */
 
 /* Kantige Felsblock-Karten: 0px Radius, 1px Border, keine Drop-Shadows */

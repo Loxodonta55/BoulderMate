@@ -38,6 +38,17 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
   - Über dem Wandfoto und der Routenliste existieren Schnellfilter-Pills: `Alle`, `★ Top-Bewertet (≥ 4.0)`, `🔥 Beliebt` und `Meine Projekte`.
   - Bei aktivem "Top-Bewertet"-Filter werden unpassende Pins abgedunkelt und Top-Boulder hervorgehoben.
   - Routen-Karten zeigen im Header ein kompaktes goldenes Rating-Badge (`★ 4.8 Favorit`) und bieten eine Sortierung nach `Beste Bewertung ↓`.
+- [x] **AC-12: Dynamische Farbsystem-Alignierung (Kletterer ⟷ Admin & Single Source of Truth)**:
+  - Der Kletterer-Bereich (`ClimberSectorView`, `BoulderDetailModal`, Pin-Labels, Sektor-Filter-Pills) spiegelt das im Admin-Bereich konfigurierte hallenspezifische Farbsystem zu 100% konsistent wider.
+  - Farb-Badges, Schwierigkeitsbänder, Font-Notenskalen und Pin-Farben werden dynamisch über die aufgelöste `GymGradeScale` der aktiven Halle bezogen.
+  - Bei "6a plus Winterthur" sieht der Kletterer exakt das offizielle 6-Stufen-System:
+    1. **Blau** — *Gemütlich* (3 – 4+)
+    2. **Grün** — *Flott* (5 – 5+)
+    3. **Gelb** — *Trick* (6a – 6b)
+    4. **Rot** — *Rassig* (6b+ – 6c+)
+    5. **Weiss** — *Böse* (7a – 7b)
+    6. **Beige** — *Bestial* (7b+ und schwerer)
+  - Jegliche Modifikation durch den Hallen-Admin wirkt sich ohne Seitenreload sofort auf Pin-Farben, Schwierigkeits-Header und Noten-Filter aus. *(Getestet in `tests/gradeScaleSync.test.tsx`)*
 
 ## Technical Design
 

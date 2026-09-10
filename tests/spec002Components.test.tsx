@@ -98,7 +98,7 @@ describe('SPEC-002: UI Components Integration', () => {
     fireEvent.click(screen.getByText('Blau'));
 
     // Submit form
-    fireEvent.click(screen.getByText(/Speichern & Nächster Boulder/i));
+    fireEvent.click(screen.getByText(/Speichern & (Weiter|Nächster Boulder)/i));
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({

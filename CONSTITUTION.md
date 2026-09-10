@@ -53,13 +53,11 @@ Die App ist strikt in drei autarke, voneinander getrennte Bereiche unterteilt.
 > Die 3 Bereiche der App sind **völlig voneinander getrennt**. **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jedes Feature, jede Aktion und jeder Dialog gehört exklusiv zu genau einem Bereich. Es gibt keine geteilten oder bereichsübergreifenden Feature-Aufrufe.
 
 ### 3.1 Kletterer-Bereich (Standard-User / Kletterer-App)
-- **Exklusive Kletterer-Features**:
-  - Interaktive Wand- & Sektoransicht mit markierten Bouldern
-  - Bouldernavigation, Filter & Sortierung
-  - Begehungen erfassen (Flash / Top / Projekt)
-  - Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, 5-Sterne-Qualität, Radar-Chart)
-  - Persönliches Logbuch & persönliche Performance-/Stil-Statistiken (Athleten-Radar, Stärken/Baustellen)
-  - Öffentliches Profil & Kletterer-Einstellungen
+- **Hauptnavigation (2 Säulen)**:
+  - **Wand & Sektoren**: Interaktive Wand- & Sektoransicht mit markierten Bouldern, Bouldernavigation, Filter & Sortierung, Begehungen erfassen (Flash/Top/Projekt), Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, Sterne-Qualität, Radar-Chart).
+  - **Meine Statistiken (Persönlicher Bereich)**:
+    - *Sub-Bereich Overall Statistik*: Profil-Header, Fontainebleau-KPIs, Grad-Verteilung, Stil- & Athleten-Radar (SPEC-008), kompakte Begehungshistorie, Account-Einstellungen.
+    - *Sub-Bereich Deep Dive*: Umfassendes Kletterlogbuch, erweiterte Filter nach Wandneigung/Grifftypen/Stil, detaillierte Kennzahlen-Bar, Routen-Erfassung & Daten-Backup.
 - **Strikte Isolation**: Keine Schrauber-Werkzeuge, kein Erstellen/Archivieren von Bouldern, keine Sektor- oder Hallenverwaltung.
 
 ### 3.2 Schrauber-Bereich (Schrauber-Studio / Route Setter)
@@ -224,3 +222,29 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
    - **Völlige Isolation**: Die drei Bereiche (**Kletterer-App**, **Schrauber-Studio**, **Hallen-Admin-Konsole**) sind streng voneinander abgegrenzt.
    - **Kein Feature-Leak**: **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jede Funktionalität (z.B. Routenerfassung, Sektorverwaltung, Bewertungsabgabe, Rollenverwaltung) existiert exklusiv in genau einem der drei Bereiche.
    - Es gibt keine bereichsübergreifenden Aktionen, Misch-Masken oder Querverweise. Berechtigte Nutzer wechseln explizit über das Rollen-/Modus-Gateway zwischen den Bereichen.
+
+---
+
+## 11. Mobile-First Paradigma (Zwingende Grundregel)
+
+> **Verbindliche Direktive**: Die gesamte App wird **Mobile-First** konzipiert, gestaltet und entwickelt. Desktop ist die Erweiterung, niemals der Ausgangspunkt. An der Bouldermatte wird die App einhändig und oft mit eingekreideten Fingern bedient.
+
+### 11.1 Die 5 Mobile-First Säulen
+1. **Sektor muss Vollbild (Immersive Wandansicht)**:
+   - Sektoren und Wandfotos dürfen auf Smartphones nicht durch riesige Header, Ränder oder verschachtelte Boxen zusammengestaucht werden.
+   - Die Wandansicht nutzt auf Mobilgeräten die maximale Displaybreite (Edge-to-Edge) und bietet einen dedizierten **Vollbild-/Fokus-Modus**, in dem das Wandfoto den gesamten Screen füllt.
+2. **Aufpop-Menü beim Schrauber übersichtlich & handy-optimiert**:
+   - Beim Erfassen von Bouldern im Schrauber-Studio öffnen sich touch-optimierte Bottom-Sheets, die am unteren Bildschirmrand verankert sind.
+   - Große, kreide- und daumentaugliche Touch-Targets (mindestens 44×44px für Farbchips und Radar-Einstufungen).
+   - Sticky Speichern-Button: Schrauber müssen nicht scrollen, um den neuen Boulder zu bestätigen und zum nächsten Pin überzugehen.
+3. **Schlanke, übersichtliche Menüführung (Kein Visual Overload)**:
+   - Auf Smartphones keine horizontal überfrachteten Desktop-Headerzeilen mit Tabs, Dropdowns und Buttons nebeneinander.
+   - Mobile Bottom Navigation Bar mit den Kernbereichen (Wand, Logbuch, Profil) für ergonomische Daumenerreichbarkeit.
+   - Aufgeräumter, kompakter Top-Header beschränkt auf Hallenwechsel und Profil-/Login-Status.
+4. **Swipen zwischen den Sektoren**:
+   - Schneller, nativer Wechsel zwischen Sektoren und Wänden per horizontaler Wischgeste (Touch-Swipe links/rechts).
+   - Visuelle Orientierungshilfe (Sektor-Zähler, Dot-Indikatoren, Vor/Zurück-Indikatoren).
+5. **Mobiles Umordnen der Sektoren (Touch-Reordering)**:
+   - Die Anordnung von Sektoren im Hallen-Admin-Bereich darf nicht auf Desktop-Maus-Drag-and-Drop beschränkt sein.
+   - Große, fingerbedienbare Rauf-/Runter-Tasten (Move Up / Move Down) und ein touch-optimierter Sortier-Modus ermöglichen müheloses Umordnen direkt am Smartphone.
+

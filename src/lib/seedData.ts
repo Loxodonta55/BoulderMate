@@ -22,13 +22,12 @@ export const SEED_GYM: Gym = {
 };
 
 export const SEED_6A_PLUS_GRADE_SCALES: GymGradeScale[] = [
-  { id: 'scale_6a_gelb', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Sehr leicht', fontRangeMin: '3', fontRangeMax: '4', sortOrder: 1 },
-  { id: 'scale_6a_gruen', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Leicht', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 2 },
-  { id: 'scale_6a_blau', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Mittel', fontRangeMin: '6A', fontRangeMax: '6B+', sortOrder: 3 },
-  { id: 'scale_6a_rot', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Schwer', fontRangeMin: '6C', fontRangeMax: '7A+', sortOrder: 4 },
-  { id: 'scale_6a_schwarz', gymId: 'gym-6a-plus', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7B', fontRangeMax: '7C+', sortOrder: 5 },
-  { id: 'scale_6a_weiss', gymId: 'gym-6a-plus', colorName: 'Weiß', colorHex: '#f8fafc', difficultyLabel: 'Extrem', fontRangeMin: '8A', fontRangeMax: '8B', sortOrder: 6 },
-  { id: 'scale_6a_lila', gymId: 'gym-6a-plus', colorName: 'Lila', colorHex: '#a855f7', difficultyLabel: 'Elite', fontRangeMin: '8B+', fontRangeMax: '8C+', sortOrder: 7 },
+  { id: 'scale_6a_blau', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Gemütlich', fontRangeMin: '3', fontRangeMax: '4+', sortOrder: 1 },
+  { id: 'scale_6a_gruen', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Flott', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 2 },
+  { id: 'scale_6a_gelb', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Trick', fontRangeMin: '6a', fontRangeMax: '6b', sortOrder: 3 },
+  { id: 'scale_6a_rot', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Rassig', fontRangeMin: '6b+', fontRangeMax: '6c+', sortOrder: 4 },
+  { id: 'scale_6a_weiss', gymId: 'gym-6a-plus', colorName: 'Weiss', colorHex: '#f8fafc', difficultyLabel: 'Böse', fontRangeMin: '7a', fontRangeMax: '7b', sortOrder: 5 },
+  { id: 'scale_6a_beige', gymId: 'gym-6a-plus', colorName: 'Beige', colorHex: '#d2b48c', difficultyLabel: 'Bestial', fontRangeMin: '7b+', fontRangeMax: '8c+', sortOrder: 6 },
 ];
 
 export const SEED_GRADE_SCALES: GymGradeScale[] = [
@@ -102,7 +101,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-ueberhang-hartesding',
     sectorId: 'sec_6a_ueberhang_vorne',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.65,
     positionY: 0.35,
     name: 'hartes Ding',
@@ -258,7 +257,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-slab-5',
     sectorId: 'sec_6a_slab_vorne',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.55,
     positionY: 0.25,
     name: 'Glatteis',
@@ -374,7 +373,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-zw-4',
     sectorId: 'sec_6a_zwischenwand_vorne',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.72,
     positionY: 0.30,
     name: 'Crimp Master',
@@ -418,7 +417,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-verl-3',
     sectorId: 'sec_6a_verlaengerung_ueberhang',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.70,
     positionY: 0.32,
     name: 'Schulterzug',
@@ -476,7 +475,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-eckm-3',
     sectorId: 'sec_6a_ecke_mitte',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.50,
     positionY: 0.26,
     name: 'Heel-Hook-Wunder',
@@ -534,7 +533,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-cave-3',
     sectorId: 'sec_6a_cave',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.55,
     positionY: 0.30,
     name: 'Ausstiegs-Dynamik',
@@ -592,7 +591,7 @@ export const SEED_6A_BOULDERS: WallBoulder[] = [
   {
     id: 'boulder-6a-cw-2',
     sectorId: 'sec_6a_cave_wand',
-    gradeScaleId: 'scale_6a_schwarz',
+    gradeScaleId: 'scale_6a_beige',
     positionX: 0.60,
     positionY: 0.35,
     name: 'Decken-Crux',
