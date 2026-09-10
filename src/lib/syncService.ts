@@ -196,18 +196,6 @@ export async function syncFromSupabase(): Promise<boolean> {
           created_at: sc.created_at || new Date().toISOString(),
         }));
 
-        // Provide friendly local alias lookups (scale_6a_blau etc.)
-        const withAliasesV1 = [...cleanV1];
-        for (const item of cleanV1) {
-          const colorLower = item.color_name.toLowerCase().trim();
-          if (targetGymId === 'gym-6a-plus') {
-            const aliasId = `scale_6a_${colorLower === 'weiß' ? 'weiss' : colorLower}`;
-            if (!withAliasesV1.some(a => a.id === aliasId)) {
-              withAliasesV1.push({ ...item, id: aliasId });
-            }
-          }
-        }
-
         allV1Scales = allV1Scales.filter(s => {
           const sGym = (s.gym_id === 'gym-6a-plus' || s.gym_id.includes('6a') || s.gym_id.includes('f2b11564'))
             ? 'gym-6a-plus'
@@ -216,9 +204,9 @@ export async function syncFromSupabase(): Promise<boolean> {
             : s.gym_id;
           return sGym !== targetGymId;
         });
-        allV1Scales.push(...withAliasesV1);
+        allV1Scales.push(...cleanV1);
 
-        const cleanV2 = withAliasesV1.map(sc => ({
+        const cleanV2 = cleanV1.map(sc => ({
           id: sc.id,
           gymId: targetGymId,
           colorName: sc.color_name,

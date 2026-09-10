@@ -111,11 +111,9 @@ export function ensureInitialGymData(): void {
     }, CURRENT_USER.id);
   }
 
-  // Ensure 6a plus has all 6 official grade scales: Blau, Grün, Gelb, Rot, Weiss, Beige
+  // Ensure 6a plus has initial grade scales ONLY if none exist yet
   const current6aScales = getGradeScales(gym6a.id);
-  const needs6aMigration = gym6aNewlyCreated || current6aScales.length === 0 ||
-    current6aScales.some(s => s.color_name === 'Schwarz' || s.color_name === 'Lila' || s.color_name === 'Weiß') ||
-    !current6aScales.some(s => s.color_name === 'Beige');
+  const needs6aMigration = gym6aNewlyCreated || current6aScales.length === 0;
 
   if (needs6aMigration) {
     setGymGradeScales(gym6a.id, CURRENT_USER.id, [

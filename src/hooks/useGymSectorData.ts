@@ -104,7 +104,17 @@ export function useGymSectorData(
 
   const scaleMap = useMemo(() => {
     const map = new Map<string, GymGradeScale>();
-    gradeScales.forEach(scale => map.set(scale.id, scale));
+    gradeScales.forEach(scale => {
+      map.set(scale.id, scale);
+      if (scale.colorName) {
+        const colorLower = scale.colorName.toLowerCase().trim();
+        const colorAscii = colorLower === 'weiß' ? 'weiss' : colorLower;
+        map.set(`scale_6a_${colorAscii}`, scale);
+        map.set(`scale_minimum_${colorAscii}`, scale);
+        map.set(colorLower, scale);
+        map.set(colorAscii, scale);
+      }
+    });
     return map;
   }, [gradeScales]);
 

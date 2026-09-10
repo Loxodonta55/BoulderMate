@@ -10,6 +10,7 @@ import {
   updateBoulderPosition,
   updateBoulderDetails,
   deleteDraftBoulder,
+  deleteWallBoulder,
   publishBatch,
   updateSectorPhoto,
   getLastSelectedGradeScaleId,
@@ -26,7 +27,10 @@ import {
   Rocket,
   ShieldAlert,
   CheckCircle2,
-  Building2
+  Building2,
+  BoxSelect,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
@@ -61,6 +65,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // Batch interaction state
   const [pendingArchiveIds, setPendingArchiveIds] = useState<string[]>([]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
+  const [selectedBoulderIds, setSelectedBoulderIds] = useState<string[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState<boolean>(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
   const [hasPhotoUpdated, setHasPhotoUpdated] = useState<boolean>(false);
@@ -75,10 +80,12 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
       setBoulders(getWallBoulders(selectedSectorId));
       setPendingArchiveIds([]);
       setSelectedBoulder(null);
+      setSelectedBoulderIds([]);
       setIsSheetOpen(false);
       setHasPhotoUpdated(false);
     } else {
       setBoulders([]);
+      setSelectedBoulderIds([]);
     }
   }, [selectedSectorId]);
 
@@ -150,6 +157,40 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     setIsSheetOpen(false);
     setSelectedBoulder(null);
   };
+
+  // AC-12: Delete multi-selected boulders (drafts and active)
+  const handleDeleteMultiSelection = () => {
+    if (selectedBoulderIds.length === 0) return;
+    const count = selectedBoulderIds.length;
+    selectedBoulderIds.forEach(id => {
+      deleteWallBoulder(id);
+    });
+    if (selectedSectorId) {
+      setBoulders(getWallBoulders(selectedSectorId));
+    }
+    setPendingArchiveIds(prev => prev.filter(id => !selectedBoulderIds.includes(id)));
+    setSelectedBoulderIds([]);
+    showToast(`${count} Boulder erfolgreich gelöscht!`);
+  };
+
+  // AC-12: Keyboard shortcut Delete / Backspace / Escape for multi-selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedBoulderIds.length === 0) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteMultiSelection();
+      } else if (e.key === 'Escape') {
+        setSelectedBoulderIds([]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedBoulderIds, selectedSectorId]);
 
   // Toggle archive status of existing boulder (AC-6)
   const handleToggleArchive = (boulderId: string) => {
@@ -330,6 +371,8 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             gradeScales={gradeScales}
             pendingArchiveIds={pendingArchiveIds}
             selectedBoulderId={selectedBoulder?.id || null}
+            selectedBoulderIds={selectedBoulderIds}
+            onSelectionChange={setSelectedBoulderIds}
             onPhotoClick={handlePhotoClick}
             onPinClick={handlePinClick}
             onPinMove={handlePinMove}
@@ -337,6 +380,43 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             onChangePhoto={() => setIsPhotoModalOpen(true)}
           />
         )
+      )}
+
+      {/* Floating Multi-Selection Action Bar (AC-12) */}
+      {selectedBoulderIds.length > 0 && (
+        <div
+          data-testid="multi-selection-bar"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#1E1E1E] px-4 py-2.5 border border-[#C9A96E] shadow-2xl animate-in slide-in-from-bottom-3 duration-200"
+        >
+          <div className="flex items-center gap-2 text-xs font-mono text-[#E8E0D4]">
+            <BoxSelect className="w-4 h-4 text-[#C9A96E]" />
+            <span className="font-bold text-[#F5F0E8]">{selectedBoulderIds.length}</span>
+            <span>Boulder ausgewählt</span>
+          </div>
+
+          <div className="h-4 w-px bg-[#333333]" />
+
+          <button
+            type="button"
+            data-testid="btn-delete-multi-selection"
+            onClick={handleDeleteMultiSelection}
+            className="px-3 py-1.5 bg-[#A0522D] hover:bg-[#854324] text-[#F5F0E8] text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition rounded-none cursor-pointer"
+            title="Ausgewählte Boulder löschen (Entf / Backspace)"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Löschen ({selectedBoulderIds.length})</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="btn-cancel-multi-selection"
+            onClick={() => setSelectedBoulderIds([])}
+            className="p-1.5 text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition rounded-none cursor-pointer"
+            title="Auswahl aufheben (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
 
       {/* Persistent Bottom Bar (Batch Status & Trigger) */}

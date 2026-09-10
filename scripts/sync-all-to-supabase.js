@@ -129,6 +129,13 @@ async function syncGyms() {
 
 async function syncGradeScales() {
   console.log('\n--- 3. Farbskalen (Grade Scales) synchronisieren ---');
+  // WICHTIG: Niemals bestehende Farbskalen auf Supabase überschreiben!
+  const { data: existingScales, error: checkError } = await supabase.from('grade_scales').select('id, gym_id, color_name');
+  if (existingScales && existingScales.length > 0) {
+    console.log(`  ✓ ${existingScales.length} bestehende Farbskalen in Supabase erhalten (Zero-Data-Loss Schutz).`);
+    return;
+  }
+
   const DEFAULT_6A_SCALES = [
     { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: GYM_6A_UUID, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
     { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: GYM_6A_UUID, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
@@ -150,7 +157,7 @@ async function syncGradeScales() {
   const allScales = [...DEFAULT_6A_SCALES, ...DEFAULT_MINIMUM_SCALES];
   const { error } = await supabase.from('grade_scales').upsert(allScales);
   if (error) console.warn('  ! Fehler bei Farbskalen-Sync:', error.message);
-  else console.log(`  ✓ ${allScales.length} Farbskalen verifiziert.`);
+  else console.log(`  ✓ ${allScales.length} Farbskalen initialisiert.`);
 }
 
 async function syncSectors() {

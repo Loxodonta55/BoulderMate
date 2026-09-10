@@ -15,6 +15,8 @@ import {
   Star,
   Maximize2,
   Minimize2,
+  BoxSelect,
+  Check,
 } from 'lucide-react';
 
 export interface WallPhotoCanvasProps {
@@ -27,6 +29,8 @@ export interface WallPhotoCanvasProps {
   // Setter mode props
   pendingArchiveIds?: string[];
   selectedBoulderId?: string | null;
+  selectedBoulderIds?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
   onPhotoClick?: (x: number, y: number) => void;
   onPinClick?: (boulder: WallBoulder) => void;
   onPinMove?: (boulderId: string, newX: number, newY: number) => void;
@@ -51,6 +55,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   gradeScales,
   pendingArchiveIds = [],
   selectedBoulderId = null,
+  selectedBoulderIds = [],
+  onSelectionChange,
   onPhotoClick,
   onPinClick,
   onPinMove,
@@ -69,15 +75,42 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef<boolean>(false);
 
+  // Marquee / Box Selection State (AC-12)
+  const [isBoxSelecting, setIsBoxSelecting] = useState<boolean>(false);
+  const [boxSelection, setBoxSelection] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+  const boxStartRef = useRef<{ clientX: number; clientY: number; normX: number; normY: number } | null>(null);
+
   const scaleMap = new Map<string, GymGradeScale>();
-  gradeScales.forEach(s => scaleMap.set(s.id, s));
+  gradeScales.forEach(s => {
+    scaleMap.set(s.id, s);
+    if (s.colorName) {
+      const colorLower = s.colorName.toLowerCase().trim();
+      const colorAscii = colorLower === 'weiß' ? 'weiss' : colorLower;
+      scaleMap.set(`scale_6a_${colorAscii}`, s);
+      scaleMap.set(`scale_minimum_${colorAscii}`, s);
+      scaleMap.set(colorLower, s);
+      scaleMap.set(colorAscii, s);
+    }
+  });
 
   // Compute click coordinates relative to image (0.0 to 1.0)
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (mode !== 'setter') return;
-    // If just finished dragging, prevent click
+    // If just finished dragging or box selecting, prevent click
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
+      return;
+    }
+    // If boulders were previously selected and user clicks empty canvas, clear selection
+    if (selectedBoulderIds && selectedBoulderIds.length > 0) {
+      if (onSelectionChange) {
+        onSelectionChange([]);
+      }
       return;
     }
     if (!containerRef.current || !isAddingEnabled || !onPhotoClick) return;
@@ -97,28 +130,84 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   const handlePinMouseDown = (e: React.MouseEvent, boulderId: string) => {
     if (mode !== 'setter' || !onPinMove) return;
     e.stopPropagation();
+    boxStartRef.current = null; // Ensure box selection doesn't start
     setDraggingPinId(boulderId);
     setDragStartPos({ x: e.clientX, y: e.clientY });
     isDraggingRef.current = false;
   };
 
+  const handleContainerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (mode !== 'setter') return;
+    if (e.button !== 0) return; // Only primary/left mouse button
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+    boxStartRef.current = {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      normX,
+      normY,
+    };
+  };
+
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (mode !== 'setter' || !draggingPinId || !containerRef.current || !dragStartPos || !onPinMove) return;
+      if (mode !== 'setter' || !containerRef.current) return;
 
-      const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
-      if (dist > 5) {
-        isDraggingRef.current = true;
+      // 1. Moving a single pin
+      if (draggingPinId && dragStartPos && onPinMove) {
+        const dist = Math.hypot(e.clientX - dragStartPos.x, e.clientY - dragStartPos.y);
+        if (dist > 5) {
+          isDraggingRef.current = true;
+        }
+
+        if (isDraggingRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const newX = Math.max(0.01, Math.min(0.99, Number(((e.clientX - rect.left) / rect.width).toFixed(4))));
+          const newY = Math.max(0.01, Math.min(0.99, Number(((e.clientY - rect.top) / rect.height).toFixed(4))));
+          onPinMove(draggingPinId, newX, newY);
+        }
+        return;
       }
 
-      if (isDraggingRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const newX = Math.max(0.01, Math.min(0.99, Number(((e.clientX - rect.left) / rect.width).toFixed(4))));
-        const newY = Math.max(0.01, Math.min(0.99, Number(((e.clientY - rect.top) / rect.height).toFixed(4))));
-        onPinMove(draggingPinId, newX, newY);
+      // 2. Box / Marquee Selection Drag (AC-12)
+      if (boxStartRef.current) {
+        const dist = Math.hypot(e.clientX - boxStartRef.current.clientX, e.clientY - boxStartRef.current.clientY);
+        if (dist > 5) {
+          isDraggingRef.current = true;
+          setIsBoxSelecting(true);
+
+          const rect = containerRef.current.getBoundingClientRect();
+          const currNormX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+          const currNormY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+          const minX = Math.min(boxStartRef.current.normX, currNormX);
+          const maxX = Math.max(boxStartRef.current.normX, currNormX);
+          const minY = Math.min(boxStartRef.current.normY, currNormY);
+          const maxY = Math.max(boxStartRef.current.normY, currNormY);
+
+          setBoxSelection({
+            startX: minX,
+            startY: minY,
+            currentX: maxX,
+            currentY: maxY,
+          });
+
+          // Find all boulders whose coordinates fall inside [minX, maxX] x [minY, maxY]
+          const enclosedBoulderIds = boulders
+            .filter(b => b.positionX >= minX && b.positionX <= maxX && b.positionY >= minY && b.positionY <= maxY)
+            .map(b => b.id);
+
+          if (onSelectionChange) {
+            onSelectionChange(enclosedBoulderIds);
+          }
+        }
       }
     },
-    [mode, draggingPinId, dragStartPos, onPinMove]
+    [mode, draggingPinId, dragStartPos, onPinMove, boulders, onSelectionChange]
   );
 
   const handleMouseUp = () => {
@@ -128,6 +217,17 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
       setTimeout(() => {
         isDraggingRef.current = false;
       }, 50);
+    }
+
+    if (boxStartRef.current) {
+      boxStartRef.current = null;
+      if (isBoxSelecting) {
+        setIsBoxSelecting(false);
+        setBoxSelection(null);
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 50);
+      }
     }
   };
 
@@ -142,9 +242,12 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         {mode === 'setter' ? (
           <>
             <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span>Tippe auf Wand für Pin</span>
+            <span>Klick = Pin</span>
             <span className="text-[#6B6358]">|</span>
             <span>Drag = Verschieben</span>
+            <span className="text-[#6B6358]">|</span>
+            <BoxSelect className="w-3.5 h-3.5 text-[#C9A96E]" />
+            <span className="text-[#C9A96E] font-semibold">Ziehen = Quadrat-Auswahl</span>
           </>
         ) : (
           <>
@@ -230,10 +333,12 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         className="relative w-full overflow-auto bg-black"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <div
           ref={containerRef}
           onClick={handleContainerClick}
+          onMouseDown={handleContainerMouseDown}
           style={{
             width: `${zoomLevel * 100}%`,
             minWidth: '100%',
@@ -248,6 +353,26 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             className="block w-full h-auto select-none pointer-events-none rounded-none"
             draggable={false}
           />
+
+          {/* Marquee / Box Selection Rectangle Overlay (AC-12) */}
+          {isBoxSelecting && boxSelection && (
+            <div
+              data-testid="selection-rectangle"
+              className="absolute border-2 border-dashed border-[#C9A96E] bg-[#C9A96E]/20 z-30 pointer-events-none"
+              style={{
+                left: `${boxSelection.startX * 100}%`,
+                top: `${boxSelection.startY * 100}%`,
+                width: `${Math.max(0, boxSelection.currentX - boxSelection.startX) * 100}%`,
+                height: `${Math.max(0, boxSelection.currentY - boxSelection.startY) * 100}%`,
+              }}
+            >
+              {/* Corner Rock Accents (SPEC-005 sharp edges) */}
+              <div className="absolute -top-1 -left-1 w-2 h-2 bg-[#C9A96E]" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#C9A96E]" />
+              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-[#C9A96E]" />
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-[#C9A96E]" />
+            </div>
+          )}
 
           {/* Render Boulders / Pins */}
           {boulders.map(boulder => {
@@ -341,6 +466,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             const isDraft = boulder.status === 'draft';
             const isMarkedForArchive = pendingArchiveIds.includes(boulder.id) || boulder.status === 'archived';
             const isSelected = selectedBoulderId === boulder.id;
+            const isMultiSelected = selectedBoulderIds.includes(boulder.id);
             const isDragging = draggingPinId === boulder.id;
 
             return (
@@ -369,6 +495,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                       ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-35 grayscale'
                       : 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[#F5F0E8]/70'
                   } ${isSelected ? 'ring-2 ring-[#C9A96E] scale-125 z-30' : ''} ${
+                    isMultiSelected ? 'ring-4 ring-[#C9A96E] scale-125 z-30 shadow-lg' : ''
+                  } ${
                     isDragging ? 'scale-125 opacity-90 cursor-grabbing' : ''
                   }`}
                   style={{
@@ -387,6 +515,17 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-full h-0.5 bg-[#A0522D] rotate-45" />
                     </div>
+                  )}
+
+                  {/* Multi-Selection Checkmark Badge */}
+                  {isMultiSelected && (
+                    <span
+                      data-testid={`selection-badge-${boulder.id}`}
+                      className="absolute -top-1.5 -right-1.5 z-40 w-4 h-4 bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md font-bold rounded-none"
+                      title="Ausgewählt"
+                    >
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </span>
                   )}
                 </div>
 

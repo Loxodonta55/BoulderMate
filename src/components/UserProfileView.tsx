@@ -143,10 +143,20 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   };
 
   // Find sector and gradeScale for selected boulder if modal is open
-  const allSectors = useMemo(() => getSectors('gym-minimum-zh'), []);
-  const allScales = useMemo(() => getGradeScales('gym-minimum-zh'), []);
+  const allSectors = useMemo(() => {
+    const gyms = getGyms();
+    return gyms.flatMap(g => getSectors(g.id));
+  }, []);
+  const allScales = useMemo(() => {
+    const gyms = getGyms();
+    return gyms.flatMap(g => getGradeScales(g.id));
+  }, []);
   const activeSector = selectedBoulder ? allSectors.find(s => s.id === selectedBoulder.sectorId) : undefined;
-  const activeScale = selectedBoulder ? allScales.find(s => s.id === selectedBoulder.gradeScaleId) : undefined;
+  const activeScale = selectedBoulder ? allScales.find(s => {
+    if (s.id === selectedBoulder.gradeScaleId) return true;
+    const colorAscii = (s.colorName || '').toLowerCase().trim() === 'weiß' ? 'weiss' : (s.colorName || '').toLowerCase().trim();
+    return `scale_6a_${colorAscii}` === selectedBoulder.gradeScaleId || `scale_minimum_${colorAscii}` === selectedBoulder.gradeScaleId;
+  }) : undefined;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto" data-testid="user-profile-view">
