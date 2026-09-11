@@ -111,11 +111,7 @@ export function getDeletedBoulderIds(): Set<string> {
 
 export function isBoulderDeleted(boulderId: string): boolean {
   if (!boulderId) return false;
-  if (
-    boulderId.startsWith('boulder-6a-') ||
-    boulderId.startsWith('boulder-existing-') ||
-    boulderId.startsWith('boulder-overhang-')
-  ) {
+  if (boulderId.startsWith('boulder-6a-')) {
     return true;
   }
   if (PERMANENTLY_PURGED_BOULDER_IDS.has(boulderId)) return true;

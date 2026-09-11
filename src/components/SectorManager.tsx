@@ -32,6 +32,13 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   const [isUploadForNewSector, setIsUploadForNewSector] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const successTimerRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   // Drag & Drop / Touch Reorder State (Requirement 5)
   const [draggedSectorIndex, setDraggedSectorIndex] = useState<number | null>(null);
@@ -81,7 +88,10 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
     try {
       reorderSectors(gymId, userId, orderedIds);
       setSuccessMsg(`Sektor "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
-      setTimeout(() => setSuccessMsg(null), 2500);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
+        try { setSuccessMsg(null); } catch (_) {}
+      }, 2500);
       onRefresh();
     } catch (err: any) {
       setError(err.message || 'Fehler beim Ändern der Sektor-Reihenfolge.');

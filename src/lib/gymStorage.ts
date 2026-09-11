@@ -88,9 +88,7 @@ export function ensureInitialGymData(): void {
       { id: '6b538536-2fe3-4c97-a5ab-16df8ac19ad3', gym_id: defaultGym.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sportlich', font_range_min: '6b+', font_range_max: '7a', sort_order: 3 },
       { id: '130c2372-d28e-416c-85af-a3380426c9bd', gym_id: defaultGym.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '7a+', font_range_max: '7b+', sort_order: 4 },
       { id: '2ccf3d7f-a886-4a8e-9bad-25771edf9e86', gym_id: defaultGym.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7c', font_range_max: '8a', sort_order: 5 },
-      { id: '2dfafa3a-f172-4ee0-ae0c-fddc2a23a851', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 },
-      { id: '3c7ab2bc-a337-4ba3-afb2-4005f245b56c', gym_id: defaultGym.id, color_name: 'Pink', color_hex: '#ec4899', difficulty_label: 'Projekt-Crux', font_range_min: '7B', font_range_max: '8A', sort_order: 7 },
-      { id: 'eb803c73-40cb-4108-a4cc-d299acc7c44a', gym_id: defaultGym.id, color_name: 'Tuerkis', color_hex: '#14b8a6', difficulty_label: 'Spezial', font_range_min: '6B', font_range_max: '6C', sort_order: 8 }
+      { id: '2dfafa3a-f172-4ee0-ae0c-fddc2a23a851', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 }
     ]);
 
     // (Boulders will be comprehensively populated from SEED_EXISTING_BOULDERS below)
