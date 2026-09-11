@@ -21,7 +21,28 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-console.log('🚀 [Sync] Starte non-destruktiven Aufwärts-Sync nach Supabase...');
+// ============================================================
+// 🛑 SICHERHEITS-VERRIEGELUNG (SPEC-013)
+// ============================================================
+// Es ist streng verboten, bei Deployments oder lokaler Entwicklung
+// unkontrolliert Daten nach Supabase PROD zu pushen.
+if (!process.argv.includes('--confirm-production-push')) {
+  console.error('\n🛑 [SAFETY LOCK - SPEC-013] sync-all-to-supabase.js wurde blockiert!');
+  console.error('═════════════════════════════════════════════════════════════════════');
+  console.error('⚠️  AUTOMATISCHER DATEN-SYNC NACH PRODUKTION IST STRIKT VERBOTEN!');
+  console.error('Produktionsdaten (Hallen, Sektoren, Farbskalen, Boulder, Rollen/Rechte)');
+  console.error('dürfen NIEMALS durch Deployments oder Skripte überschrieben werden.');
+  console.error('');
+  console.error('Um Daten für die lokale Entwicklung zu beziehen, verwende:');
+  console.error('   npm run db:pull');
+  console.error('');
+  console.error('Solltest du diesen Push im absoluten Notfall manuell autorisieren wollen:');
+  console.error('   node scripts/sync-all-to-supabase.js --confirm-production-push');
+  console.error('═════════════════════════════════════════════════════════════════════\n');
+  process.exit(1);
+}
+
+console.log('🚀 [Sync] Starte autorisierten Aufwärts-Sync nach Supabase (--confirm-production-push aktiv)...');
 
 async function syncWallPhotos() {
   console.log('\n--- 1. Wandfotos in Supabase Storage prüfen & synchronisieren ---');

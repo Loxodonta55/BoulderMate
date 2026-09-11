@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:pull": "node scripts/pull-from-prod.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",

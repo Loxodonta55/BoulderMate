@@ -204,6 +204,22 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
             {/* Action Row Step 1 */}
             <div className="flex items-center gap-3 pt-2">
+              {existingRating && onDeleteRating && (
+                <button
+                  type="button"
+                  data-testid="delete-rating-modal-btn"
+                  onClick={() => {
+                    onDeleteRating();
+                    onClose();
+                  }}
+                  className="py-2 px-3 text-xs font-mono font-semibold text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/50 border border-rose-800/50 rounded-[2px] transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                  title="Eigene Bewertung löschen"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Löschen</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={onClose}

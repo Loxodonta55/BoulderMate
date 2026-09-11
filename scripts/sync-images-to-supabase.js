@@ -12,8 +12,17 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-console.log('🚀 Starting non-destructive Upward Data Sync to Supabase...');
-console.log('Target URL:', SUPABASE_URL);
+// ============================================================
+// 🛑 SICHERHEITS-VERRIEGELUNG (SPEC-013)
+// ============================================================
+if (!process.argv.includes('--confirm-production-push')) {
+  console.error('\n🛑 [SAFETY LOCK - SPEC-013] sync-images-to-supabase.js wurde blockiert!');
+  console.error('Bilder-Upload nach Produktion darf nicht automatisch beim Deployment ausgeführt werden.');
+  console.error('Um manuell auszuführen: node scripts/sync-images-to-supabase.js --confirm-production-push\n');
+  process.exit(1);
+}
+
+console.log('🚀 Starting authorized Upward Image Sync to Supabase (--confirm-production-push aktiv)...');
 
 async function syncImages() {
   console.log('\n--- 1. Synchronizing Wall Photos to Supabase Storage (sector-photos) ---');

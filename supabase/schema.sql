@@ -46,8 +46,10 @@ CREATE TABLE IF NOT EXISTS public.sectors (
   name TEXT NOT NULL,
   wall_photo_url TEXT,
   sort_order INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_sectors_gym_name UNIQUE (gym_id, name)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sectors_gym_name_lower ON public.sectors (gym_id, lower(trim(name)));
 
 -- 6. GRADE SCALES (Farbsysteme der Halle)
 CREATE TABLE IF NOT EXISTS public.grade_scales (
@@ -59,8 +61,10 @@ CREATE TABLE IF NOT EXISTS public.grade_scales (
   font_range_min TEXT,
   font_range_max TEXT,
   sort_order INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_grade_scales_gym_color UNIQUE (gym_id, color_name)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_grade_scales_gym_color_lower ON public.grade_scales (gym_id, lower(trim(color_name)));
 
 -- 7. BOULDERS (Routen & Pins)
 DO $$
