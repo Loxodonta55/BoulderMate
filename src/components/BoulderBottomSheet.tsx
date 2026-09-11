@@ -340,11 +340,12 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
 
           <button
             type="button"
+            data-testid="save-boulder-sheet-btn"
             onClick={handleSubmit}
             className="flex-1 py-3 px-4 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs sm:text-sm flex items-center justify-center gap-2 transition min-h-[48px] shadow-lg cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[2.5]" />
-            <span>Speichern & Weiter</span>
+            <span>{isDraft ? 'Speichern & Weiter' : 'Änderung übernehmen'}</span>
           </button>
         </div>
       </div>

@@ -30,6 +30,19 @@
     --status-info: #8B8680;
   }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    min-height: 100vh;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: var(--bg-primary);
@@ -170,4 +183,12 @@ input, select, textarea {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #8B8680;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

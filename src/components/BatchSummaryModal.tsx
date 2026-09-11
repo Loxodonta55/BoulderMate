@@ -1,12 +1,13 @@
 import React from 'react';
 import { WallBoulder, GymGradeScale, Sector } from '../types/boulder';
-import { X, Sparkles, Archive, Rocket, Camera, CheckCircle2 } from 'lucide-react';
+import { X, Sparkles, Archive, Rocket, Camera, CheckCircle2, Edit3, Save } from 'lucide-react';
 
 interface BatchSummaryModalProps {
   isOpen: boolean;
   sector: Sector | null;
   draftBoulders: WallBoulder[];
   archivedBoulders: WallBoulder[];
+  modifiedBoulders?: WallBoulder[];
   gradeScales: GymGradeScale[];
   hasPhotoUpdated: boolean;
   onClose: () => void;
@@ -19,6 +20,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
   sector,
   draftBoulders,
   archivedBoulders,
+  modifiedBoulders = [],
   gradeScales,
   hasPhotoUpdated,
   onClose,
@@ -44,6 +46,8 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
 
   const totalNew = draftBoulders.length;
   const totalArchived = archivedBoulders.length;
+  const totalModified = modifiedBoulders.length;
+  const totalChanges = totalNew + totalArchived + totalModified;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
@@ -75,24 +79,36 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
         {/* Content */}
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
           {/* Summary Overview Badges */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-none bg-[#121212] border border-[#4A5D3A] flex items-center gap-3">
-              <div className="p-2.5 rounded-none bg-[#2A2A2A] text-[#4A5D3A] border border-[#333333]">
-                <Sparkles className="w-5 h-5" />
+          <div className={`grid ${totalModified > 0 ? 'grid-cols-3 gap-2 sm:gap-3' : 'grid-cols-2 gap-3'}`}>
+            <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#4A5D3A] flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#4A5D3A] border border-[#333333]">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <p className="text-2xl font-mono font-bold text-[#4A5D3A]">+{totalNew}</p>
-                <p className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Neue Boulder</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-[#4A5D3A]">+{totalNew}</p>
+                <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Neu</p>
               </div>
             </div>
 
-            <div className="p-4 rounded-none bg-[#121212] border border-[#A0522D] flex items-center gap-3">
-              <div className="p-2.5 rounded-none bg-[#2A2A2A] text-[#A0522D] border border-[#333333]">
-                <Archive className="w-5 h-5" />
+            {totalModified > 0 && (
+              <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#C9A96E] flex items-center gap-2.5 sm:gap-3">
+                <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#C9A96E] border border-[#333333]">
+                  <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-mono font-bold text-[#C9A96E]">~{totalModified}</p>
+                  <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Geändert</p>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#A0522D] flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#A0522D] border border-[#333333]">
+                <Archive className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <p className="text-2xl font-mono font-bold text-[#A0522D]">-{totalArchived}</p>
-                <p className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Archiviert</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-[#A0522D]">-{totalArchived}</p>
+                <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Archiviert</p>
               </div>
             </div>
           </div>
@@ -107,6 +123,43 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
               </strong>
             </span>
           </div>
+
+          {/* Modified Boulders Breakdown */}
+          {totalModified > 0 && (
+            <div>
+              <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[#C9A96E] mb-2 flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5" />
+                Geänderte Boulder ({totalModified}):
+              </p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {modifiedBoulders.map(b => {
+                  const scale = scaleMap.get(b.gradeScaleId);
+                  return (
+                    <div
+                      key={b.id}
+                      className="p-3 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-3.5 h-3.5 rounded-none border border-black/40"
+                          style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                        />
+                        <span className="font-headline font-bold uppercase tracking-wider text-sm text-[#E8E0D4]">
+                          {b.name || scale?.colorName || 'Boulder'}
+                        </span>
+                        <span className="text-[#A89F91] font-mono text-[11px]">
+                          ({scale?.difficultyLabel || 'Hallenfarbe'})
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] text-[#C9A96E] bg-[#2A2A2A] px-2 py-0.5 rounded-none border border-[#333333]">
+                        Geändert
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* New Boulders Breakdown */}
           {totalNew > 0 ? (
@@ -174,7 +227,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
           <div className="p-3.5 rounded-none bg-[#2A2A2A] border border-[#333333] text-xs font-mono text-[#A89F91] leading-relaxed flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-[#4A5D3A] shrink-0 mt-0.5" />
             <span>
-              Nach dem Klick auf "Jetzt veröffentlichen" sind alle neuen Boulder sofort für alle Kletterer der Halle sichtbar und können geloggt werden.
+              Erst nach Klick auf den Button unten werden alle Änderungen (neue, geänderte oder archivierte Boulder) final gespeichert und live geschaltet.
             </span>
           </div>
         </div>
@@ -192,11 +245,23 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
           <button
             type="button"
             onClick={onConfirmPublish}
-            disabled={isPublishing || (totalNew === 0 && totalArchived === 0)}
+            disabled={isPublishing || totalChanges === 0}
             className="flex-1 py-2.5 px-4 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center justify-center gap-2 transition disabled:opacity-40"
           >
-            <Rocket className="w-4 h-4" />
-            <span>{isPublishing ? 'Veröffentliche...' : 'Jetzt veröffentlichen'}</span>
+            {totalNew === 0 && totalArchived === 0 ? (
+              <Save className="w-4 h-4" />
+            ) : (
+              <Rocket className="w-4 h-4" />
+            )}
+            <span>
+              {isPublishing
+                ? 'Speichere...'
+                : totalNew === 0 && totalArchived === 0
+                ? `Änderungen final speichern (${totalModified})`
+                : totalModified === 0 && totalArchived === 0
+                ? `Jetzt veröffentlichen (+${totalNew})`
+                : `Veröffentlichen & Speichern (${totalChanges})`}
+            </span>
           </button>
         </div>
       </div>

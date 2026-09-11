@@ -136,7 +136,7 @@ describe('SPEC-002: UI Components Integration', () => {
     expect(screen.getByText(/Batch-Veröffentlichung/i)).toBeInTheDocument();
 
     // Click publish button
-    fireEvent.click(screen.getByText('Jetzt veröffentlichen'));
+    fireEvent.click(screen.getByText(/Veröffentlichen/i));
     expect(onConfirmPublish).toHaveBeenCalledTimes(1);
   });
 

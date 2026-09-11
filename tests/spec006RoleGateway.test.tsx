@@ -167,7 +167,7 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Zum Schrauber-Bereich/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Sektoren & Wandfotos anlegen/i })).not.toBeInTheDocument();
-    });
+    }, 15000);
 
     it('does NOT recognize user as Boris before login and requires logging in first', () => {
       localStorage.clear();

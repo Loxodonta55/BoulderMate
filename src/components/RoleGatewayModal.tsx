@@ -22,18 +22,28 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-[#1E1E1E] border border-[#333333] rounded-none max-w-xl w-full p-6 sm:p-8 relative">
+    <div
+      className="fixed inset-0 z-50 bg-black/80 overflow-y-auto p-3 sm:p-6 flex items-start sm:items-center justify-center animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="bg-[#1E1E1E] border border-[#333333] rounded-none max-w-xl w-full p-5 sm:p-8 relative my-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-5 right-5 p-2 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
+            className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 min-w-[44px] min-h-[44px] p-2.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A]/80 sm:bg-transparent hover:bg-[#2A2A2A] transition flex items-center justify-center border border-[#333333] sm:border-transparent"
             title="Schließen & Abbrechen"
             aria-label="Schließen"
             data-testid="role-gateway-close-btn"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-[#E8E0D4] sm:text-[#6B6358] sm:hover:text-[#E8E0D4]" />
           </button>
         )}
 
@@ -184,15 +194,18 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="mt-6 pt-4 border-t border-[#333333] flex items-center justify-between text-[11px] font-mono text-[#6B6358]">
-          <span>Du kannst deinen Arbeitsbereich jederzeit oben rechts wechseln.</span>
+        <div className="mt-6 pt-4 border-t border-[#333333] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-[#6B6358]">
+          <span className="text-center sm:text-left text-[11px]">
+            Du kannst deinen Arbeitsbereich jederzeit oben rechts wechseln.
+          </span>
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="text-[#A89F91] hover:text-[#E8E0D4] uppercase tracking-wider"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-1 rounded-none border border-[#444444] sm:border-transparent bg-[#2A2A2A] sm:bg-transparent text-[#E8E0D4] sm:text-[#A89F91] hover:text-[#E8E0D4] uppercase tracking-wider text-xs font-bold transition text-center"
+              data-testid="role-gateway-cancel-btn"
             >
-              Abbrechen
+              Abbrechen & Zurück
             </button>
           )}
         </div>

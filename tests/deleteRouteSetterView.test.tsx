@@ -108,4 +108,51 @@ describe('SPEC-002 AC-13: Route löschen im Schrauber-Bereich', () => {
       expect(screen.queryByTestId(`pin-${route.id}`)).not.toBeInTheDocument();
     });
   });
+
+  it('permanently deletes pre-seeded boulders in Slab Vorne and prevents their resurrection', async () => {
+    // Check Slab Vorne boulders exist initially
+    const initialBoulders = getWallBoulders('sec_6a_slab_vorne');
+    expect(initialBoulders.length).toBeGreaterThan(0);
+    const targetBoulder = initialBoulders[0];
+
+    render(
+      <BatchBoulderWorkflow
+        currentRole="setter"
+        currentUserId="schrauber-6aplus"
+        activeGymId="gym-6a-plus"
+      />
+    );
+
+    // Switch to sector Slab Vorne
+    const slabBtn = screen.getByRole('button', { name: /Slab Vorne/i });
+    fireEvent.click(slabBtn);
+
+    // Pin should be present on wall
+    const pin = screen.getByTestId(`pin-${targetBoulder.id}`);
+    expect(pin).toBeInTheDocument();
+
+    // Click pin to open bottom sheet
+    fireEvent.click(pin);
+
+    // Click delete
+    const deleteBtn = screen.getByTestId('delete-boulder-sheet-status-btn');
+    fireEvent.click(deleteBtn);
+
+    // Confirm deletion
+    const confirmBtn = screen.getByTestId('confirm-delete-boulder-sheet-btn');
+    fireEvent.click(confirmBtn);
+
+    // Pin must disappear from wall
+    await waitFor(() => {
+      expect(screen.queryByTestId(`pin-${targetBoulder.id}`)).not.toBeInTheDocument();
+    });
+
+    // Verify targetBoulder is permanently gone from storage and not resurrected
+    expect(getWallBoulders('sec_6a_slab_vorne').some(b => b.id === targetBoulder.id)).toBe(false);
+
+    // Re-running gymStorage.ensureInitialGymData() must NOT resurrect it
+    gymStorage.ensureInitialGymData();
+    expect(getWallBoulders('sec_6a_slab_vorne').some(b => b.id === targetBoulder.id)).toBe(false);
+  });
 });
+

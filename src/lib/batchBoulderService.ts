@@ -22,6 +22,11 @@ import {
   getStorageJson,
   setStorageJson,
   removeStorageItem,
+  isBoulderDeleted,
+  markBoulderDeleted,
+  clearDeletedBoulders,
+  isValidUuid,
+  stringToUuid,
 } from './storageUtils';
 import { deleteBoulderInteractions } from './ratingAndAscentService';
 import { deleteBoulder } from './storage';
@@ -45,6 +50,7 @@ export function clearBatchServiceStorage(): void {
   removeStorageItem(STORAGE_KEY_SECTORS);
   removeStorageItem(STORAGE_KEY_GRADE_SCALES);
   removeStorageItem(STORAGE_KEY_WALL_BOULDERS);
+  clearDeletedBoulders();
 }
 
 // -------------------------------------------------------------
@@ -399,21 +405,24 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
   const raw = getStorageString(STORAGE_KEY_WALL_BOULDERS);
   let all: WallBoulder[];
   if (!raw) {
-    all = [...SEED_EXISTING_BOULDERS];
+    all = [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
     setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
   } else {
     try {
       all = JSON.parse(raw);
     } catch {
-      all = [...SEED_EXISTING_BOULDERS];
+      all = [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
     }
   }
 
-  // Ensure all seed boulders are present in wall boulders
+  // Filter out any boulders marked as deleted
+  all = all.filter(b => !isBoulderDeleted(b.id));
+
+  // Ensure all seed boulders are present in wall boulders, UNLESS explicitly deleted
   const existingSeedIds = new Set(all.map(b => b.id));
   let hasMissingSeed = false;
   for (const sb of SEED_EXISTING_BOULDERS) {
-    if (!existingSeedIds.has(sb.id)) {
+    if (!existingSeedIds.has(sb.id) && !isBoulderDeleted(sb.id)) {
       all.push(sb);
       existingSeedIds.add(sb.id);
       hasMissingSeed = true;
@@ -423,13 +432,13 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
   }
 
-  // Also include boulders from gymStorage so no boulders are missed
+  // Also include boulders from gymStorage so no boulders are missed, UNLESS deleted
   let hasMigrated = false;
   try {
     const v1Boulders = gymStorage.getBoulders();
     const existingIds = new Set(all.map(b => b.id));
     for (const b of v1Boulders) {
-      if (!existingIds.has(b.id)) {
+      if (!existingIds.has(b.id) && !isBoulderDeleted(b.id)) {
         all.push({
           id: b.id,
           sectorId: b.sector_id,
@@ -671,27 +680,41 @@ export function deleteDraftBoulder(boulderId: string): void {
 
 // Permanent Delete Boulder (Climber, Setter, and Admin Areas)
 export function deleteWallBoulder(boulderId: string): void {
-  // 1. Remove from STORAGE_KEY_WALL_BOULDERS
-  const all = getWallBoulders();
-  const filtered = all.filter(b => b.id !== boulderId);
+  // 1. Mark as permanently deleted in tombstone storage
+  markBoulderDeleted(boulderId);
+  const altUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+  markBoulderDeleted(altUuid);
+
+  // 2. Remove from STORAGE_KEY_WALL_BOULDERS directly from stored JSON
+  const rawList = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+  const filtered = rawList.filter(b => b.id !== boulderId && b.id !== altUuid && !isBoulderDeleted(b.id));
   setStorageJson(STORAGE_KEY_WALL_BOULDERS, filtered);
 
-  // 2. Remove from gymStorage
+  // 3. Remove from gymStorage
   try {
     gymStorage.deleteGymBoulder(boulderId);
+    if (boulderId !== altUuid) {
+      gymStorage.deleteGymBoulder(altUuid);
+    }
   } catch (e) {}
 
-  // 3. Remove from storage.ts if present
+  // 4. Remove from storage.ts if present
   try {
     deleteBoulder(boulderId);
+    if (boulderId !== altUuid) {
+      deleteBoulder(altUuid);
+    }
   } catch (e) {}
 
-  // 4. Remove ascents, ratings, comments synchronously
+  // 5. Remove ascents, ratings, comments synchronously
   try {
     deleteBoulderInteractions(boulderId);
+    if (boulderId !== altUuid) {
+      deleteBoulderInteractions(altUuid);
+    }
   } catch (e) {}
 
-  // 5. Remote delete in Supabase asynchronously
+  // 6. Remote delete in Supabase asynchronously
   try {
     import('./syncService').then(m => {
       if (typeof m.deleteBoulderFromSupabase === 'function') {
@@ -700,7 +723,7 @@ export function deleteWallBoulder(boulderId: string): void {
     }).catch(() => {});
   } catch (e) {}
 
-  // 6. Reactive event dispatch
+  // 7. Reactive event dispatch
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
       detail: { boulderId, action: 'deleted' }

@@ -12,7 +12,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { Sector, WallBoulder, Ascent, BoulderRating } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
-import { getStorageJson, setStorageJson } from './storageUtils';
+import { getStorageJson, setStorageJson, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
@@ -258,6 +258,10 @@ export async function syncFromSupabase(): Promise<boolean> {
       }
 
       for (const b of dbBoulders) {
+        if (isBoulderDeleted(b.id)) {
+          continue;
+        }
+
         let resolvedSectorId = b.sector_id;
         const matchingSec = dbSectors?.find(ds => ds.id === b.sector_id);
         if (matchingSec && sectorIdByName.has(matchingSec.name.trim().toLowerCase())) {
@@ -694,7 +698,9 @@ export async function syncRatingToSupabase(rating: BoulderRating): Promise<boole
 export async function deleteBoulderFromSupabase(boulderId: string): Promise<boolean> {
   if (!supabase || !isSupabaseConfigured || !boulderId) return false;
   try {
+    markBoulderDeleted(boulderId);
     const boulderUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+    markBoulderDeleted(boulderUuid);
 
     // Kaskadierendes Löschen von abhängigen Ratings und Ascents
     await supabase.from('ratings').delete().eq('boulder_id', boulderUuid);

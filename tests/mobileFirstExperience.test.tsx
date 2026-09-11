@@ -108,6 +108,10 @@ describe('Mobile-First Experience Test Suite', () => {
     createGym({ id: 'gym-swipe', name: 'Swipe Gym' });
     createSector('gym-swipe', CURRENT_USER.id, { name: 'Sektor A (Platte)', wall_photo_url: '/a.jpg', sort_order: 1 });
     createSector('gym-swipe', CURRENT_USER.id, { name: 'Sektor B (Dach)', wall_photo_url: '/b.jpg', sort_order: 2 });
+    createSector('gym-swipe', CURRENT_USER.id, { name: 'Sektor C (Überhang)', wall_photo_url: '/c.jpg', sort_order: 3 });
+
+    const scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
 
     render(
       <ClimberSectorView
@@ -119,15 +123,23 @@ describe('Mobile-First Experience Test Suite', () => {
     // Initial sector
     expect(screen.getAllByText('Sektor A (Platte)').length).toBeGreaterThan(0);
 
-    // Swipe left (next sector)
+    // Swipe left / click next (next sector)
     const nextBtn = screen.getByLabelText('Nächster Sektor');
     fireEvent.click(nextBtn);
     expect(screen.getAllByText('Sektor B (Dach)').length).toBeGreaterThan(0);
+    expect(scrollIntoViewMock).toHaveBeenCalled();
 
-    // Swipe right (prev sector)
+    // Verify the active sector tab has data-sector-id matching Sektor B
+    const sectorBTabs = screen.getAllByText('Sektor B (Dach)');
+    const activeTab = sectorBTabs.find(el => el.closest('button')?.getAttribute('data-sector-id'));
+    expect(activeTab).toBeTruthy();
+
+    // Swipe right / click prev (prev sector)
+    scrollIntoViewMock.mockClear();
     const prevBtn = screen.getByLabelText('Vorheriger Sektor');
     fireEvent.click(prevBtn);
     expect(screen.getAllByText('Sektor A (Platte)').length).toBeGreaterThan(0);
+    expect(scrollIntoViewMock).toHaveBeenCalled();
   });
 
   it('5) Mobiles Sektor-Umordnen: provides touch reorder mode and direct mobile move buttons', () => {

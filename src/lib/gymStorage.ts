@@ -21,6 +21,8 @@ import {
   getStorageJson,
   setStorageJson,
   removeStorageItem,
+  isBoulderDeleted,
+  markBoulderDeleted,
 } from './storageUtils';
 
 export function resetAllGymData(): void {
@@ -199,11 +201,11 @@ export function ensureInitialGymData(): void {
     saveMembers(currentMembers);
   }
 
-  // 4. Ensure all seed boulders exist in local storage for both gyms
+  // 4. Ensure all seed boulders exist in local storage for both gyms, UNLESS deleted
   const currentBoulders = getBoulders();
   const existingIds = new Set(currentBoulders.map(b => b.id));
   const missingSeedBoulders = SEED_EXISTING_BOULDERS
-    .filter(b => !existingIds.has(b.id))
+    .filter(b => !existingIds.has(b.id) && !isBoulderDeleted(b.id))
     .map(b => ({
       id: b.id,
       sector_id: b.sectorId,
@@ -328,8 +330,9 @@ export function saveBoulders(boulders: BoulderReference[]): void {
 }
 
 export function deleteGymBoulder(boulder_id: string): boolean {
+  markBoulderDeleted(boulder_id);
   const all = getStorageJson<BoulderReference[]>(BOULDERS_KEY, []);
-  const remaining = all.filter(b => b.id !== boulder_id);
+  const remaining = all.filter(b => b.id !== boulder_id && !isBoulderDeleted(b.id));
   if (remaining.length !== all.length) {
     saveBoulders(remaining);
     return true;

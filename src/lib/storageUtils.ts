@@ -58,3 +58,65 @@ export function removeStorageItem(key: string): void {
 export function clearMemoryStore(): void {
   memoryStore.clear();
 }
+
+/**
+ * Prüft, ob ein gegebener String eine gültige UUID v4 ist.
+ */
+export function isValidUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+/**
+ * Konvertiert beliebige lokale String-IDs deterministisch in eine valide UUID,
+ * damit Supabase UUID-Spalten und Foreign Keys niemals scheitern.
+ */
+export function stringToUuid(str: string): string {
+  if (isValidUuid(str)) return str;
+  let hash1 = 0;
+  let hash2 = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash1 = ((hash1 << 5) - hash1) + str.charCodeAt(i);
+    hash1 |= 0;
+  }
+  for (let i = str.length - 1; i >= 0; i--) {
+    hash2 = ((hash2 << 5) - hash2) + str.charCodeAt(i);
+    hash2 |= 0;
+  }
+  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
+  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
+  return `00000000-${hex1.slice(0, 4)}-4000-8000-${hex1.slice(4)}${hex2}`.slice(0, 36);
+}
+
+// -------------------------------------------------------------
+// Permanently Deleted Boulders Tombstones (AC-13)
+// Verhindert die ungewollte Re-Initialisierung/Wiederauferstehung
+// von gelöschten Seed- oder Remote-Bouldern in allen Komponenten.
+// -------------------------------------------------------------
+export const STORAGE_KEY_DELETED_BOULDERS = 'boulderapp_deleted_boulders_v1';
+
+export function getDeletedBoulderIds(): Set<string> {
+  const list = getStorageJson<string[]>(STORAGE_KEY_DELETED_BOULDERS, []);
+  return new Set(list);
+}
+
+export function isBoulderDeleted(boulderId: string): boolean {
+  if (!boulderId) return false;
+  const set = getDeletedBoulderIds();
+  if (set.has(boulderId)) return true;
+  const uuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+  return set.has(uuid);
+}
+
+export function markBoulderDeleted(boulderId: string): void {
+  if (!boulderId) return;
+  const set = getDeletedBoulderIds();
+  set.add(boulderId);
+  const uuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+  set.add(uuid);
+  setStorageJson(STORAGE_KEY_DELETED_BOULDERS, Array.from(set));
+}
+
+export function clearDeletedBoulders(): void {
+  removeStorageItem(STORAGE_KEY_DELETED_BOULDERS);
+}
+

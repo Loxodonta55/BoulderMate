@@ -223,28 +223,29 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans overflow-x-hidden w-full max-w-full">
       {/* Mode-Specific Headers */}
       {appMode === 'setter' ? (
         /* Dedicated Schrauber-Studio Header */
-        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40 w-full overflow-hidden">
+          <div className="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
             {/* Studio Brand & Gym Switcher */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
-                <Wrench className="w-4 h-4 stroke-[2]" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] shrink-0">
+                <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2]" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">
-                  Schrauber-Studio
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-xs sm:text-base font-headline uppercase tracking-wider text-[#E8E0D4] shrink-0">
+                  <span className="inline sm:hidden">Studio</span>
+                  <span className="hidden sm:inline">Schrauber-Studio</span>
                 </span>
                 {gyms.length > 0 && (
-                  <div className="flex items-center gap-1.5 ml-1">
+                  <div className="flex items-center gap-1 min-w-0">
                     <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
                     <select
                       value={activeGymId}
                       onChange={(e) => setActiveGymId(e.target.value)}
-                      className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
+                      className="bg-transparent text-[11px] sm:text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5 max-w-[110px] xs:max-w-[150px] sm:max-w-[200px] truncate min-w-0"
                       title="Aktive Boulderhalle wechseln"
                       data-testid="studio-gym-select"
                     >
@@ -260,53 +261,57 @@ export const App: React.FC = () => {
             </div>
 
             {/* Studio Header Actions */}
-            <div className="flex items-center gap-2.5">
-              <span className="text-[11px] font-mono text-[#A89F91] hidden sm:inline">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              <span className="text-[11px] font-mono text-[#A89F91] hidden md:inline">
                 Schrauber: <strong className="text-[#E8E0D4]">{currentUser.nickname}</strong>
               </span>
 
               <button
                 type="button"
                 onClick={() => setIsRoleGatewayOpen(true)}
-                className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition"
+                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition flex items-center gap-1"
                 data-testid="studio-switch-workspace-btn"
                 title="Arbeitsbereich wechseln"
               >
-                Bereich wechseln
+                <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#C9A96E]" />
+                <span className="hidden xs:inline">Bereich</span>
+                <span className="hidden sm:inline"> wechseln</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('climber')}
-                className="px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1.5"
+                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1"
                 data-testid="studio-back-to-climber-btn"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kletterer-App</span>
+                <span className="hidden xs:inline">Kletterer-App</span>
+                <span className="inline xs:hidden">Wand</span>
               </button>
             </div>
           </div>
         </header>
       ) : appMode === 'admin' ? (
         /* Dedicated Hallen-Admin Header */
-        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40 w-full overflow-hidden">
+          <div className="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
             {/* Admin Brand & Gym Switcher */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
-                <Building2 className="w-4 h-4 stroke-[2]" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] shrink-0">
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2]" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">
-                  Hallen-Administration
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-xs sm:text-base font-headline uppercase tracking-wider text-[#E8E0D4] shrink-0">
+                  <span className="inline sm:hidden">Admin</span>
+                  <span className="hidden sm:inline">Hallen-Administration</span>
                 </span>
                 {gyms.length > 0 && (
-                  <div className="flex items-center gap-1.5 ml-1">
+                  <div className="flex items-center gap-1 min-w-0">
                     <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
                     <select
                       value={activeGymId}
                       onChange={(e) => setActiveGymId(e.target.value)}
-                      className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
+                      className="bg-transparent text-[11px] sm:text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5 max-w-[110px] xs:max-w-[150px] sm:max-w-[200px] truncate min-w-0"
                       title="Aktive Boulderhalle wechseln"
                       data-testid="admin-gym-select"
                     >
@@ -322,69 +327,72 @@ export const App: React.FC = () => {
             </div>
 
             {/* Admin Header Actions */}
-            <div className="flex items-center gap-2.5">
-              <span className="text-[11px] font-mono text-[#A89F91] hidden sm:inline">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              <span className="text-[11px] font-mono text-[#A89F91] hidden md:inline">
                 Admin: <strong className="text-[#E8E0D4]">{currentUser.nickname}</strong>
               </span>
 
               <button
                 type="button"
                 onClick={() => setIsRoleGatewayOpen(true)}
-                className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition"
+                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-[2px] text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] transition flex items-center gap-1"
                 data-testid="admin-switch-workspace-btn"
                 title="Arbeitsbereich wechseln"
               >
-                Bereich wechseln
+                <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#C9A96E]" />
+                <span className="hidden xs:inline">Bereich</span>
+                <span className="hidden sm:inline"> wechseln</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('climber')}
-                className="px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1.5"
+                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-[2px] text-xs font-headline uppercase font-bold tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] transition flex items-center gap-1"
                 data-testid="admin-back-to-climber-btn"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kletterer-App</span>
+                <span className="hidden xs:inline">Kletterer-App</span>
+                <span className="inline xs:hidden">Wand</span>
               </button>
             </div>
           </div>
         </header>
       ) : (
         /* Sleek, Clean Climber Navigation Header (SPEC-005) */
-        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <header className="border-b border-[#333333] bg-[#1E1E1E] sticky top-0 z-40 w-full overflow-hidden">
+          <div className="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
             {/* Brand & Gym Switcher */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
-                <Mountain className="w-4 h-4 stroke-[2]" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[2px] bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] shrink-0">
+                <Mountain className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2]" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-headline uppercase tracking-wider text-[#E8E0D4]">BoulderMate</span>
-                  {gyms.length > 0 && (
-                    <div className="flex items-center gap-1.5 ml-1">
-                      <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
-                      <select
-                        value={activeGymId}
-                        onChange={(e) => setActiveGymId(e.target.value)}
-                        className="bg-transparent text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5"
-                        title="Aktive Boulderhalle wechseln"
-                        data-testid="header-gym-select"
-                      >
-                        {gyms.map(g => (
-                          <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-xs sm:text-base font-headline uppercase tracking-wider text-[#E8E0D4] shrink-0">
+                  BoulderMate
+                </span>
+                {gyms.length > 0 && (
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-[10px] font-mono text-[#6B6358] hidden sm:inline">•</span>
+                    <select
+                      value={activeGymId}
+                      onChange={(e) => setActiveGymId(e.target.value)}
+                      className="bg-transparent text-[11px] sm:text-xs font-mono font-semibold text-[#A89F91] hover:text-[#E8E0D4] focus:outline-none cursor-pointer border-b border-dashed border-[#333333] pb-0.5 max-w-[100px] xs:max-w-[140px] sm:max-w-[200px] truncate min-w-0"
+                      title="Aktive Boulderhalle wechseln"
+                      data-testid="header-gym-select"
+                    >
+                      {gyms.map(g => (
+                        <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Primary Focused Navigation (2 Säulen: Wand & Sektoren und Meine Statistiken) */}
-            <nav className="hidden md:flex items-center p-0.5 rounded-none bg-[#121212] border border-[#333333]">
+            <nav className="hidden md:flex items-center p-0.5 rounded-none bg-[#121212] border border-[#333333] shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('wall')}
@@ -414,7 +422,7 @@ export const App: React.FC = () => {
             </nav>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Active Climber Switcher / Auth indicator (Hidden on narrow mobile to keep header clean) */}
               <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-[#121212] border border-[#333333] text-xs">
                 <User className="w-3.5 h-3.5 text-[#C9A96E]" />
@@ -429,7 +437,7 @@ export const App: React.FC = () => {
                       setClimberId(newId);
                     }
                   }}
-                  className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs"
+                  className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs max-w-[120px] truncate"
                   title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
                 >
                   {AVAILABLE_CLIMBERS.map(c => (
@@ -444,12 +452,14 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsLoginModalOpen(true)}
-                className="px-2.5 py-1.5 rounded-[2px] bg-[#1E1E1E] hover:bg-[#2A2A2A] border border-[#333333] hover:border-[#F5F0E8] text-[#A89F91] hover:text-[#E8E0D4] text-xs font-mono flex items-center gap-1.5 transition"
+                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-[2px] bg-[#1E1E1E] hover:bg-[#2A2A2A] border border-[#333333] hover:border-[#F5F0E8] text-[#A89F91] hover:text-[#E8E0D4] text-xs font-mono flex items-center gap-1 sm:gap-1.5 transition shrink-0"
                 title="Anmelden oder Konto verwalten (SPEC-000)"
                 data-testid="login-modal-btn"
               >
-                <LogIn className="w-3.5 h-3.5 text-[#C9A96E]" />
-                <span className="hidden sm:inline">{authSession ? currentUser.nickname : 'Login'}</span>
+                <LogIn className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
+                <span className="text-[11px] sm:text-xs max-w-[65px] xs:max-w-[90px] sm:max-w-none truncate font-bold sm:font-normal">
+                  {authSession ? currentUser.nickname : 'Login'}
+                </span>
               </button>
 
               {/* Discreet Privileged Workspace Switcher (Only visible for setters and admins!) */}
@@ -457,12 +467,12 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsRoleGatewayOpen(true)}
-                  className="px-2.5 py-1.5 rounded-[2px] text-xs font-mono transition flex items-center gap-1.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]"
+                  className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-[2px] text-xs font-mono transition flex items-center gap-1 bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333] shrink-0"
                   title="Arbeitsbereich wählen (Kletterer, Schrauber, Admin)"
                   data-testid="climber-switch-workspace-btn"
                 >
-                  <Wrench className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span className="hidden sm:inline">Bereich wechseln</span>
+                  <Wrench className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
+                  <span className="hidden xs:inline">Bereich</span>
                 </button>
               )}
             </div>
@@ -592,6 +602,21 @@ export const App: React.FC = () => {
               <span className="mt-0.5">Studio</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setIsLoginModalOpen(true)}
+            data-testid="mobile-bottom-login-btn"
+            className="flex flex-col items-center justify-center py-1 px-3 text-[10px] font-headline uppercase tracking-wider text-[#8B8680] hover:text-[#E8E0D4] transition"
+            title="Konto wechseln / Anmelden"
+          >
+            <div className="p-1 rounded-none bg-[#2A2A2A] border border-[#333333]">
+              <LogIn className="w-5 h-5 text-[#C9A96E]" />
+            </div>
+            <span className="mt-0.5 max-w-[55px] truncate font-bold text-[#E8E0D4]">
+              {authSession ? currentUser.nickname : 'Login'}
+            </span>
+          </button>
         </nav>
       )}
 

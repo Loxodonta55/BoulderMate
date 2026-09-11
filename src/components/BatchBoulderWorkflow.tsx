@@ -31,6 +31,9 @@ import {
   BoxSelect,
   Trash2,
   X,
+  Edit3,
+  Save,
+  Archive,
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
@@ -64,6 +67,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
 
   // Batch interaction state
   const [pendingArchiveIds, setPendingArchiveIds] = useState<string[]>([]);
+  const [pendingModifiedIds, setPendingModifiedIds] = useState<string[]>([]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [selectedBoulderIds, setSelectedBoulderIds] = useState<string[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState<boolean>(false);
@@ -79,6 +83,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     if (selectedSectorId) {
       setBoulders(getWallBoulders(selectedSectorId));
       setPendingArchiveIds([]);
+      setPendingModifiedIds([]);
       setSelectedBoulder(null);
       setSelectedBoulderIds([]);
       setIsSheetOpen(false);
@@ -125,15 +130,18 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     setIsSheetOpen(true);
   };
 
-  // Pin move (AC-7)
+  // Pin move (AC-7, SPEC-013)
   const handlePinMove = (boulderId: string, newX: number, newY: number) => {
-    updateBoulderPosition(boulderId, newX, newY);
     setBoulders(prev =>
       prev.map(b => (b.id === boulderId ? { ...b, positionX: newX, positionY: newY } : b))
     );
+    const target = boulders.find(b => b.id === boulderId);
+    if (target && target.status !== 'draft') {
+      setPendingModifiedIds(prev => prev.includes(boulderId) ? prev : [...prev, boulderId]);
+    }
   };
 
-  // Save changes from Bottom-Sheet (AC-4, AC-5)
+  // Save changes from Bottom-Sheet (AC-4, AC-5, SPEC-013)
   const handleSaveSheet = (data: {
     gradeScaleId: string;
     name?: string;
@@ -142,10 +150,13 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   }) => {
     if (!selectedBoulder) return;
 
-    updateBoulderDetails(selectedBoulder.id, data);
     setBoulders(prev =>
       prev.map(b => (b.id === selectedBoulder.id ? { ...b, ...data } : b))
     );
+    if (selectedBoulder.status !== 'draft') {
+      setPendingModifiedIds(prev => prev.includes(selectedBoulder.id) ? prev : [...prev, selectedBoulder.id]);
+      showToast('Änderung vorgemerkt! Mit "Speichern" unten final bestätigen.');
+    }
     setIsSheetOpen(false);
     setSelectedBoulder(null);
   };
@@ -154,6 +165,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   const handleDeleteDraft = (boulderId: string) => {
     deleteDraftBoulder(boulderId);
     setBoulders(prev => prev.filter(b => b.id !== boulderId));
+    setPendingModifiedIds(prev => prev.filter(id => id !== boulderId));
     setIsSheetOpen(false);
     setSelectedBoulder(null);
   };
@@ -161,10 +173,9 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // AC-13: Permanently delete an individual boulder (draft or active)
   const handleDeleteBoulder = (boulderId: string) => {
     deleteWallBoulder(boulderId);
+    setBoulders(prev => prev.filter(b => b.id !== boulderId));
     if (selectedSectorId) {
       setBoulders(getWallBoulders(selectedSectorId));
-    } else {
-      setBoulders(prev => prev.filter(b => b.id !== boulderId));
     }
     setPendingArchiveIds(prev => prev.filter(id => id !== boulderId));
     setSelectedBoulderIds(prev => prev.filter(id => id !== boulderId));
@@ -192,6 +203,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     selectedBoulderIds.forEach(id => {
       deleteWallBoulder(id);
     });
+    setBoulders(prev => prev.filter(b => !selectedBoulderIds.includes(b.id)));
     if (selectedSectorId) {
       setBoulders(getWallBoulders(selectedSectorId));
     }
@@ -244,20 +256,38 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     }
   };
 
-  // Batch Publish Execution (AC-9)
+  // Batch Publish Execution (AC-9, SPEC-013)
   const handlePublishBatch = () => {
     if (!selectedSectorId) return;
 
+    // Persist all staged modifications to storage / sync
+    for (const modId of pendingModifiedIds) {
+      const b = boulders.find(x => x.id === modId);
+      if (b) {
+        updateBoulderDetails(b.id, {
+          gradeScaleId: b.gradeScaleId,
+          name: b.name,
+          notes: b.notes,
+          radar: b.radar,
+        });
+        updateBoulderPosition(b.id, b.positionX, b.positionY);
+      }
+    }
+
+    const modCount = pendingModifiedIds.length;
     const result = publishBatch(selectedSectorId, currentUserId, pendingArchiveIds);
 
     // Refresh state
     setBoulders(getWallBoulders(selectedSectorId));
     setPendingArchiveIds([]);
+    setPendingModifiedIds([]);
     setIsSummaryOpen(false);
 
-    showToast(
-      `Erfolgreich veröffentlicht! +${result.publishedCount} neu aktiv, -${result.archivedCount} archiviert.`
-    );
+    const message = drafts.length === 0 && pendingArchiveIds.length === 0
+      ? `Erfolgreich gespeichert! ${modCount} Route${modCount === 1 ? '' : 'n'} aktualisiert.`
+      : `Erfolgreich gespeichert! +${result.publishedCount} neu aktiv, ${modCount} geändert, -${result.archivedCount} archiviert.`;
+
+    showToast(message);
   };
 
   const showToast = (msg: string) => {
@@ -267,9 +297,11 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     }, 4000);
   };
 
-  // Filter drafts and archives for current session
+  // Filter drafts, archives, and modifications for current session
   const drafts = boulders.filter(b => b.status === 'draft');
   const markedForArchiveBoulders = boulders.filter(b => pendingArchiveIds.includes(b.id));
+  const modifiedBoulders = boulders.filter(b => pendingModifiedIds.includes(b.id) && b.status !== 'draft');
+  const totalChanges = drafts.length + markedForArchiveBoulders.length + modifiedBoulders.length;
 
   // If unauthorized role (AC-1)
   if (!isAuthorized) {
@@ -318,7 +350,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
                 <select
                   value={selectedGymId}
                   onChange={e => handleGymChange(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-[#E8E0D4] focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs font-mono font-bold text-[#E8E0D4] focus:outline-none cursor-pointer max-w-[120px] sm:max-w-[200px] truncate"
                   title="Halle für Routensetzung wechseln"
                 >
                   {gyms.map(g => (
@@ -397,6 +429,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
             boulders={boulders}
             gradeScales={gradeScales}
             pendingArchiveIds={pendingArchiveIds}
+            pendingModifiedIds={pendingModifiedIds}
             selectedBoulderId={selectedBoulder?.id || null}
             selectedBoulderIds={selectedBoulderIds}
             onSelectionChange={setSelectedBoulderIds}
@@ -455,23 +488,43 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-[#4A5D3A]" />
                 {drafts.length} neu
               </span>
+              <span className={`flex items-center gap-1 px-2.5 py-1 rounded-none bg-[#121212] border text-xs font-mono font-bold ${
+                modifiedBoulders.length > 0 ? 'border-[#C9A96E] text-[#C9A96E]' : 'border-[#333333] text-[#6B6358]'
+              }`}>
+                <Edit3 className="w-3.5 h-3.5" />
+                {modifiedBoulders.length} geändert
+              </span>
               <span className="flex items-center gap-1 px-2.5 py-1 rounded-none bg-[#121212] border border-[#A0522D] text-[#A0522D] text-xs font-mono font-bold">
-                {pendingArchiveIds.length} archiviert
+                <Archive className="w-3.5 h-3.5 text-[#A0522D]" />
+                {markedForArchiveBoulders.length} archiviert
               </span>
             </div>
             <p className="hidden md:block text-xs font-mono text-[#A89F91]">
-              Tippe ins Foto für nächsten Pin. Erst mit "Veröffentlichen" wird alles online gestellt.
+              {totalChanges > 0
+                ? 'Änderungen vorgemerkt. Klicke auf "Speichern", um sie final zu schalten.'
+                : 'Tippe ins Foto für nächsten Pin oder wähle bestehende Boulder zum Bearbeiten.'}
             </p>
           </div>
 
           <button
             type="button"
+            data-testid="publish-batch-btn"
             onClick={() => setIsSummaryOpen(true)}
-            disabled={drafts.length === 0 && pendingArchiveIds.length === 0}
-            className="px-5 py-2.5 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={totalChanges === 0}
+            className="px-5 py-2.5 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md cursor-pointer"
           >
-            <Rocket className="w-4 h-4" />
-            <span>Zusammenfassung & Veröffentlichen ({drafts.length + pendingArchiveIds.length})</span>
+            {drafts.length === 0 && markedForArchiveBoulders.length === 0 ? (
+              <Save className="w-4 h-4" />
+            ) : (
+              <Rocket className="w-4 h-4" />
+            )}
+            <span>
+              {drafts.length === 0 && markedForArchiveBoulders.length === 0 && modifiedBoulders.length > 0
+                ? `Änderungen speichern (${modifiedBoulders.length})`
+                : drafts.length > 0 && modifiedBoulders.length === 0 && markedForArchiveBoulders.length === 0
+                ? `Zusammenfassung & Veröffentlichen (${drafts.length})`
+                : `Speichern & Veröffentlichen (${totalChanges})`}
+            </span>
           </button>
         </div>
       </div>
@@ -501,6 +554,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         sector={selectedSector}
         draftBoulders={drafts}
         archivedBoulders={markedForArchiveBoulders}
+        modifiedBoulders={modifiedBoulders}
         gradeScales={gradeScales}
         hasPhotoUpdated={hasPhotoUpdated}
         onClose={() => setIsSummaryOpen(false)}

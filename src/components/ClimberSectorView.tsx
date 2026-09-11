@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   WallBoulder,
   CurrentUser,
@@ -64,6 +64,60 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [filterMode, setFilterMode] = useState<RatingFilter>('all');
   const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
+
+  const sectorTabsContainerRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+
+  // Auto-scroll active sector button into view whenever selectedSectorId changes
+  useEffect(() => {
+    if (!selectedSectorId || !sectorTabsContainerRef.current) return;
+
+    const container = sectorTabsContainerRef.current;
+    const activeBtn = container.querySelector<HTMLButtonElement>(`[data-sector-id="${selectedSectorId}"]`);
+
+    if (activeBtn) {
+      const behavior = isFirstRender.current ? 'auto' : 'smooth';
+      isFirstRender.current = false;
+
+      const containerRect = container.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      let targetScrollLeft = 0;
+
+      if (containerRect.width > 0) {
+        targetScrollLeft =
+          container.scrollLeft +
+          (btnRect.left - containerRect.left) -
+          container.clientWidth / 2 +
+          activeBtn.offsetWidth / 2;
+      } else {
+        targetScrollLeft =
+          activeBtn.offsetLeft -
+          container.clientWidth / 2 +
+          activeBtn.offsetWidth / 2;
+      }
+
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({
+          left: Math.max(0, targetScrollLeft),
+          behavior,
+        });
+      } else {
+        container.scrollLeft = Math.max(0, targetScrollLeft);
+      }
+
+      if (typeof activeBtn.scrollIntoView === 'function') {
+        try {
+          activeBtn.scrollIntoView({
+            behavior,
+            block: 'nearest',
+            inline: 'center',
+          });
+        } catch {
+          // ignore if options unsupported
+        }
+      }
+    }
+  }, [selectedSectorId, sectors]);
 
   // Sector indexing & swipe switching (Requirement 1 & 4)
   const currentSectorIndex = useMemo(() => {
@@ -208,23 +262,23 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       {/* Sector Selection Bar — Compact & Mobile-First */}
-      <div className="bg-[#1E1E1E] border border-[#333333] p-3 sm:p-4 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
-          <div>
+      <div className="bg-[#1E1E1E] border border-[#333333] p-3 sm:p-4 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-full overflow-hidden">
+        <div className="flex items-center justify-between gap-3 w-full sm:w-auto min-w-0">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-widest mb-0.5">
-              <Layers className="w-3.5 h-3.5" />
-              <span>{gym?.name || 'Boulderhalle'}</span>
-              <span className="text-[#6B6358]">•</span>
-              <span className="text-[#A89F91]">Sektoren & Wandansicht</span>
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{gym?.name || 'Boulderhalle'}</span>
+              <span className="text-[#6B6358] shrink-0">•</span>
+              <span className="text-[#A89F91] shrink-0">Sektoren & Wandansicht</span>
             </div>
-            <h2 className="text-base sm:text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+            <h2 className="text-base sm:text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate">
               {selectedSector?.name || 'Wandansicht'}
             </h2>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {gyms.length > 1 && (
               <select
                 value={selectedGymId}
@@ -258,7 +312,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
         {/* Sector Tabs & Mobile Switcher */}
         {sectors.length > 0 && (
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto pb-1 sm:pb-0 min-w-0 max-w-full">
             {/* Prev sector button */}
             <button
               type="button"
@@ -272,18 +326,22 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             </button>
 
             {/* Scrollable Sector List */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 sm:flex-initial">
+            <div
+              ref={sectorTabsContainerRef}
+              className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0 relative scroll-smooth"
+            >
               {sectors.map(sector => {
                 const isSelected = sector.id === selectedSectorId;
                 return (
                   <button
                     key={sector.id}
+                    data-sector-id={sector.id}
                     type="button"
                     onClick={() => setSelectedSectorId(sector.id)}
                     className={`px-3 py-1 rounded-[2px] text-xs font-headline uppercase tracking-wider transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? 'bg-[#F5F0E8] text-[#121212] font-bold shadow-sm'
-                        : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]'
+                        : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
                     }`}
                   >
                     <span>{sector.name}</span>

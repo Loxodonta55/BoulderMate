@@ -17,6 +17,7 @@ import {
   Minimize2,
   BoxSelect,
   Check,
+  Edit3,
 } from 'lucide-react';
 
 export interface WallPhotoCanvasProps {
@@ -28,6 +29,7 @@ export interface WallPhotoCanvasProps {
 
   // Setter mode props
   pendingArchiveIds?: string[];
+  pendingModifiedIds?: string[];
   selectedBoulderId?: string | null;
   selectedBoulderIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
@@ -54,6 +56,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   boulders,
   gradeScales,
   pendingArchiveIds = [],
+  pendingModifiedIds = [],
   selectedBoulderId = null,
   selectedBoulderIds = [],
   onSelectionChange,
@@ -465,6 +468,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             // Setter Mode
             const isDraft = boulder.status === 'draft';
             const isMarkedForArchive = pendingArchiveIds.includes(boulder.id) || boulder.status === 'archived';
+            const isModified = pendingModifiedIds.includes(boulder.id);
             const isSelected = selectedBoulderId === boulder.id;
             const isMultiSelected = selectedBoulderIds.includes(boulder.id);
             const isDragging = draggingPinId === boulder.id;
@@ -493,6 +497,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                       ? 'w-9 h-9 rounded-full ring-2 ring-[#F5F0E8] scale-105'
                       : isMarkedForArchive
                       ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-35 grayscale'
+                      : isModified
+                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-95 ring-2 ring-[#C9A96E] scale-105'
                       : 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[#F5F0E8]/70'
                   } ${isSelected ? 'ring-2 ring-[#C9A96E] scale-125 z-30' : ''} ${
                     isMultiSelected ? 'ring-4 ring-[#C9A96E] scale-125 z-30 shadow-lg' : ''
@@ -506,7 +512,10 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   {/* Inner Pin Icon / Details */}
                   {isDraft && <Sparkles className="w-4 h-4 text-[#121212]" />}
                   {isMarkedForArchive && <Archive className="w-3.5 h-3.5 text-[#121212]" />}
-                  {!isDraft && !isMarkedForArchive && (
+                  {isModified && !isDraft && !isMarkedForArchive && (
+                    <Edit3 className="w-3 h-3 text-[#121212]" />
+                  )}
+                  {!isDraft && !isMarkedForArchive && !isModified && (
                     <div className="w-2 h-2 rounded-full bg-[#121212]/80" />
                   )}
 

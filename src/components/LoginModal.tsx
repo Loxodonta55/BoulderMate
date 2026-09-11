@@ -126,12 +126,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 font-sans animate-in fade-in duration-200">
-      <div className="bg-[#1E1E1E] border border-[#333333] rounded-none w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-4 bg-black/85 font-sans animate-in fade-in duration-200 flex items-start sm:items-center justify-center"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="bg-[#1E1E1E] border border-[#333333] rounded-none w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="p-5 border-b border-[#333333] flex items-center justify-between bg-[#1A1A1A]">
+        <div className="p-4 sm:p-5 border-b border-[#333333] flex items-center justify-between bg-[#1A1A1A]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
+            <div className="w-9 h-9 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] shrink-0">
               <Shield className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
@@ -145,10 +155,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-[#6B6358] hover:text-[#E8E0D4] p-1.5 rounded-[2px] hover:bg-[#2A2A2A] transition"
+            className="text-[#A89F91] hover:text-[#E8E0D4] min-w-[44px] min-h-[44px] p-2 rounded-[2px] bg-[#2A2A2A]/80 sm:bg-transparent hover:bg-[#2A2A2A] transition flex items-center justify-center shrink-0 border border-[#333333] sm:border-transparent"
             title="Schließen"
+            aria-label="Schließen"
+            data-testid="login-modal-close-btn"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-[#E8E0D4] sm:text-[#6B6358] sm:hover:text-[#E8E0D4]" />
           </button>
         </div>
 
@@ -338,6 +350,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               })}
             </div>
           </div>
+        </div>
+
+        {/* Footer for Mobile / Quick Dismiss */}
+        <div className="p-3.5 sm:p-4 border-t border-[#333333] bg-[#1A1A1A] flex items-center justify-between">
+          <span className="text-[11px] font-mono text-[#6B6358]">BoulderMate Authentication</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#E8E0D4] bg-[#2A2A2A] border border-[#333333] hover:bg-[#333333] transition"
+            data-testid="login-modal-cancel-btn"
+          >
+            Schließen
+          </button>
         </div>
       </div>
     </div>
