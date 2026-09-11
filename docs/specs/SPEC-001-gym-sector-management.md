@@ -14,13 +14,13 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
 
 ## Acceptance Criteria
 - [x] **AC-2**: Ein Hallen-Admin kann das hallenspezifische Farbsystem (`grade_scales`) anlegen und bearbeiten. Jede Farbe besitzt `color_name`, `color_hex`, `difficulty_label`, `font_range_min`, `font_range_max` und `sort_order`.
-  - **AC-2.1 (Cross-Area Reaktiv-Synchronisation)**:
+  - **AC-2.1 (Cross-Area Reaktiv-Synchronisation & Kanonische Farbskalen)**:
     - Jede im Admin-Bereich konfigurierte Änderung am Farbsystem (Hinzufügen neuer Farben, Ändern von Farbname, Hex-Farbcode, Schwierigkeitsgrad, Font-Bändern, Umsortieren oder Löschen) synchronisiert sofort und ohne Seitenreload in das Schrauber-Studio (`BatchBoulderWorkflow`) und die Kletterer-App (`ClimberSectorView`).
-    - `gymStorage.getGradeScales` fungiert als Single Source of Truth für das Hallen-Farbsystem.
+    - `gymStorage.getGradeScales` fungiert als autoritative Single Source of Truth für das Hallen-Farbsystem und nutzt strikte Deduplizierung deutscher Schreibweisen (z. B. "Weiß" vs. "Weiss" über `color_name.trim().toLowerCase().replace(/ß/g, 'ss')`), sodass niemals doppelte oder divergierende Farbskalen zwischen Admin, Schrauber und Kletterer entstehen.
     - `batchBoulderService.getGradeScales` übernimmt stets die autoritativen Farbskalen aus `gymStorage` und hält den V2-Cache (`boulderapp_grade_scales_v2`) 1:1 synchron, sodass keine Geisterfarben oder gelöschten Skalen verbleiben.
     - Das Speichern im Admin löst das Event `bouldermate:gradescales_updated` aus, worauf der Hook `useGymSectorData` in allen aktiven Ansichten reaktiv anspricht.
-  - **AC-2.2 (Non-destruktive Cloud-Synchronisation)**:
-    - Änderungen an Farbskalen werden via `syncGradeScalesToSupabase` / `sync-all-to-supabase.js` non-destruktiv aufwärts mit der Supabase-Tabelle `grade_scales` abgeglichen (strikte Regel: niemals Remote-Löschung).
+  - **AC-2.2 (Non-destruktive Cloud-Synchronisation & Constraint-Harmonie)**:
+    - Änderungen an Farbskalen werden via `syncGradeScalesToSupabase` non-destruktiv aufwärts mit der Supabase-Tabelle `grade_scales` abgeglichen. Dabei werden bestehende UUIDs remote über den normalisierten Farbnamen wiederverwendet, um Unique-Constraint-Verletzungen (`uq_grade_scales_gym_color`) und Duplikate zuverlässig auszuschließen.
 - [x] **AC-3**: Sektoren erfordern `name` und ein valides `wall_photo_url`.
 - [x] **AC-4**: **Drag & Drop Sektor-Sortierung & Reihenfolgeverwaltung**:
   - **AC-4.1 (Drag & Drop Interaktion)**: Jede Sektor-Karte im `SectorManager` verfügt über einen deutlichen Drag-Handle (`GripVertical`-Icon) und ist für Hallen-Admins per HTML5 Drag & Drop greifbar (`draggable={isAdmin}`).

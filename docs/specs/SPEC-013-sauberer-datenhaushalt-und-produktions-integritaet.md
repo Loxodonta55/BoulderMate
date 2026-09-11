@@ -104,5 +104,9 @@ In der Grill-Me Analyse wurden die konkreten Ursachen identifiziert, warum Deplo
   - `App.tsx` und `gymStorage.ts` überschreiben keine lokalen Daten mit Beispieldaten, wenn eine Supabase-Verbindung aktiv ist.
   - Das Laden aus Supabase hat Vorrang; lokale Mock-Bouldern werden nicht in Supabase hochgespielt.
 - [x] **AC-5 (Datenbank-Integrität & Deduplizierung)**:
-  - Duplikate in `grade_scales` (insb. "Weiß"/"Weiss" auf 6a plus) sind bereinigt.
-  - Eindeutigkeits-Constraints (`UNIQUE (gym_id, lower(trim(color_name)))`) schützen die Tabellen vor zukünftigen Mehrfacheinträgen.
+  - Duplikate in `grade_scales` (insb. "Weiß"/"Weiss" auf 6a plus) sind vollständig auf die primäre ID `3e322450-4c56-4422-8c88-7f518b716352` bereinigt.
+  - Eindeutigkeits-Constraints (`UNIQUE (gym_id, lower(trim(color_name)))`) schützen die Tabellen vor zukünftigen Mehrfacheinträgen; clientseitig werden deutsche Schreibvarianten (`ß` vs `ss`) einheitlich harmonisiert.
+- [x] **AC-6 (Sektor-übergreifende Zero-Ghost-Route Policy & Universal Mock-Purge)**:
+  - In keinem Sektor einer Halle (weder 6a plus noch Minimum Zürich) dürfen fiktive Mock-/Dummy-Boulder existieren.
+  - Veraltete Seed-IDs (z. B. `boulder-6a-...`, `boulder-existing-...`, `boulder-overhang-...`) werden bei Client-Start und Sync-Lauf automatisch getombstonet und aus allen Stores (`boulderapp_wall_boulders_v2`, `boulderapp_gym_boulders`, `boulder_routes_v1`) entfernt.
+  - Bei Synchronisation mit Supabase gilt ein strikter Abgleich: Lokale Boulder eines Sektors, die nicht in der Supabase-Produktionsdatenbank existieren, werden bereinigt, sodass Desktop, Mobilgeräte, Schrauber und Kletterer auf exakt denselben 15 aktiven Routen (6a plus) bzw. 27 aktiven Routen (Minimum Zürich) operieren.

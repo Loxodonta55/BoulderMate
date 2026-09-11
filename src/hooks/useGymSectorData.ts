@@ -85,9 +85,14 @@ export function useGymSectorData(
         refreshGymData();
       }
     };
+    const handleSectorsUpdated = () => {
+      refreshGymData();
+    };
     window.addEventListener('bouldermate:gradescales_updated', handleGradeScalesUpdated);
+    window.addEventListener('bouldermate:sectors_updated', handleSectorsUpdated);
     return () => {
       window.removeEventListener('bouldermate:gradescales_updated', handleGradeScalesUpdated);
+      window.removeEventListener('bouldermate:sectors_updated', handleSectorsUpdated);
     };
   }, [selectedGymId, activeGymId, refreshGymData]);
 

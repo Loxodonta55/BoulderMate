@@ -12,7 +12,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { Sector, WallBoulder, Ascent, BoulderRating } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
-import { getStorageJson, setStorageJson, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
+import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
@@ -347,9 +347,15 @@ export async function syncFromSupabase(): Promise<boolean> {
         }
       }
 
-      // Explicitly purge any permanently deleted or obsolete dummy seed routes
+      const remoteBoulderIdSet = new Set(dbBoulders.map(b => b.id));
+
+      // Explicitly purge ANY legacy mock seed routes or active boulders not present in Supabase
       for (const [localId, localB] of boulderMap.entries()) {
-        if (isBoulderDeleted(localId) ||
+        const isLegacySeed = localId.startsWith('boulder-existing-') || localId.startsWith('boulder-6a-');
+        const isDeleted = isBoulderDeleted(localId);
+        const isOrphanedActive = localB.status === 'active' && !remoteBoulderIdSet.has(localId);
+
+        if (isLegacySeed || isDeleted || isOrphanedActive ||
             localB.name === 'Glatteis' ||
             localB.name === 'Mikro-Sloper' ||
             localB.name === 'Balance-Pfeiler' ||
@@ -357,11 +363,21 @@ export async function syncFromSupabase(): Promise<boolean> {
             ((localB.sectorId === 'sec_6a_slab_vorne' || localB.sectorId === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && localId === 'a06a9337-4e3d-4b78-8dcf-aa697418a836')) {
           boulderMap.delete(localId);
           v1BoulderMap.delete(localId);
+          if (isLegacySeed) {
+            markBoulderDeleted(localId);
+          }
+        }
+      }
+
+      for (const [v1Id] of v1BoulderMap.entries()) {
+        if (v1Id.startsWith('boulder-existing-') || v1Id.startsWith('boulder-6a-') || !remoteBoulderIdSet.has(v1Id)) {
+          v1BoulderMap.delete(v1Id);
         }
       }
 
       setStorageJson(STORAGE_KEY_WALL_BOULDERS, Array.from(boulderMap.values()));
       gymStorage.saveBoulders(Array.from(v1BoulderMap.values()));
+      setStorageString('bouldermate_synced_from_supabase', 'true');
       currentSyncStatus.syncedBoulders = boulderMap.size;
 
       if (typeof window !== 'undefined') {
@@ -451,18 +467,23 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
     const remoteByName = new Map<string, string>();
     if (existingRemote) {
       for (const r of existingRemote) {
-        remoteByName.set(r.color_name.trim().toLowerCase(), r.id);
+        remoteByName.set(r.color_name.trim().toLowerCase().replace(/ß/g, 'ss'), r.id);
       }
     }
 
     const upsertPayload = scales.map((s, idx) => {
+      const normColor = s.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
       // Wenn es bereits eine passende UUID in Supabase gibt, diese wiederverwenden
-      const remoteId = remoteByName.get(s.color_name.trim().toLowerCase()) ||
+      const remoteId = remoteByName.get(normColor) ||
         (s.id && s.id.includes('-') && s.id.length > 30 ? s.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined));
+
+      const finalColorName = (supabaseGymId === 'f2b11564-ca86-4ed4-b51c-3affb346144b' && normColor === 'weiss')
+        ? 'Weiss'
+        : s.color_name.trim();
 
       const item: any = {
         gym_id: supabaseGymId,
-        color_name: s.color_name.trim(),
+        color_name: finalColorName,
         color_hex: s.color_hex.trim(),
         difficulty_label: s.difficulty_label.trim(),
         font_range_min: s.font_range_min.trim(),

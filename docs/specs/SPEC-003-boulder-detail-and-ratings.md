@@ -41,13 +41,10 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
 - [x] **AC-12: Dynamische Farbsystem-Alignierung (Kletterer ⟷ Admin & Single Source of Truth)**:
   - Der Kletterer-Bereich (`ClimberSectorView`, `BoulderDetailModal`, Pin-Labels, Sektor-Filter-Pills) spiegelt das im Admin-Bereich konfigurierte hallenspezifische Farbsystem zu 100% konsistent wider.
   - Farb-Badges, Schwierigkeitsbänder, Font-Notenskalen und Pin-Farben werden dynamisch über die aufgelöste `GymGradeScale` der aktiven Halle bezogen.
-  - Bei "6a plus Winterthur" sieht der Kletterer exakt das offizielle 6-Stufen-System:
-    1. **Blau** — *Gemütlich* (3 – 4+)
-    2. **Grün** — *Flott* (5 – 5+)
-    3. **Gelb** — *Trick* (6a – 6b)
-    4. **Rot** — *Rassig* (6b+ – 6c+)
-    5. **Weiss** — *Böse* (7a – 7b)
-    6. **Beige** — *Bestial* (7b+ und schwerer)
+  - Hallenfarben werden kanonisch aus Supabase geladen:
+    - **6a plus Winterthur**: Sonnengelb, Blau, Grün, Gelb, Rot, Weiss, Schwarz, Beige.
+    - **Minimum Zürich**: Grün, Blau, Gelb, Rot, Schwarz, Weiß, Pink, Türkis.
+  - Deutsche Rechtschreibvarianten ("Weiß" vs. "Weiss") werden automatisiert harmonisiert, sodass keine doppelten Skalen im Filter oder in Detailansichten auftauchen.
   - Jegliche Modifikation durch den Hallen-Admin wirkt sich ohne Seitenreload sofort auf Pin-Farben, Schwierigkeits-Header und Noten-Filter aus. *(Getestet in `tests/gradeScaleSync.test.tsx`)*
 - [x] **AC-13: Dauerhaftes Löschen von Routen (Permanentes Löschen statt Abschrauben)**:
   - Ermöglicht berechtigten Benutzern (Schrauber, Hallen-Admins, Plattform-Admins, Routenersteller und Boris) das endgültige und unwiderrufliche Löschen einer Route direkt aus der Detailansicht im Kletterbereich (`BoulderDetailModal`).

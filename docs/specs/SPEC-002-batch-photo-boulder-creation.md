@@ -29,13 +29,9 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
 - [x] **AC-10**: **Präzise 1:1 Koordinaten-Ausrichtung (Schrauber ⟷ Kletterer)**: Das Wandfoto und die Pins werden in beiden Bereichen (`BatchBoulderWorkflow` und `ClimberSectorView`) über dieselbe einheitliche Komponente `WallPhotoCanvas` (`mode="setter"` bzw. `mode="climber"`) unbeschnitten im natürlichen Seitenverhältnis gerendert (ohne `object-cover`, ohne Flexbox-Zentrierungsclipping und ohne ungleiche vertikale Höhenbeschränkungen), sodass relative Koordinaten `(position_x, position_y)` auf allen Bildschirmgrößen und Zoomstufen exakt auf denselben Griffen liegen. Pin-Marker sind über identische Pin-Zentrierung (`-translate-x-1/2 -translate-y-1/2`) mathematisch exakt ausgerichtet. *(Getestet in `tests/pinCoordinateAlignment.test.tsx`)*
 - [x] **AC-11**: **Dynamische Farbsystem-Alignierung (Schrauber ⟷ Admin & Single Source of Truth)**:
   - Das Schrauber-Studio (`BatchBoulderWorkflow`, `BoulderBottomSheet`, `WallPhotoCanvas`) bindet keine statischen Farblisten ein, sondern bezieht alle Farbstufen dynamisch aus der Single Source of Truth des hallenspezifischen Farbsystems (`gymStorage` via `useGymSectorData`).
-  - Für "6a plus Winterthur" stehen exakt die 6 realen Hallenfarben zur Verfügung:
-    1. **Blau** — *Gemütlich* (Font 3 – 4+)
-    2. **Grün** — *Flott* (Font 5 – 5+)
-    3. **Gelb** — *Trick* (Font 6a – 6b)
-    4. **Rot** — *Rassig* (Font 6b+ – 6c+)
-    5. **Weiss** — *Böse* (Font 7a – 7b)
-    6. **Beige** — *Bestial* (Font 7b+ und schwerer)
+  - Für "6a plus Winterthur" und "Minimum Zürich" stehen exakt die realen Hallenfarben aus Supabase zur Verfügung:
+    - 6a plus: Sonnengelb, Blau, Grün, Gelb, Rot, Weiss, Schwarz, Beige.
+    - Minimum Zürich: Grün, Blau, Gelb, Rot, Schwarz, Weiß, Pink, Türkis.
   - Im Bottom-Sheet (`BoulderBottomSheet`) wird die Farbauswahl-Palette direkt aus den aktiven `gradeScales` der ausgewählten Halle gerendert.
   - Jede Admin-Änderung (Farbanpassungen, Umbenennungen, Reihenfolgen, Ergänzungen oder Deaktivierungen) wird reaktiv über das Event `bouldermate:gradescales_updated` ohne Neuladen der Seite sofort in die Schrauber-Farbauswahl übertragen.
   - Gesetzte Pins erhalten ihren Hex-Farbcode strikt über das aufgelöste `gradeScale`-Objekt ihrer `grade_scale_id`. *(Getestet in `tests/gradeScaleSync.test.tsx`)*
@@ -44,10 +40,11 @@ Ermöglicht Schraubern (Route Settern) nach einem Schraubtag, alle neuen Boulder
   - Alle Boulder-Pins, deren Koordinaten innerhalb des aufgespannten Bereichs liegen, werden visuell hervorgehoben (Goldener Auswahlring und Selektionsbadge) und in die Mehrfachauswahl übernommen.
   - Eine schwebende Aktionsleiste zeigt die Anzahl der markierten Boulder („X Boulder ausgewählt“) und bietet die Aktionen „Ausgewählte löschen“ (sowie Tastatur-Shortcut `Delete`/`Backspace`) und „Abbrechen“.
   - Beim Klick auf „Löschen“ werden alle selektierten Boulder (sowohl Entwürfe als auch bestehende Routen) aus dem System entfernt. *(Getestet in `tests/boxSelectionDelete.test.tsx`)*
-- [x] **AC-13**: **Permanentes Löschen von Routen im Schrauber-Bereich (Einzel-Löschung statt Archivierung)**:
+- [x] **AC-13**: **Permanentes Löschen von Routen im Schrauber-Bereich (Alle Sektoren & Zero-Mock-Garantie)**:
   - Im Bottom-Sheet (`BoulderBottomSheet`) existiert für bestehende Routen neben der Archivierungsoption ("Abgeschraubt") ein expliziter Button zum endgültigen Löschen der Route ("Route löschen").
   - Ein Bestätigungsdialog fragt vor der Durchführung ab ("Route unwiderruflich löschen?"), um versehentliche Klicks abzufangen.
   - Nach Bestätigung wird die Route über `deleteWallBoulder` kaskadierend aus allen lokalen Stores (`boulderapp_wall_boulders_v2`, `boulderapp_gym_boulders`, `boulderapp_boulders`), allen verknüpften Begehungen, Bewertungen und Kommentaren sowie aus Supabase entfernt.
+  - **Sektor-übergreifende Produktions-Konsistenz**: Für **alle Sektoren** (nicht nur Slab Vorne, sondern ebenso Ecke Vorne, Zwischenwand Vorne, Überhang Vorne, Ecke Mitte, Cave usw.) gilt strikt Supabase als Single Source of Truth. Veraltete oder fiktive Mock-Routen (IDs beginnend mit `boulder-6a-`, `boulder-existing-`, `boulder-overhang-`) werden unwiderruflich getombstonet (`PERMANENTLY_PURGED_BOULDER_IDS`) und können weder auf Mobilgeräten noch auf Desktop wiederauferstehen.
   - Das Wandfoto und die Routenliste aktualisieren sich ohne Seiten-Reload in Echtzeit. *(Getestet in `tests/spec002Components.test.tsx`)*
 
 ## Technical Design

@@ -62,6 +62,12 @@ export const SECTOR_ALIAS_MAP: Record<string, string> = {
   '41be4e25-728f-476b-b618-f78e8b37397a': 'sec_6a_cave',
   'sec_6a_cave_wand': '9b92826f-6fe7-48a5-b3e5-edd5f149d486',
   '9b92826f-6fe7-48a5-b3e5-edd5f149d486': 'sec_6a_cave_wand',
+  'sector-overhang': 'aec62df5-28cc-4668-9438-cb1fb4a63377',
+  'aec62df5-28cc-4668-9438-cb1fb4a63377': 'sector-overhang',
+  'sector-slab': '2d07042e-e13a-4b87-8bf6-acd3324116d0',
+  '2d07042e-e13a-4b87-8bf6-acd3324116d0': 'sector-slab',
+  'sector-roof': '07448316-152b-41cb-972b-babe90f64f8e',
+  '07448316-152b-41cb-972b-babe90f64f8e': 'sector-roof',
 };
 
 export function clearBatchServiceStorage(): void {
@@ -422,39 +428,43 @@ export function setLastSelectedGradeScaleId(gymId: string, scaleId: string): voi
 // -------------------------------------------------------------
 export function getWallBoulders(sectorId?: string): WallBoulder[] {
   const raw = getStorageString(STORAGE_KEY_WALL_BOULDERS);
+  const isSynced = getStorageString('bouldermate_synced_from_supabase') === 'true';
   let all: WallBoulder[];
   if (!raw) {
-    all = [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
+    all = isSynced ? [] : [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
     setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
   } else {
     try {
       all = JSON.parse(raw);
     } catch {
-      all = [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
+      all = isSynced ? [] : [...SEED_EXISTING_BOULDERS].filter(b => !isBoulderDeleted(b.id));
     }
   }
 
   // Filter out any boulders marked as deleted or obsolete dummy seed boulders
   all = all.filter(b => {
     if (isBoulderDeleted(b.id)) return false;
+    if (isSynced && (b.id.startsWith('boulder-existing-') || b.id.startsWith('boulder-6a-'))) return false;
     if (b.name === 'Glatteis' || b.name === 'Mikro-Sloper' || b.name === 'Balance-Pfeiler' || b.name === 'Reibungs-Kante') return false;
     if ((b.sectorId === 'sec_6a_slab_vorne' || b.sectorId === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && b.id === 'a06a9337-4e3d-4b78-8dcf-aa697418a836') return false;
     return true;
   });
 
-  // Ensure all seed boulders are present in wall boulders, UNLESS explicitly deleted or sector already populated
-  const existingSeedIds = new Set(all.map(b => b.id));
-  const sectorsWithBoulders = new Set(all.map(b => b.sectorId));
-  let hasMissingSeed = false;
-  for (const sb of SEED_EXISTING_BOULDERS) {
-    if (!existingSeedIds.has(sb.id) && !isBoulderDeleted(sb.id) && !sectorsWithBoulders.has(sb.sectorId)) {
-      all.push(sb);
-      existingSeedIds.add(sb.id);
-      hasMissingSeed = true;
+  // Ensure all seed boulders are present in wall boulders ONLY IF NOT SYNCED
+  if (!isSynced) {
+    const existingSeedIds = new Set(all.map(b => b.id));
+    const sectorsWithBoulders = new Set(all.map(b => b.sectorId));
+    let hasMissingSeed = false;
+    for (const sb of SEED_EXISTING_BOULDERS) {
+      if (!existingSeedIds.has(sb.id) && !isBoulderDeleted(sb.id) && !sectorsWithBoulders.has(sb.sectorId)) {
+        all.push(sb);
+        existingSeedIds.add(sb.id);
+        hasMissingSeed = true;
+      }
     }
-  }
-  if (hasMissingSeed) {
-    setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
+    if (hasMissingSeed) {
+      setStorageJson(STORAGE_KEY_WALL_BOULDERS, all);
+    }
   }
 
   // Also include boulders from gymStorage so no boulders are missed, UNLESS deleted
@@ -463,6 +473,9 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     const v1Boulders = gymStorage.getBoulders();
     const existingIds = new Set(all.map(b => b.id));
     for (const b of v1Boulders) {
+      if (isSynced && (b.id.startsWith('boulder-existing-') || b.id.startsWith('boulder-6a-'))) {
+        continue;
+      }
       if (!existingIds.has(b.id) && !isBoulderDeleted(b.id)) {
         all.push({
           id: b.id,

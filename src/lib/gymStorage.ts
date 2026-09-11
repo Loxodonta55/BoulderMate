@@ -20,6 +20,7 @@ export const CURRENT_USER: User = {
 import {
   getStorageJson,
   setStorageJson,
+  getStorageString,
   removeStorageItem,
   isBoulderDeleted,
   markBoulderDeleted,
@@ -82,12 +83,14 @@ export function ensureInitialGymData(): void {
     });
 
     setGymGradeScales(defaultGym.id, CURRENT_USER.id, [
-      { id: 'scale-green', gym_id: defaultGym.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '4a', font_range_max: '5b', sort_order: 1 },
-      { id: 'scale-blue', gym_id: defaultGym.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Fortgeschritten', font_range_min: '5c', font_range_max: '6b', sort_order: 2 },
-      { id: 'scale-yellow', gym_id: defaultGym.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sportlich', font_range_min: '6b+', font_range_max: '7a', sort_order: 3 },
-      { id: 'scale-red', gym_id: defaultGym.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '7a+', font_range_max: '7b+', sort_order: 4 },
-      { id: 'scale-black', gym_id: defaultGym.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7c', font_range_max: '8a', sort_order: 5 },
-      { id: 'scale-white', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 }
+      { id: 'f94c7727-5096-4d9f-bcd6-63bd55ae1fbd', gym_id: defaultGym.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '4a', font_range_max: '5b', sort_order: 1 },
+      { id: 'b1b5f951-bc31-468f-802d-5f63ab651222', gym_id: defaultGym.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Fortgeschritten', font_range_min: '5c', font_range_max: '6b', sort_order: 2 },
+      { id: '6b538536-2fe3-4c97-a5ab-16df8ac19ad3', gym_id: defaultGym.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sportlich', font_range_min: '6b+', font_range_max: '7a', sort_order: 3 },
+      { id: '130c2372-d28e-416c-85af-a3380426c9bd', gym_id: defaultGym.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '7a+', font_range_max: '7b+', sort_order: 4 },
+      { id: '2ccf3d7f-a886-4a8e-9bad-25771edf9e86', gym_id: defaultGym.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7c', font_range_max: '8a', sort_order: 5 },
+      { id: '2dfafa3a-f172-4ee0-ae0c-fddc2a23a851', gym_id: defaultGym.id, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 },
+      { id: '3c7ab2bc-a337-4ba3-afb2-4005f245b56c', gym_id: defaultGym.id, color_name: 'Pink', color_hex: '#ec4899', difficulty_label: 'Projekt-Crux', font_range_min: '7B', font_range_max: '8A', sort_order: 7 },
+      { id: 'eb803c73-40cb-4108-a4cc-d299acc7c44a', gym_id: defaultGym.id, color_name: 'Tuerkis', color_hex: '#14b8a6', difficulty_label: 'Spezial', font_range_min: '6B', font_range_max: '6C', sort_order: 8 }
     ]);
 
     // (Boulders will be comprehensively populated from SEED_EXISTING_BOULDERS below)
@@ -202,9 +205,11 @@ export function ensureInitialGymData(): void {
   }
 
   // 3.5 Clean up any obsolete dummy seed boulders from local storage
+  const isSynced = getStorageString('bouldermate_synced_from_supabase') === 'true';
   const rawBoulders = getBoulders();
   const cleanedBoulders = rawBoulders.filter(b => {
     if (isBoulderDeleted(b.id)) return false;
+    if (isSynced && (b.id.startsWith('boulder-existing-') || b.id.startsWith('boulder-6a-'))) return false;
     if (b.name === 'Glatteis' || b.name === 'Mikro-Sloper' || b.name === 'Balance-Pfeiler' || b.name === 'Reibungs-Kante') return false;
     if ((b.sector_id === 'sec_6a_slab_vorne' || b.sector_id === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && b.id === 'a06a9337-4e3d-4b78-8dcf-aa697418a836') return false;
     return true;
@@ -213,23 +218,25 @@ export function ensureInitialGymData(): void {
     saveBoulders(cleanedBoulders);
   }
 
-  // 4. Ensure all seed boulders exist in local storage for both gyms, UNLESS deleted or sector already populated
-  const currentBoulders = cleanedBoulders;
-  const existingIds = new Set(currentBoulders.map(b => b.id));
-  const sectorsWithBoulders = new Set(currentBoulders.map(b => b.sector_id));
-  const missingSeedBoulders = SEED_EXISTING_BOULDERS
-    .filter(b => !existingIds.has(b.id) && !isBoulderDeleted(b.id) && !sectorsWithBoulders.has(b.sectorId))
-    .map(b => ({
-      id: b.id,
-      sector_id: b.sectorId,
-      grade_scale_id: b.gradeScaleId,
-      position_x: b.positionX,
-      position_y: b.positionY,
-      status: b.status,
-      name: b.name
-    }));
-  if (missingSeedBoulders.length > 0) {
-    saveBoulders([...currentBoulders, ...missingSeedBoulders]);
+  // 4. Ensure all seed boulders exist in local storage ONLY IF NOT synced from Supabase
+  if (!isSynced) {
+    const currentBoulders = cleanedBoulders;
+    const existingIds = new Set(currentBoulders.map(b => b.id));
+    const sectorsWithBoulders = new Set(currentBoulders.map(b => b.sector_id));
+    const missingSeedBoulders = SEED_EXISTING_BOULDERS
+      .filter(b => !existingIds.has(b.id) && !isBoulderDeleted(b.id) && !sectorsWithBoulders.has(b.sectorId))
+      .map(b => ({
+        id: b.id,
+        sector_id: b.sectorId,
+        grade_scale_id: b.gradeScaleId,
+        position_x: b.positionX,
+        position_y: b.positionY,
+        status: b.status,
+        name: b.name
+      }));
+    if (missingSeedBoulders.length > 0) {
+      saveBoulders([...currentBoulders, ...missingSeedBoulders]);
+    }
   }
 }
 
@@ -241,16 +248,24 @@ export function deduplicateGradeScales(scales: GradeScale[]): GradeScale[] {
       : (s.gym_id && (s.gym_id === 'gym-minimum-zh' || s.gym_id.includes('minimum') || s.gym_id.includes('814696b2')))
       ? 'gym-minimum-zh'
       : s.gym_id;
-    const key = `${normGym}:::${s.color_name.trim().toLowerCase()}`;
+    const normColor = s.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
+    const key = `${normGym}:::${normColor}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, { ...s, gym_id: normGym });
     } else {
+      const isUuid = (id?: string) => Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+      const chosenId = isUuid(s.id) ? s.id : (isUuid(existing.id) ? existing.id : (existing.id || s.id));
+      const chosenColorName = (normGym === 'gym-6a-plus' && (s.color_name === 'Weiss' || existing.color_name === 'Weiss'))
+        ? 'Weiss'
+        : (existing.color_name || s.color_name);
+
       map.set(key, {
         ...existing,
         ...s,
-        id: existing.id || s.id,
+        id: chosenId,
         gym_id: normGym,
+        color_name: chosenColorName,
         color_hex: s.color_hex || existing.color_hex,
         difficulty_label: s.difficulty_label || existing.difficulty_label,
         font_range_min: s.font_range_min || existing.font_range_min,
@@ -264,6 +279,10 @@ export function deduplicateGradeScales(scales: GradeScale[]): GradeScale[] {
 
 export function getGradeScales(gym_id?: string): GradeScale[] {
   let all = getStorageJson<GradeScale[]>(GRADE_SCALES_KEY, []);
+  const isSynced = getStorageString('bouldermate_synced_from_supabase') === 'true';
+  if (isSynced) {
+    all = all.filter(s => !['scale-green', 'scale-blue', 'scale-yellow', 'scale-red', 'scale-black', 'scale-white'].includes(s.id));
+  }
   const deduped = deduplicateGradeScales(all);
   if (deduped.length !== all.length) {
     setStorageJson(GRADE_SCALES_KEY, deduped);

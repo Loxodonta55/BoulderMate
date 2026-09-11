@@ -99,6 +99,9 @@ export const PERMANENTLY_PURGED_BOULDER_IDS = new Set<string>([
   'boulder-6a-slab-3',
   'boulder-6a-slab-4',
   'boulder-6a-slab-5',
+  '26e01df6-f5a2-48e5-adeb-d0eb05c02531',
+  '4d3b335c-5125-46d9-b0b8-9b8748dd879c',
+  'f846dd8c-6cee-4583-b91c-d9e3cc65d11a',
 ]);
 
 export function getDeletedBoulderIds(): Set<string> {
@@ -108,6 +111,13 @@ export function getDeletedBoulderIds(): Set<string> {
 
 export function isBoulderDeleted(boulderId: string): boolean {
   if (!boulderId) return false;
+  if (
+    boulderId.startsWith('boulder-6a-') ||
+    boulderId.startsWith('boulder-existing-') ||
+    boulderId.startsWith('boulder-overhang-')
+  ) {
+    return true;
+  }
   if (PERMANENTLY_PURGED_BOULDER_IDS.has(boulderId)) return true;
   const set = getDeletedBoulderIds();
   if (set.has(boulderId)) return true;
