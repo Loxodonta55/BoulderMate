@@ -263,6 +263,9 @@ export async function syncFromSupabase(): Promise<boolean> {
         sectorIdByName.set(sec.name.trim().toLowerCase(), sec.id);
       }
 
+      // Track all remote boulder IDs per resolved sector for reconciliation
+      const remoteIdsPerSector = new Map<string, Set<string>>();
+
       for (const b of dbBoulders) {
         if (isBoulderDeleted(b.id)) {
           continue;
@@ -273,6 +276,11 @@ export async function syncFromSupabase(): Promise<boolean> {
         if (matchingSec && sectorIdByName.has(matchingSec.name.trim().toLowerCase())) {
           resolvedSectorId = sectorIdByName.get(matchingSec.name.trim().toLowerCase())!;
         }
+
+        if (!remoteIdsPerSector.has(resolvedSectorId)) {
+          remoteIdsPerSector.set(resolvedSectorId, new Set());
+        }
+        remoteIdsPerSector.get(resolvedSectorId)!.add(b.id);
 
         const boulderObj: WallBoulder = {
           id: b.id,
@@ -299,20 +307,12 @@ export async function syncFromSupabase(): Promise<boolean> {
           archivedAt: b.archived_at || undefined,
         };
 
-        // Deduplizierung: Falls Boulder mit gleichem Namen im Sektor existiert -> updaten
-        let foundBoulderId: string | null = null;
-        for (const [id, eb] of boulderMap.entries()) {
-          if (id === b.id || (eb.name && b.name && eb.name.trim().toLowerCase() === b.name.trim().toLowerCase() && eb.sectorId === resolvedSectorId)) {
-            foundBoulderId = id;
-            break;
-          }
-        }
+        // Do NOT deduplicate by generic name ("Unbenannter Boulder")!
+        // Every boulder in Supabase has its own unique ID and coordinate on the wall.
+        boulderMap.set(b.id, boulderObj);
 
-        const bId = foundBoulderId || b.id;
-        boulderMap.set(bId, { ...boulderObj, id: bId });
-
-        v1BoulderMap.set(bId, {
-          id: bId,
+        v1BoulderMap.set(b.id, {
+          id: b.id,
           sector_id: resolvedSectorId,
           grade_scale_id: b.grade_scale_id,
           position_x: b.position_x,
@@ -320,6 +320,17 @@ export async function syncFromSupabase(): Promise<boolean> {
           status: b.status || 'active',
           name: b.name,
         });
+      }
+
+      // Reconcile: For sectors present in Supabase, purge obsolete local 'active' boulders
+      // that no longer exist in Supabase (e.g. deleted on desktop / previous seeds)
+      for (const [secId, remoteIds] of remoteIdsPerSector.entries()) {
+        for (const [localId, localB] of boulderMap.entries()) {
+          if (localB.sectorId === secId && localB.status === 'active' && !remoteIds.has(localId)) {
+            boulderMap.delete(localId);
+            v1BoulderMap.delete(localId);
+          }
+        }
       }
 
       setStorageJson(STORAGE_KEY_WALL_BOULDERS, Array.from(boulderMap.values()));

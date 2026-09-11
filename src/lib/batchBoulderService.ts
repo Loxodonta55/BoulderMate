@@ -418,11 +418,12 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
   // Filter out any boulders marked as deleted
   all = all.filter(b => !isBoulderDeleted(b.id));
 
-  // Ensure all seed boulders are present in wall boulders, UNLESS explicitly deleted
+  // Ensure all seed boulders are present in wall boulders, UNLESS explicitly deleted or sector already populated
   const existingSeedIds = new Set(all.map(b => b.id));
+  const sectorsWithBoulders = new Set(all.map(b => b.sectorId));
   let hasMissingSeed = false;
   for (const sb of SEED_EXISTING_BOULDERS) {
-    if (!existingSeedIds.has(sb.id) && !isBoulderDeleted(sb.id)) {
+    if (!existingSeedIds.has(sb.id) && !isBoulderDeleted(sb.id) && !sectorsWithBoulders.has(sb.sectorId)) {
       all.push(sb);
       existingSeedIds.add(sb.id);
       hasMissingSeed = true;

@@ -201,11 +201,12 @@ export function ensureInitialGymData(): void {
     saveMembers(currentMembers);
   }
 
-  // 4. Ensure all seed boulders exist in local storage for both gyms, UNLESS deleted
+  // 4. Ensure all seed boulders exist in local storage for both gyms, UNLESS deleted or sector already populated
   const currentBoulders = getBoulders();
   const existingIds = new Set(currentBoulders.map(b => b.id));
+  const sectorsWithBoulders = new Set(currentBoulders.map(b => b.sector_id));
   const missingSeedBoulders = SEED_EXISTING_BOULDERS
-    .filter(b => !existingIds.has(b.id) && !isBoulderDeleted(b.id))
+    .filter(b => !existingIds.has(b.id) && !isBoulderDeleted(b.id) && !sectorsWithBoulders.has(b.sectorId))
     .map(b => ({
       id: b.id,
       sector_id: b.sectorId,
