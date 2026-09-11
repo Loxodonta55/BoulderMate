@@ -201,8 +201,20 @@ export function ensureInitialGymData(): void {
     saveMembers(currentMembers);
   }
 
+  // 3.5 Clean up any obsolete dummy seed boulders from local storage
+  const rawBoulders = getBoulders();
+  const cleanedBoulders = rawBoulders.filter(b => {
+    if (isBoulderDeleted(b.id)) return false;
+    if (b.name === 'Glatteis' || b.name === 'Mikro-Sloper' || b.name === 'Balance-Pfeiler' || b.name === 'Reibungs-Kante') return false;
+    if ((b.sector_id === 'sec_6a_slab_vorne' || b.sector_id === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && b.id === 'a06a9337-4e3d-4b78-8dcf-aa697418a836') return false;
+    return true;
+  });
+  if (cleanedBoulders.length !== rawBoulders.length) {
+    saveBoulders(cleanedBoulders);
+  }
+
   // 4. Ensure all seed boulders exist in local storage for both gyms, UNLESS deleted or sector already populated
-  const currentBoulders = getBoulders();
+  const currentBoulders = cleanedBoulders;
   const existingIds = new Set(currentBoulders.map(b => b.id));
   const sectorsWithBoulders = new Set(currentBoulders.map(b => b.sector_id));
   const missingSeedBoulders = SEED_EXISTING_BOULDERS

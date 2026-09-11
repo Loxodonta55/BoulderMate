@@ -45,6 +45,25 @@ const STORAGE_KEY_GRADE_SCALES = 'boulderapp_grade_scales_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
 const STORAGE_KEY_LAST_COLOR_PREFIX = 'boulderapp_last_color_';
 
+export const SECTOR_ALIAS_MAP: Record<string, string> = {
+  'sec_6a_slab_vorne': '8656b5d8-838d-4655-8303-57d4ab87b8dd',
+  '8656b5d8-838d-4655-8303-57d4ab87b8dd': 'sec_6a_slab_vorne',
+  'sec_6a_ecke_vorne': '46c3882d-1e0c-44fa-902f-5004fb3eede2',
+  '46c3882d-1e0c-44fa-902f-5004fb3eede2': 'sec_6a_ecke_vorne',
+  'sec_6a_zwischenwand_vorne': 'f9995456-7831-476f-81c9-511677cdf842',
+  'f9995456-7831-476f-81c9-511677cdf842': 'sec_6a_zwischenwand_vorne',
+  'sec_6a_ueberhang_vorne': '28f8a0ca-54c5-4410-9838-48cc08e9ef80',
+  '28f8a0ca-54c5-4410-9838-48cc08e9ef80': 'sec_6a_ueberhang_vorne',
+  'sec_6a_verlaengerung_ueberhang': 'aac57fcf-b36c-4773-a6d4-ef845eda3f89',
+  'aac57fcf-b36c-4773-a6d4-ef845eda3f89': 'sec_6a_verlaengerung_ueberhang',
+  'sec_6a_ecke_mitte': '53a5e148-b4d0-4017-ba70-689f4983b770',
+  '53a5e148-b4d0-4017-ba70-689f4983b770': 'sec_6a_ecke_mitte',
+  'sec_6a_cave': '41be4e25-728f-476b-b618-f78e8b37397a',
+  '41be4e25-728f-476b-b618-f78e8b37397a': 'sec_6a_cave',
+  'sec_6a_cave_wand': '9b92826f-6fe7-48a5-b3e5-edd5f149d486',
+  '9b92826f-6fe7-48a5-b3e5-edd5f149d486': 'sec_6a_cave_wand',
+};
+
 export function clearBatchServiceStorage(): void {
   removeStorageItem(STORAGE_KEY_GYMS);
   removeStorageItem(STORAGE_KEY_SECTORS);
@@ -415,8 +434,13 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     }
   }
 
-  // Filter out any boulders marked as deleted
-  all = all.filter(b => !isBoulderDeleted(b.id));
+  // Filter out any boulders marked as deleted or obsolete dummy seed boulders
+  all = all.filter(b => {
+    if (isBoulderDeleted(b.id)) return false;
+    if (b.name === 'Glatteis' || b.name === 'Mikro-Sloper' || b.name === 'Balance-Pfeiler' || b.name === 'Reibungs-Kante') return false;
+    if ((b.sectorId === 'sec_6a_slab_vorne' || b.sectorId === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && b.id === 'a06a9337-4e3d-4b78-8dcf-aa697418a836') return false;
+    return true;
+  });
 
   // Ensure all seed boulders are present in wall boulders, UNLESS explicitly deleted or sector already populated
   const existingSeedIds = new Set(all.map(b => b.id));
@@ -488,20 +512,23 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
 
   if (sectorId) {
     // Find all matching sector IDs (handles aliases like sec_6a_... vs Supabase UUID)
+    const altIds = new Set<string>([sectorId]);
+    if (SECTOR_ALIAS_MAP[sectorId]) altIds.add(SECTOR_ALIAS_MAP[sectorId]);
     const targetSector = getSectorById(sectorId);
     if (targetSector) {
-      const altIds = new Set<string>([sectorId, targetSector.id]);
+      altIds.add(targetSector.id);
+      if (SECTOR_ALIAS_MAP[targetSector.id]) altIds.add(SECTOR_ALIAS_MAP[targetSector.id]);
       try {
         const allSecs = gymStorage.getSectors(targetSector.gymId);
         for (const s of allSecs) {
           if (s.name.trim().toLowerCase() === targetSector.name.trim().toLowerCase()) {
             altIds.add(s.id);
+            if (SECTOR_ALIAS_MAP[s.id]) altIds.add(SECTOR_ALIAS_MAP[s.id]);
           }
         }
       } catch {}
-      return all.filter(b => altIds.has(b.sectorId));
     }
-    return all.filter(b => b.sectorId === sectorId);
+    return all.filter(b => altIds.has(b.sectorId));
   }
   return all;
 }

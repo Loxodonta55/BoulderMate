@@ -94,6 +94,13 @@ export function stringToUuid(str: string): string {
 // -------------------------------------------------------------
 export const STORAGE_KEY_DELETED_BOULDERS = 'boulderapp_deleted_boulders_v1';
 
+export const PERMANENTLY_PURGED_BOULDER_IDS = new Set<string>([
+  'boulder-6a-slab-2',
+  'boulder-6a-slab-3',
+  'boulder-6a-slab-4',
+  'boulder-6a-slab-5',
+]);
+
 export function getDeletedBoulderIds(): Set<string> {
   const list = getStorageJson<string[]>(STORAGE_KEY_DELETED_BOULDERS, []);
   return new Set(list);
@@ -101,6 +108,7 @@ export function getDeletedBoulderIds(): Set<string> {
 
 export function isBoulderDeleted(boulderId: string): boolean {
   if (!boulderId) return false;
+  if (PERMANENTLY_PURGED_BOULDER_IDS.has(boulderId)) return true;
   const set = getDeletedBoulderIds();
   if (set.has(boulderId)) return true;
   const uuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);

@@ -13,6 +13,7 @@ import { Sector, WallBoulder, Ascent, BoulderRating } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
+import { SECTOR_ALIAS_MAP } from './batchBoulderService';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
@@ -325,11 +326,37 @@ export async function syncFromSupabase(): Promise<boolean> {
       // Reconcile: For sectors present in Supabase, purge obsolete local 'active' boulders
       // that no longer exist in Supabase (e.g. deleted on desktop / previous seeds)
       for (const [secId, remoteIds] of remoteIdsPerSector.entries()) {
+        const matchingSecIds = new Set<string>([secId]);
+        if (SECTOR_ALIAS_MAP[secId]) matchingSecIds.add(SECTOR_ALIAS_MAP[secId]);
+        const matchingDbSec = dbSectors?.find(ds => ds.id === secId);
+        if (matchingDbSec) {
+          for (const s of allSectors) {
+            if (s.name.trim().toLowerCase() === matchingDbSec.name.trim().toLowerCase()) {
+              matchingSecIds.add(s.id);
+              if (SECTOR_ALIAS_MAP[s.id]) matchingSecIds.add(SECTOR_ALIAS_MAP[s.id]);
+            }
+          }
+        }
+
         for (const [localId, localB] of boulderMap.entries()) {
-          if (localB.sectorId === secId && localB.status === 'active' && !remoteIds.has(localId)) {
+          const belongsToSector = matchingSecIds.has(localB.sectorId);
+          if (belongsToSector && localB.status === 'active' && !remoteIds.has(localId)) {
             boulderMap.delete(localId);
             v1BoulderMap.delete(localId);
           }
+        }
+      }
+
+      // Explicitly purge any permanently deleted or obsolete dummy seed routes
+      for (const [localId, localB] of boulderMap.entries()) {
+        if (isBoulderDeleted(localId) ||
+            localB.name === 'Glatteis' ||
+            localB.name === 'Mikro-Sloper' ||
+            localB.name === 'Balance-Pfeiler' ||
+            localB.name === 'Reibungs-Kante' ||
+            ((localB.sectorId === 'sec_6a_slab_vorne' || localB.sectorId === '8656b5d8-838d-4655-8303-57d4ab87b8dd') && localId === 'a06a9337-4e3d-4b78-8dcf-aa697418a836')) {
+          boulderMap.delete(localId);
+          v1BoulderMap.delete(localId);
         }
       }
 
