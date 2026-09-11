@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import {
@@ -128,8 +128,8 @@ describe('Route Loeschen im Kletterbereich (AC-13)', () => {
     });
   });
 
-  describe('BoulderDetailModal Delete UI', () => {
-    it('renders delete buttons in header and footer when user has delete permission', () => {
+  describe('Route Deletion Isolated from Climber View', () => {
+    it('does not render delete buttons in header or footer even for admin/boris in climber view', () => {
       render(
         <BoulderDetailModal
           boulder={sampleBoulder}
@@ -141,11 +141,11 @@ describe('Route Loeschen im Kletterbereich (AC-13)', () => {
         />
       );
 
-      expect(screen.getByTestId('delete-boulder-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('delete-boulder-footer-btn')).toBeInTheDocument();
+      expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
     });
 
-    it('does not render delete buttons for an unauthorized normal climber', () => {
+    it('does not render delete buttons for normal climbers', () => {
       render(
         <BoulderDetailModal
           boulder={sampleBoulder}
@@ -161,49 +161,27 @@ describe('Route Loeschen im Kletterbereich (AC-13)', () => {
       expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
     });
 
-    it('opens confirmation modal when delete button is clicked and cancels correctly', () => {
+    it('does not render delete buttons for route setter in climber view', () => {
+      const setterUser: CurrentUser = {
+        id: 'schrauber-6aplus',
+        nickname: 'Schrauber',
+        role: 'setter',
+        isPlatformAdmin: false,
+      };
+
       render(
         <BoulderDetailModal
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleScale}
-          currentUser={borisUser}
+          currentUser={setterUser}
           isOpen={true}
           onClose={vi.fn()}
         />
       );
 
-      fireEvent.click(screen.getByTestId('delete-boulder-btn'));
-
-      expect(screen.getByText(/Route unwiderruflich löschen\?/i)).toBeInTheDocument();
-      expect(screen.getByTestId('confirm-delete-boulder-btn')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: /Abbrechen/i }));
-
-      expect(screen.queryByText(/Route unwiderruflich löschen\?/i)).not.toBeInTheDocument();
-    });
-
-    it('confirms deletion, executes deleteWallBoulder, calls onDataChanged and onClose', () => {
-      const handleDataChanged = vi.fn();
-      const handleClose = vi.fn();
-
-      render(
-        <BoulderDetailModal
-          boulder={sampleBoulder}
-          sector={sampleSector}
-          gradeScale={sampleScale}
-          currentUser={borisUser}
-          isOpen={true}
-          onClose={handleClose}
-          onDataChanged={handleDataChanged}
-        />
-      );
-
-      fireEvent.click(screen.getByTestId('delete-boulder-btn'));
-      fireEvent.click(screen.getByTestId('confirm-delete-boulder-btn'));
-
-      expect(handleDataChanged).toHaveBeenCalled();
-      expect(handleClose).toHaveBeenCalled();
+      expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
     });
   });
 
