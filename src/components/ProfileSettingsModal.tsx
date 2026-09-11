@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types/boulder';
-import { X, ArrowLeft, Camera, User, LogOut, Trash2, Check, AlertTriangle } from 'lucide-react';
+import { X, ArrowLeft, Camera, User, LogOut, Trash2, Check, AlertTriangle, RotateCcw } from 'lucide-react';
 import { processLocalImageFile } from '../lib/imageUtils';
+import { clearAppCacheAndReload } from '../lib/syncService';
 
 interface ProfileSettingsModalProps {
   profile: UserProfile;
@@ -179,6 +180,22 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
           {/* Divider */}
           <div className="border-t border-[#333333] pt-4 space-y-3">
+            {/* Cache leeren & Cloud-Stand laden */}
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Möchtest du den lokalen Gerätespeicher leeren und alle Daten frisch von der Cloud laden?')) {
+                  clearAppCacheAndReload();
+                }
+              }}
+              className="w-full py-2 px-3 rounded-[2px] border border-[#333333] hover:border-[#C9A96E]/50 bg-[#2A2A2A] hover:bg-[#333333] text-xs font-mono text-[#C9A96E] hover:text-[#F5F0E8] transition flex items-center justify-center gap-2 cursor-pointer"
+              title="Lokalen Speicher leeren und alle Daten frisch von Supabase laden"
+              data-testid="btn-clear-cache"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Cache leeren & neu laden</span>
+            </button>
+
             {/* Logout Button */}
             <button
               type="button"

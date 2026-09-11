@@ -31,6 +31,7 @@ import {
   Filter,
   Maximize2,
   Minimize2,
+  RefreshCw,
 } from 'lucide-react';
 
 interface ClimberSectorViewProps {
@@ -55,6 +56,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     scaleMap,
     setSelectedSectorId,
     handleGymChange,
+    refreshGymData,
   } = useGymSectorData(activeGymId, onSelectGym);
 
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
@@ -64,6 +66,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [filterMode, setFilterMode] = useState<RatingFilter>('all');
   const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const sectorTabsContainerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -187,6 +190,18 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     };
   }, []);
 
+  // Listen to remote sector updates
+  useEffect(() => {
+    const handleSectorsUpdated = () => {
+      refreshGymData();
+    };
+
+    window.addEventListener('bouldermate:sectors_updated', handleSectorsUpdated);
+    return () => {
+      window.removeEventListener('bouldermate:sectors_updated', handleSectorsUpdated);
+    };
+  }, [refreshGymData]);
+
   // Reload boulders when sector changes or data updates
   useEffect(() => {
     if (selectedSectorId) {
@@ -252,6 +267,20 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     return list;
   }, [boulders, filterMode, sortBy, statsMap, userAscentMap]);
 
+  const handleSyncData = async () => {
+    setIsSyncing(true);
+    try {
+      const { syncFromSupabase } = await import('../lib/syncService');
+      await syncFromSupabase();
+      refreshGymData();
+      setDataVersion(v => v + 1);
+    } catch (err) {
+      console.error('Error syncing from Supabase:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleRefreshData = () => {
     setDataVersion(v => v + 1);
     if (selectedBoulder) {
@@ -293,6 +322,20 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 ))}
               </select>
             )}
+
+            {/* Sync / Refresh Cloud Data Button */}
+            <button
+              type="button"
+              onClick={handleSyncData}
+              disabled={isSyncing}
+              data-testid="sync-boulders-btn"
+              className="px-2 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] hover:border-[#C9A96E] text-[#A89F91] hover:text-[#F5F0E8] rounded-[2px] text-xs font-headline uppercase font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 disabled:opacity-50"
+              title="Daten frisch aus der Cloud synchronisieren"
+              aria-label="Daten synchronisieren"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#C9A96E]' : ''}`} />
+              <span className="hidden md:inline">Sync</span>
+            </button>
 
             {/* Vollbild Button (Requirement 1) */}
             {selectedSector && (

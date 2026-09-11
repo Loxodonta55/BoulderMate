@@ -156,6 +156,12 @@ export async function syncFromSupabase(): Promise<boolean> {
       setStorageJson(STORAGE_KEY_SECTORS, Array.from(sectorMap.values()));
       gymStorage.saveSectors(Array.from(v1SecMap.values()));
       currentSyncStatus.syncedSectors = sectorMap.size;
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+          detail: { action: 'synced', count: sectorMap.size }
+        }));
+      }
     }
 
     // 2.5 Farbskalen / Farbsystem laden
@@ -319,6 +325,12 @@ export async function syncFromSupabase(): Promise<boolean> {
       setStorageJson(STORAGE_KEY_WALL_BOULDERS, Array.from(boulderMap.values()));
       gymStorage.saveBoulders(Array.from(v1BoulderMap.values()));
       currentSyncStatus.syncedBoulders = boulderMap.size;
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+          detail: { action: 'synced', count: boulderMap.size }
+        }));
+      }
     }
 
     // 4. Ascents laden & mergen (non-destructive)
@@ -786,5 +798,27 @@ export async function deleteAscentFromSupabase(userId: string, boulderId: string
   }
 }
 
-
-
+/**
+ * Löscht alle lokalen Anwendungsdaten aus dem LocalStorage und lädt die App neu,
+ * damit frische Daten aus Supabase geladen werden. Die Auth-Sitzung bleibt erhalten.
+ */
+export function clearAppCacheAndReload(): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && (key.startsWith('boulderapp_') || key.startsWith('bouldermate_'))) {
+          // Auth-Session beibehalten, damit der Nutzer eingeloggt bleibt
+          if (key !== 'boulderapp_auth_session_v1') {
+            keysToRemove.push(key);
+          }
+        }
+      }
+      keysToRemove.forEach(k => window.localStorage.removeItem(k));
+    } catch (e) {
+      console.error('[Cache] Fehler beim Bereinigen des Caches:', e);
+    }
+    window.location.reload();
+  }
+}
