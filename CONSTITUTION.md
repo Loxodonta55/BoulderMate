@@ -214,9 +214,10 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
    - Wandfotos, interaktive Marker, klare Grad-Badges und Radar-Charts statt langer Textpassagen.
    - Loggen einer Route in unter 2 Klicks.
 
-4. **Keine Datenverluste & saubere Datenhaltung**:
+4. **Keine Datenverluste, saubere Datenhaltung & Zero Dummy-Daten**:
    - Archivierung statt Löschung – jeder Send bleibt im persönlichen Profil erhalten.
    - Strikte Trennung zwischen Hallen-Ebene, Wand-Ebene und persönlichem Logbuch.
+   - **Strikte Zero-Dummy-Policy (Abschnitt 12)**: Unter keinen Umständen dürfen fingierte Mock-, Seed- oder Testdaten in Caches oder Speicher geschrieben werden.
 
 5. **Vollständige Trennung der 3 Bereiche & absolute Feature-Isolation**:
    - **Völlige Isolation**: Die drei Bereiche (**Kletterer-App**, **Schrauber-Studio**, **Hallen-Admin-Konsole**) sind streng voneinander abgegrenzt.
@@ -250,4 +251,24 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 
 ### 11.2 Blitzschnelle Interaktion: Unmittelbares Schließen nach Bewertung
 - **Fokus Kletterflow**: Nach dem Speichern (oder Überspringen) einer Bewertung schließt sich das Bewertungs- und Detailfenster im Kletterbereich augenblicklich. Der Kletterer landet sofort wieder auf der interaktiven Wandansicht, ohne zusätzliche Schließen-Klicks durchführen zu müssen.
+
+---
+
+## 12. Absolute Datenintegrität & Zero-Dummy-Policy (Striktes Verbot von Dummy-Daten)
+
+> **Unumstößliche Grundregel**: In der gesamten App dürfen **unter keinen Umständen Dummy-, Mock-, Seed- oder Beispieldaten erzeugt oder in Speicher injiziert werden** – weder für den lokalen Cache (`localStorage`), noch für Session-Stores, noch bei leerem App-Start, noch als Fallback.
+
+### 12.1 Verbote & Schutzregeln
+1. **Keine Dummy-Daten im Cache**:
+   - Wenn der Browser-Cache oder `localStorage` auf einem Endgerät (Desktop, Smartphone, Tablet) leer ist, dürfen **keinerlei statische Routen, Dummy-Farbskalen oder Dummy-Sektoren** generiert werden.
+   - Die App zeigt bei leerem Speicher saubere Ladezustände (`Skeleton` / Empty-State) und bezieht ihre Daten ausnahmslos direkt aus der produktiven Datenbank (Supabase).
+2. **Supabase als einzige Quelle der Wahrheit (Single Source of Truth)**:
+   - Es existieren ausschließlich die realen, vom Nutzer oder Schrauber in der Datenbank gepflegten Daten.
+   - Veraltete Test-IDs (z. B. `boulder-existing-*`, `boulder-6a-*`, statische `scale-*`-Farben) sind streng verboten und werden bei jeder Synchronisation restlos getombstonet und bereinigt.
+3. **Keine Datenverschmutzung beim Start oder Reload**:
+   - Kein Programmteil darf bei Initialisierung (`ensureInitial...`, `getWallBoulders`, `getGradeScales` etc.) eigenmächtig Speicher mit Dummy-Objekten füllen.
+4. **Code-Only Deployments & Zero Data Loss**:
+   - Deployments übertragen ausschließlich reinen Programmcode.
+   - Es werden beim Deployment niemals automatische Daten-Push-Skripte gegen Supabase ausgeführt. Produktionsdaten dürfen weder überschrieben noch durch lokale Caches verfälscht werden.
+
 
