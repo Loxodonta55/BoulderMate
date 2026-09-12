@@ -8,6 +8,8 @@ import {
   getCurrentAuthUser,
   onAuthStateChange
 } from '../src/lib/authService';
+import { toKnownAuthUserUuid, resolveUserIdAndNickname } from '../src/lib/syncService';
+import { updateProfile, getProfile, getProfiles } from '../src/lib/profileService';
 import { LoginModal } from '../src/components/LoginModal';
 
 describe('Real User Authentication (Supabase Auth & LoginModal MVP)', () => {
@@ -148,6 +150,39 @@ describe('Real User Authentication (Supabase Auth & LoginModal MVP)', () => {
         id: 'user-boris',
         nickname: 'Boris'
       }));
+    });
+  });
+
+  describe('SPEC-014: Systemische Ökosystem-Integration & UUID-Preservation', () => {
+    it('bewahrt echte Supabase-UUIDs in toKnownAuthUserUuid statt sie auf Boris zurückzusetzen', () => {
+      const realUserUuid = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+      const resolved = toKnownAuthUserUuid(realUserUuid);
+      expect(resolved).toBe(realUserUuid);
+      expect(resolved).not.toBe('00000000-1d0e-4000-8000-e92d69136f33');
+    });
+
+    it('löst Nickname und Avatar für echte registrierte Nutzer via resolveUserIdAndNickname auf', () => {
+      const customUserId = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+      updateProfile(customUserId, {
+        nickname: 'Lara Croft',
+        avatarUrl: 'https://example.com/lara.jpg'
+      });
+
+      const resolved = resolveUserIdAndNickname(customUserId);
+      expect(resolved.userId).toBe(customUserId);
+      expect(resolved.nickname).toBe('Lara Croft');
+      expect(resolved.avatarUrl).toBe('https://example.com/lara.jpg');
+    });
+
+    it('aktualisiert das Profil im lokalen Cache und stellt es für getProfiles bereit', () => {
+      const testUserId = 'user-test-climber-99';
+      updateProfile(testUserId, { nickname: 'SummitSeeker' });
+
+      const profile = getProfile(testUserId);
+      expect(profile.nickname).toBe('SummitSeeker');
+
+      const all = getProfiles();
+      expect(all.some(p => p.id === testUserId && p.nickname === 'SummitSeeker')).toBe(true);
     });
   });
 });

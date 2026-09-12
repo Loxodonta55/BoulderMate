@@ -14,7 +14,8 @@ import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
-import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY } from './authService';
+import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY, isTestEnv } from './authService';
+import { getProfiles, STORAGE_KEY_PROFILES } from './profileService';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
@@ -50,6 +51,31 @@ export async function syncFromSupabase(): Promise<boolean> {
   }
 
   try {
+    // 0.5 User Profiles aus Supabase laden & lokal ablegen
+    try {
+      const { data: dbProfiles } = await supabase
+        .from('user_profiles')
+        .select('*');
+
+      if (dbProfiles && dbProfiles.length > 0) {
+        const localProfiles = getProfiles();
+        const profileMap = new Map(localProfiles.map(p => [p.id, p]));
+        for (const p of dbProfiles) {
+          const existing = profileMap.get(p.id);
+          profileMap.set(p.id, {
+            id: p.id,
+            nickname: p.nickname || existing?.nickname || 'Kletterer',
+            avatarUrl: p.avatar_url || existing?.avatarUrl,
+            createdAt: p.created_at || existing?.createdAt || new Date().toISOString(),
+            updatedAt: p.updated_at || existing?.updatedAt,
+          });
+        }
+        setStorageJson(STORAGE_KEY_PROFILES, Array.from(profileMap.values()));
+      }
+    } catch (profileErr) {
+      console.warn('[Sync] Fehler beim Laden der user_profiles:', profileErr);
+    }
+
     // 1. Gyms laden
     const { data: dbGyms, error: gymError } = await supabase
       .from('gyms')
@@ -695,15 +721,100 @@ export function resolveUserIdAndNickname(remoteUserId?: string): { userId: strin
   if (remoteUserId === '00000000-5a7c-4000-8000-7702607a9a42') {
     return { userId: 'schrauber-minimum', nickname: 'Schrauber Minimum' };
   }
+
+  // Lookup in cached user_profiles
+  try {
+    const cached = getProfiles().find(p => p.id === remoteUserId);
+    if (cached && cached.nickname) {
+      return { userId: remoteUserId, nickname: cached.nickname, avatarUrl: cached.avatarUrl };
+    }
+  } catch {
+    // fallback
+  }
+
   return { userId: remoteUserId, nickname: 'Kletterer' };
 }
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function toKnownAuthUserUuid(userId?: string): string {
   if (!userId) return '00000000-1d0e-4000-8000-e92d69136f33';
   if (KNOWN_AUTH_USER_UUIDS.has(userId)) return userId;
+  if (UUID_REGEX.test(userId)) return userId;
   const converted = stringToUuid(userId);
   if (KNOWN_AUTH_USER_UUIDS.has(converted)) return converted;
   return '00000000-1d0e-4000-8000-e92d69136f33';
+}
+
+/**
+ * Synchronisiert ein neues oder aktualisiertes Gym-Mitglied nach Supabase (gym_members).
+ */
+export async function syncGymMemberToSupabase(
+  gymId: string, 
+  userId: string, 
+  role: string, 
+  appointedBy?: string
+): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv) return false;
+  try {
+    const supabaseGymId = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+      ? 'f2b11564-ca86-4ed4-b51c-3affb346144b'
+      : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+      ? '814696b2-303e-4897-9bdb-d83505a63489'
+      : gymId;
+    const userUuid = toKnownAuthUserUuid(userId);
+    const appointedByUuid = appointedBy ? toKnownAuthUserUuid(appointedBy) : null;
+
+    const { error } = await supabase.from('gym_members').upsert({
+      gym_id: supabaseGymId,
+      user_id: userUuid,
+      role,
+      appointed_by: appointedByUuid,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'gym_id,user_id,role' });
+
+    if (error) {
+      console.warn('[Sync] gym_member upsert error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Fehler beim Synchronisieren des Gym-Mitglieds:', err);
+    return false;
+  }
+}
+
+/**
+ * Entfernt ein Gym-Mitglied aus Supabase (gym_members).
+ */
+export async function removeGymMemberFromSupabase(
+  gymId: string, 
+  userId: string, 
+  role: string
+): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv) return false;
+  try {
+    const supabaseGymId = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+      ? 'f2b11564-ca86-4ed4-b51c-3affb346144b'
+      : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+      ? '814696b2-303e-4897-9bdb-d83505a63489'
+      : gymId;
+    const userUuid = toKnownAuthUserUuid(userId);
+
+    const { error } = await supabase
+      .from('gym_members')
+      .delete()
+      .match({ gym_id: supabaseGymId, user_id: userUuid, role });
+
+    if (error) {
+      console.warn('[Sync] gym_member delete error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Fehler beim Entfernen des Gym-Mitglieds:', err);
+    return false;
+  }
 }
 
 /**

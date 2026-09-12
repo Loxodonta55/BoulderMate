@@ -17,6 +17,8 @@ import {
 } from '../lib/roleService';
 import { GradeScaleConfig } from './GradeScaleConfig';
 import { SectorManager } from './SectorManager';
+import { getProfiles } from '../lib/profileService';
+import { syncGymMemberToSupabase, removeGymMemberFromSupabase } from '../lib/syncService';
 import { Building2, Search, Plus, MapPin, Globe, Shield, X, Users, UserCheck, Trash2, Compass } from 'lucide-react';
 
 interface GymManagementProps {
@@ -125,13 +127,26 @@ export const GymManagement: React.FC<GymManagementProps> = ({
     try {
       setTeamError(null);
       setTeamMessage(null);
+
+      const input = newMemberUserId.trim();
+      const allProfiles = getProfiles();
+      const matchedProfile = allProfiles.find(
+        p => p.id === input || p.nickname.toLowerCase() === input.toLowerCase()
+      );
+      const resolvedUserId = matchedProfile ? matchedProfile.id : input;
+      const displayNickname = matchedProfile ? matchedProfile.nickname : resolvedUserId;
+
       if (newMemberRole === 'setter') {
-        appointGymSetter(selectedGymId, newMemberUserId.trim(), effectiveUserId);
-        setTeamMessage(`${newMemberUserId.trim()} erfolgreich als Schrauber ernannt!`);
+        appointGymSetter(selectedGymId, resolvedUserId, effectiveUserId);
+        setTeamMessage(`${displayNickname} erfolgreich als Schrauber ernannt!`);
       } else {
-        appointGymAdmin(selectedGymId, newMemberUserId.trim(), effectiveUserId);
-        setTeamMessage(`${newMemberUserId.trim()} erfolgreich als Hallen-Admin ernannt!`);
+        appointGymAdmin(selectedGymId, resolvedUserId, effectiveUserId);
+        setTeamMessage(`${displayNickname} erfolgreich als Hallen-Admin ernannt!`);
       }
+
+      // Asynchroner Remote-Sync nach Supabase gym_members
+      syncGymMemberToSupabase(selectedGymId, resolvedUserId, newMemberRole, effectiveUserId);
+
       setNewMemberUserId('');
       refreshTeam(selectedGymId);
     } catch (e: any) {
@@ -151,6 +166,10 @@ export const GymManagement: React.FC<GymManagementProps> = ({
         revokeGymAdmin(selectedGymId, targetUserId, effectiveUserId);
         setTeamMessage(`Hallen-Admin-Rechte für ${targetUserId} entzogen.`);
       }
+
+      // Asynchroner Remote-Delete in Supabase gym_members
+      removeGymMemberFromSupabase(selectedGymId, targetUserId, role);
+
       refreshTeam(selectedGymId);
     } catch (e: any) {
       setTeamError(e.message || 'Fehler beim Entziehen der Rechte.');
@@ -373,11 +392,19 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
                     type="text"
-                    placeholder="Nutzer-ID / Nickname (z. B. admin-6aplus)"
+                    list="registered-climbers-datalist"
+                    placeholder="Nutzer-ID oder Nickname (z. B. Alex oder admin-6aplus)"
                     value={newMemberUserId}
                     onChange={(e) => setNewMemberUserId(e.target.value)}
                     className="w-full px-3 py-2 bg-[#1E1E1E] border border-[#333333] rounded-none text-xs text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-mono"
                   />
+                  <datalist id="registered-climbers-datalist">
+                    {getProfiles().map(p => (
+                      <option key={p.id} value={p.nickname}>
+                        {p.nickname} ({p.id.slice(0, 8)}...)
+                      </option>
+                    ))}
+                  </datalist>
                   <select
                     value={newMemberRole}
                     onChange={(e) => setNewMemberRole(e.target.value as any)}
@@ -429,31 +456,43 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   </div>
                 ) : (
                   <div className="divide-y divide-[#333333] rounded-none border border-[#333333] bg-[#121212] overflow-hidden">
-                    {teamMembers.map((m) => (
-                      <div key={m.id} className="p-3.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          {/* Square avatar */}
-                          <div className="w-8 h-8 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4]">
-                            {m.user_id.replace('user-', '').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-[#E8E0D4] font-mono">{m.user_id}</span>
-                              <span
-                                className={`px-2 py-0.5 rounded-none text-[10px] font-bold uppercase font-mono border ${
-                                  m.role === 'admin'
-                                    ? 'bg-[#2A2A2A] text-[#C9A96E] border-[#C9A96E]/40'
-                                    : 'bg-[#2A2A2A] text-[#A89F91] border-[#333333]'
-                                }`}
-                              >
-                                {m.role === 'admin' ? 'Hallen-Admin' : 'Schrauber'}
-                              </span>
+                    {teamMembers.map((m) => {
+                      const profile = getProfiles().find(p => p.id === m.user_id);
+                      const displayName = profile?.nickname || m.user_id;
+
+                      return (
+                        <div key={m.id} className="p-3.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            {/* Square avatar */}
+                            {profile?.avatarUrl ? (
+                              <img
+                                src={profile.avatarUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-none object-cover border border-[#333333]"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4]">
+                                {displayName.replace(/^user-/, '').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-[#E8E0D4] font-mono">{displayName}</span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-none text-[10px] font-bold uppercase font-mono border ${
+                                    m.role === 'admin'
+                                      ? 'bg-[#2A2A2A] text-[#C9A96E] border-[#C9A96E]/40'
+                                      : 'bg-[#2A2A2A] text-[#A89F91] border-[#333333]'
+                                  }`}
+                                >
+                                  {m.role === 'admin' ? 'Hallen-Admin' : 'Schrauber'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-[#6B6358] font-mono">
+                                ID: {m.user_id.length > 20 ? `${m.user_id.slice(0, 13)}...` : m.user_id} • Ernannt: {new Date(m.created_at).toLocaleDateString()}
+                              </div>
                             </div>
-                            <div className="text-[10px] text-[#6B6358] font-mono">
-                              Ernannt: {new Date(m.created_at).toLocaleDateString()}
-                            </div>
                           </div>
-                        </div>
 
                         <button
                           type="button"
@@ -464,7 +503,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 )}
               </div>

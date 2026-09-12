@@ -25,6 +25,8 @@ import {
   setStorageJson,
   removeStorageItem,
 } from './storageUtils';
+import { supabase, isSupabaseConfigured } from './supabase';
+import { isTestEnv } from './authService';
 
 export { SEED_PROFILES };
 
@@ -97,6 +99,27 @@ export function updateProfile(
   }
 
   setStorageJson(STORAGE_KEY_PROFILES, profiles);
+
+  // Asynchroner Remote-Push nach Supabase user_profiles (optimistic & non-blocking)
+  if (typeof window !== 'undefined' && supabase && isSupabaseConfigured && !isTestEnv) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    const targetUuid = isUuid ? userId : (userId === 'user-boris' ? '00000000-1d0e-4000-8000-e92d69136f33' : null);
+    if (targetUuid) {
+      supabase.from('user_profiles').update({
+        nickname: updatedProfile.nickname,
+        avatar_url: updatedProfile.avatarUrl || null,
+        updated_at: now,
+      }).eq('id', targetUuid).then(
+        ({ error }) => {
+          if (error) console.warn('[Profile] Supabase profile update error:', error.message);
+        },
+        (err: unknown) => {
+          console.warn('[Profile] Supabase profile update failed:', err);
+        }
+      );
+    }
+  }
+
   return updatedProfile;
 }
 

@@ -43,8 +43,20 @@ export const App: React.FC = () => {
 
   const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
   const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
+
+  const selectableClimbers = useMemo(() => {
+    const list = [...AVAILABLE_CLIMBERS];
+    if (authSession && !list.some(c => c.id === authSession.id)) {
+      list.unshift({
+        id: authSession.id,
+        nickname: `${authSession.nickname} (Du)`
+      });
+    }
+    return list;
+  }, [authSession]);
+
   const currentClimber = climberId
-    ? AVAILABLE_CLIMBERS.find(c => c.id === climberId) || { id: climberId, nickname: authSession?.nickname || 'Kletterer' }
+    ? selectableClimbers.find(c => c.id === climberId) || { id: climberId, nickname: authSession?.nickname || 'Kletterer' }
     : null;
   const activeNickname = climberId
     ? (climberNicknames[climberId] || getProfile(climberId)?.nickname || authSession?.nickname || currentClimber?.nickname || 'Kletterer')
@@ -455,7 +467,7 @@ export const App: React.FC = () => {
                   className="bg-transparent text-[#E8E0D4] font-mono font-bold focus:outline-none cursor-pointer text-xs max-w-[120px] truncate"
                   title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
                 >
-                  {AVAILABLE_CLIMBERS.map(c => (
+                  {selectableClimbers.map(c => (
                     <option key={c.id} value={c.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
                       {c.nickname}
                     </option>
@@ -534,12 +546,21 @@ export const App: React.FC = () => {
             currentUser={currentUser}
             boulders={boulders}
             onDataChanged={refreshData}
-            onProfileUpdated={(newNickname) => {
+            onProfileUpdated={(newNickname, newAvatar) => {
               if (climberId) {
                 setClimberNicknames(prev => ({
                   ...prev,
                   [climberId]: newNickname
                 }));
+              }
+              if (authSession && authSession.id === climberId) {
+                const updated = {
+                  ...authSession,
+                  nickname: newNickname,
+                  avatarUrl: newAvatar || authSession.avatarUrl,
+                };
+                setAuthSession(updated);
+                setSessionUser(updated);
               }
             }}
             onLogout={() => {
