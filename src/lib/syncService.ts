@@ -685,24 +685,6 @@ export function resolveUserIdAndNickname(remoteUserId?: string): { userId: strin
     const u = DEMO_USERS[remoteUserId];
     return { userId: remoteUserId, nickname: u.nickname, avatarUrl: u.avatarUrl };
   }
-  if (remoteUserId === '00000000-1d0e-4000-8000-e92d69136f33') {
-    return { userId: 'user-boris', nickname: 'Boris' };
-  }
-  if (remoteUserId === '00000000-4553-4000-8000-3dd13fac9e0f') {
-    return { userId: 'hans-kletterer', nickname: 'HansDereinfacheKletterer' };
-  }
-  if (remoteUserId === '00000000-08ca-4000-8000-6e6f5bce818f') {
-    return { userId: 'schrauber-6aplus', nickname: 'Schrauber6aPlus' };
-  }
-  if (remoteUserId === '00000000-37e7-4000-8000-0743462b539d') {
-    return { userId: 'admin-6aplus', nickname: 'Admin6APlus' };
-  }
-  if (remoteUserId === '00000000-2ff9-4000-8000-b7902cb24230') {
-    return { userId: 'admin-minimum', nickname: 'AdminMinimum' };
-  }
-  if (remoteUserId === '00000000-5a7c-4000-8000-7702607a9a42') {
-    return { userId: 'schrauber-minimum', nickname: 'Schrauber Minimum' };
-  }
 
   // Lookup in cached user_profiles
   try {
@@ -717,12 +699,10 @@ export function resolveUserIdAndNickname(remoteUserId?: string): { userId: strin
   return { userId: remoteUserId, nickname: 'Kletterer' };
 }
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export function toKnownAuthUserUuid(userId?: string): string {
   if (!userId) return '00000000-1d0e-4000-8000-e92d69136f33';
   if (KNOWN_AUTH_USER_UUIDS.has(userId)) return userId;
-  if (UUID_REGEX.test(userId)) return userId;
+  if (isValidUuid(userId)) return userId;
   const converted = stringToUuid(userId);
   if (KNOWN_AUTH_USER_UUIDS.has(converted)) return converted;
   return '00000000-1d0e-4000-8000-e92d69136f33';
