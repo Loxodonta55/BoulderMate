@@ -283,6 +283,7 @@ export interface BoulderRating {
   boulderId: string;
   userId: string;
   userNickname: string;
+  userAvatarUrl?: string;
   gradeFeel?: GradeFeel;
   qualityStars?: number; // 1 - 5
   radar?: RadarAttributes;
@@ -326,6 +327,7 @@ export interface BoulderStatsAggregate {
   totalProjects: number;
   radarAggregate: RadarAttributes;
   ascents: Ascent[];
+  ratings: BoulderRating[];
   comments: BoulderComment[];
 }
 

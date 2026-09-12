@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   WallBoulder,
   GymGradeScale,
@@ -22,7 +22,8 @@ import {
   getAscents,
   getComments,
   addComment,
-  deleteComment
+  deleteComment,
+  isUserMatch
 } from '../lib/ratingAndAscentService';
 import {
   X,
@@ -80,6 +81,36 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   const currentUserAscent = getUserAscent(currentUser.id, boulder.id);
   const currentUserRating = getUserRating(currentUser.id, boulder.id);
+
+  // AC-15: Echtzeit-Aktualisierung bei eingehenden Bewertungen und Begehungen
+  useEffect(() => {
+    const handleRatingsUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (!customEvent.detail?.boulderId || customEvent.detail.boulderId === boulder.id) {
+        setDataVersion(v => v + 1);
+      }
+    };
+
+    const handleAscentsUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (!customEvent.detail?.boulderId || customEvent.detail.boulderId === boulder.id) {
+        setDataVersion(v => v + 1);
+      }
+    };
+
+    window.addEventListener('bouldermate:ratings_updated', handleRatingsUpdate);
+    window.addEventListener('bouldermate:ascents_updated', handleAscentsUpdate);
+
+    // Instant quiet sync with Supabase when modal opens
+    import('../lib/syncService').then(m => {
+      m.syncRatingsAndAscentsQuietly?.().catch(() => {});
+    }).catch(() => {});
+
+    return () => {
+      window.removeEventListener('bouldermate:ratings_updated', handleRatingsUpdate);
+      window.removeEventListener('bouldermate:ascents_updated', handleAscentsUpdate);
+    };
+  }, [boulder.id]);
 
   const handleDeleteRating = () => {
     deleteRating(currentUser.id, boulder.id);
@@ -519,6 +550,116 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                             <span className="px-2.5 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#1E1E1E] text-[#A89F91] border border-[#333333] flex items-center gap-1">
                               <Clock className="w-3 h-3 text-[#A89F91]" />
                               <span>Projekt</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Community Ratings & Reviews List (AC-16: Was haben Freunde bewertet?) */}
+            <div className="space-y-3 pt-2 border-t border-[#333333]" data-testid="community-ratings-section">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+                  <Star className="w-4 h-4 text-[#C9A96E]" />
+                  <span>Community-Wertungen & Reviews ({stats.ratings?.length || 0})</span>
+                </h3>
+                <span className="text-xs font-mono text-[#A89F91]">
+                  {stats.avgStars > 0 ? `Schnitt: ${stats.avgStars.toFixed(1)} ★` : 'Noch unbewertet'}
+                </span>
+              </div>
+
+              {(!stats.ratings || stats.ratings.length === 0) ? (
+                <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+                  Noch keine detaillierten Bewertungen vorhanden. Teste den Boulder und bewerte als Erster!
+                </div>
+              ) : (
+                <div className="divide-y divide-[#333333] rounded-none bg-[#2A2A2A] border border-[#333333] overflow-hidden">
+                  {stats.ratings.map(rating => {
+                    const userAscent = stats.ascents.find(a => isUserMatch(a.userId, rating.userId));
+                    const dateFormatted = rating.createdAt
+                      ? new Date(rating.createdAt).toLocaleDateString('de-DE', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })
+                      : 'Heute';
+
+                    return (
+                      <div
+                        key={rating.id}
+                        className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#1E1E1E] transition"
+                        data-testid={`community-rating-row-${rating.userId}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setViewingPublicUserId(rating.userId)}
+                            className="w-8 h-8 rounded-none bg-[#1E1E1E] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] shrink-0 transition cursor-pointer"
+                            title={`${rating.userNickname}s Profil ansehen`}
+                          >
+                            {rating.userNickname?.charAt(0) || 'K'}
+                          </button>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-[#E8E0D4]">
+                                {rating.userNickname}
+                              </span>
+                              {userAscent && (
+                                <span className={`px-1.5 py-0.5 rounded-none text-[9px] font-mono font-bold uppercase ${
+                                  userAscent.type === 'flash'
+                                    ? 'bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/40'
+                                    : userAscent.type === 'top'
+                                    ? 'bg-[#4A5D3A]/20 text-[#86A369] border border-[#4A5D3A]/40'
+                                    : 'bg-[#2A2A2A] text-[#A89F91] border border-[#333333]'
+                                }`}>
+                                  {userAscent.type}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-mono text-[#6B6358] flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{dateFormatted}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Rating Details: Stars & Grade Feel */}
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                          {rating.qualityStars !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-mono font-bold text-[#C9A96E]">
+                                {rating.qualityStars}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map(s => (
+                                  <Star
+                                    key={`card-star-${rating.id}-${s}`}
+                                    className={`w-3.5 h-3.5 ${
+                                      (rating.qualityStars || 0) >= s
+                                        ? 'fill-[#C9A96E] text-[#C9A96E]'
+                                        : 'text-[#333333]'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {rating.gradeFeel && (
+                            <span className={`px-2 py-0.5 rounded-none text-[10px] font-mono font-bold uppercase border ${
+                              rating.gradeFeel === 'soft'
+                                ? 'bg-[#4A5D3A]/20 text-[#86A369] border-[#4A5D3A]/50'
+                                : rating.gradeFeel === 'fair'
+                                ? 'bg-[#C9A96E]/20 text-[#C9A96E] border-[#C9A96E]/50'
+                                : 'bg-[#A0522D]/20 text-[#D97D5B] border-[#A0522D]/50'
+                            }`}>
+                              {rating.gradeFeel === 'soft' && '🟢 Soft'}
+                              {rating.gradeFeel === 'fair' && '🟡 Fair'}
+                              {rating.gradeFeel === 'stiff' && '🔴 Stiff'}
                             </span>
                           )}
                         </div>

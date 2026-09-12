@@ -17,7 +17,7 @@ import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser } from './lib/authService';
-import { syncFromSupabase } from './lib/syncService';
+import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { Mountain, Wrench, BarChart3, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
@@ -180,6 +180,13 @@ export const App: React.FC = () => {
     }).catch(err => {
       console.warn('[Supabase Sync] Background sync warning:', err);
     });
+
+    // Start Supabase Realtime multi-user sync (AC-15)
+    const cleanupRealtime = startRealtimeSync();
+
+    return () => {
+      cleanupRealtime();
+    };
   }, []);
 
   const refreshData = () => {

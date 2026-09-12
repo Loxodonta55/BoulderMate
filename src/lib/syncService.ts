@@ -14,6 +14,7 @@ import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted } from './storageUtils';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
+import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY } from './authService';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
@@ -409,53 +410,77 @@ export async function syncFromSupabase(): Promise<boolean> {
       }
     }
 
-    // 4. Ascents laden & mergen (non-destructive)
+    // 4. Ascents laden & mergen (non-destructive mit Nickname- & Boulder-Auflösung)
     const { data: dbAscents } = await supabase.from('ascents').select('*');
     if (dbAscents && dbAscents.length > 0) {
       const localAscents = getStorageJson<Ascent[]>(STORAGE_KEY_ASCENTS, []);
-      const ascentMap = new Map(localAscents.map(a => [a.id, a]));
+      const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+      const ascentMap = new Map<string, Ascent>();
+      localAscents.forEach(a => ascentMap.set(`${a.boulderId}_${a.userId}`, a));
+
       for (const a of dbAscents) {
-        if (!ascentMap.has(a.id)) {
-          ascentMap.set(a.id, {
-            id: a.id,
-            userId: a.user_id,
-            userNickname: 'Kletterer',
-            boulderId: a.boulder_id,
-            type: (a.ascent_style as any) || 'top',
-            createdAt: a.created_at,
-          });
-        }
+        const resolvedUser = resolveUserIdAndNickname(a.user_id);
+        const matchingBoulder = localBoulders.find(b => b.id === a.boulder_id || stringToUuid(b.id) === a.boulder_id);
+        const resolvedBoulderId = matchingBoulder?.id || a.boulder_id;
+        const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+
+        ascentMap.set(key, {
+          id: a.id,
+          userId: resolvedUser.userId,
+          userNickname: resolvedUser.nickname,
+          userAvatarUrl: resolvedUser.avatarUrl,
+          boulderId: resolvedBoulderId,
+          type: (a.ascent_style as any) || 'top',
+          createdAt: a.created_at,
+        });
       }
       setStorageJson(STORAGE_KEY_ASCENTS, Array.from(ascentMap.values()));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bouldermate:ascents_updated', {
+          detail: { action: 'synced', count: ascentMap.size }
+        }));
+      }
     }
 
-    // 5. Ratings laden & mergen (non-destructive)
+    // 5. Ratings laden & mergen (non-destructive mit Nickname- & Boulder-Auflösung)
     const { data: dbRatings } = await supabase.from('ratings').select('*');
     if (dbRatings && dbRatings.length > 0) {
       const localRatings = getStorageJson<BoulderRating[]>(STORAGE_KEY_RATINGS, []);
-      const ratingMap = new Map(localRatings.map(r => [r.id, r]));
+      const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+      const ratingMap = new Map<string, BoulderRating>();
+      localRatings.forEach(r => ratingMap.set(`${r.boulderId}_${r.userId}`, r));
+
       for (const r of dbRatings) {
-        if (!ratingMap.has(r.id)) {
-          ratingMap.set(r.id, {
-            id: r.id,
-            boulderId: r.boulder_id,
-            userId: r.user_id,
-            userNickname: 'Kletterer',
-            gradeFeel: (r.perceived_difficulty as any) || undefined,
-            qualityStars: r.stars || undefined,
-            radar: {
-              kraft: r.radar_kraft || 3,
-              technik: r.radar_technik || 3,
-              balance: r.radar_balance || 3,
-              koordination: r.radar_koordination || 3,
-              flexibilitaet: r.radar_flexibilitaet || 3,
-            },
-            createdAt: r.created_at,
-            updatedAt: r.created_at,
-          });
-        }
+        const resolvedUser = resolveUserIdAndNickname(r.user_id);
+        const matchingBoulder = localBoulders.find(b => b.id === r.boulder_id || stringToUuid(b.id) === r.boulder_id);
+        const resolvedBoulderId = matchingBoulder?.id || r.boulder_id;
+        const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+
+        ratingMap.set(key, {
+          id: r.id,
+          boulderId: resolvedBoulderId,
+          userId: resolvedUser.userId,
+          userNickname: resolvedUser.nickname,
+          userAvatarUrl: resolvedUser.avatarUrl,
+          gradeFeel: (r.perceived_difficulty as any) || undefined,
+          qualityStars: r.stars || undefined,
+          radar: {
+            kraft: r.radar_kraft || 3,
+            technik: r.radar_technik || 3,
+            balance: r.radar_balance || 3,
+            koordination: r.radar_koordination || 3,
+            flexibilitaet: r.radar_flexibilitaet || 3,
+          },
+          createdAt: r.created_at,
+          updatedAt: r.created_at,
+        });
       }
       setStorageJson(STORAGE_KEY_RATINGS, Array.from(ratingMap.values()));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', {
+          detail: { action: 'synced', count: ratingMap.size }
+        }));
+      }
     }
 
     currentSyncStatus.lastSyncTime = new Date().toISOString();
@@ -638,6 +663,40 @@ export const KNOWN_AUTH_USER_UUIDS = new Set([
   '00000000-2ff9-4000-8000-b7902cb24230', // AdminMinimum
   '00000000-5a7c-4000-8000-7702607a9a42', // Schrauber Minimum
 ]);
+
+export function resolveUserIdAndNickname(remoteUserId?: string): { userId: string; nickname: string; avatarUrl?: string } {
+  if (!remoteUserId) {
+    return { userId: 'guest', nickname: 'Gast' };
+  }
+  const demoKey = SUPABASE_UUID_TO_DEMO_KEY[remoteUserId];
+  if (demoKey && DEMO_USERS[demoKey]) {
+    const u = DEMO_USERS[demoKey];
+    return { userId: demoKey, nickname: u.nickname, avatarUrl: u.avatarUrl };
+  }
+  if (DEMO_USERS[remoteUserId]) {
+    const u = DEMO_USERS[remoteUserId];
+    return { userId: remoteUserId, nickname: u.nickname, avatarUrl: u.avatarUrl };
+  }
+  if (remoteUserId === '00000000-1d0e-4000-8000-e92d69136f33') {
+    return { userId: 'user-boris', nickname: 'Boris' };
+  }
+  if (remoteUserId === '00000000-4553-4000-8000-3dd13fac9e0f') {
+    return { userId: 'hans-kletterer', nickname: 'HansDereinfacheKletterer' };
+  }
+  if (remoteUserId === '00000000-08ca-4000-8000-6e6f5bce818f') {
+    return { userId: 'schrauber-6aplus', nickname: 'Schrauber6aPlus' };
+  }
+  if (remoteUserId === '00000000-37e7-4000-8000-0743462b539d') {
+    return { userId: 'admin-6aplus', nickname: 'Admin6APlus' };
+  }
+  if (remoteUserId === '00000000-2ff9-4000-8000-b7902cb24230') {
+    return { userId: 'admin-minimum', nickname: 'AdminMinimum' };
+  }
+  if (remoteUserId === '00000000-5a7c-4000-8000-7702607a9a42') {
+    return { userId: 'schrauber-minimum', nickname: 'Schrauber Minimum' };
+  }
+  return { userId: remoteUserId, nickname: 'Kletterer' };
+}
 
 export function toKnownAuthUserUuid(userId?: string): string {
   if (!userId) return '00000000-1d0e-4000-8000-e92d69136f33';
@@ -1015,5 +1074,346 @@ export function clearAppCacheAndReload(): void {
       console.error('[Cache] Fehler beim Bereinigen des Caches:', e);
     }
     window.location.reload();
+  }
+}
+
+// ============================================================
+// 11. SUPABASE REALTIME MULTI-USER SYNCHRONISATION (AC-15)
+// ============================================================
+
+let realtimeChannel: any = null;
+let realtimePollInterval: any = null;
+
+/**
+ * Verarbeitet eine eingehende Realtime-Änderung auf der Tabelle public.ratings.
+ */
+export function handleRealtimeRatingChange(payload: any): void {
+  if (!payload) return;
+  const { eventType, new: newRow, old: oldRow } = payload;
+  const localRatings = getStorageJson<BoulderRating[]>(STORAGE_KEY_RATINGS, []);
+
+  if (eventType === 'DELETE') {
+    const targetId = oldRow?.id;
+    const targetBoulderId = oldRow?.boulder_id;
+    const targetUserId = oldRow?.user_id;
+    const resolvedUser = targetUserId ? resolveUserIdAndNickname(targetUserId) : null;
+
+    const filtered = localRatings.filter(r => {
+      if (targetId && (r.id === targetId || stringToUuid(r.id) === targetId)) return false;
+      if (targetBoulderId && targetUserId) {
+        const matchesBoulder = r.boulderId === targetBoulderId || stringToUuid(r.boulderId) === targetBoulderId;
+        const matchesUser = r.userId === targetUserId || (resolvedUser && r.userId === resolvedUser.userId);
+        if (matchesBoulder && matchesUser) return false;
+      }
+      return true;
+    });
+
+    setStorageJson(STORAGE_KEY_RATINGS, filtered);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', {
+        detail: { action: 'delete', row: oldRow, boulderId: targetBoulderId }
+      }));
+    }
+    return;
+  }
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    const resolvedUser = resolveUserIdAndNickname(newRow.user_id);
+    const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+    const matchingBoulder = localBoulders.find(b => b.id === newRow.boulder_id || stringToUuid(b.id) === newRow.boulder_id);
+    const resolvedBoulderId = matchingBoulder?.id || newRow.boulder_id;
+
+    const incomingRating: BoulderRating = {
+      id: newRow.id,
+      boulderId: resolvedBoulderId,
+      userId: resolvedUser.userId,
+      userNickname: resolvedUser.nickname,
+      userAvatarUrl: resolvedUser.avatarUrl,
+      gradeFeel: (newRow.perceived_difficulty as any) || undefined,
+      qualityStars: newRow.stars || undefined,
+      radar: {
+        kraft: newRow.radar_kraft || 3,
+        technik: newRow.radar_technik || 3,
+        balance: newRow.radar_balance || 3,
+        koordination: newRow.radar_koordination || 3,
+        flexibilitaet: newRow.radar_flexibilitaet || 3,
+      },
+      createdAt: newRow.created_at || new Date().toISOString(),
+      updatedAt: newRow.created_at || new Date().toISOString(),
+    };
+
+    let found = false;
+    const updated = localRatings.map(r => {
+      const isSameId = r.id === incomingRating.id || stringToUuid(r.id) === incomingRating.id;
+      const isSameUserAndBoulder = (r.userId === incomingRating.userId || r.userId === newRow.user_id) &&
+        (r.boulderId === incomingRating.boulderId || stringToUuid(r.boulderId) === newRow.boulder_id);
+      if (isSameId || isSameUserAndBoulder) {
+        found = true;
+        return {
+          ...r,
+          ...incomingRating,
+          id: r.id,
+        };
+      }
+      return r;
+    });
+
+    if (!found) {
+      updated.push(incomingRating);
+    }
+
+    setStorageJson(STORAGE_KEY_RATINGS, updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', {
+        detail: { action: eventType.toLowerCase(), rating: incomingRating, boulderId: resolvedBoulderId }
+      }));
+    }
+  }
+}
+
+/**
+ * Verarbeitet eine eingehende Realtime-Änderung auf der Tabelle public.ascents.
+ */
+export function handleRealtimeAscentChange(payload: any): void {
+  if (!payload) return;
+  const { eventType, new: newRow, old: oldRow } = payload;
+  const localAscents = getStorageJson<Ascent[]>(STORAGE_KEY_ASCENTS, []);
+
+  if (eventType === 'DELETE') {
+    const targetId = oldRow?.id;
+    const targetBoulderId = oldRow?.boulder_id;
+    const targetUserId = oldRow?.user_id;
+    const resolvedUser = targetUserId ? resolveUserIdAndNickname(targetUserId) : null;
+
+    const filtered = localAscents.filter(a => {
+      if (targetId && (a.id === targetId || stringToUuid(a.id) === targetId)) return false;
+      if (targetBoulderId && targetUserId) {
+        const matchesBoulder = a.boulderId === targetBoulderId || stringToUuid(a.boulderId) === targetBoulderId;
+        const matchesUser = a.userId === targetUserId || (resolvedUser && a.userId === resolvedUser.userId);
+        if (matchesBoulder && matchesUser) return false;
+      }
+      return true;
+    });
+
+    setStorageJson(STORAGE_KEY_ASCENTS, filtered);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:ascents_updated', {
+        detail: { action: 'delete', row: oldRow, boulderId: targetBoulderId }
+      }));
+    }
+    return;
+  }
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    const resolvedUser = resolveUserIdAndNickname(newRow.user_id);
+    const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+    const matchingBoulder = localBoulders.find(b => b.id === newRow.boulder_id || stringToUuid(b.id) === newRow.boulder_id);
+    const resolvedBoulderId = matchingBoulder?.id || newRow.boulder_id;
+
+    const incomingAscent: Ascent = {
+      id: newRow.id,
+      boulderId: resolvedBoulderId,
+      userId: resolvedUser.userId,
+      userNickname: resolvedUser.nickname,
+      userAvatarUrl: resolvedUser.avatarUrl,
+      type: (newRow.ascent_style as any) || 'top',
+      createdAt: newRow.created_at || new Date().toISOString(),
+    };
+
+    let found = false;
+    const updated = localAscents.map(a => {
+      const isSameId = a.id === incomingAscent.id || stringToUuid(a.id) === incomingAscent.id;
+      const isSameUserAndBoulder = (a.userId === incomingAscent.userId || a.userId === newRow.user_id) &&
+        (a.boulderId === incomingAscent.boulderId || stringToUuid(a.boulderId) === newRow.boulder_id);
+      if (isSameId || isSameUserAndBoulder) {
+        found = true;
+        return {
+          ...a,
+          ...incomingAscent,
+          id: a.id,
+        };
+      }
+      return a;
+    });
+
+    if (!found) {
+      updated.push(incomingAscent);
+    }
+
+    setStorageJson(STORAGE_KEY_ASCENTS, updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:ascents_updated', {
+        detail: { action: eventType.toLowerCase(), ascent: incomingAscent, boulderId: resolvedBoulderId }
+      }));
+    }
+  }
+}
+
+/**
+ * Führt eine unaufdringliche Hintergrund-Synchronisation von Bewertungen und Begehungen aus.
+ */
+export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured) return false;
+  try {
+    const [ascentsRes, ratingsRes] = await Promise.all([
+      supabase.from('ascents').select('*'),
+      supabase.from('ratings').select('*')
+    ]);
+
+    let ascentsChanged = false;
+    if (ascentsRes.data && ascentsRes.data.length > 0) {
+      const localAscents = getStorageJson<Ascent[]>(STORAGE_KEY_ASCENTS, []);
+      const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+      const ascentMap = new Map<string, Ascent>();
+      localAscents.forEach(a => ascentMap.set(`${a.boulderId}_${a.userId}`, a));
+
+      for (const a of ascentsRes.data) {
+        const resolvedUser = resolveUserIdAndNickname(a.user_id);
+        const matchingBoulder = localBoulders.find(b => b.id === a.boulder_id || stringToUuid(b.id) === a.boulder_id);
+        const resolvedBoulderId = matchingBoulder?.id || a.boulder_id;
+        const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+
+        const existing = ascentMap.get(key);
+        if (!existing || existing.type !== a.ascent_style) {
+          ascentsChanged = true;
+          ascentMap.set(key, {
+            id: a.id,
+            userId: resolvedUser.userId,
+            userNickname: resolvedUser.nickname,
+            userAvatarUrl: resolvedUser.avatarUrl,
+            boulderId: resolvedBoulderId,
+            type: (a.ascent_style as any) || 'top',
+            createdAt: a.created_at,
+          });
+        }
+      }
+
+      if (ascentsChanged) {
+        setStorageJson(STORAGE_KEY_ASCENTS, Array.from(ascentMap.values()));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('bouldermate:ascents_updated', { detail: { action: 'quiet_sync' } }));
+        }
+      }
+    }
+
+    let ratingsChanged = false;
+    if (ratingsRes.data && ratingsRes.data.length > 0) {
+      const localRatings = getStorageJson<BoulderRating[]>(STORAGE_KEY_RATINGS, []);
+      const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+      const ratingMap = new Map<string, BoulderRating>();
+      localRatings.forEach(r => ratingMap.set(`${r.boulderId}_${r.userId}`, r));
+
+      for (const r of ratingsRes.data) {
+        const resolvedUser = resolveUserIdAndNickname(r.user_id);
+        const matchingBoulder = localBoulders.find(b => b.id === r.boulder_id || stringToUuid(b.id) === r.boulder_id);
+        const resolvedBoulderId = matchingBoulder?.id || r.boulder_id;
+        const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+
+        const existing = ratingMap.get(key);
+        if (!existing || existing.qualityStars !== r.stars || existing.gradeFeel !== r.perceived_difficulty) {
+          ratingsChanged = true;
+          ratingMap.set(key, {
+            id: r.id,
+            boulderId: resolvedBoulderId,
+            userId: resolvedUser.userId,
+            userNickname: resolvedUser.nickname,
+            userAvatarUrl: resolvedUser.avatarUrl,
+            gradeFeel: (r.perceived_difficulty as any) || undefined,
+            qualityStars: r.stars || undefined,
+            radar: {
+              kraft: r.radar_kraft || 3,
+              technik: r.radar_technik || 3,
+              balance: r.radar_balance || 3,
+              koordination: r.radar_koordination || 3,
+              flexibilitaet: r.radar_flexibilitaet || 3,
+            },
+            createdAt: r.created_at,
+            updatedAt: r.created_at,
+          });
+        }
+      }
+
+      if (ratingsChanged) {
+        setStorageJson(STORAGE_KEY_RATINGS, Array.from(ratingMap.values()));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', { detail: { action: 'quiet_sync' } }));
+        }
+      }
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Startet die Realtime-Verbindung zu Supabase für Live-Synchronisation von Bewertungen und Begehungen.
+ * Gibt eine Cleanup-Funktion zurück, um Kanäle und Listener zu deregistrieren.
+ */
+export function startRealtimeSync(): () => void {
+  if (!supabase || !isSupabaseConfigured) {
+    return () => {};
+  }
+
+  if (realtimeChannel) {
+    return () => stopRealtimeSync();
+  }
+
+  try {
+    realtimeChannel = supabase.channel('bouldermate-realtime-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ratings' },
+        (payload) => {
+          handleRealtimeRatingChange(payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ascents' },
+        (payload) => {
+          handleRealtimeAscentChange(payload);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Supabase Realtime] Connected with status:', status);
+      });
+  } catch (err) {
+    console.warn('[Supabase Realtime] Setup error:', err);
+  }
+
+  if (typeof window !== 'undefined' && !realtimePollInterval) {
+    realtimePollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        syncRatingsAndAscentsQuietly().catch(() => {});
+      }
+    }, 8000);
+
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        syncRatingsAndAscentsQuietly().catch(() => {});
+      }
+    };
+    window.addEventListener('focus', onVisibilityOrFocus);
+    window.addEventListener('visibilitychange', onVisibilityOrFocus);
+  }
+
+  return () => stopRealtimeSync();
+}
+
+/**
+ * Beendet die aktive Realtime-Verbindung und Intervall-Polling.
+ */
+export function stopRealtimeSync(): void {
+  if (realtimeChannel && supabase) {
+    supabase.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+  if (realtimePollInterval) {
+    clearInterval(realtimePollInterval);
+    realtimePollInterval = null;
   }
 }

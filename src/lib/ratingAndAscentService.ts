@@ -51,6 +51,22 @@ export const SEED_COMMENTS: BoulderComment[] = [
 ];
 
 let lastTimestamp = 0;
+export function notifyRatingsChanged(boulderId?: string): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', {
+      detail: { boulderId, timestamp: Date.now() }
+    }));
+  }
+}
+
+export function notifyAscentsChanged(boulderId?: string): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:ascents_updated', {
+      detail: { boulderId, timestamp: Date.now() }
+    }));
+  }
+}
+
 export function getUniqueIsoTimestamp(): string {
   let now = Date.now();
   if (now <= lastTimestamp) {
@@ -97,9 +113,24 @@ export function getAscents(boulderId?: string): Ascent[] {
   return boulderId ? list.filter(a => a.boulderId === boulderId) : list;
 }
 
+export function isUserMatch(u1?: string, u2?: string): boolean {
+  if (!u1 || !u2) return false;
+  if (u1 === u2) return true;
+  const DEMO_MAP: Record<string, string> = {
+    'user-boris': '00000000-1d0e-4000-8000-e92d69136f33',
+    'admin-6aplus': '00000000-37e7-4000-8000-0743462b539d',
+    'schrauber-6aplus': '00000000-08ca-4000-8000-6e6f5bce818f',
+    'hans-kletterer': '00000000-4553-4000-8000-3dd13fac9e0f',
+    'admin-minimum': '00000000-2ff9-4000-8000-b7902cb24230',
+    'schrauber-minimum': '00000000-5a7c-4000-8000-7702607a9a42',
+  };
+  if (DEMO_MAP[u1] === u2 || DEMO_MAP[u2] === u1) return true;
+  return false;
+}
+
 export function getUserAscent(userId: string, boulderId: string): Ascent | null {
   const all = getAscents(boulderId);
-  return all.find(a => a.userId === userId) || null;
+  return all.find(a => isUserMatch(a.userId, userId)) || null;
 }
 
 /**
@@ -154,6 +185,7 @@ export function logAscent(
   }
 
   setStorageJson(STORAGE_KEY_ASCENTS, all);
+  notifyAscentsChanged(boulderId);
 
   try {
     import('./syncService').then(m => {
@@ -172,6 +204,7 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
   const filtered = all.filter(a => !(a.userId === userId && a.boulderId === boulderId));
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_ASCENTS, filtered);
+    notifyAscentsChanged(boulderId);
 
     try {
       import('./syncService').then(m => {
@@ -220,7 +253,7 @@ export function getRatings(boulderId?: string): BoulderRating[] {
 
 export function getUserRating(userId: string, boulderId: string): BoulderRating | null {
   const all = getRatings(boulderId);
-  return all.find(r => r.userId === userId) || null;
+  return all.find(r => isUserMatch(r.userId, userId)) || null;
 }
 
 /**
@@ -266,6 +299,7 @@ export function saveRating(
   }
 
   setStorageJson(STORAGE_KEY_RATINGS, all);
+  notifyRatingsChanged(boulderId);
 
   try {
     import('./syncService').then(m => {
@@ -288,6 +322,7 @@ export function deleteRating(userId: string, boulderId: string): boolean {
   const filtered = all.filter(r => !(r.userId === userId && r.boulderId === boulderId));
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_RATINGS, filtered);
+    notifyRatingsChanged(boulderId);
 
     try {
       import('./syncService').then(m => {
@@ -479,6 +514,11 @@ export function computeBoulderStatsAggregate(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
+  // Sorted ratings (newest first)
+  const sortedRatings = [...boulderRatings].sort(
+    (a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+  );
+
   return {
     boulderId: boulder.id,
     totalRatings: boulderRatings.length,
@@ -491,6 +531,7 @@ export function computeBoulderStatsAggregate(
     totalProjects,
     radarAggregate,
     ascents: sortedAscents,
+    ratings: sortedRatings,
     comments: boulderComments,
   };
 }

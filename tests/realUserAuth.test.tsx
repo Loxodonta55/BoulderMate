@@ -1,14 +1,11 @@
-﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
-import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import {
   signUpWithEmail,
   signInWithPassword,
   signInWithOtp,
-  signInWithGoogle,
   signOut,
   getCurrentAuthUser,
-  setSessionUser,
   onAuthStateChange
 } from '../src/lib/authService';
 import { LoginModal } from '../src/components/LoginModal';
@@ -58,7 +55,7 @@ describe('Real User Authentication (Supabase Auth & LoginModal MVP)', () => {
       const listener = vi.fn();
       const unsubscribe = onAuthStateChange(listener);
 
-      const user = await signUpWithEmail('observer@climb.ch', 'password123', 'Observer');
+      await signUpWithEmail('observer@climb.ch', 'password123', 'Observer');
       expect(listener).toHaveBeenCalledWith(expect.objectContaining({ email: 'observer@climb.ch' }));
 
       await signOut();

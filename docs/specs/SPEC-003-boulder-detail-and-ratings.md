@@ -55,6 +55,22 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
   - Das Löschen entfernt die Bewertung sofort lokal aus `boulderapp_ratings_v3` und synchronisiert die Löschung nach Supabase (`ratings`-Tabelle via `deleteRatingFromSupabase`).
   - Nach dem Löschen werden die Community-Durchschnittsnoten (Sterne, Grad-Barometer, Radar-Klettercharakter) in Echtzeit reaktiv neu berechnet und die UI aktualisiert, ohne dass ein Seiten-Reload erforderlich ist.
   - Der Kletterer kann danach jederzeit wieder eine neue Bewertung abgeben ("Jetzt bewerten").
+- [x] **AC-15: Echtzeit Multi-User Sync für Bewertungen & Begehungen (Instant Realtime Multi-Device Sync)**:
+  - Bei gleichzeitiger Nutzung der App durch mehrere Kletterer/Freunde (z. B. im User-Test mit Test-Personas oder echten Konten) werden Bewertungen (`ratings`) und Begehungen (`ascents`) in Echtzeit via Supabase Realtime WebSocket Channels synchronisiert.
+  - Sobald ein Nutzer eine Bewertung abgibt, anpasst oder löscht, wird dies sofort an alle aktiven Clients übertragen (< 250ms Latenz).
+  - Geöffnete Boulder-Detailansichten (`BoulderDetailModal`) und Sektor-Wandansichten (`ClimberSectorView`) aktualisieren sich reaktiv via Event-Listener (`bouldermate:ratings_updated`, `bouldermate:ascents_updated`), ohne dass der Nutzer die Seite neu laden oder das Fenster schließen muss.
+  - Robuster Fallback: Polling alle 8s bei sichtbarem Tab sowie On-Focus / Modal-Open Synchronisation.
+- [x] **AC-16: Transparente Community-Bewertungsübersicht ("Was haben Freunde bewertet?")**:
+  - Kletterer sehen in der Detailansicht (`BoulderDetailModal`) nicht mehr nur den unpersönlichen Durchschnitt, sondern eine transparente Liste der Community-Wertungen ("Community-Wertungen & Reviews"):
+    - Kletterer-Nickname & Profil-Avatar
+    - Vergebene Sterne (1-5 ★)
+    - Grad-Empfinden (`🟢 Soft`, `🟡 Fair`, `🔴 Stiff`)
+    - Durchstiegs-Status (`⚡ Flash`, `🏆 Top`, `⏱️ Projekt`), falls vom Nutzer geloggt
+    - Zeitstempel der Bewertung
+  - Nutzer können so im Freundeskreis direkt nachvollziehen, wie der Kletterpartner die Route empfunden und bewertet hat.
+- [x] **AC-17: Bidirektionale Fake-User & UUID-Harmonisierung**:
+  - Test- und Demo-Personas (`user-boris`, `hans-kletterer`, etc.) werden beim Supabase-Sync deterministisch auf UUIDs gemappt und beim Laden wieder sauber mit ihren Nicknames und Profilen aufgelöst (kein anonymer Fallback auf "Kletterer").
+  - Ratings und Ascents werden über den zusammengesetzten Primärschlüssel `(boulderId, userId)` sauber dedupliziert.
 
 ## Technical Design
 

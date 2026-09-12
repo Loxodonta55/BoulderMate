@@ -215,6 +215,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     }
   }, [selectedSectorId, dataVersion]);
 
+  // AC-15: Echtzeit-Aktualisierung der Pins & Routenkarten bei externen Bewertungen/Begehungen
+  useEffect(() => {
+    const handleUpdate = () => {
+      setDataVersion(v => v + 1);
+    };
+    window.addEventListener('bouldermate:ratings_updated', handleUpdate);
+    window.addEventListener('bouldermate:ascents_updated', handleUpdate);
+    window.addEventListener('bouldermate:boulders_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('bouldermate:ratings_updated', handleUpdate);
+      window.removeEventListener('bouldermate:ascents_updated', handleUpdate);
+      window.removeEventListener('bouldermate:boulders_updated', handleUpdate);
+    };
+  }, []);
+
   // Pre-index ascents and stats in a single pass to eliminate N+1 read overhead
   const { userAscentMap, statsMap } = useMemo(() => {
     const userAscents = new Map<string, Ascent | null>();
