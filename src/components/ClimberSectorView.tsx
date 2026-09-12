@@ -3,7 +3,8 @@ import {
   WallBoulder,
   CurrentUser,
   Ascent,
-  BoulderStatsAggregate
+  BoulderStatsAggregate,
+  GymGradeScale,
 } from '../types/boulder';
 import { getWallBoulders } from '../lib/batchBoulderService';
 import {
@@ -290,6 +291,25 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     }
   };
 
+  const resolveBoulderScale = (b: WallBoulder): GymGradeScale | undefined => {
+    if (b.gradeScaleId && scaleMap.has(b.gradeScaleId)) {
+      return scaleMap.get(b.gradeScaleId);
+    }
+    const query = `${b.gradeScaleId || ''} ${b.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
+    const matchedByName = gradeScales.find(s => {
+      const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+      return query.includes(norm);
+    });
+    if (matchedByName) return matchedByName;
+
+    if (b.fontGrade) {
+      const matchedByFont = gradeScales.find(s => s.fontRangeMin === b.fontGrade || s.fontRangeMax === b.fontGrade);
+      if (matchedByFont) return matchedByFont;
+    }
+
+    return gradeScales[0];
+  };
+
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
       {/* Sector Selection Bar — Compact & Mobile-First */}
@@ -566,7 +586,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {processedBoulders.map(boulder => {
-                  const scale = scaleMap.get(boulder.gradeScaleId);
+                  const scale = resolveBoulderScale(boulder);
                   const userAscent = userAscentMap.get(boulder.id);
                   const stats = statsMap.get(boulder.id) || {
                     avgStars: 0,
@@ -792,7 +812,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
         <BoulderDetailModal
           boulder={selectedBoulder}
           sector={selectedSector || undefined}
-          gradeScale={scaleMap.get(selectedBoulder.gradeScaleId)}
+          gradeScale={resolveBoulderScale(selectedBoulder)}
           currentUser={currentUser}
           isOpen={Boolean(selectedBoulder)}
           onClose={() => setSelectedBoulder(null)}

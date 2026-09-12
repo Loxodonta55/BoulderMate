@@ -24,6 +24,8 @@ import {
   removeStorageItem,
   isBoulderDeleted,
   markBoulderDeleted,
+  isValidUuid,
+  stringToUuid,
 } from './storageUtils';
 
 export function resetAllGymData(): void {
@@ -474,10 +476,24 @@ export function setGymGradeScales(
       throw new Error('Jede Farbe benötigt font_range_min und font_range_max.');
     }
 
+    const scaleUuid = (s.id && isValidUuid(s.id))
+      ? s.id
+      : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gym_id}_${s.color_name}_${idx}`));
+
+    const targetGymNorm = (gym_id === 'gym-6a-plus' || gym_id.includes('6a') || gym_id.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (gym_id === 'gym-minimum-zh' || gym_id.includes('minimum') || gym_id.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : gym_id;
+    const normColor = s.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
+    const finalColorName = (targetGymNorm === 'gym-6a-plus' && normColor === 'weiss')
+      ? 'Weiss'
+      : s.color_name.trim();
+
     return {
-      id: s.id || 'scale_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
+      id: scaleUuid,
       gym_id,
-      color_name: s.color_name.trim(),
+      color_name: finalColorName,
       color_hex: s.color_hex.trim(),
       difficulty_label: s.difficulty_label.trim(),
       font_range_min: s.font_range_min.trim(),

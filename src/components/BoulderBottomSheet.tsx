@@ -45,7 +45,12 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
     setShowDeleteConfirm(false);
     setIsDeleting(false);
     if (boulder) {
-      setSelectedScaleId(boulder.gradeScaleId || defaultGradeScaleId || (gradeScales[0]?.id ?? ''));
+      let matchedScale = gradeScales.find(s => s.id === boulder.gradeScaleId);
+      if (!matchedScale && boulder.gradeScaleId) {
+        const norm = boulder.gradeScaleId.toLowerCase().trim().replace(/ß/g, 'ss');
+        matchedScale = gradeScales.find(s => s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === norm);
+      }
+      setSelectedScaleId(matchedScale ? matchedScale.id : (defaultGradeScaleId || gradeScales[0]?.id || ''));
       setName(boulder.name || '');
       setNotes(boulder.notes || '');
       setRadar(boulder.radar ? { ...boulder.radar } : { ...DEFAULT_RADAR });

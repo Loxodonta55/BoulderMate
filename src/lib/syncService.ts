@@ -475,13 +475,14 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
       const normColor = s.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
       // Wenn es bereits eine passende UUID in Supabase gibt, diese wiederverwenden
       const remoteId = remoteByName.get(normColor) ||
-        (s.id && s.id.includes('-') && s.id.length > 30 ? s.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined));
+        (s.id && isValidUuid(s.id) ? s.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${supabaseGymId}_${normColor}`)));
 
       const finalColorName = (supabaseGymId === 'f2b11564-ca86-4ed4-b51c-3affb346144b' && normColor === 'weiss')
         ? 'Weiss'
         : s.color_name.trim();
 
       const item: any = {
+        id: remoteId,
         gym_id: supabaseGymId,
         color_name: finalColorName,
         color_hex: s.color_hex.trim(),
@@ -490,9 +491,6 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
         font_range_max: s.font_range_max.trim(),
         sort_order: s.sort_order !== undefined ? s.sort_order : idx + 1,
       };
-      if (remoteId) {
-        item.id = remoteId;
-      }
       return item;
     });
 
@@ -503,6 +501,75 @@ export async function syncGradeScalesToSupabase(gymId: string, scales: GradeScal
     if (error) {
       console.warn('[Sync] Fehler beim Aufwärts-Sync der Farbskalen:', error.message);
       return false;
+    }
+
+    // Wenn der Admin Farben gelöscht hat: In Supabase ebenfalls entfernen
+    if (existingRemote && existingRemote.length > 0) {
+      const currentRemoteIds = new Set(upsertPayload.map(p => p.id));
+      const toDelete = existingRemote.filter(r => !currentRemoteIds.has(r.id)).map(r => r.id);
+      if (toDelete.length > 0 && upsertPayload.length > 0) {
+        // Bestehende Boulder auf die erste verbleibende Skala umhängen
+        await supabase.from('boulders').update({ grade_scale_id: upsertPayload[0].id }).in('grade_scale_id', toDelete);
+        await supabase.from('grade_scales').delete().in('id', toDelete);
+      }
+    }
+
+    // WICHTIG: Die kanonischen UUIDs sofort in den lokalen Speicher schreiben!
+    const targetNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : gymId;
+
+    const canonicalV1: GradeScale[] = upsertPayload.map(sc => ({
+      id: sc.id,
+      gym_id: targetNorm,
+      color_name: sc.color_name,
+      color_hex: sc.color_hex,
+      difficulty_label: sc.difficulty_label,
+      font_range_min: sc.font_range_min,
+      font_range_max: sc.font_range_max,
+      sort_order: sc.sort_order,
+      created_at: new Date().toISOString(),
+    }));
+
+    let allV1 = gymStorage.getGradeScales().filter(s => {
+      const sNorm = (s.gym_id === 'gym-6a-plus' || s.gym_id?.includes('6a') || s.gym_id?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gym_id === 'gym-minimum-zh' || s.gym_id?.includes('minimum') || s.gym_id?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gym_id;
+      return sNorm !== targetNorm;
+    });
+    allV1.push(...canonicalV1);
+    gymStorage.saveGradeScales(allV1);
+
+    const canonicalV2 = canonicalV1.map(sc => ({
+      id: sc.id,
+      gymId: targetNorm,
+      colorName: sc.color_name,
+      colorHex: sc.color_hex,
+      difficultyLabel: sc.difficulty_label,
+      fontRangeMin: sc.font_range_min,
+      fontRangeMax: sc.font_range_max,
+      sortOrder: sc.sort_order,
+    }));
+
+    let allV2 = getStorageJson<any[]>('boulderapp_grade_scales_v2', []).filter(s => {
+      const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gymId;
+      return sNorm !== targetNorm;
+    });
+    allV2.push(...canonicalV2);
+    setStorageJson('boulderapp_grade_scales_v2', allV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:gradescales_updated', {
+        detail: { gymId, scales: canonicalV1 }
+      }));
     }
 
     console.log(`[Sync] ${upsertPayload.length} Farbskalen erfolgreich nach Supabase synchronisiert.`);
@@ -619,33 +686,61 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
     const localScales = gymStorage.getGradeScales();
 
     const upsertRows: any[] = [];
+    const resolvedScaleMapping = new Map<string, string>(); // b.id -> resolvedScaleId
 
     for (const b of boulders) {
       // 1. Sektor auflösen
       let resolvedSectorId: string | null = null;
+      let targetGymId: string | null = null;
+
       if (isValidUuid(b.sectorId) && remoteSectors.some(s => s.id === b.sectorId)) {
         resolvedSectorId = b.sectorId;
+        const matchedSec = remoteSectors.find(s => s.id === b.sectorId);
+        targetGymId = matchedSec?.gym_id || null;
       } else {
         const localSec = localSectors.find(s => s.id === b.sectorId);
         if (localSec) {
           const matchedRemote = remoteSectors.find(rs => rs.name.trim().toLowerCase() === localSec.name.trim().toLowerCase());
-          if (matchedRemote) resolvedSectorId = matchedRemote.id;
+          if (matchedRemote) {
+            resolvedSectorId = matchedRemote.id;
+            targetGymId = matchedRemote.gym_id;
+          }
         }
       }
       if (!resolvedSectorId && remoteSectors.length > 0) {
         resolvedSectorId = remoteSectors[0].id;
+        targetGymId = remoteSectors[0].gym_id;
       }
 
-      // 2. Farbskala auflösen
+      // 2. Farbskala strikt innerhalb DIESER Halle auflösen
+      const gymRemoteScales = targetGymId
+        ? remoteScales.filter(rs => rs.gym_id === targetGymId)
+        : remoteScales;
+
       let resolvedScaleId: string | null = null;
-      if (isValidUuid(b.gradeScaleId) && remoteScales.some(s => s.id === b.gradeScaleId)) {
+      if (isValidUuid(b.gradeScaleId) && gymRemoteScales.some(s => s.id === b.gradeScaleId)) {
         resolvedScaleId = b.gradeScaleId;
       } else {
         const localSc = localScales.find(s => s.id === b.gradeScaleId);
         if (localSc) {
-          const matchedScale = remoteScales.find(rs => rs.color_name.trim().toLowerCase() === localSc.color_name.trim().toLowerCase());
+          const normLocalColor = localSc.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
+          const matchedScale = gymRemoteScales.find(rs =>
+            rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss') === normLocalColor
+          );
           if (matchedScale) resolvedScaleId = matchedScale.id;
         }
+      }
+      // Fallback per Farbname aus Boulder-Name
+      if (!resolvedScaleId && b.name) {
+        const nameNorm = b.name.trim().toLowerCase().replace(/ß/g, 'ss');
+        const matchedByName = gymRemoteScales.find(rs =>
+          nameNorm.includes(rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss'))
+        );
+        if (matchedByName) resolvedScaleId = matchedByName.id;
+      }
+      // Fallback auf erste Skala DIESER Halle
+      if (!resolvedScaleId && gymRemoteScales.length > 0) {
+        resolvedScaleId = gymRemoteScales[0].id;
       }
       if (!resolvedScaleId && remoteScales.length > 0) {
         resolvedScaleId = remoteScales[0].id;
@@ -653,7 +748,10 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
 
       if (!resolvedSectorId || !resolvedScaleId) continue;
 
+      resolvedScaleMapping.set(b.id, resolvedScaleId);
+
       const boulderUuid = isValidUuid(b.id) ? b.id : stringToUuid(b.id);
+      resolvedScaleMapping.set(boulderUuid, resolvedScaleId);
       const setterUuid = toKnownAuthUserUuid(b.setterId);
 
       upsertRows.push({
@@ -687,6 +785,22 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
       console.warn('[Sync] Fehler beim Aufwärts-Sync der Boulder:', error.message);
       return false;
     }
+
+    // Lokalen V2-Cache synchronisieren: gradeScaleId auf die aufgelöste kanonische UUID setzen
+    const localWallBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+    let modifiedWallBoulders = false;
+    const updatedWallBoulders = localWallBoulders.map(wb => {
+      const canonicalScaleId = resolvedScaleMapping.get(wb.id);
+      if (canonicalScaleId && wb.gradeScaleId !== canonicalScaleId) {
+        modifiedWallBoulders = true;
+        return { ...wb, gradeScaleId: canonicalScaleId };
+      }
+      return wb;
+    });
+    if (modifiedWallBoulders) {
+      setStorageJson(STORAGE_KEY_WALL_BOULDERS, updatedWallBoulders);
+    }
+
     console.log(`[Sync] ${upsertRows.length} Boulder erfolgreich nach Supabase synchronisiert.`);
     return true;
   } catch (e) {

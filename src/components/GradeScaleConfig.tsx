@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { GradeScale } from '../types/gym';
 import { setGymGradeScales } from '../lib/gymStorage';
 import { syncGradeScalesToSupabase } from '../lib/syncService';
-import { Plus, Trash2, ArrowUp, ArrowDown, Save, Check, Palette } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Save, Check, Palette, RefreshCw } from 'lucide-react';
+import { isValidUuid, stringToUuid } from '../lib/storageUtils';
 
 interface Props {
   gymId: string;
@@ -15,6 +16,8 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
   const [scales, setScales] = useState<GradeScale[]>(initialScales);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setScales(initialScales);
@@ -29,7 +32,7 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
   const addColor = () => {
     const newOrder = scales.length + 1;
     const newColor: GradeScale = {
-      id: 'scale_temp_' + Date.now(),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gymId}_new_${Date.now()}`),
       gym_id: gymId,
       color_name: 'Neue Farbe',
       color_hex: '#8b5cf6',
@@ -57,18 +60,34 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
     setScales(next.map((s, idx) => ({ ...s, sort_order: idx + 1 })));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
+      setIsSaving(true);
       setError(null);
-      setGymGradeScales(gymId, userId, scales);
-      syncGradeScalesToSupabase(gymId, scales).catch(err => {
-        console.warn('Background sync grade scales to Supabase failed:', err);
-      });
+
+      // Sicherstellen, dass jede Farbstufe eine echte UUID besitzt
+      const scalesWithUuids: GradeScale[] = scales.map((s, idx) => ({
+        ...s,
+        id: (s.id && isValidUuid(s.id))
+          ? s.id
+          : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gymId}_${s.color_name}_${idx}`)),
+        sort_order: idx + 1,
+      }));
+
+      // 1. Sofort lokal persistieren
+      const validated = setGymGradeScales(gymId, userId, scalesWithUuids);
+      setScales(validated);
+
+      // 2. Sofort in Supabase synchronisieren und auf Bestätigung warten
+      await syncGradeScalesToSupabase(gymId, validated);
+
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
       onSaved();
     } catch (e: any) {
       setError(e.message || 'Fehler beim Speichern der Farbskala.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -196,10 +215,17 @@ export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales
         <button
           type="button"
           onClick={handleSave}
-          className="px-5 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] flex items-center gap-2 transition-all"
+          disabled={isSaving}
+          className="px-5 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] disabled:opacity-50 text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] flex items-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
         >
-          {savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {savedSuccess ? 'Gespeichert!' : 'Farbsystem speichern'}
+          {isSaving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : savedSuccess ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {isSaving ? 'Wird synchronisiert...' : savedSuccess ? 'Gespeichert!' : 'Farbsystem speichern'}
         </button>
       </div>
     </div>

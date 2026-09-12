@@ -20,7 +20,14 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
     - `batchBoulderService.getGradeScales` übernimmt stets die autoritativen Farbskalen aus `gymStorage` und hält den V2-Cache (`boulderapp_grade_scales_v2`) 1:1 synchron, sodass keine Geisterfarben oder gelöschten Skalen verbleiben.
     - Das Speichern im Admin löst das Event `bouldermate:gradescales_updated` aus, worauf der Hook `useGymSectorData` in allen aktiven Ansichten reaktiv anspricht.
   - **AC-2.2 (Non-destruktive Cloud-Synchronisation & Constraint-Harmonie)**:
-    - Änderungen an Farbskalen werden via `syncGradeScalesToSupabase` non-destruktiv aufwärts mit der Supabase-Tabelle `grade_scales` abgeglichen. Dabei werden bestehende UUIDs remote über den normalisierten Farbnamen wiederverwendet, um Unique-Constraint-Verletzungen (`uq_grade_scales_gym_color`) und Duplikate zuverlässig auszuschließen.
+    - Änderungen an Farbskalen werden via `syncGradeScalesToSupabase` non-destruktiv aufwärts mit der Supabase-Tabelle `grade_scales` abgeglichen. Dabei werden bestehende UUIDs remote über den normalisierten Farbnamen wiederverwendet, um Unique-Constraint-Verletzungen (`uq_grade_scales_gym_norm_color`) und Duplikate zuverlässig auszuschließen.
+  - **AC-2.3 (Sofortige UUID-Konsistenz & Verhindern von Farbverfälschungen / Blau-Bug)**:
+    - Neu angelegte oder bearbeitete Farbskalen erhalten bereits beim Speichern im Admin-Bereich eine valide UUID v4 (niemals temporäre String-IDs wie `scale_...`).
+    - Das Speichern im Admin (`GradeScaleConfig`) synchronisiert sofort (`await syncGradeScalesToSupabase`) mit Supabase, bevor der Vorgang als erfolgreich bestätigt wird.
+    - Beide Stores (`boulderapp_grade_scales` und `boulderapp_grade_scales_v2`) sowie Supabase `grade_scales` teilen ausnahmslos dieselben UUIDs.
+    - Neu erstellte Boulder in `BatchBoulderWorkflow` speichern sofort die valide UUID der Farbskala.
+    - Bei der Cloud-Synchronisation von Bouldern (`syncBouldersToSupabase`) wird die Farbskala strikt innerhalb der jeweiligen Halle aufgelöst, und die lokale Boulder-Entität wird direkt mit der kanonischen `grade_scale_id` aktualisiert.
+    - Auf der Wandtafel (`WallPhotoCanvas`) und im Klettererbereich (`ClimberSectorView`) löst `resolveScale` bzw. `resolveBoulderScale` Farbskalen mehrstufig auf (ID -> normalisierter Farbname -> Font-Grad). Es erfolgt niemals ein stummer Fallback auf Blau (`#3b82f6`).
 - [x] **AC-3**: Sektoren erfordern `name` und ein valides `wall_photo_url`.
 - [x] **AC-4**: **Drag & Drop Sektor-Sortierung & Reihenfolgeverwaltung**:
   - **AC-4.1 (Drag & Drop Interaktion)**: Jede Sektor-Karte im `SectorManager` verfügt über einen deutlichen Drag-Handle (`GripVertical`-Icon) und ist für Hallen-Admins per HTML5 Drag & Drop greifbar (`draggable={isAdmin}`).

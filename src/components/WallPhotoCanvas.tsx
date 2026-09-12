@@ -93,13 +93,34 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     scaleMap.set(s.id, s);
     if (s.colorName) {
       const colorLower = s.colorName.toLowerCase().trim();
-      const colorAscii = colorLower === 'weiß' ? 'weiss' : colorLower;
+      const colorAscii = colorLower.replace(/ß/g, 'ss');
       scaleMap.set(`scale_6a_${colorAscii}`, s);
       scaleMap.set(`scale_minimum_${colorAscii}`, s);
       scaleMap.set(colorLower, s);
       scaleMap.set(colorAscii, s);
     }
   });
+
+  const resolveScale = (boulder: WallBoulder): GymGradeScale | undefined => {
+    if (boulder.gradeScaleId && scaleMap.has(boulder.gradeScaleId)) {
+      return scaleMap.get(boulder.gradeScaleId);
+    }
+    // Fallback: Suche über Farbname in gradeScaleId oder Boulder-Name
+    const query = `${boulder.gradeScaleId || ''} ${boulder.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
+    const matchedByName = gradeScales.find(s => {
+      const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+      return query.includes(norm);
+    });
+    if (matchedByName) return matchedByName;
+
+    // Fallback: Suche über Font-Grade
+    if (boulder.fontGrade) {
+      const matchedByFont = gradeScales.find(s => s.fontRangeMin === boulder.fontGrade || s.fontRangeMax === boulder.fontGrade);
+      if (matchedByFont) return matchedByFont;
+    }
+
+    return gradeScales[0];
+  };
 
   // Compute click coordinates relative to image (0.0 to 1.0)
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -379,8 +400,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
           {/* Render Boulders / Pins */}
           {boulders.map(boulder => {
-            const scale = scaleMap.get(boulder.gradeScaleId);
-            const colorHex = scale?.colorHex || '#3b82f6';
+            const scale = resolveScale(boulder);
+            const colorHex = scale?.colorHex || (gradeScales[0]?.colorHex ?? '#22c55e');
 
             if (mode === 'climber') {
               const userAscent = userAscentMap?.get(boulder.id);
