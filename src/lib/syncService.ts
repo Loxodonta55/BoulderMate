@@ -97,6 +97,28 @@ export async function syncFromSupabase(): Promise<boolean> {
       currentSyncStatus.syncedGyms = localGymMap.size;
     }
 
+    // 1.5 Gym-Members & Rollen aus Supabase laden
+    const { data: dbMembers } = await supabase
+      .from('gym_members')
+      .select('*');
+
+    if (dbMembers && dbMembers.length > 0) {
+      const localMembers = gymStorage.getMembers();
+      const memberMap = new Map(localMembers.map(m => [`${m.gym_id}_${m.user_id}_${m.role}`, m]));
+      for (const m of dbMembers) {
+        const targetGymId = (m.gym_id && m.gym_id.includes('f2b11564')) ? 'gym-6a-plus' : (m.gym_id && m.gym_id.includes('814696b2')) ? 'gym-minimum-zh' : m.gym_id;
+        memberMap.set(`${targetGymId}_${m.user_id}_${m.role}`, {
+          id: m.id,
+          gym_id: targetGymId,
+          user_id: m.user_id,
+          role: m.role,
+          appointed_by: m.appointed_by,
+          created_at: m.created_at || new Date().toISOString()
+        } as any);
+      }
+      gymStorage.saveMembers(Array.from(memberMap.values()));
+    }
+
     // 2. Sektoren laden
     const { data: dbSectors, error: secError } = await supabase
       .from('sectors')

@@ -16,7 +16,7 @@ import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
-import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, AuthUser } from './lib/authService';
+import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser } from './lib/authService';
 import { syncFromSupabase } from './lib/syncService';
 import { Mountain, Wrench, BarChart3, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
 
@@ -49,6 +49,14 @@ export const App: React.FC = () => {
   const activeNickname = climberId
     ? (climberNicknames[climberId] || getProfile(climberId)?.nickname || authSession?.nickname || currentClimber?.nickname || 'Kletterer')
     : 'Gast';
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setAuthSession(user);
+      setClimberId(user ? user.id : null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // SPEC-000: Hallenbezogene Rollenermittlung (Gym Scoping)
   const roleInfo: UserRoleInfo = useMemo(() => {
