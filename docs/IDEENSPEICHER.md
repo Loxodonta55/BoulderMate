@@ -12,6 +12,8 @@
 | **IDEA-001** | **UX-Klarheit & Entrümpelung im Klettererbereich** | Kletterer-App / UI/UX | Hoch | In Konzeption |
 | **IDEA-002** | **Universelles Skalen-Mapping für hallenübergreifende Statistiken** | Analytics / Kletterer-Profil | Hoch | In Konzeption / Entwurf |
 | **IDEA-003** | **Der Turnier-Event (Hallen-Cups, Live-Scoring & Leaderboards)** | Events / Gamification | Hoch | Spezifiziert in [SPEC-012](specs/SPEC-012-tournament-events.md) |
+| **IDEA-004** | **Individuelle Boulder-Passung & Match-Rating („Boulder-Fit Engine“)** | Recommendation / Kletterer-Profil | Hoch | Im Backlog (Konzept) |
+
 
 
 ---
@@ -103,6 +105,103 @@ Der Algorithmus:
 - Die Anzeige im Header lautet bei "Alle Hallen":
   - `Bester Top: 7A+ (Rot, Minimum Zürich)` oder als Universalband `Ambitioniert (6C-7A+)`.
   - Dadurch bleibt die konkrete Hallenreferenz transparent, während die Rangordnung sportlich absolut wahrheitsgetreu ist.
+
+---
+
+## IDEA-004: Individuelle Boulder-Passung & Match-Rating („Boulder-Fit Engine“)
+
+### 1. Ausgangslage & First-User-Feedback
+* **Feedback eines First-Users**:
+  > *„Es wäre am coolsten, wenn die Boulder nicht nur generell bewertet werden, sondern individuell. Also eine Methode, um den oder die für mich am besten passenden Boulder bewerten und finden zu können.“*
+* **Problem mit rein generischen Bewertungen**:
+  - Ein Boulder mit einer generellen Community-Wertung von 4.8 Sternen und Grad 6B kann für einen Kletterer mit 1,60 m Körpergröße und flexiblem Platten-Stil ein purer Frust-Boulder sein (z. B. weiter dynoartiger Schulterzug).
+  - Umgekehrt kann ein mit 3.5 Sternen bewerteter, technisch kleintrittiger Leistenboulder für denselben Kletterer der absolute Lieblingsboulder der Session sein.
+  - Generische Ratings (`Sterne`, `Soft/Fair/Stiff`) spiegeln nur die *kollektive Mehrheitsmeinung* wider. Klettersport ist jedoch hochgradig **körper- und stilabhängig** (Morphometrie, Hebelverhältnisse, Fingerkraft vs. Körpergefühl).
+* **Ziel**:
+  1. **Algorithmus zur individuellen Passgenauigkeit („Boulder-Fit Score“)**: Automatische Berechnung, wie gut ein Boulder sportlich, anatomisch und stilistisch zum individuellen Kletterer passt.
+  2. **Zwei-Ebenen-Bewertungssystem**: Erweiterung der Bewertung um die persönliche Resonanz („Wie lag der Boulder mir?“).
+  3. **Visualisierung & Navigation an der Wand**: Intelligente Empfehlungen („Top-Matches für deinen Style“ vs. „Gezielter Schwächen-Booster“).
+
+---
+
+### 2. Die Methode: Der „Boulder-Fit Score“ (BFS)
+
+Der Boulder-Fit Score berechnet für einen Kletterer $U$ und einen Boulder $B$ einen normalisierten Passungs-Wert von **0% bis 100%**:
+
+$$\text{BFS}(U, B) = w_{\text{Grade}} \cdot S_{\text{Grade}}(U, B) + w_{\text{Style}} \cdot S_{\text{Style}}(U, B) + w_{\text{Morpho}} \cdot S_{\text{Morpho}}(U, B)$$
+
+*(Standardgewichtung: $w_{\text{Grade}} = 0.45$, $w_{\text{Style}} = 0.40$, $w_{\text{Morpho}} = 0.15$)*
+
+#### A. Grad- & Progressions-Affinität ($S_{\text{Grade}}$)
+Ein Boulder ist dann am attraktivsten, wenn er weder trivial noch aussichtslos ist, sondern in der optimalen Progressionszone liegt:
+- **Sweet Spot (Maximaler Match = 100%)**:
+  - Liegt bei $G_B \in [G_{\text{median}}, G_{\text{max}} + 0.5]$ (die sogenannte Flow- / Wachstumszone).
+- **Aufwärmzone ($G_B < G_{\text{median}} - 1.5$)**:
+  - Geringerer Match für intensive Sessions, aber ideal für Aufwärm-Listen.
+- **Out-of-Range ($G_B > G_{\text{max}} + 2$)**:
+  - Exponentieller Abzug, um Frustration an der Wand zu vermeiden.
+
+#### B. Stil-Vektormatching ($S_{\text{Style}}$)
+Vergleich des individuellen Athleten-Radars $\vec{A}_U$ (aus [SPEC-008](specs/SPEC-008-climber-performance-attributes-statistics.md): Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität) mit dem Radar-Profil des Boulders $\vec{R}_B$:
+
+1. **Modus „Stärken-Flow“ (Standard-Match)**:
+   - Berechnet die Vektor-Kosinus-Ähnlichkeit:
+     $$S_{\text{Style, Flow}} = \frac{\vec{A}_U \cdot \vec{R}_B}{\|\vec{A}_U\| \|\vec{R}_B\|}$$
+   - *Effekt*: Zeigt Boulder, bei denen der Kletterer seine Paradedisziplinen (z.B. hohe Balance & Flexibilität) voll ausspielen kann $\rightarrow$ hohe Flash-Wahrscheinlichkeit, maximales Flow-Erlebnis.
+2. **Modus „Baustellen-Training“ (Schwächen-Fokus)**:
+   - Hebt Boulder hervor, die gezielt die in SPEC-008 identifizierte Hauptschwäche $\min_a(P_a - H_a)$ fordern:
+     $$S_{\text{Style, Training}} = \frac{R_{B, \text{Schwäche}}}{5.0} \times \text{PenalizeOtherGaps}$$
+   - *Effekt*: Perfekt für strukturierte Trainingstage („Heute trainiere ich meine Dyno-/Koordinations-Schwäche“).
+
+#### C. Morpho- & Ergonomie-Faktor ($S_{\text{Morpho}}$)
+- Wenn der Kletterer optional seine Körpergröße / Spannweite (Ape-Index) im Profil angegeben hat:
+  - Abgleich mit dem Community-Morpho-Feedback („Eher weite Züge / Vorteil für Große“ vs. „Kompakter Box-Boulder / Vorteil für Kleinere“).
+  - Bei neutralen Bouldern oder fehlender Angabe $S_{\text{Morpho}} = 1.0$.
+
+---
+
+### 3. Das individuelle Bewertungs-System (Zwei Ebenen)
+
+Wenn ein Kletterer einen Boulder getoppt/geflasht hat oder bewertet, unterscheidet das System künftig klar zwischen:
+
+| Dimension | Ebene 1: Generische Bewertung (Community) | Ebene 2: Individuelle Bewertung (Persönlich) |
+|---|---|---|
+| **Fokus** | „Wie objektiv gelungen & wie schwer ist die Route für alle?“ | „Wie gut lag dieser Boulder DIR persönlich?“ |
+| **Grad** | Soft / Fair / Stiff (Grad-Ehrlichkeit bezogen auf das Schild) | *„Gefühlt für mich wie...“* (Persönlicher Härte-Eindruck) |
+| **Qualität** | 1–5 Sterne (Linienführung, Griffe, Schrauberqualität) | *Persönlicher Flow-Faktor* (1–5 Chilis / Blitz-Symbolik) |
+| **Morpho** | — | *Morpho-Empfinden*: `Große im Vorteil` · `Fair für alle` · `Kompakt / Kleinere im Vorteil` |
+| **Nutzung** | Bestimmt den Hallen-Durchschnitt und die Wand-Aura | Trainiert die persönliche Recommender-Engine des Kletterers |
+
+---
+
+### 4. UI/UX-Integration an der Wand & im Profil
+
+1. **Intelligente Schnellfilter an der Wand (`ClimberSectorView`)**:
+   - `🎯 Perfekt für mich`: Filtert auf Boulder mit $\text{BFS} \ge 80\%$.
+   - `✨ Stärken-Match`: Zeigt Boulder, die den eigenen Stärken schmeicheln.
+   - `🏋️ Trainings-Picks`: Zeigt Boulder im optimalen Projektgrad, die die persönliche Baustelle trainieren.
+2. **Match-Badge an den Pins im Wandfoto**:
+   - Boulder mit außergewöhnlich hohem Match ($\ge 90\%$) erhalten einen dezenten goldenen Match-Ring oder ein kleines `🎯 95%`-Pill-Badge direkt am Pin.
+3. **Erweiterte Boulder-Detailansicht**:
+   - Neuer Bereich **„Dein persönlicher Match“**:
+     - Prozent-Score mit Erklärung: *„92% Match – Passt perfekt zu deinem Kletterstil (starke Balance & Technik) und liegt genau in deinem Projekt-Sweet-Spot.“*
+     - Mini-Radar-Überlagerung: Dein Athleten-Radar vs. Boulder-Anforderung.
+4. **Individuelles Bewertungs-Sheet nach Durchstieg**:
+   - Ergänzung im bestehenden `RatingModal`:
+     - 1-Tap Morpho-Feedback (`Klein`, `Ausgeglichen`, `Groß`).
+     - 1-Tap Style-Fit („Hat mir extrem gelegen“ bis „Gar nicht mein Stil“).
+
+---
+
+### 5. Technische Architektur & Umsetzungs-Fahrplan (Später)
+
+1. **Stammdaten & Schema**:
+   - `user_profiles`: Optionale Felder `height_cm`, `arm_span_cm`.
+   - `boulder_ratings`: Felder `morpho_bias` (`small_friendly`, `neutral`, `tall_friendly`), `personal_style_fit` (1–5).
+2. **Engine (`boulderFitService.ts`)**:
+   - Reines clientseitiges Vektor- und Score-Matching auf Basis der bereits gecachten Boulder- und Profil-Statistiken (Null zusätzliche Backend-Latenz).
+3. **Reaktive Einbindung**:
+   - `ClimberSectorView` filtert und sortiert Boulder bei aktivem Match-Filter instant im Speicher.
 
 ---
 
