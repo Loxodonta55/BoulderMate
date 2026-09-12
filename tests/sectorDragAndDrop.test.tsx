@@ -14,6 +14,8 @@ import {
   reorderSectors as reorderBatchSectors,
   clearBatchServiceStorage
 } from '../src/lib/batchBoulderService';
+import * as syncService from '../src/lib/syncService';
+import { supabase } from '../src/lib/supabase';
 import type { Sector } from '../src/types/gym';
 
 describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () => {
@@ -199,5 +201,78 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
     expect(afterBatchReorder[0].id).toBe(s2.id);
     expect(afterBatchReorder[1].id).toBe(s3.id);
     expect(afterBatchReorder[2].id).toBe(s1.id);
+  });
+
+  it('AC-4.8: calls syncSectorOrderToSupabase when reordering in SectorManager', async () => {
+    createGym({ id: gymId, name: 'Cloud Sync Gym' });
+    const s1 = createSector(gymId, adminUserId, { name: 'Sector 1', wall_photo_url: '/1.jpg', sort_order: 1 });
+    const s2 = createSector(gymId, adminUserId, { name: 'Sector 2', wall_photo_url: '/2.jpg', sort_order: 2 });
+
+    const sectorsWithCounts = [
+      { ...s1, active_boulder_count: 0 },
+      { ...s2, active_boulder_count: 0 },
+    ];
+
+    const syncSpy = vi.spyOn(syncService, 'syncSectorOrderToSupabase').mockResolvedValue(true);
+
+    render(
+      <SectorManager
+        gymId={gymId}
+        userId={adminUserId}
+        isAdmin={true}
+        sectors={sectorsWithCounts}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    // Click move-down on first sector
+    const downBtn = screen.getByTestId(`move-down-${s1.id}`);
+    fireEvent.click(downBtn);
+
+    expect(syncSpy).toHaveBeenCalledWith(gymId, [s2.id, s1.id]);
+    syncSpy.mockRestore();
+  });
+
+  it('AC-4.8: syncSectorOrderToSupabase correctly updates sort_order in Supabase for each sector', async () => {
+    if (!supabase) return;
+
+    const mockGymId = 'gym-6a-plus';
+    const mockRemoteSectors = [
+      { id: 'uuid-sec-1', name: 'Slab Vorne', sort_order: 1 },
+      { id: 'uuid-sec-2', name: 'Ecke Vorne', sort_order: 2 },
+    ];
+
+    const updatedRows: { id: string; sort_order: number }[] = [];
+
+    const fromSpy = vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+      if (table === 'sectors') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: mockRemoteSectors,
+              error: null,
+            }),
+          }),
+          update: vi.fn((payload: { sort_order: number }) => ({
+            eq: vi.fn((_col: string, val: string) => {
+              updatedRows.push({ id: val, sort_order: payload.sort_order });
+              return Promise.resolve({ error: null });
+            }),
+          })),
+        } as any;
+      }
+      return {} as any;
+    });
+
+    // Call syncSectorOrderToSupabase with reversed IDs [uuid-sec-2, uuid-sec-1]
+    const success = await syncService.syncSectorOrderToSupabase(mockGymId, ['uuid-sec-2', 'uuid-sec-1']);
+    expect(success).toBe(true);
+
+    expect(updatedRows).toEqual([
+      { id: 'uuid-sec-2', sort_order: 1 },
+      { id: 'uuid-sec-1', sort_order: 2 },
+    ]);
+
+    fromSpy.mockRestore();
   });
 });

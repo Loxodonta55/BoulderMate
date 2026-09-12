@@ -187,6 +187,13 @@ async function syncGradeScales() {
 
 async function syncSectors() {
   console.log('\n--- 4. Sektoren synchronisieren ---');
+  // WICHTIG: Niemals bestehende Sektoren / Sektor-Reihenfolge auf Supabase überschreiben!
+  const { data: existingSectors, error: checkError } = await supabase.from('sectors').select('id, gym_id, name, sort_order');
+  if (existingSectors && existingSectors.length > 0) {
+    console.log(`  ✓ ${existingSectors.length} bestehende Sektoren in Supabase erhalten (Zero-Data-Loss Schutz).`);
+    return;
+  }
+
   const sectors = [
     // 6a plus
     { id: '8656b5d8-838d-4655-8303-57d4ab87b8dd', gym_id: GYM_6A_UUID, name: 'Slab Vorne', wall_photo_url: '/images/walls/6aplus/SlapVorne.jpg', sort_order: 1 },

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sector } from '../types/gym';
 import { createSector, reorderSectors, updateSectorWallPhoto, deleteSector } from '../lib/gymStorage';
+import { syncSectorOrderToSupabase } from '../lib/syncService';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
 import {
   Layers,
@@ -87,6 +88,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
     const orderedIds = copy.map(s => s.id);
     try {
       reorderSectors(gymId, userId, orderedIds);
+      syncSectorOrderToSupabase(gymId, orderedIds).catch(() => {});
       setSuccessMsg(`Sektor "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
       successTimerRef.current = setTimeout(() => {
@@ -144,6 +146,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
     const orderedIds = reordered.map(s => s.id);
     try {
       reorderSectors(gymId, userId, orderedIds);
+      syncSectorOrderToSupabase(gymId, orderedIds).catch(() => {});
       setSuccessMsg(`Reihenfolge geändert: "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
       setTimeout(() => setSuccessMsg(null), 2500);
       onRefresh();

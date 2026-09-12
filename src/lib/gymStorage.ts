@@ -655,6 +655,26 @@ export function reorderSectors(
     // Ignore error
   }
 
+  // AC-4.8: Cloud-Persistenz der Sektor-Sortierung aufwärts nach Supabase
+  try {
+    import('./syncService').then(m => {
+      const syncOrderFn = (m as any)?.syncSectorOrderToSupabase;
+      if (typeof syncOrderFn === 'function') {
+        syncOrderFn(gym_id, orderedSectorIds).catch((err: any) => {
+          console.warn('[gymStorage] Sektor-Sortierung Cloud-Sync fehlgeschlagen:', err);
+        });
+      }
+    }).catch(() => {});
+  } catch (e) {
+    // Ignore error
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+      detail: { action: 'reordered', gymId: gym_id }
+    }));
+  }
+
   return updatedGymSectors.sort((a, b) => a.sort_order - b.sort_order);
 }
 

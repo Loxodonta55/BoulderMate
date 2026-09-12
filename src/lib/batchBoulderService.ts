@@ -233,6 +233,19 @@ export function reorderSectors(gymId: string, orderedSectorIds: string[]): Secto
   });
 
   setStorageJson(STORAGE_KEY_SECTORS, [...otherSectors, ...updatedGymSectors]);
+
+  // AC-4.8: Cloud-Persistenz der Sektor-Sortierung aufwärts nach Supabase
+  try {
+    import('./syncService').then(m => {
+      const syncOrderFn = (m as any)?.syncSectorOrderToSupabase;
+      if (typeof syncOrderFn === 'function') {
+        syncOrderFn(gymId, orderedSectorIds).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (e) {
+    // Ignore error
+  }
+
   return updatedGymSectors.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 

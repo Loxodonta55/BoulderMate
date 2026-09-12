@@ -41,6 +41,7 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
     - Sektor-Filter & Auswahl-Dropdowns
   - **AC-4.6 (Barrierefreiheit & Fallback)**: Neben Drag & Drop stehen weiterhin Pfeil-Schaltflächen (Nach oben / Nach unten) zur Verfügung, um barrierefreies und schnelles Verschieben auf Touchgeräten oder per Tastatur zu garantieren.
   - **AC-4.7 (Berechtigung)**: Nur Hallen-Admins und Plattform-Admins sind berechtigt, Sektoren neu zu sortieren; für Nicht-Admins ist das Drag-Handle inaktiv oder ausgeblendet.
+  - **AC-4.8 (Cloud-Persistenz & Release-Stabilität)**: Bei jeder Umsortierung (per Drag & Drop oder Pfeil-Buttons) wird die neue Reihenfolge (`sort_order: 1..n`) unmittelbar aufwärts nach Supabase in die Tabelle `sectors` synchronisiert (`syncSectorOrderToSupabase`). Bei Reconnects, Cache-Clears oder neuen Software-Deployments bleibt die vom Admin gewählte Reihenfolge als Single Source of Truth erhalten und wird niemals durch Initial-Seeds oder alte Defaults überschrieben.
 - [x] **AC-5**: Bei Aktualisierung des Sektor-Wandfotos bleiben bestehende relative Boulder-Koordinaten (`position_x`, `position_y` als 0.0–1.0) unverändert erhalten.
 - [x] **AC-6**: Sektoren mit aktiven Bouldern können nicht versehentlich gelöscht werden (Sicherheitsabfrage / Validierung).
 - [x] **AC-7**: Kletterer können Hallen suchen und eine Übersicht aller Sektoren mit Wandfoto und aktiver Boulder-Anzahl in der definierten `sort_order` einsehen.
@@ -108,7 +109,8 @@ CREATE TABLE sectors (
   5. `onDrop(e, targetIndex)`: Verschiebt das Element von `draggedIndex` nach `targetIndex`, berechnet die neue `orderedIds`-Liste, ruft `reorderSectors(gymId, userId, orderedIds)` auf und synchronisiert den State via `onRefresh()`.
   6. `onDragEnd()`: Bereinigt `draggedIndex` und `dragOverIndex`.
 - **Synchronisation zwischen Modulen**:
-  - `gymStorage.reorderSectors`: Aktualisiert `sort_order` im LocalStorage (`boulder_sectors_v1`).
+  - `gymStorage.reorderSectors`: Aktualisiert `sort_order` im LocalStorage (`boulder_sectors_v1`), synchronisiert `boulderapp_sectors_v2` und persistiert die Reihenfolge via `syncSectorOrderToSupabase` in Supabase.
+  - `syncSectorOrderToSupabase`: Paralleles Update der `sort_order`-Spalte in Supabase (`sectors`) für alle Sektoren der Halle, geschützt gegen Re-Seeding bei Deployments.
   - `batchBoulderService.getSectors`: Synchronisiert die aktualisierte `sort_order` in den Schrauber-Batch-Store (`boulder_sectors_v2`), sodass alle Views stets dieselbe Reihenfolge nutzen.
   - `gymStorage.setGymGradeScales`: Verwaltet die autoritativen Farbskalen (`boulder_grade_scales_v1`), aktualisiert synchron den V2-Store (`boulderapp_grade_scales_v2`) und feuert das Browser-Event `bouldermate:gradescales_updated`.
   - `batchBoulderService.getGradeScales`: Verwendet `gymStorage` als Single Source of Truth, konvertiert die autoritativen Skalen zu `GymGradeScale[]` und hält Schrauber- sowie Kletterer-Bereich ohne Geisterfarben synchron.

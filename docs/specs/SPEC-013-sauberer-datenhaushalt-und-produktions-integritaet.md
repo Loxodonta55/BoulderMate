@@ -59,7 +59,7 @@ In der Grill-Me Analyse wurden die konkreten Ursachen identifiziert, warum Deplo
 ### Säule 2: Produktions-Unberührbarkeit (Immutability from Dev/Deploy)
 - Produktion ist die lebende *Single Source of Truth*.
 - Alle Daten-Sync-Skripte (`sync-all-to-supabase.js`, `sync-images-to-supabase.js`) werden mit einer **Sicherheitssperre** (`--confirm-production-push`) versehen und standardmäßig blockiert.
-- Niemals dürfen Hallen, Sektoren, Farbschemata oder Routen via Skript auf Supabase überschrieben werden.
+- Niemals dürfen Hallen, Sektoren, Sektor-Reihenfolgen (`sort_order`), Farbschemata oder Routen via Skript auf Supabase überschrieben werden. Sektor-Reihenfolgen werden über `syncSectorOrderToSupabase` in Supabase persistiert und vor jedem Re-Seeding geschützt.
 
 ### Säule 3: Kontrollierter Downward-Sync (PROD ──► Lokal)
 - Entwickler benötigen realistische Testdaten auf dem Laptop.

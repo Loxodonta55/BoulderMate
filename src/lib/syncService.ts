@@ -861,6 +861,136 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
 }
 
 /**
+ * Synchronisiert die neue Sortierreihenfolge der Sektoren einer Halle aufwärts nach Supabase.
+ * Verhindert, dass nachfolgende syncFromSupabase() oder Deployments die Reihenfolge überschreiben.
+ */
+export async function syncSectorOrderToSupabase(gymId: string, orderedSectorIds: string[]): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || !orderedSectorIds || orderedSectorIds.length === 0) return false;
+
+  try {
+    const targetGymId = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+      ? 'f2b11564-ca86-4ed4-b51c-3affb346144b'
+      : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+      ? '814696b2-303e-4897-9bdb-d83505a63489'
+      : gymId;
+
+    // Remote-Sektoren für das Gym laden
+    const { data: remoteSectors, error: fetchErr } = await supabase
+      .from('sectors')
+      .select('id, name, sort_order')
+      .eq('gym_id', targetGymId);
+
+    if (fetchErr || !remoteSectors || remoteSectors.length === 0) {
+      console.warn('[Sync] Keine Remote-Sektoren für Gym gefunden:', fetchErr?.message);
+      return false;
+    }
+
+    // Lokale Sektoren für Namens- und ID-Lookup abrufen
+    const localV1 = gymStorage.getSectors();
+    const localV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+    const localSectorMap = new Map<string, string>(); // ID -> Name
+    for (const s of localV1) {
+      if (s.id && s.name) localSectorMap.set(s.id, s.name);
+    }
+    for (const s of localV2) {
+      if (s.id && s.name) localSectorMap.set(s.id, s.name);
+    }
+
+    // Updates für Supabase sammeln
+    const updates: { id: string; sort_order: number }[] = [];
+
+    orderedSectorIds.forEach((id, index) => {
+      const newOrder = index + 1;
+      const localName = localSectorMap.get(id);
+
+      // Finde passenden Remote-Sektor:
+      // 1. Direkte UUID-Übereinstimmung
+      // 2. Namens-Übereinstimmung über lokalen Namen
+      // 3. SECTOR_ALIAS_MAP-Übereinstimmung
+      // 4. Direkte Namens-Übereinstimmung mit id
+      const remoteSec = remoteSectors.find(r =>
+        r.id === id ||
+        (localName && r.name.trim().toLowerCase() === localName.trim().toLowerCase()) ||
+        (SECTOR_ALIAS_MAP[id] && r.id === SECTOR_ALIAS_MAP[id]) ||
+        (r.name.trim().toLowerCase() === id.trim().toLowerCase())
+      );
+
+      if (remoteSec) {
+        updates.push({ id: remoteSec.id, sort_order: newOrder });
+      }
+    });
+
+    if (updates.length === 0) {
+      return false;
+    }
+
+    // Führe Updates in Supabase parallel durch
+    const updatePromises = updates.map(u =>
+      supabase!
+        .from('sectors')
+        .update({ sort_order: u.sort_order })
+        .eq('id', u.id)
+    );
+
+    const results = await Promise.all(updatePromises);
+    const hasError = results.some(r => r.error);
+    if (hasError) {
+      console.warn('[Sync] Fehler beim Aktualisieren der Sektor-Sortierung in Supabase');
+      return false;
+    }
+
+    // Lokale Caches aktualisieren, damit alles synchron bleibt
+    const targetNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : gymId;
+
+    const updatedV1 = gymStorage.getSectors().map(s => {
+      const sGym = (s.gym_id === 'gym-6a-plus' || s.gym_id?.includes('6a') || s.gym_id?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gym_id === 'gym-minimum-zh' || s.gym_id?.includes('minimum') || s.gym_id?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gym_id;
+
+      if (sGym === targetNorm) {
+        const u = updates.find(up => up.id === s.id || (localSectorMap.get(s.id) && remoteSectors.find(r => r.id === up.id)?.name.trim().toLowerCase() === localSectorMap.get(s.id)?.trim().toLowerCase()));
+        if (u) return { ...s, sort_order: u.sort_order };
+      }
+      return s;
+    });
+    gymStorage.saveSectors(updatedV1);
+
+    const updatedV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []).map(s => {
+      const sGym = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gymId;
+
+      if (sGym === targetNorm) {
+        const u = updates.find(up => up.id === s.id || (localSectorMap.get(s.id) && remoteSectors.find(r => r.id === up.id)?.name.trim().toLowerCase() === localSectorMap.get(s.id)?.trim().toLowerCase()));
+        if (u) return { ...s, sortOrder: u.sort_order };
+      }
+      return s;
+    });
+    setStorageJson(STORAGE_KEY_SECTORS, updatedV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'reordered', gymId: targetNorm, count: updates.length }
+      }));
+    }
+
+    console.log(`[Sync] Sektor-Sortierung (${updates.length} Sektoren) erfolgreich in Supabase persistiert.`);
+    return true;
+  } catch (e) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync der Sektor-Reihenfolge:', e);
+    return false;
+  }
+}
+
+/**
  * Synchronisiert neu erstellte oder geänderte Boulder in Echtzeit aufwärts nach Supabase.
  */
 export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<boolean> {
