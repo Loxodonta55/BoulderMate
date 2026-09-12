@@ -39,13 +39,19 @@ export const GymManagement: React.FC<GymManagementProps> = ({
   const [activeTab, setActiveTab] = useState<'sectors' | 'grading' | 'team'>('sectors');
   const [isCreatingGym, setIsCreatingGym] = useState(false);
 
-  // New gym form state
-  const [newGymName, setNewGymName] = useState('');
-  const [newGymCity, setNewGymCity] = useState('');
-  const [newGymAddress, setNewGymAddress] = useState('');
-  const [newGymWebsite, setNewGymWebsite] = useState('');
-  const [newGymLogo, setNewGymLogo] = useState('');
-  const [initialAdminUserId, setInitialAdminUserId] = useState<string>('user-boris');
+  // New gym form state (Clean Code: Grouped form state)
+  const initialGymFormState = {
+    name: '',
+    city: '',
+    address: '',
+    website: '',
+    logo: '',
+    initialAdminUserId: 'user-boris',
+  };
+  const [gymForm, setGymForm] = useState(initialGymFormState);
+  const updateGymFormField = (field: keyof typeof initialGymFormState, value: string) => {
+    setGymForm(prev => ({ ...prev, [field]: value }));
+  };
   const [createError, setCreateError] = useState<string | null>(null);
 
   // Team management state
@@ -85,20 +91,15 @@ export const GymManagement: React.FC<GymManagementProps> = ({
     try {
       setCreateError(null);
       const created = createGym({
-        name: newGymName,
-        city: newGymCity || undefined,
-        address: newGymAddress || undefined,
-        website: newGymWebsite || undefined,
-        logo_url: newGymLogo || undefined,
-        initial_admin_user_id: initialAdminUserId || effectiveUserId
+        name: gymForm.name,
+        city: gymForm.city || undefined,
+        address: gymForm.address || undefined,
+        website: gymForm.website || undefined,
+        logo_url: gymForm.logo || undefined,
+        initial_admin_user_id: gymForm.initialAdminUserId || effectiveUserId
       }, effectiveUserId);
       setIsCreatingGym(false);
-      setNewGymName('');
-      setNewGymCity('');
-      setNewGymAddress('');
-      setNewGymWebsite('');
-      setNewGymLogo('');
-      setInitialAdminUserId('user-boris');
+      setGymForm(initialGymFormState);
       setSelectedGymId(created.id);
       onSelectGym?.(created.id);
       refreshData();
@@ -553,8 +554,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   type="text"
                   required
                   placeholder="z.B. Minimum Bouldern Zürich"
-                  value={newGymName}
-                  onChange={(e) => setNewGymName(e.target.value)}
+                  value={gymForm.name}
+                  onChange={(e) => updateGymFormField('name', e.target.value)}
                   className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
                 />
               </div>
@@ -565,8 +566,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   <input
                     type="text"
                     placeholder="z.B. Zürich"
-                    value={newGymCity}
-                    onChange={(e) => setNewGymCity(e.target.value)}
+                    value={gymForm.city}
+                    onChange={(e) => updateGymFormField('city', e.target.value)}
                     className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
                   />
                 </div>
@@ -575,8 +576,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   <input
                     type="text"
                     placeholder="z.B. Flüelastrasse 31"
-                    value={newGymAddress}
-                    onChange={(e) => setNewGymAddress(e.target.value)}
+                    value={gymForm.address}
+                    onChange={(e) => updateGymFormField('address', e.target.value)}
                     className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
                   />
                 </div>
@@ -587,8 +588,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                 <input
                   type="url"
                   placeholder="https://minimum.ch"
-                  value={newGymWebsite}
-                  onChange={(e) => setNewGymWebsite(e.target.value)}
+                  value={gymForm.website}
+                  onChange={(e) => updateGymFormField('website', e.target.value)}
                   className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
                 />
               </div>
@@ -598,8 +599,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                 <input
                   type="url"
                   placeholder="https://.../logo.png"
-                  value={newGymLogo}
-                  onChange={(e) => setNewGymLogo(e.target.value)}
+                  value={gymForm.logo}
+                  onChange={(e) => updateGymFormField('logo', e.target.value)}
                   className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
                 />
               </div>
@@ -609,8 +610,8 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   Initialer Hallen-Admin (SPEC-000)
                 </label>
                 <select
-                  value={initialAdminUserId}
-                  onChange={(e) => setInitialAdminUserId(e.target.value)}
+                  value={gymForm.initialAdminUserId}
+                  onChange={(e) => updateGymFormField('initialAdminUserId', e.target.value)}
                   className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
                 >
                   <option value="user-boris">Boris (OverAdmin)</option>

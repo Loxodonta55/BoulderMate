@@ -108,7 +108,7 @@ Report: List [specific deliverable]. Under 200 words.
 ```
 Modify [specific file(s)] to [specific change].
 Context: [Why this change is needed].
-The current code at [file:line] does [X], change it to [Y].
+The current code at `file:line` does [X], change it to [Y].
 Constraints: Don't touch [out-of-scope files]. Another agent handles [related area].
 Verify: [How the worker should confirm success].
 ```

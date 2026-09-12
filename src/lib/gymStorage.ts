@@ -27,6 +27,7 @@ import {
   isValidUuid,
   stringToUuid,
 } from './storageUtils';
+import { syncBridge } from './syncBridge';
 
 export function resetAllGymData(): void {
   removeStorageItem(GYMS_KEY);
@@ -122,14 +123,13 @@ export function ensureInitialGymData(): void {
 
   if (needs6aMigration) {
     setGymGradeScales(gym6a.id, CURRENT_USER.id, [
-      { id: '6f66405a-0cdc-4bfa-9f27-4f60cb2517bf', gym_id: gym6a.id, color_name: 'Sonnengelb', color_hex: '#fde047', difficulty_label: 'Anfaenger Plus', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
-      { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 2 },
-      { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 3 },
-      { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 4 },
-      { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 5 },
-      { id: '3e322450-4c56-4422-8c88-7f518b716352', gym_id: gym6a.id, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 6 },
-      { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gym_id: gym6a.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 7 },
-      { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gym_id: gym6a.id, color_name: 'Beige', color_hex: '#d2b48c', difficulty_label: 'Bestial', font_range_min: '7b+', font_range_max: '8c+', sort_order: 8 },
+      { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
+      { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
+      { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 3 },
+      { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 4 },
+      { id: '3e322450-4c56-4422-8c88-7f518b716352', gym_id: gym6a.id, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 5 },
+      { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gym_id: gym6a.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 6 },
+      { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gym_id: gym6a.id, color_name: 'Beige', color_hex: '#d2b48c', difficulty_label: 'Bestial', font_range_min: '7b+', font_range_max: '8c+', sort_order: 7 },
     ]);
   }
 
@@ -461,7 +461,8 @@ export function createGym(
 export function setGymGradeScales(
   gym_id: string,
   user_id: string,
-  scales: Array<Omit<GradeScale, 'id' | 'created_at'> & { id?: string }>
+  scales: Array<Omit<GradeScale, 'id' | 'created_at'> & { id?: string }>,
+  syncCloud: boolean = false
 ): GradeScale[] {
   if (!isGymAdmin(gym_id, user_id)) {
     throw new Error('Nur Hallen-Admins dürfen das Bewertungssystem konfigurieren.');
@@ -551,14 +552,10 @@ export function setGymGradeScales(
     }));
   }
 
-  // Asynchroner non-destruktiver Aufwärts-Sync nach Supabase
-  try {
-    import('./syncService').then(m => {
-      if (m && typeof m.syncGradeScalesToSupabase === 'function') {
-        m.syncGradeScalesToSupabase(gym_id, validated).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  // Asynchroner non-destruktiver Aufwärts-Sync nach Supabase nur wenn explizit gewünscht (z.B. Admin-Save)
+  if (syncCloud) {
+    syncBridge.syncGradeScales(gym_id, validated);
+  }
 
   return validated.sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -596,14 +593,7 @@ export function createSector(
   const all = getSectors();
   saveSectors([...all, newSector]);
 
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncSectorToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(newSector).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncSector(newSector);
 
   return newSector;
 }
@@ -656,18 +646,7 @@ export function reorderSectors(
   }
 
   // AC-4.8: Cloud-Persistenz der Sektor-Sortierung aufwärts nach Supabase
-  try {
-    import('./syncService').then(m => {
-      const syncOrderFn = (m as any)?.syncSectorOrderToSupabase;
-      if (typeof syncOrderFn === 'function') {
-        syncOrderFn(gym_id, orderedSectorIds).catch((err: any) => {
-          console.warn('[gymStorage] Sektor-Sortierung Cloud-Sync fehlgeschlagen:', err);
-        });
-      }
-    }).catch(() => {});
-  } catch (e) {
-    // Ignore error
-  }
+  syncBridge.syncSectorOrder(gym_id, orderedSectorIds);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
@@ -708,14 +687,7 @@ export function updateSectorWallPhoto(
   sector.wall_photo_url = new_wall_photo_url.trim();
   saveSectors(all);
 
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncSectorToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(sector).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncSector(sector);
 
   // Assert coordinates remain untouched (AC-5 verification guarantee)
   const currentBoulders = getBoulders(sector_id);

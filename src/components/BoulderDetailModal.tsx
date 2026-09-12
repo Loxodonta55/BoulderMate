@@ -25,6 +25,7 @@ import {
   deleteComment,
   isUserMatch
 } from '../lib/ratingAndAscentService';
+import { syncBridge } from '../lib/syncBridge';
 import {
   X,
   Star,
@@ -102,9 +103,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     window.addEventListener('bouldermate:ascents_updated', handleAscentsUpdate);
 
     // Instant quiet sync with Supabase when modal opens
-    import('../lib/syncService').then(m => {
-      m.syncRatingsAndAscentsQuietly?.().catch(() => {});
-    }).catch(() => {});
+    syncBridge.syncRatingsAndAscentsQuietly();
 
     return () => {
       window.removeEventListener('bouldermate:ratings_updated', handleRatingsUpdate);

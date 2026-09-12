@@ -16,6 +16,7 @@ import {
   setStorageJson,
   removeStorageItem,
 } from './storageUtils';
+import { syncBridge } from './syncBridge';
 
 export { SEED_ASCENTS, SEED_RATINGS };
 
@@ -186,15 +187,7 @@ export function logAscent(
 
   setStorageJson(STORAGE_KEY_ASCENTS, all);
   notifyAscentsChanged(boulderId);
-
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncAscentToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(resultAscent).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncAscent(resultAscent);
 
   return { ascent: resultAscent, isFirstTopOrFlash };
 }
@@ -205,16 +198,7 @@ export function deleteAscent(userId: string, boulderId: string): boolean {
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_ASCENTS, filtered);
     notifyAscentsChanged(boulderId);
-
-    try {
-      import('./syncService').then(m => {
-        const syncFn = (m as any)?.deleteAscentFromSupabase;
-        if (typeof syncFn === 'function') {
-          syncFn(userId, boulderId).catch(() => {});
-        }
-      }).catch(() => {});
-    } catch (e) {}
-
+    syncBridge.deleteAscent(userId, boulderId);
     return true;
   }
   return false;
@@ -300,15 +284,7 @@ export function saveRating(
 
   setStorageJson(STORAGE_KEY_RATINGS, all);
   notifyRatingsChanged(boulderId);
-
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncRatingToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(result).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncRating(result);
 
   return result;
 }
@@ -323,16 +299,7 @@ export function deleteRating(userId: string, boulderId: string): boolean {
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_RATINGS, filtered);
     notifyRatingsChanged(boulderId);
-
-    try {
-      import('./syncService').then(m => {
-        const syncFn = (m as any)?.deleteRatingFromSupabase;
-        if (typeof syncFn === 'function') {
-          syncFn(userId, boulderId).catch(() => {});
-        }
-      }).catch(() => {});
-    } catch (e) {}
-
+    syncBridge.deleteRating(userId, boulderId);
     return true;
   }
   return false;

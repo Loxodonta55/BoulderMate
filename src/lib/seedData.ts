@@ -22,14 +22,13 @@ export const SEED_GYM: Gym = {
 };
 
 export const SEED_6A_PLUS_GRADE_SCALES: GymGradeScale[] = [
-  { id: '6f66405a-0cdc-4bfa-9f27-4f60cb2517bf', gymId: 'gym-6a-plus', colorName: 'Sonnengelb', colorHex: '#fde047', difficultyLabel: 'Anfaenger Plus', fontRangeMin: '3', fontRangeMax: '4+', sortOrder: 1 },
-  { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Gemütlich', fontRangeMin: '3', fontRangeMax: '4+', sortOrder: 2 },
-  { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Flott', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 3 },
-  { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Trick', fontRangeMin: '6a', fontRangeMax: '6b', sortOrder: 4 },
-  { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Rassig', fontRangeMin: '6b+', fontRangeMax: '6c+', sortOrder: 5 },
-  { id: '3e322450-4c56-4422-8c88-7f518b716352', gymId: 'gym-6a-plus', colorName: 'Weiss', colorHex: '#f8fafc', difficultyLabel: 'Böse', fontRangeMin: '7a', fontRangeMax: '7b', sortOrder: 6 },
-  { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gymId: 'gym-6a-plus', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7B', fontRangeMax: '7C+', sortOrder: 7 },
-  { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gymId: 'gym-6a-plus', colorName: 'Beige', colorHex: '#d2b48c', difficultyLabel: 'Bestial', fontRangeMin: '7b+', fontRangeMax: '8c+', sortOrder: 8 },
+  { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Gemütlich', fontRangeMin: '3', fontRangeMax: '4+', sortOrder: 1 },
+  { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Flott', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 2 },
+  { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Trick', fontRangeMin: '6a', fontRangeMax: '6b', sortOrder: 3 },
+  { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Rassig', fontRangeMin: '6b+', fontRangeMax: '6c+', sortOrder: 4 },
+  { id: '3e322450-4c56-4422-8c88-7f518b716352', gymId: 'gym-6a-plus', colorName: 'Weiss', colorHex: '#f8fafc', difficultyLabel: 'Böse', fontRangeMin: '7a', fontRangeMax: '7b', sortOrder: 5 },
+  { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gymId: 'gym-6a-plus', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7B', fontRangeMax: '7C+', sortOrder: 6 },
+  { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gymId: 'gym-6a-plus', colorName: 'Beige', colorHex: '#d2b48c', difficultyLabel: 'Bestial', fontRangeMin: '7b+', fontRangeMax: '8c+', sortOrder: 7 },
 ];
 
 export const SEED_GRADE_SCALES: GymGradeScale[] = [
@@ -39,8 +38,6 @@ export const SEED_GRADE_SCALES: GymGradeScale[] = [
   { id: '130c2372-d28e-416c-85af-a3380426c9bd', gymId: 'gym-minimum-zh', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Schwer', fontRangeMin: '7a+', fontRangeMax: '7b+', sortOrder: 4 },
   { id: '2ccf3d7f-a886-4a8e-9bad-25771edf9e86', gymId: 'gym-minimum-zh', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7c', fontRangeMax: '8a', sortOrder: 5 },
   { id: '2dfafa3a-f172-4ee0-ae0c-fddc2a23a851', gymId: 'gym-minimum-zh', colorName: 'Weiß', colorHex: '#f8fafc', difficultyLabel: 'Elite', fontRangeMin: '8a+', fontRangeMax: '8b+', sortOrder: 6 },
-  { id: 'eb803c73-40cb-4108-a4cc-d299acc7c44a', gymId: 'gym-minimum-zh', colorName: 'Tuerkis', colorHex: '#14b8a6', difficultyLabel: 'Spezial', fontRangeMin: '6B', fontRangeMax: '6C', sortOrder: 7 },
-  { id: '3c7ab2bc-a337-4ba3-afb2-4005f245b56c', gymId: 'gym-minimum-zh', colorName: 'Pink', colorHex: '#ec4899', difficultyLabel: 'Projekt-Crux', fontRangeMin: '7B', fontRangeMax: '8A', sortOrder: 8 },
   ...SEED_6A_PLUS_GRADE_SCALES
 ];
 

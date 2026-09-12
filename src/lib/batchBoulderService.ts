@@ -30,6 +30,7 @@ import {
 } from './storageUtils';
 import { deleteBoulderInteractions } from './ratingAndAscentService';
 import { deleteBoulder } from './storage';
+import { syncBridge } from './syncBridge';
 
 // Re-export seed constants for backward compatibility
 export {
@@ -235,16 +236,7 @@ export function reorderSectors(gymId: string, orderedSectorIds: string[]): Secto
   setStorageJson(STORAGE_KEY_SECTORS, [...otherSectors, ...updatedGymSectors]);
 
   // AC-4.8: Cloud-Persistenz der Sektor-Sortierung aufwärts nach Supabase
-  try {
-    import('./syncService').then(m => {
-      const syncOrderFn = (m as any)?.syncSectorOrderToSupabase;
-      if (typeof syncOrderFn === 'function') {
-        syncOrderFn(gymId, orderedSectorIds).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {
-    // Ignore error
-  }
+  syncBridge.syncSectorOrder(gymId, orderedSectorIds);
 
   return updatedGymSectors.sort((a, b) => a.sortOrder - b.sortOrder);
 }
@@ -295,14 +287,7 @@ export function updateSectorPhoto(sectorId: string, newPhotoUrl: string): Sector
   } catch (e) {}
 
   // Asynchronous real-time upload to Supabase
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncSectorToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(sectors[idx]).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncSector(sectors[idx]);
 
   return sectors[idx];
 }
@@ -667,16 +652,7 @@ export function updateBoulderPosition(
   };
 
   saveWallBoulders(all);
-
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncBouldersToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn([all[idx]]).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
-
+  syncBridge.syncBoulders([all[idx]]);
   return all[idx];
 }
 
@@ -708,16 +684,7 @@ export function updateBoulderDetails(
   };
 
   saveWallBoulders(all);
-
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncBouldersToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn([all[idx]]).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
-
+  syncBridge.syncBoulders([all[idx]]);
   return all[idx];
 }
 
@@ -769,13 +736,7 @@ export function deleteWallBoulder(boulderId: string): void {
   } catch (e) {}
 
   // 6. Remote delete in Supabase asynchronously
-  try {
-    import('./syncService').then(m => {
-      if (typeof m.deleteBoulderFromSupabase === 'function') {
-        m.deleteBoulderFromSupabase(boulderId).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.deleteBoulder(boulderId);
 
   // 7. Reactive event dispatch
   if (typeof window !== 'undefined') {
@@ -822,15 +783,7 @@ export function publishBatch(
   });
 
   saveWallBoulders(updated);
-
-  try {
-    import('./syncService').then(m => {
-      const syncFn = (m as any)?.syncBouldersToSupabase;
-      if (typeof syncFn === 'function') {
-        syncFn(updated).catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {}
+  syncBridge.syncBoulders(updated);
 
   return {
     sectorId,

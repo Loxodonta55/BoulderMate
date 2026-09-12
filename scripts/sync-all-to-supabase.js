@@ -158,25 +158,22 @@ async function syncGradeScales() {
   }
 
   const DEFAULT_6A_SCALES = [
-    { id: '6f66405a-0cdc-4bfa-9f27-4f60cb2517bf', gym_id: GYM_6A_UUID, color_name: 'Sonnengelb', color_hex: '#fde047', difficulty_label: 'Anfaenger Plus', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
-    { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: GYM_6A_UUID, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 2 },
-    { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: GYM_6A_UUID, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 3 },
-    { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: GYM_6A_UUID, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 4 },
-    { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gym_id: GYM_6A_UUID, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 5 },
-    { id: '3e322450-4c56-4422-8c88-7f518b716352', gym_id: GYM_6A_UUID, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 6 },
-    { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gym_id: GYM_6A_UUID, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 7 },
-    { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gym_id: GYM_6A_UUID, color_name: 'Beige', color_hex: '#d2b48c', difficulty_label: 'Bestial', font_range_min: '7b+', font_range_max: '8c+', sort_order: 8 },
+    { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: GYM_6A_UUID, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
+    { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: GYM_6A_UUID, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
+    { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: GYM_6A_UUID, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 3 },
+    { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gym_id: GYM_6A_UUID, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 4 },
+    { id: '3e322450-4c56-4422-8c88-7f518b716352', gym_id: GYM_6A_UUID, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 5 },
+    { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gym_id: GYM_6A_UUID, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 6 },
+    { id: '85acace1-378a-48d9-958b-0ab2a2510db2', gym_id: GYM_6A_UUID, color_name: 'Beige', color_hex: '#d2b48c', difficulty_label: 'Bestial', font_range_min: '7b+', font_range_max: '8c+', sort_order: 7 },
   ];
 
   const DEFAULT_MINIMUM_SCALES = [
-    { id: '6b538536-2fe3-4c97-a5ab-16df8ac19ad3', gym_id: GYM_MINIMUM_UUID, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '6b+', font_range_max: '7a', sort_order: 1 },
-    { id: 'f94c7727-5096-4d9f-bcd6-63bd55ae1fbd', gym_id: GYM_MINIMUM_UUID, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '4a', font_range_max: '5b', sort_order: 2 },
-    { id: 'b1b5f951-bc31-468f-802d-5f63ab651222', gym_id: GYM_MINIMUM_UUID, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Fortgeschritten', font_range_min: '5c', font_range_max: '6b', sort_order: 3 },
+    { id: 'f94c7727-5096-4d9f-bcd6-63bd55ae1fbd', gym_id: GYM_MINIMUM_UUID, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '4a', font_range_max: '5b', sort_order: 1 },
+    { id: 'b1b5f951-bc31-468f-802d-5f63ab651222', gym_id: GYM_MINIMUM_UUID, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Fortgeschritten', font_range_min: '5c', font_range_max: '6b', sort_order: 2 },
+    { id: '6b538536-2fe3-4c97-a5ab-16df8ac19ad3', gym_id: GYM_MINIMUM_UUID, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sportlich', font_range_min: '6b+', font_range_max: '7a', sort_order: 3 },
     { id: '130c2372-d28e-416c-85af-a3380426c9bd', gym_id: GYM_MINIMUM_UUID, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Schwer', font_range_min: '7a+', font_range_max: '7b+', sort_order: 4 },
     { id: '2ccf3d7f-a886-4a8e-9bad-25771edf9e86', gym_id: GYM_MINIMUM_UUID, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7c', font_range_max: '8a', sort_order: 5 },
     { id: '2dfafa3a-f172-4ee0-ae0c-fddc2a23a851', gym_id: GYM_MINIMUM_UUID, color_name: 'Weiß', color_hex: '#f8fafc', difficulty_label: 'Elite', font_range_min: '8a+', font_range_max: '8b+', sort_order: 6 },
-    { id: 'eb803c73-40cb-4108-a4cc-d299acc7c44a', gym_id: GYM_MINIMUM_UUID, color_name: 'Tuerkis', color_hex: '#14b8a6', difficulty_label: 'Spezial', font_range_min: '6B', font_range_max: '6C', sort_order: 7 },
-    { id: '3c7ab2bc-a337-4ba3-afb2-4005f245b56c', gym_id: GYM_MINIMUM_UUID, color_name: 'Pink', color_hex: '#ec4899', difficulty_label: 'Projekt-Crux', font_range_min: '7B', font_range_max: '8A', sort_order: 8 },
   ];
 
   const allScales = [...DEFAULT_6A_SCALES, ...DEFAULT_MINIMUM_SCALES];

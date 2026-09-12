@@ -14,6 +14,7 @@ import {
   computeBoulderStatsAggregate,
 } from '../lib/ratingAndAscentService';
 import { useGymSectorData } from '../hooks/useGymSectorData';
+import { syncFromSupabase } from '../lib/syncService';
 import { BoulderDetailModal } from './BoulderDetailModal';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import {
@@ -286,7 +287,6 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const handleSyncData = async () => {
     setIsSyncing(true);
     try {
-      const { syncFromSupabase } = await import('../lib/syncService');
       await syncFromSupabase();
       refreshGymData();
       setDataVersion(v => v + 1);

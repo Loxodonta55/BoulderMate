@@ -1,4 +1,4 @@
-﻿// SPEC-000: Authentifizierung & Identity Service
+// SPEC-000: Authentifizierung & Identity Service
 // Verwaltet Sessions, echte Supabase Auth (E-Mail/Passwort, Google OAuth, OTP) und Benutzerprofile.
 
 import { supabase, isSupabaseConfigured } from './supabase';
@@ -24,8 +24,9 @@ export interface AuthUser {
 const STORAGE_AUTH_KEY = 'boulder_auth_session_v1';
 
 export const isTestEnv = Boolean(
-  typeof process !== 'undefined' && 
-  (process.env.NODE_ENV === 'test' || process.env.VITEST)
+  (typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST)) ||
+  (typeof import.meta !== 'undefined' && ((import.meta as any).env?.MODE === 'test' || (import.meta as any).env?.VITEST)) ||
+  (typeof window !== 'undefined' && ((window as any).__vitest__ || (window as any).VITEST))
 );
 
 export const DEMO_USERS: Record<string, AuthUser> = {
