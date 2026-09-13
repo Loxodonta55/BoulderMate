@@ -68,6 +68,12 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [filterMode, setFilterMode] = useState<RatingFilter>('all');
   const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
+  const [isWallZoomed, setIsWallZoomed] = useState<boolean>(false);
+
+  // Reset wall zoom when sector changes or fullscreen exits
+  useEffect(() => {
+    setIsWallZoomed(false);
+  }, [selectedSectorId, isSectorFullscreen]);
 
   // Automatischer Non-destruktiver Live-Sync aus Supabase beim Laden der Sektoransicht
   useEffect(() => {
@@ -179,18 +185,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const swipeTriggeredRef = React.useRef<boolean>(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      touchStartPos.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now(),
-      };
+    if (isWallZoomed || e.touches.length !== 1) {
+      touchStartPos.current = null;
       swipeTriggeredRef.current = false;
+      return;
     }
+    touchStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+    swipeTriggeredRef.current = false;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartPos.current || swipeTriggeredRef.current || e.touches.length !== 1) return;
+    if (isWallZoomed || !touchStartPos.current || swipeTriggeredRef.current || e.touches.length !== 1) return;
     const deltaX = e.touches[0].clientX - touchStartPos.current.x;
     const deltaY = e.touches[0].clientY - touchStartPos.current.y;
 
@@ -208,7 +217,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartPos.current || e.changedTouches.length === 0) {
+    if (isWallZoomed || !touchStartPos.current || e.changedTouches.length === 0) {
       touchStartPos.current = null;
       swipeTriggeredRef.current = false;
       return;
@@ -237,7 +246,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   // Trackpad horizontal scroll / wheel handler for fullscreen
   const wheelLockRef = React.useRef<number>(0);
   const handleWheel = (e: React.WheelEvent) => {
-    if (!isSectorFullscreen) return;
+    if (!isSectorFullscreen || e.ctrlKey || isWallZoomed) return;
     if (Math.abs(e.deltaX) > 35 && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       const now = Date.now();
       if (now - wheelLockRef.current > 300) {
@@ -683,6 +692,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 onPinClick={setSelectedBoulder}
                 isFullscreen={isSectorFullscreen}
                 onToggleFullscreen={() => setIsSectorFullscreen(true)}
+                onZoomChange={(zoom) => setIsWallZoomed(zoom > 1.05)}
               />
             </div>
           </div>
@@ -915,6 +925,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               onPinClick={setSelectedBoulder}
               isFullscreen={true}
               onToggleFullscreen={() => setIsSectorFullscreen(false)}
+              onZoomChange={(zoom) => setIsWallZoomed(zoom > 1.05)}
             />
           </div>
 

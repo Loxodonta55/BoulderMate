@@ -355,4 +355,150 @@ describe('Climber Fullscreen Wall Optimization & Navigation Suite', () => {
       expect(container.style.minWidth).toBe('');
     });
   });
+
+  describe('5) 2-Finger Pinch-to-Zoom & Relative Pin Scaling (SPEC-016)', () => {
+    it('handles 2-finger pinch gesture to zoom the wall photo in fullscreen', () => {
+      const onZoomChange = vi.fn();
+
+      render(
+        <WallPhotoCanvas
+          mode="climber"
+          photoUrl="/img-wall.jpg"
+          sectorName="Test Wand"
+          boulders={testBoulders}
+          gradeScales={sampleGradeScales}
+          isFullscreen={true}
+          onZoomChange={onZoomChange}
+        />
+      );
+
+      expect(screen.getByText('100%')).toBeInTheDocument();
+
+      const img = screen.getByAltText('Test Wand');
+      const viewport = img.parentElement?.parentElement as HTMLElement;
+      expect(viewport).toBeInTheDocument();
+
+      // Initial 2-finger touch: distance = 100px (100 -> 200)
+      fireEvent.touchStart(viewport, {
+        touches: [
+          { clientX: 100, clientY: 100 },
+          { clientX: 200, clientY: 100 },
+        ],
+      });
+
+      // Pinch out (spread fingers): distance = 200px (factor = 2.0x)
+      fireEvent.touchMove(viewport, {
+        touches: [
+          { clientX: 50, clientY: 100 },
+          { clientX: 250, clientY: 100 },
+        ],
+      });
+
+      expect(screen.getByText('200%')).toBeInTheDocument();
+      expect(onZoomChange).toHaveBeenCalledWith(2);
+
+      // Lift fingers
+      fireEvent.touchEnd(viewport, {
+        touches: [],
+      });
+    });
+
+    it('dynamically scales down the route pin circle relative to the zoomed photo to keep holds visible', () => {
+      const onPinClick = vi.fn();
+
+      render(
+        <WallPhotoCanvas
+          mode="climber"
+          photoUrl="/img-wall.jpg"
+          sectorName="Test Wand"
+          boulders={testBoulders}
+          gradeScales={sampleGradeScales}
+          isFullscreen={true}
+          onPinClick={onPinClick}
+        />
+      );
+
+      const pinVisual = screen.getByTestId('pin-visual-boulder-fs-1');
+      expect(pinVisual).toBeInTheDocument();
+
+      // At 1.0x zoom, pin scale is 1.0
+      expect(pinVisual.style.transform).toBe('scale(1)');
+
+      // Zoom in using controls to 1.5x (two clicks: 100% -> 125% -> 150%)
+      const zoomInBtn = screen.getByRole('button', { name: /Vergr/i });
+      fireEvent.click(zoomInBtn);
+      fireEvent.click(zoomInBtn);
+
+      expect(screen.getByText('150%')).toBeInTheDocument();
+
+      // At 1.5x zoom, pin scale shrinks to 0.738 relative to the screen (and 0.738 / 1.5 = 0.49 relative to the holds)
+      expect(pinVisual.style.transform).toBe('scale(0.738)');
+
+      // Zoom in further to 2.0x (two more clicks: 150% -> 175% -> 200%)
+      fireEvent.click(zoomInBtn);
+      fireEvent.click(zoomInBtn);
+
+      expect(screen.getByText('200%')).toBeInTheDocument();
+      // At 2.0x zoom, pin scale is 0.595 (substantially smaller so climber can see holds clearly)
+      expect(pinVisual.style.transform).toBe('scale(0.595)');
+
+      // Tap hit-area remains generous and triggers detail click
+      const pinBtn = screen.getByTestId('pin-boulder-fs-1');
+      fireEvent.click(pinBtn);
+      expect(onPinClick).toHaveBeenCalledWith(testBoulders[0]);
+    });
+
+    it('prevents accidental sector switching when panning around a zoomed-in wall in ClimberSectorView', () => {
+      createGym({ id: 'gym-test', name: 'Test Gym' });
+      createSector('gym-test', CURRENT_USER.id, { name: 'Sektor Alpha', wall_photo_url: '/img-alpha.jpg' });
+      createSector('gym-test', CURRENT_USER.id, { name: 'Sektor Beta', wall_photo_url: '/img-beta.jpg' });
+
+      render(
+        <ClimberSectorView
+          currentUser={CURRENT_CLIMBER}
+          activeGymId="gym-test"
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('toggle-fullscreen-btn'));
+      const fullscreenModal = screen.getByTestId('sector-fullscreen-modal');
+      const hud = within(fullscreenModal).getByTestId('fullscreen-sector-hud');
+      expect(hud).toHaveTextContent('Sektor Alpha');
+
+      // Zoom in the wall using the fullscreen zoom control
+      const zoomInBtn = within(fullscreenModal).getByRole('button', { name: /Vergr/i });
+      fireEvent.click(zoomInBtn); // 125%
+      expect(within(fullscreenModal).getByText('125%')).toBeInTheDocument();
+
+      // Try swiping left with 1 finger while zoomed in (dragging to pan the image)
+      fireEvent.touchStart(fullscreenModal, {
+        touches: [{ clientX: 200, clientY: 100 }],
+      });
+      fireEvent.touchMove(fullscreenModal, {
+        touches: [{ clientX: 100, clientY: 100 }],
+      });
+      fireEvent.touchEnd(fullscreenModal, {
+        changedTouches: [{ clientX: 100, clientY: 100 }],
+      });
+
+      // HUD must still be Sektor Alpha — swipe is locked so user can pan the photo!
+      expect(hud).toHaveTextContent('Sektor Alpha');
+
+      // Reset zoom back to 100%
+      const resetZoomBtn = within(fullscreenModal).getByRole('button', { name: /Zoom zurücksetzen/i });
+      fireEvent.click(resetZoomBtn);
+      expect(within(fullscreenModal).getByText('100%')).toBeInTheDocument();
+
+      // Now swipe left with 1 finger at 100% fit
+      fireEvent.touchStart(fullscreenModal, {
+        touches: [{ clientX: 200, clientY: 100 }],
+      });
+      fireEvent.touchMove(fullscreenModal, {
+        touches: [{ clientX: 140, clientY: 100 }],
+      });
+
+      // Sektor switches immediately to Sektor Beta!
+      expect(hud).toHaveTextContent('Sektor Beta');
+    });
+  });
 });

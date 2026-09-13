@@ -44,6 +44,7 @@ export interface WallPhotoCanvasProps {
   userAscentMap?: Map<string, Ascent | null>;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  onZoomChange?: (zoomLevel: number) => void;
 }
 
 
@@ -69,6 +70,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   userAscentMap,
   isFullscreen = false,
   onToggleFullscreen,
+  onZoomChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -345,6 +347,13 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     setZoomLevel(1);
   }, [photoUrl]);
 
+  // Notify parent of zoom changes
+  useEffect(() => {
+    if (onZoomChange) {
+      onZoomChange(zoomLevel);
+    }
+  }, [zoomLevel, onZoomChange]);
+
   // Double tap to toggle 1x (fit) and 1.8x (zoom) in fullscreen
   const lastTapTimeRef = useRef<number>(0);
   const handleTouchTap = () => {
@@ -359,8 +368,138 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   };
 
   const handleZoom = (delta: number) => {
-    setZoomLevel(prev => Math.max(1, Math.min(3.0, Number((prev + delta).toFixed(2)))));
+    setZoomLevel(prev => Math.max(1, Math.min(3.5, Number((prev + delta).toFixed(2)))));
   };
+
+  // 2-Finger Pinch-to-Zoom Gesture Detection (Requirement: 2-Finger Zoom in Fullscreen)
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(1);
+  const isPinchingRef = useRef<boolean>(false);
+  const zoomLevelRef = useRef<number>(zoomLevel);
+
+  useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
+
+  const getPinchDistance = (touches: React.TouchList | TouchList): number => {
+    return Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY
+    );
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.stopPropagation();
+      isPinchingRef.current = true;
+      pinchStartDistRef.current = getPinchDistance(e.touches);
+      pinchStartZoomRef.current = zoomLevel;
+    } else if (e.touches.length === 1) {
+      isPinchingRef.current = false;
+      pinchStartDistRef.current = null;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isPinchingRef.current && e.touches.length === 2 && pinchStartDistRef.current) {
+      e.stopPropagation();
+      lastTapTimeRef.current = 0;
+      const dist = getPinchDistance(e.touches);
+      if (pinchStartDistRef.current > 10) {
+        const factor = dist / pinchStartDistRef.current;
+        const newZoom = Math.min(3.5, Math.max(1.0, Number((pinchStartZoomRef.current * factor).toFixed(2))));
+        setZoomLevel(newZoom);
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isPinchingRef.current && e.touches.length < 2) {
+      isPinchingRef.current = false;
+      pinchStartDistRef.current = null;
+      return;
+    }
+    if (e.touches.length === 0 && !isPinchingRef.current) {
+      handleTouchTap();
+    }
+  };
+
+  // Trackpad pinch / wheel zoom with Ctrl key
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.008;
+      setZoomLevel(prev => Math.max(1.0, Math.min(3.5, Number((prev + delta).toFixed(2)))));
+    }
+  };
+
+  // Native non-passive touch listeners on viewportRef for mobile Safari/Chrome to prevent gesture conflicts
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const onTouchStartNative = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        isPinchingRef.current = true;
+        pinchStartDistRef.current = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        pinchStartZoomRef.current = zoomLevelRef.current;
+      }
+    };
+
+    const onTouchMoveNative = (e: TouchEvent) => {
+      if (isPinchingRef.current && e.touches.length === 2 && pinchStartDistRef.current) {
+        if (e.cancelable) e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (pinchStartDistRef.current > 10) {
+          const factor = dist / pinchStartDistRef.current;
+          const newZoom = Math.min(3.5, Math.max(1.0, Number((pinchStartZoomRef.current * factor).toFixed(2))));
+          setZoomLevel(newZoom);
+        }
+      }
+    };
+
+    const onTouchEndNative = (e: TouchEvent) => {
+      if (isPinchingRef.current && e.touches.length < 2) {
+        isPinchingRef.current = false;
+        pinchStartDistRef.current = null;
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStartNative, { passive: true });
+    el.addEventListener('touchmove', onTouchMoveNative, { passive: false });
+    el.addEventListener('touchend', onTouchEndNative, { passive: true });
+    el.addEventListener('touchcancel', onTouchEndNative, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStartNative);
+      el.removeEventListener('touchmove', onTouchMoveNative);
+      el.removeEventListener('touchend', onTouchEndNative);
+      el.removeEventListener('touchcancel', onTouchEndNative);
+    };
+  }, [isFullscreen]);
+
+  // Center scroll position when zooming into wall from 1x
+  const prevZoomLevelRef = useRef<number>(zoomLevel);
+  useEffect(() => {
+    if (isFullscreen && viewportRef.current) {
+      if (prevZoomLevelRef.current <= 1 && zoomLevel > 1) {
+        const el = viewportRef.current;
+        requestAnimationFrame(() => {
+          if (el) {
+            el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+            el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+          }
+        });
+      }
+    }
+    prevZoomLevelRef.current = zoomLevel;
+  }, [zoomLevel, isFullscreen]);
 
   // Fullscreen ideal screen fit calculation
   let containerStyle: React.CSSProperties;
@@ -395,13 +534,19 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     const finalWidth = Math.round(baseWidth * zoomLevel);
     const finalHeight = Math.round(baseHeight * zoomLevel);
 
+    const isWiderThanVp = finalWidth > vpWidth;
+    const isTallerThanVp = finalHeight > vpHeight;
+
     containerStyle = {
       width: `${finalWidth}px`,
       height: `${finalHeight}px`,
       maxWidth: zoomLevel <= 1 ? '100%' : undefined,
       maxHeight: zoomLevel <= 1 ? '100%' : undefined,
       aspectRatio: `${imgAspect}`,
-      margin: 'auto',
+      marginLeft: isWiderThanVp ? 0 : 'auto',
+      marginRight: isWiderThanVp ? 0 : 'auto',
+      marginTop: isTallerThanVp ? 0 : 'auto',
+      marginBottom: isTallerThanVp ? 0 : 'auto',
       position: 'relative',
     };
   } else {
@@ -555,13 +700,18 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         ref={viewportRef}
         className={
           isFullscreen
-            ? `relative w-full h-full ${zoomLevel > 1 ? 'overflow-auto' : 'overflow-hidden'} bg-black flex items-center justify-center touch-pan-x touch-pan-y overscroll-contain`
+            ? `relative w-full h-full ${
+                zoomLevel > 1 ? 'overflow-auto' : 'overflow-hidden flex items-center justify-center'
+              } bg-black touch-pan-x touch-pan-y overscroll-contain`
             : 'relative w-full overflow-auto bg-black'
         }
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onTouchEnd={handleTouchTap}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
       >
         <div
           ref={containerRef}
@@ -609,111 +759,132 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             </div>
           )}
 
-          {/* Render Boulders / Pins */}
-          {boulders.map(boulder => {
-            const scale = resolveScale(boulder);
-            const colorHex = scale?.colorHex || (gradeScales[0]?.colorHex ?? '#22c55e');
+          {/* Render Boulders / Pins with Dynamic Scaling (Circle shrinks relative to zoomed photo) */}
+          {(() => {
+            const pinScale = Math.max(0.40, Number((1 / Math.pow(zoomLevel, 0.75)).toFixed(3)));
 
-            if (mode === 'climber') {
-              const userAscent = userAscentMap?.get(boulder.id);
-              const stats = statsMap?.get(boulder.id);
-              const isFlash = userAscent?.type === 'flash';
-              const isTop = userAscent?.type === 'top';
-              const isProject = userAscent?.type === 'project';
-              const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
-              const isDimmed =
-                filterMode !== 'all' && filteredBoulderIds && !filteredBoulderIds.has(boulder.id);
+            return boulders.map(boulder => {
+              const scale = resolveScale(boulder);
+              const colorHex = scale?.colorHex || (gradeScales[0]?.colorHex ?? '#22c55e');
+
+              if (mode === 'climber') {
+                const userAscent = userAscentMap?.get(boulder.id);
+                const stats = statsMap?.get(boulder.id);
+                const isFlash = userAscent?.type === 'flash';
+                const isTop = userAscent?.type === 'top';
+                const isProject = userAscent?.type === 'project';
+                const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
+                const isDimmed =
+                  filterMode !== 'all' && filteredBoulderIds && !filteredBoulderIds.has(boulder.id);
+
+                return (
+                  <button
+                    key={boulder.id}
+                    type="button"
+                    data-testid={`pin-${boulder.id}`}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (onPinClick) onPinClick(boulder);
+                    }}
+                    onTouchStart={e => {
+                      e.stopPropagation();
+                    }}
+                    style={{
+                      left: `${boulder.positionX * 100}%`,
+                      top: `${boulder.positionY * 100}%`,
+                    }}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 group focus:outline-none transition-all flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 cursor-pointer ${
+                      isDimmed ? 'opacity-25 hover:opacity-100 scale-90' : 'hover:scale-110'
+                    }`}
+                    title={`${boulder.name || scale?.colorName || 'Boulder'}${
+                      stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''
+                    } (Tippen für Details)`}
+                  >
+                    {/* Visual Scaled Pin Container: visually shrinks as user zooms in, keeping holds clearly visible */}
+                    <div
+                      data-testid={`pin-visual-${boulder.id}`}
+                      style={{
+                        transform: `scale(${pinScale})`,
+                        transformOrigin: 'center center',
+                      }}
+                      className="relative flex items-center justify-center pointer-events-none transition-transform duration-75"
+                    >
+                      {/* Pulse Ring / Favorite Sandstone Aura */}
+                      <span
+                        className={`absolute -inset-1.5 rounded-full pointer-events-none ${
+                          isFavorite
+                            ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
+                            : 'opacity-75 animate-ping'
+                        }`}
+                        style={{ backgroundColor: isFavorite ? '#C9A96E' : colorHex }}
+                      />
+
+                      {/* Main Pin Disc (SPEC-005: 50% circle) */}
+                      <div
+                        className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md"
+                        style={{ backgroundColor: colorHex }}
+                      >
+                        {/* Favorite Micro Star/Sparkle Badge */}
+                        {isFavorite && (
+                          <span
+                            className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
+                            title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
+                          >
+                            <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+                          </span>
+                        )}
+
+                        {/* Status Icon Indicator */}
+                        {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
+                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
+                        {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
+                        {!userAscent && (
+                          <span className="text-[11px] font-mono font-bold text-[#121212]">
+                            {scale?.colorName?.[0] || '●'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
+
+              // Setter Mode
+              const isDraft = boulder.status === 'draft';
+              const isMarkedForArchive = pendingArchiveIds.includes(boulder.id) || boulder.status === 'archived';
+              const isModified = pendingModifiedIds.includes(boulder.id);
+              const isSelected = selectedBoulderId === boulder.id;
+              const isMultiSelected = selectedBoulderIds.includes(boulder.id);
+              const isDragging = draggingPinId === boulder.id;
 
               return (
-                <button
+                <div
                   key={boulder.id}
-                  type="button"
                   data-testid={`pin-${boulder.id}`}
-                  onClick={e => {
-                    e.stopPropagation();
-                    if (onPinClick) onPinClick(boulder);
-                  }}
-                  onTouchStart={e => {
-                    e.stopPropagation();
-                  }}
                   style={{
                     left: `${boulder.positionX * 100}%`,
                     top: `${boulder.positionY * 100}%`,
                   }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 group focus:outline-none transition-all flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 cursor-pointer ${
-                    isDimmed ? 'opacity-25 hover:opacity-100 scale-90' : 'hover:scale-125'
-                  }`}
-                  title={`${boulder.name || scale?.colorName || 'Boulder'}${
-                    stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''
-                  } (Tippen für Details)`}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group flex items-center justify-center cursor-pointer"
+                  onMouseDown={e => handlePinMouseDown(e, boulder.id)}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (!isDraggingRef.current && onPinClick) {
+                      onPinClick(boulder);
+                    }
+                  }}
                 >
-                  {/* Pulse Ring / Favorite Sandstone Aura */}
-                  <span
-                    className={`absolute -inset-1.5 rounded-full pointer-events-none ${
-                      isFavorite
-                        ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
-                        : 'opacity-75 animate-ping'
-                    }`}
-                    style={{ backgroundColor: isFavorite ? '#C9A96E' : colorHex }}
-                  />
-
-                  {/* Main Pin Disc (SPEC-005: 50% circle) */}
+                  {/* Scaled Pin Container for Setter Mode */}
                   <div
-                    className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md"
-                    style={{ backgroundColor: colorHex }}
+                    style={{
+                      transform: `scale(${pinScale})`,
+                      transformOrigin: 'center center',
+                    }}
+                    className="relative flex items-center justify-center transition-transform duration-75"
                   >
-                    {/* Favorite Micro Star/Sparkle Badge */}
-                    {isFavorite && (
-                      <span
-                        className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
-                        title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
-                      >
-                        <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
-                      </span>
-                    )}
-
-                    {/* Status Icon Indicator */}
-                    {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
-                    {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
-                    {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
-                    {!userAscent && (
-                      <span className="text-[11px] font-mono font-bold text-[#121212]">
-                        {scale?.colorName?.[0] || '●'}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            }
-
-            // Setter Mode
-            const isDraft = boulder.status === 'draft';
-            const isMarkedForArchive = pendingArchiveIds.includes(boulder.id) || boulder.status === 'archived';
-            const isModified = pendingModifiedIds.includes(boulder.id);
-            const isSelected = selectedBoulderId === boulder.id;
-            const isMultiSelected = selectedBoulderIds.includes(boulder.id);
-            const isDragging = draggingPinId === boulder.id;
-
-            return (
-              <div
-                key={boulder.id}
-                data-testid={`pin-${boulder.id}`}
-                style={{
-                  left: `${boulder.positionX * 100}%`,
-                  top: `${boulder.positionY * 100}%`,
-                }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group flex items-center justify-center cursor-pointer"
-                onMouseDown={e => handlePinMouseDown(e, boulder.id)}
-                onClick={e => {
-                  e.stopPropagation();
-                  if (!isDraggingRef.current && onPinClick) {
-                    onPinClick(boulder);
-                  }
-                }}
-              >
-                {/* Pin Circle */}
-                <div
-                  className={`relative flex items-center justify-center transition-all duration-200 border-2 border-[#121212] ${
+                    {/* Pin Circle */}
+                    <div
+                      className={`relative flex items-center justify-center transition-all duration-200 border-2 border-[#121212] ${
                     isDraft
                       ? 'w-9 h-9 rounded-full ring-2 ring-[#F5F0E8] scale-105'
                       : isMarkedForArchive
@@ -782,8 +953,9 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   <div className="w-1.5 h-1.5 bg-[#1E1E1E] border-r border-b border-[#333333] rotate-45 -mt-1" />
                 </div>
               </div>
+              </div>
             );
-          })}
+          })})()}
         </div>
       </div>
     </div>
