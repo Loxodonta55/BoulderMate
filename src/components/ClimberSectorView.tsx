@@ -453,34 +453,38 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
       {/* Sector Selection Bar — Compact & Mobile-First */}
-      <div className="bg-[#1E1E1E] border border-[#333333] p-3 sm:p-4 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-full overflow-hidden">
-        <div className="flex items-center justify-between gap-3 w-full sm:w-auto min-w-0">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-[#C9A96E] uppercase tracking-widest mb-0.5">
-              <Layers className="w-3.5 h-3.5 shrink-0" />
+      <div className="bg-[#1E1E1E] border border-[#333333] p-3 sm:p-4 rounded-none space-y-3 max-w-full">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 w-full min-w-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-0.5">
+              <Layers className="w-4 h-4 text-[#C9A96E] shrink-0" />
               <span className="truncate">{gym?.name || 'Boulderhalle'}</span>
               <span className="text-[#6B6358] shrink-0">•</span>
               <span className="text-[#A89F91] shrink-0">Sektoren & Wandansicht</span>
             </div>
-            <h2 className="text-base sm:text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate">
+            <h2 className="text-base sm:text-xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate" title={selectedSector?.name || 'Wandansicht'}>
               {selectedSector?.name || 'Wandansicht'}
             </h2>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             {gyms.length > 1 && (
-              <select
-                value={selectedGymId}
-                onChange={e => handleGymChange(e.target.value)}
-                className="bg-[#121212] border border-[#333333] text-[#E8E0D4] text-xs font-mono rounded-none px-2 py-1 focus:outline-none focus:border-[#C9A96E] max-w-[110px] sm:max-w-none truncate"
-                title="Halle wählen"
-              >
-                {gyms.map(g => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5 bg-[#121212] border border-[#333333] px-2 py-1 rounded-none">
+                <Building2 className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
+                <span className="text-[10px] font-mono text-[#8B8680] uppercase hidden md:inline">Halle:</span>
+                <select
+                  value={selectedGymId}
+                  onChange={e => handleGymChange(e.target.value)}
+                  className="bg-transparent text-[#E8E0D4] text-xs font-mono rounded-none focus:outline-none max-w-[120px] sm:max-w-[180px] truncate cursor-pointer"
+                  title="Halle wählen"
+                >
+                  {gyms.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
 
             {/* Sync / Refresh Cloud Data Button */}
@@ -489,12 +493,12 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               onClick={handleSyncData}
               disabled={isSyncing}
               data-testid="sync-boulders-btn"
-              className="px-2 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] hover:border-[#C9A96E] text-[#A89F91] hover:text-[#F5F0E8] rounded-[2px] text-xs font-headline uppercase font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 disabled:opacity-50"
+              className="px-2.5 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] hover:border-[#C9A96E] text-[#A89F91] hover:text-[#F5F0E8] rounded-[2px] text-xs font-headline uppercase font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 disabled:opacity-50"
               title="Daten frisch aus der Cloud synchronisieren"
               aria-label="Daten synchronisieren"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#C9A96E]' : ''}`} />
-              <span className="hidden md:inline">Sync</span>
+              <span className="hidden sm:inline">Sync</span>
             </button>
 
             {/* Vollbild Button (Requirement 1) */}
@@ -507,7 +511,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 title="Sektor im Vollbild öffnen"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Vollbild</span>
+                <span>Vollbild</span>
               </button>
             )}
           </div>
@@ -515,7 +519,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
         {/* Sector Tabs & Mobile Switcher */}
         {sectors.length > 0 && (
-          <div className="flex items-center gap-1.5 w-full sm:w-auto pb-1 sm:pb-0 min-w-0 max-w-full">
+          <div className="flex items-center gap-1.5 w-full pt-2 border-t border-[#2A2A2A] min-w-0">
             {/* Prev sector button */}
             <button
               type="button"
@@ -541,10 +545,10 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                     data-sector-id={sector.id}
                     type="button"
                     onClick={() => setSelectedSectorId(sector.id)}
-                    className={`px-3 py-1 rounded-[2px] text-xs font-headline uppercase tracking-wider transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? 'bg-[#F5F0E8] text-[#121212] font-bold shadow-sm'
-                        : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
+                        : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]'
                     }`}
                   >
                     <span>{sector.name}</span>
