@@ -34,7 +34,6 @@ import {
   Filter,
   Maximize2,
   Minimize2,
-  RefreshCw,
 } from 'lucide-react';
 
 interface ClimberSectorViewProps {
@@ -69,7 +68,24 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [filterMode, setFilterMode] = useState<RatingFilter>('all');
   const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Automatischer Non-destruktiver Live-Sync aus Supabase beim Laden der Sektoransicht
+  useEffect(() => {
+    let isMounted = true;
+    syncFromSupabase()
+      .then(synced => {
+        if (synced && isMounted) {
+          refreshGymData();
+          setDataVersion(v => v + 1);
+        }
+      })
+      .catch(err => {
+        console.warn('[ClimberSectorView] Background auto-sync warning:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshGymData]);
 
   // SPEC-015: Mobile-First Android Back-Button Handling
   useBackHandler({
@@ -409,19 +425,6 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     return list;
   }, [boulders, filterMode, sortBy, statsMap, userAscentMap]);
 
-  const handleSyncData = async () => {
-    setIsSyncing(true);
-    try {
-      await syncFromSupabase();
-      refreshGymData();
-      setDataVersion(v => v + 1);
-    } catch (err) {
-      console.error('Error syncing from Supabase:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleRefreshData = () => {
     setDataVersion(v => v + 1);
     if (selectedBoulder) {
@@ -486,20 +489,6 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 </select>
               </div>
             )}
-
-            {/* Sync / Refresh Cloud Data Button */}
-            <button
-              type="button"
-              onClick={handleSyncData}
-              disabled={isSyncing}
-              data-testid="sync-boulders-btn"
-              className="px-2.5 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] hover:border-[#C9A96E] text-[#A89F91] hover:text-[#F5F0E8] rounded-[2px] text-xs font-headline uppercase font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 disabled:opacity-50"
-              title="Daten frisch aus der Cloud synchronisieren"
-              aria-label="Daten synchronisieren"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#C9A96E]' : ''}`} />
-              <span className="hidden sm:inline">Sync</span>
-            </button>
 
             {/* Vollbild Button (Requirement 1) */}
             {selectedSector && (

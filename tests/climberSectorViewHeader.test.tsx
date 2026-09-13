@@ -58,8 +58,9 @@ describe('ClimberSectorView Header Layout & Typography (Bugfix Verification)', (
     expect(screen.getByRole('button', { name: /Zwischenwand vorne/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Verlängerung Überhang/i })).toBeInTheDocument();
 
-    // 4. Action buttons exist
-    expect(screen.getByTestId('sync-boulders-btn')).toBeInTheDocument();
+    // 4. Action buttons: Manual sync button is removed (everything syncs automatically in the background)
+    expect(screen.queryByTestId('sync-boulders-btn')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Sync$/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('toggle-fullscreen-btn')).toBeInTheDocument();
 
     // 5. Gym select dropdown exists and contains both gyms
