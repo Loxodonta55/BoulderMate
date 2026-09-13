@@ -16,6 +16,7 @@ import { BoulderDetailModal } from './BoulderDetailModal';
 import { AthletePerformanceView } from './AthletePerformanceView';
 import { LegacyLogbookView } from './LegacyLogbookView';
 import { getAthletePerformanceReport } from '../lib/performanceService';
+import { useBackHandler } from '../hooks/useBackHandler';
 import {
   Settings,
   Calendar,
@@ -59,6 +60,31 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [version, setVersion] = useState(0);
+
+  // SPEC-015: Mobile-First Android Back-Button Handling in Profile
+  useBackHandler({
+    id: 'profile-settings-modal',
+    isOpen: isSettingsOpen,
+    onBack: () => setIsSettingsOpen(false),
+  });
+
+  useBackHandler({
+    id: 'profile-boulder-detail-modal',
+    isOpen: Boolean(selectedBoulder),
+    onBack: () => setSelectedBoulder(null),
+  });
+
+  useBackHandler({
+    id: 'profile-subtab-deep-dive',
+    isOpen: activeSubTab === 'deep_dive',
+    onBack: () => setActiveSubTab('overall'),
+  });
+
+  useBackHandler({
+    id: 'profile-segment-performance',
+    isOpen: activeSegment === 'performance' && activeSubTab === 'overall',
+    onBack: () => setActiveSegment('overview'),
+  });
 
   useEffect(() => {
     if (boulders) {

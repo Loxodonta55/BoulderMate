@@ -20,6 +20,7 @@ import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthSta
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { AppHeader } from './components/AppHeader';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { useBackHandler } from './hooks/useBackHandler';
 import { Mountain } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
@@ -156,6 +157,31 @@ export const App: React.FC = () => {
       setIsRoleGatewayOpen(false);
     }
   };
+
+  // SPEC-015: Mobile-First Android Hardware Back-Button Handling
+  useBackHandler({
+    id: 'modal-login',
+    isOpen: isLoginModalOpen,
+    onBack: () => setIsLoginModalOpen(false),
+  });
+
+  useBackHandler({
+    id: 'modal-role-gateway',
+    isOpen: isRoleGatewayOpen,
+    onBack: handleCloseRoleGateway,
+  });
+
+  useBackHandler({
+    id: 'mode-privileged',
+    isOpen: appMode !== 'climber',
+    onBack: () => setAppMode('climber'),
+  });
+
+  useBackHandler({
+    id: 'tab-stats',
+    isOpen: activeTab === 'stats' && appMode === 'climber',
+    onBack: () => setActiveTab('wall'),
+  });
 
   const refreshGyms = () => {
     const all = getGyms();

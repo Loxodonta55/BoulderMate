@@ -18,4 +18,7 @@
 | [SPEC-011](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-011-landing-page-and-unauthenticated-experience.md) | Standalone Landing Page & Unangemeldete Besucher-Experience | APPROVED | Boris | 2026-09-06 |
 | [SPEC-012](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-012-tournament-events.md) | Turnier & Boulder Jam Events (Live-Scoring & Leaderboard) | APPROVED | Boris | 2026-09-08 |
 | [SPEC-013](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-013-sauberer-datenhaushalt-und-produktions-integritaet.md) | Sauberer Datenhaushalt, Produktions-Integrität & Environment-Isolation | APPROVED | Boris | 2026-09-11 |
+| [SPEC-014](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-014-real-user-auth-and-systemic-integration.md) | Echte Benutzer-Authentifizierung, Identität & Systemische Ökosystem-Integration | APPROVED | Boris | 2026-09-13 |
+| [SPEC-015](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-015-mobile-first-navigation-and-android-back-button.md) | Mobile-First Hierarchische Navigation & Android Hardware Back-Button Handling | APPROVED | Boris | 2026-09-13 |
+| [SPEC-016](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-016-fullscreen-wall-view-and-orientation-optimization.md) | Immersive Vollbild-Wandansicht, Smartphone-Rotation & Sofortiger Sektorwechsel | DONE | Boris | 2026-09-13 |
 

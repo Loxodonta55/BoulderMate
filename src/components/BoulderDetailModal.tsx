@@ -26,6 +26,7 @@ import {
   isUserMatch
 } from '../lib/ratingAndAscentService';
 import { syncBridge } from '../lib/syncBridge';
+import { useBackHandler } from '../hooks/useBackHandler';
 import {
   X,
   Star,
@@ -71,6 +72,19 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [commentText, setCommentText] = useState('');
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [dataVersion, setDataVersion] = useState(0);
+
+  // SPEC-015: Mobile-First Android Back-Button Handling for child modals
+  useBackHandler({
+    id: `boulder-rating-modal-${boulder.id}`,
+    isOpen: isRatingModalOpen,
+    onBack: () => setIsRatingModalOpen(false),
+  });
+
+  useBackHandler({
+    id: `boulder-public-profile-modal-${boulder.id}`,
+    isOpen: Boolean(viewingPublicUserId),
+    onBack: () => setViewingPublicUserId(null),
+  });
 
   // Compute live aggregates from storage
   const stats = React.useMemo(() => {

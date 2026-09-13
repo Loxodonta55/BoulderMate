@@ -20,6 +20,7 @@ import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { BoulderBottomSheet } from './BoulderBottomSheet';
 import { BatchSummaryModal } from './BatchSummaryModal';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
+import { useBackHandler } from '../hooks/useBackHandler';
 import {
   Camera,
   Layers,
@@ -77,6 +78,28 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
 
   // Photo replacement modal
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
+
+  // SPEC-015: Mobile-First Android Back-Button Handling in Setter Studio
+  useBackHandler({
+    id: 'setter-photo-modal',
+    isOpen: isPhotoModalOpen,
+    onBack: () => setIsPhotoModalOpen(false),
+  });
+
+  useBackHandler({
+    id: 'setter-summary-modal',
+    isOpen: isSummaryOpen,
+    onBack: () => setIsSummaryOpen(false),
+  });
+
+  useBackHandler({
+    id: 'setter-boulder-sheet',
+    isOpen: isSheetOpen,
+    onBack: () => {
+      setIsSheetOpen(false);
+      setSelectedBoulder(null);
+    },
+  });
 
   // Reload boulders when sector changes
   useEffect(() => {

@@ -17,6 +17,7 @@ import { useGymSectorData } from '../hooks/useGymSectorData';
 import { syncFromSupabase } from '../lib/syncService';
 import { BoulderDetailModal } from './BoulderDetailModal';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
+import { useBackHandler } from '../hooks/useBackHandler';
 import {
   Layers,
   Zap,
@@ -69,6 +70,19 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // SPEC-015: Mobile-First Android Back-Button Handling
+  useBackHandler({
+    id: 'fullscreen-sector',
+    isOpen: isSectorFullscreen,
+    onBack: () => setIsSectorFullscreen(false),
+  });
+
+  useBackHandler({
+    id: 'boulder-detail-modal',
+    isOpen: Boolean(selectedBoulder),
+    onBack: () => setSelectedBoulder(null),
+  });
 
   const sectorTabsContainerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -124,54 +138,118 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     }
   }, [selectedSectorId, sectors]);
 
-  // Sector indexing & swipe switching (Requirement 1 & 4)
+  // Sector indexing & swipe switching (Requirement 1 & 4, User Update: immediate sector change)
   const currentSectorIndex = useMemo(() => {
     return sectors.findIndex(s => s.id === selectedSectorId);
   }, [sectors, selectedSectorId]);
 
-  const hasPreviousSector = currentSectorIndex > 0;
-  const hasNextSector = currentSectorIndex >= 0 && currentSectorIndex < sectors.length - 1;
+  const hasPreviousSector = sectors.length > 1;
+  const hasNextSector = sectors.length > 1;
 
   const goToPreviousSector = () => {
-    if (hasPreviousSector) {
-      setSelectedSectorId(sectors[currentSectorIndex - 1].id);
-    }
+    if (sectors.length <= 1) return;
+    const prevIndex = currentSectorIndex > 0 ? currentSectorIndex - 1 : sectors.length - 1;
+    setSelectedSectorId(sectors[prevIndex].id);
   };
 
   const goToNextSector = () => {
-    if (hasNextSector) {
-      setSelectedSectorId(sectors[currentSectorIndex + 1].id);
-    }
+    if (sectors.length <= 1) return;
+    const nextIndex = currentSectorIndex >= 0 && currentSectorIndex < sectors.length - 1 ? currentSectorIndex + 1 : 0;
+    setSelectedSectorId(sectors[nextIndex].id);
   };
 
-  // Touch Swipe Gesture Detection (Horizontal swipe across wall photo)
-  const touchStartPos = React.useRef<{ x: number; y: number } | null>(null);
+  // Touch Swipe Gesture Detection with Immediate Switching (onTouchMove + onTouchEnd)
+  const touchStartPos = React.useRef<{ x: number; y: number; time: number } | null>(null);
+  const swipeTriggeredRef = React.useRef<boolean>(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartPos.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+      swipeTriggeredRef.current = false;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartPos.current || swipeTriggeredRef.current || e.touches.length !== 1) return;
+    const deltaX = e.touches[0].clientX - touchStartPos.current.x;
+    const deltaY = e.touches[0].clientY - touchStartPos.current.y;
+
+    // Detect predominantly horizontal movement and immediately switch sector
+    if (Math.abs(deltaX) > 35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) {
+      swipeTriggeredRef.current = true;
+      if (deltaX < 0) {
+        // Swiped left -> Immediately go to next sector
+        goToNextSector();
+      } else {
+        // Swiped right -> Immediately go to previous sector
+        goToPreviousSector();
+      }
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartPos.current || e.changedTouches.length === 0) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const deltaX = endX - touchStartPos.current.x;
-    const deltaY = endY - touchStartPos.current.y;
+    if (!touchStartPos.current || e.changedTouches.length === 0) {
+      touchStartPos.current = null;
+      swipeTriggeredRef.current = false;
+      return;
+    }
 
-    // Detect horizontal swipe if deltaX is > 45px and predominantly horizontal
-    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
-      if (deltaX < 0) {
-        // Swiped left -> Go to next sector
-        goToNextSector();
-      } else {
-        // Swiped right -> Go to previous sector
-        goToPreviousSector();
+    if (!swipeTriggeredRef.current) {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - touchStartPos.current.x;
+      const deltaY = endY - touchStartPos.current.y;
+      const duration = Date.now() - touchStartPos.current.time;
+      const threshold = duration < 300 ? 25 : 35;
+
+      if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+        if (deltaX < 0) {
+          goToNextSector();
+        } else {
+          goToPreviousSector();
+        }
       }
     }
     touchStartPos.current = null;
+    swipeTriggeredRef.current = false;
   };
+
+  // Trackpad horizontal scroll / wheel handler for fullscreen
+  const wheelLockRef = React.useRef<number>(0);
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!isSectorFullscreen) return;
+    if (Math.abs(e.deltaX) > 35 && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      const now = Date.now();
+      if (now - wheelLockRef.current > 300) {
+        wheelLockRef.current = now;
+        if (e.deltaX > 0) {
+          goToNextSector();
+        } else {
+          goToPreviousSector();
+        }
+      }
+    }
+  };
+
+  // Keyboard navigation when in fullscreen mode
+  useEffect(() => {
+    if (!isSectorFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        goToNextSector();
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        goToPreviousSector();
+      } else if (e.key === 'Escape') {
+        setIsSectorFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSectorFullscreen, currentSectorIndex, sectors]);
 
 
   // Listen to cross-component boulder events (such as deletion or batch publish)
@@ -712,53 +790,78 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
         </>
       )}
 
-      {/* Immersive Fullscreen Sector View (Requirement 1 & 4) */}
+      {/* Immersive Fullscreen Sector View (Requirement 1, 1a, 1b: Edge-to-Edge Wall, Zero Header, Zero Footer) */}
       {isSectorFullscreen && selectedSector && (
         <div
-          className="fixed inset-0 z-50 bg-[#121212] flex flex-col select-none animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-black w-screen h-[100dvh] flex items-center justify-center select-none animate-in fade-in duration-150 overflow-hidden"
           data-testid="sector-fullscreen-modal"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
         >
-          {/* Fullscreen Floating Top Bar */}
-          <div className="px-3 sm:px-4 py-2.5 bg-[#1E1E1E]/95 backdrop-blur border-b border-[#333333] flex items-center justify-between gap-2 shrink-0 z-30 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-2.5 h-2.5 bg-[#C9A96E] shrink-0" />
-              <div className="min-w-0">
-                <h2 className="text-sm sm:text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate">
-                  {selectedSector.name}
-                </h2>
-                <div className="text-[10px] font-mono text-[#A89F91] flex items-center gap-1.5">
-                  <span>Sektor {currentSectorIndex + 1} von {sectors.length}</span>
-                  <span>•</span>
-                  <span className="truncate">{gym?.name}</span>
-                </div>
-              </div>
-            </div>
+          {/* Floating Exit Fullscreen Button (Zero Layout Height) */}
+          <button
+            type="button"
+            onClick={() => setIsSectorFullscreen(false)}
+            data-testid="exit-fullscreen-btn"
+            className="absolute top-3 right-3 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/60 hover:bg-black/85 text-[#F5F0E8] border border-[#333333] hover:border-[#C9A96E] backdrop-blur-md transition-all shadow-lg active:scale-95 cursor-pointer flex items-center gap-1.5"
+            title="Vollbild beenden"
+            aria-label="Vollbild beenden"
+          >
+            <Minimize2 className="w-4 h-4 text-[#C9A96E]" />
+            <span className="text-[10px] font-mono font-bold uppercase text-[#E8E0D4] hidden xs:inline">Beenden</span>
+          </button>
 
-            {/* Top Bar Actions */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-[#C9A96E] font-bold hidden sm:inline">
-                {boulders.length} Boulder aktiv
-              </span>
+          {/* Minimal Floating Sector HUD (Top-Left, Zero Layout Height) */}
+          <div
+            data-testid="fullscreen-sector-hud"
+            className="absolute top-3 left-3 z-40 bg-black/60 backdrop-blur-md border border-[#333333] px-2.5 py-1.5 rounded-[2px] flex items-center gap-2 pointer-events-none text-xs font-mono shadow-lg max-w-[calc(100%-90px)]"
+          >
+            <div className="w-2 h-2 bg-[#C9A96E] shrink-0" />
+            <span className="font-headline font-bold text-[#E8E0D4] uppercase tracking-wider truncate">
+              {selectedSector.name}
+            </span>
+            <span className="text-[#8B8680] text-[10px] shrink-0">
+              {currentSectorIndex + 1}/{sectors.length}
+            </span>
+          </div>
+
+          {/* Quick Floating Lateral Switch Arrows (Left & Right Edge) */}
+          {sectors.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPreviousSector();
+                }}
+                data-testid="fullscreen-prev-sector-btn"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/40 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md"
+                title="Vorheriger Sektor (oder nach rechts wischen)"
+                aria-label="Vorheriger Sektor"
+              >
+                <ChevronLeft className="w-6 h-6 text-[#C9A96E]" />
+              </button>
 
               <button
                 type="button"
-                onClick={() => setIsSectorFullscreen(false)}
-                data-testid="exit-fullscreen-btn"
-                className="px-3 py-1.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] text-[#F5F0E8] border border-[#333333] hover:border-[#C9A96E] text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
-                title="Vollbild beenden"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToNextSector();
+                }}
+                data-testid="fullscreen-next-sector-btn"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/40 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md"
+                title="Nächster Sektor (oder nach links wischen)"
+                aria-label="Nächster Sektor"
               >
-                <Minimize2 className="w-4 h-4 text-[#C9A96E]" />
-                <span className="hidden sm:inline">Vollbild beenden</span>
+                <ChevronRight className="w-6 h-6 text-[#C9A96E]" />
               </button>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Fullscreen Canvas with Touch-Swipe Container */}
-          <div
-            className="flex-1 relative overflow-hidden bg-black flex items-center justify-center touch-pan-y"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
+          {/* Fullscreen Canvas filling 100% of Screen */}
+          <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
             <WallPhotoCanvas
               mode="climber"
               photoUrl={selectedSector.wallPhotoUrl}
@@ -775,50 +878,12 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             />
           </div>
 
-          {/* Fullscreen Bottom Navigation & Swipe Indicator */}
-          <div className="px-3 sm:px-4 py-2.5 bg-[#1E1E1E]/95 backdrop-blur border-t border-[#333333] flex items-center justify-between gap-2 shrink-0 z-30 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-            <button
-              type="button"
-              onClick={goToPreviousSector}
-              disabled={!hasPreviousSector}
-              className="px-3 py-2 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-25 text-[#E8E0D4] border border-[#333333] text-xs font-mono font-bold flex items-center gap-1 transition cursor-pointer"
-              title="Vorheriger Sektor"
-            >
-              <ChevronLeft className="w-4 h-4 text-[#C9A96E]" />
-              <span className="hidden sm:inline">Vorheriger Sektor</span>
-            </button>
-
-            {/* Sektor Dots & Gesture Indicator */}
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                {sectors.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSelectedSectorId(s.id)}
-                    className={`h-2 transition-all rounded-none ${
-                      idx === currentSectorIndex ? 'w-5 bg-[#C9A96E]' : 'w-2 bg-[#444444] hover:bg-[#666666]'
-                    }`}
-                    title={s.name}
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] font-mono text-[#8B8680]">
-                ← Wischen für Sektorwechsel →
-              </span>
+          {/* Minimal Floating Swipe Hint Badge (Bottom-Center, Zero Layout Height) */}
+          {sectors.length > 1 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-md border border-[#333333] px-3 py-1 rounded-[2px] text-[10px] font-mono text-[#A89F91] pointer-events-none whitespace-nowrap opacity-80 transition-opacity">
+              ← Wischen für Sektorwechsel →
             </div>
-
-            <button
-              type="button"
-              onClick={goToNextSector}
-              disabled={!hasNextSector}
-              className="px-3 py-2 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-25 text-[#E8E0D4] border border-[#333333] text-xs font-mono font-bold flex items-center gap-1 transition cursor-pointer"
-              title="Nächster Sektor"
-            >
-              <span className="hidden sm:inline">Nächster Sektor</span>
-              <ChevronRight className="w-4 h-4 text-[#C9A96E]" />
-            </button>
-          </div>
+          )}
         </div>
       )}
 

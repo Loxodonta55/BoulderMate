@@ -28,7 +28,7 @@ export const AthletePerformanceView: React.FC<AthletePerformanceViewProps> = ({
     );
 
     return (
-      <div className="bg-[#1a1a1a] border border-[#333333] p-6 text-center select-none my-4">
+      <div className="bg-[#1a1a1a] border border-[#333333] p-6 text-center select-none my-4" data-testid="athlete-performance-view">
         <div className="w-12 h-12 bg-[#252525] border border-[#444444] flex items-center justify-center mx-auto mb-3 text-[#C9A96E]">
           <Lock className="w-6 h-6" />
         </div>
@@ -62,7 +62,7 @@ export const AthletePerformanceView: React.FC<AthletePerformanceViewProps> = ({
   }
 
   return (
-    <div className="space-y-6 select-none animate-fadeIn">
+    <div className="space-y-6 select-none animate-fadeIn" data-testid="athlete-performance-view">
       {/* 1. Radar-Chart Header Section */}
       <div className="bg-[#1a1a1a] border border-[#333333] p-5">
         <div className="flex items-center justify-between mb-4">

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { WallBoulder, GymGradeScale, Ascent, BoulderStatsAggregate } from '../types/boulder';
 import {
   ZoomIn,
@@ -14,7 +14,6 @@ import {
   Clock,
   Star,
   Maximize2,
-  Minimize2,
   BoxSelect,
   Check,
   Edit3,
@@ -255,118 +254,278 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     }
   };
 
-  const handleZoom = (delta: number) => {
-    setZoomLevel(prev => Math.max(1, Math.min(2.5, Number((prev + delta).toFixed(2)))));
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1000,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
+  // Track image natural dimensions and aspect ratio
+  useEffect(() => {
+    if (!photoUrl) return;
+    const img = new Image();
+    img.src = photoUrl;
+    if (img.complete && img.naturalWidth && img.naturalHeight) {
+      setAspectRatio(img.naturalWidth / img.naturalHeight);
+    } else {
+      img.onload = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+          setAspectRatio(img.naturalWidth / img.naturalHeight);
+        }
+      };
+    }
+  }, [photoUrl]);
+
+  // Track viewport dimensions in fullscreen (dynamically responds to mobile rotation / orientation changes)
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const updateSize = () => {
+      if (viewportRef.current) {
+        const rect = viewportRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          setViewportSize({ width: rect.width, height: rect.height });
+          return;
+        }
+      }
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    window.addEventListener('orientationchange', updateSize);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && viewportRef.current) {
+      ro = new ResizeObserver(() => updateSize());
+      ro.observe(viewportRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateSize);
+      window.removeEventListener('orientationchange', updateSize);
+      if (ro) ro.disconnect();
+    };
+  }, [isFullscreen]);
+
+  // Reset zoom level on photo switch
+  useEffect(() => {
+    setZoomLevel(1);
+  }, [photoUrl]);
+
+  // Double tap to toggle 1x (fit) and 1.8x (zoom) in fullscreen
+  const lastTapTimeRef = useRef<number>(0);
+  const handleTouchTap = () => {
+    if (!isFullscreen) return;
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 300) {
+      setZoomLevel(prev => (prev > 1.2 ? 1 : 1.8));
+      lastTapTimeRef.current = 0;
+    } else {
+      lastTapTimeRef.current = now;
+    }
   };
 
-  return (
-    <div className="relative w-full rounded-none overflow-hidden border border-[#333333] bg-black select-none">
-      {/* Top-Left Mode & Instruction Badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#1E1E1E] px-3 py-1.5 rounded-none border border-[#333333] text-xs font-mono text-[#E8E0D4] shadow-md pointer-events-none">
-        {mode === 'setter' ? (
-          <>
-            <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span>Klick = Pin</span>
-            <span className="text-[#6B6358]">|</span>
-            <span>Drag = Verschieben</span>
-            <span className="text-[#6B6358]">|</span>
-            <BoxSelect className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span className="text-[#C9A96E] font-semibold">Ziehen = Quadrat-Auswahl</span>
-          </>
-        ) : (
-          <>
-            <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
-            <span>Tippe auf Pin für Details & Logging</span>
-          </>
-        )}
-      </div>
+  const handleZoom = (delta: number) => {
+    setZoomLevel(prev => Math.max(1, Math.min(3.0, Number((prev + delta).toFixed(2)))));
+  };
 
-      {/* Top-Right Zoom & Tooling Bar */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1E1E1E] p-1 rounded-none border border-[#333333] shadow-md">
-        <button
-          type="button"
-          onClick={() => handleZoom(0.25)}
-          disabled={zoomLevel >= 2.5}
-          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
-          title="Vergrößern"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <span className="text-xs font-mono px-1.5 text-[#E8E0D4] min-w-[3rem] text-center font-bold">
-          {Math.round(zoomLevel * 100)}%
-        </span>
-        <button
-          type="button"
-          onClick={() => handleZoom(-0.25)}
-          disabled={zoomLevel <= 1}
-          className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
-          title="Verkleinern"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        {zoomLevel > 1 && (
+  // Fullscreen ideal screen fit calculation
+  let containerStyle: React.CSSProperties;
+  if (isFullscreen) {
+    const imgAspect = aspectRatio || (16 / 9);
+    const vpWidth = Math.max(100, viewportSize.width);
+    const vpHeight = Math.max(100, viewportSize.height);
+    const vpAspect = vpWidth / vpHeight;
+
+    let baseWidth: number;
+    let baseHeight: number;
+
+    if (imgAspect >= vpAspect) {
+      // Image is wider than viewport (fit width)
+      baseWidth = vpWidth;
+      baseHeight = vpWidth / imgAspect;
+    } else {
+      // Image is taller than viewport (fit height)
+      baseHeight = vpHeight;
+      baseWidth = vpHeight * imgAspect;
+    }
+
+    const finalWidth = Math.round(baseWidth * zoomLevel);
+    const finalHeight = Math.round(baseHeight * zoomLevel);
+
+    containerStyle = {
+      width: `${finalWidth}px`,
+      height: `${finalHeight}px`,
+      minWidth: `${finalWidth}px`,
+      minHeight: `${finalHeight}px`,
+      margin: 'auto',
+    };
+  } else {
+    containerStyle = {
+      width: `${zoomLevel * 100}%`,
+      minWidth: '100%',
+    };
+  }
+
+  return (
+    <div
+      className={
+        isFullscreen
+          ? 'relative w-full h-full bg-black select-none overflow-hidden'
+          : 'relative w-full rounded-none overflow-hidden border border-[#333333] bg-black select-none'
+      }
+    >
+      {/* Top-Left Mode & Instruction Badge (Hidden in Fullscreen mode for zero header clutter) */}
+      {!isFullscreen && (
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#1E1E1E] px-3 py-1.5 rounded-none border border-[#333333] text-xs font-mono text-[#E8E0D4] shadow-md pointer-events-none">
+          {mode === 'setter' ? (
+            <>
+              <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span>Klick = Pin</span>
+              <span className="text-[#6B6358]">|</span>
+              <span>Drag = Verschieben</span>
+              <span className="text-[#6B6358]">|</span>
+              <BoxSelect className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span className="text-[#C9A96E] font-semibold">Ziehen = Quadrat-Auswahl</span>
+            </>
+          ) : (
+            <>
+              <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <span>Tippe auf Pin für Details & Logging</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Top-Right Zoom & Tooling Bar (Non-Fullscreen Mode) */}
+      {!isFullscreen && (
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1E1E1E] p-1 rounded-none border border-[#333333] shadow-md">
           <button
             type="button"
-            onClick={() => setZoomLevel(1)}
-            className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
-            title="Zoom zurücksetzen"
+            onClick={() => handleZoom(0.25)}
+            disabled={zoomLevel >= 2.5}
+            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            title="Vergrößern"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <ZoomIn className="w-4 h-4" />
           </button>
-        )}
-
-        {onToggleFullscreen && (
-          <>
-            <span className="w-px h-4 bg-[#333333] mx-0.5" />
+          <span className="text-xs font-mono px-1.5 text-[#E8E0D4] min-w-[3rem] text-center font-bold">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => handleZoom(-0.25)}
+            disabled={zoomLevel <= 1}
+            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            title="Verkleinern"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          {zoomLevel > 1 && (
             <button
               type="button"
-              onClick={onToggleFullscreen}
-              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
-              title={isFullscreen ? 'Vollbild beenden' : 'Sektor-Vollbildmodus'}
-              data-testid="canvas-fullscreen-btn"
+              onClick={() => setZoomLevel(1)}
+              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
+              title="Zoom zurücksetzen"
             >
-              {isFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
-              ) : (
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {onToggleFullscreen && (
+            <>
+              <span className="w-px h-4 bg-[#333333] mx-0.5" />
+              <button
+                type="button"
+                onClick={onToggleFullscreen}
+                className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
+                title="Sektor-Vollbildmodus"
+                data-testid="canvas-fullscreen-btn"
+              >
                 <Maximize2 className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{isFullscreen ? 'Verlassen' : 'Vollbild'}</span>
-            </button>
-          </>
-        )}
+                <span className="hidden sm:inline">Vollbild</span>
+              </button>
+            </>
+          )}
 
-        {mode === 'setter' && onChangePhoto && (
-          <>
-            <span className="w-px h-4 bg-[#333333] mx-0.5" />
+          {mode === 'setter' && onChangePhoto && (
+            <>
+              <span className="w-px h-4 bg-[#333333] mx-0.5" />
+              <button
+                type="button"
+                onClick={onChangePhoto}
+                className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
+                title="Foto aufnehmen oder hochladen"
+                data-testid="canvas-camera-btn"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">Foto</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Floating Zoom Bar (Bottom-Right in Fullscreen Mode) */}
+      {isFullscreen && (
+        <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1 bg-black/70 p-1 backdrop-blur-md rounded-none border border-[#333333] shadow-xl">
+          <button
+            type="button"
+            onClick={() => handleZoom(0.25)}
+            disabled={zoomLevel >= 3.0}
+            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            title="Vergrößern"
+            aria-label="Vergrößern"
+          >
+            <ZoomIn className="w-4 h-4 text-[#C9A96E]" />
+          </button>
+          <span className="text-xs font-mono px-1 text-[#E8E0D4] min-w-[2.8rem] text-center font-bold">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => handleZoom(-0.25)}
+            disabled={zoomLevel <= 1}
+            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            title="Verkleinern"
+            aria-label="Verkleinern"
+          >
+            <ZoomOut className="w-4 h-4 text-[#C9A96E]" />
+          </button>
+          {zoomLevel > 1 && (
             <button
               type="button"
-              onClick={onChangePhoto}
-              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
-              title="Foto aufnehmen oder hochladen"
-              data-testid="canvas-camera-btn"
+              onClick={() => setZoomLevel(1)}
+              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
+              title="Passend zurücksetzen (100%)"
+              aria-label="Zoom zurücksetzen"
             >
-              <Camera className="w-4 h-4" />
-              <span className="hidden sm:inline">Foto</span>
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Scrollable Canvas Viewport */}
       <div
-        className="relative w-full overflow-auto bg-black"
+        ref={viewportRef}
+        className={
+          isFullscreen
+            ? 'relative w-full h-full overflow-auto bg-black flex items-center justify-center touch-pan-x touch-pan-y overscroll-contain'
+            : 'relative w-full overflow-auto bg-black'
+        }
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchEnd={handleTouchTap}
       >
         <div
           ref={containerRef}
           onClick={handleContainerClick}
           onMouseDown={handleContainerMouseDown}
-          style={{
-            width: `${zoomLevel * 100}%`,
-            minWidth: '100%',
-          }}
+          style={containerStyle}
           className={`relative block ${
             mode === 'setter' && isAddingEnabled ? 'cursor-crosshair' : 'cursor-default'
           }`}
@@ -374,7 +533,17 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           <img
             src={photoUrl}
             alt={sectorName || 'Wandfoto des Sektors'}
-            className="block w-full h-auto select-none pointer-events-none rounded-none"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalWidth && img.naturalHeight) {
+                setAspectRatio(img.naturalWidth / img.naturalHeight);
+              }
+            }}
+            className={
+              isFullscreen
+                ? 'block w-full h-full object-fill select-none pointer-events-none rounded-none'
+                : 'block w-full h-auto select-none pointer-events-none rounded-none'
+            }
             draggable={false}
           />
 

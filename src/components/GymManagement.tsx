@@ -19,6 +19,7 @@ import { GradeScaleConfig } from './GradeScaleConfig';
 import { SectorManager } from './SectorManager';
 import { getProfiles } from '../lib/profileService';
 import { syncGymMemberToSupabase, removeGymMemberFromSupabase } from '../lib/syncService';
+import { useBackHandler } from '../hooks/useBackHandler';
 import { Building2, Search, Plus, MapPin, Globe, Shield, X, Users, UserCheck, Trash2, Compass } from 'lucide-react';
 
 interface GymManagementProps {
@@ -38,6 +39,19 @@ export const GymManagement: React.FC<GymManagementProps> = ({
   const [selectedGymId, setSelectedGymId] = useState<string | null>(activeGymId || null);
   const [activeTab, setActiveTab] = useState<'sectors' | 'grading' | 'team'>('sectors');
   const [isCreatingGym, setIsCreatingGym] = useState(false);
+
+  // SPEC-015: Mobile-First Android Back-Button Handling in Admin Console
+  useBackHandler({
+    id: 'admin-create-gym-modal',
+    isOpen: isCreatingGym,
+    onBack: () => setIsCreatingGym(false),
+  });
+
+  useBackHandler({
+    id: `admin-tab-${activeTab}`,
+    isOpen: activeTab !== 'sectors',
+    onBack: () => setActiveTab('sectors'),
+  });
 
   // New gym form state (Clean Code: Grouped form state)
   const initialGymFormState = {
