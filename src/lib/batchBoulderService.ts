@@ -27,6 +27,7 @@ import {
   clearDeletedBoulders,
   isValidUuid,
   stringToUuid,
+  generateUuid,
 } from './storageUtils';
 import { deleteBoulderInteractions } from './ratingAndAscentService';
 import { deleteBoulder } from './storage';
@@ -649,8 +650,13 @@ export function createDraftBoulder(
     kraft: mk,
   };
 
+  // AC-15: Generate standard RFC4122 v4 UUID immediately so local and cloud IDs match 1:1
+  const boulderId = (input.id && isValidUuid(input.id))
+    ? input.id
+    : (input.id || generateUuid());
+
   const newBoulder: WallBoulder = {
-    id: input.id || 'draft_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now(),
+    id: boulderId,
     sectorId: input.sectorId,
     gradeScaleId: input.gradeScaleId,
     positionX: Number(input.positionX.toFixed(4)),
@@ -703,13 +709,46 @@ export function updateBoulderPosition(
   return all[idx];
 }
 
-// Update Boulder Details (e.g. changing color or radar in edit modal)
+// Update Boulder Details (e.g. changing color or radar in edit modal - AC-14, AC-15)
 export function updateBoulderDetails(
   boulderId: string,
   updates: Partial<Omit<WallBoulder, 'id' | 'sectorId' | 'status' | 'createdAt'>>
 ): WallBoulder {
   const all = getWallBoulders();
-  const idx = all.findIndex(b => b.id === boulderId);
+  let idx = all.findIndex(b => b.id === boulderId);
+  if (idx === -1) {
+    idx = all.findIndex(b => b.id.toLowerCase() === boulderId.toLowerCase());
+  }
+  if (idx === -1) {
+    const altUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
+    idx = all.findIndex(b => b.id === altUuid);
+  }
+
+  if (idx === -1) {
+    // Check if boulder exists in gymStorage
+    try {
+      const v1Boulders = gymStorage.getBoulders();
+      const v1 = v1Boulders.find(b => b.id === boulderId || (isValidUuid(boulderId) ? b.id === boulderId : stringToUuid(b.id) === stringToUuid(boulderId)));
+      if (v1) {
+        const recovered: WallBoulder = {
+          id: v1.id,
+          sectorId: v1.sector_id,
+          gradeScaleId: updates.gradeScaleId || v1.grade_scale_id,
+          positionX: v1.position_x,
+          positionY: v1.position_y,
+          name: updates.name ?? v1.name ?? 'Boulder',
+          notes: updates.notes ?? '',
+          setterId: (v1 as any).setter_id || 'setter-system',
+          status: (v1.status as any) || 'active',
+          radar: updates.radar || DEFAULT_RADAR,
+          createdAt: new Date().toISOString(),
+        };
+        all.push(recovered);
+        idx = all.length - 1;
+      }
+    } catch (e) {}
+  }
+
   if (idx === -1) {
     console.warn(`Boulder mit ID "${boulderId}" existiert nicht.`);
     return {
@@ -743,9 +782,28 @@ export function updateBoulderDetails(
   };
 
   saveWallBoulders(all);
+
+  // Sync to gymStorage as well
+  try {
+    const v1Boulders = gymStorage.getBoulders();
+    const v1Idx = v1Boulders.findIndex(b => b.id === boulderId || b.id === all[idx].id);
+    if (v1Idx !== -1) {
+      if (updates.gradeScaleId) v1Boulders[v1Idx].grade_scale_id = updates.gradeScaleId;
+      if (updates.name !== undefined) v1Boulders[v1Idx].name = updates.name;
+      gymStorage.saveBoulders(v1Boulders);
+    }
+  } catch (e) {}
+
   if (all[idx].status !== 'draft') {
     syncBridge.syncBoulders([all[idx]]);
   }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+      detail: { boulderId: all[idx].id, action: 'updated', boulder: all[idx] }
+    }));
+  }
+
   return all[idx];
 }
 
@@ -807,7 +865,7 @@ export function deleteWallBoulder(boulderId: string): void {
   }
 }
 
-// AC-9: Transactional Batch Publish
+// AC-9, AC-15: Transactional Batch Publish with robust sector alias support
 export function publishBatch(
   sectorId: string,
   setterId: string,
@@ -819,9 +877,19 @@ export function publishBatch(
   const publishedBoulderIds: string[] = [];
   const archivedBoulderIds: string[] = [];
 
+  const isMatchingSector = (secIdA: string, secIdB: string): boolean => {
+    if (secIdA === secIdB) return true;
+    if (SECTOR_ALIAS_MAP[secIdA] && SECTOR_ALIAS_MAP[secIdA] === secIdB) return true;
+    if (SECTOR_ALIAS_MAP[secIdB] && SECTOR_ALIAS_MAP[secIdB] === secIdA) return true;
+    return false;
+  };
+
   const updated = all.map(b => {
-    // 1. Publish all drafts in this sector created by this setter
-    if (b.sectorId === sectorId && b.status === 'draft' && b.setterId === setterId) {
+    const secMatch = isMatchingSector(b.sectorId, sectorId);
+    const setterMatch = !setterId || b.setterId === setterId || b.setterId === 'setter-1' || b.setterId === 'system' || !b.setterId;
+
+    // 1. Publish all drafts in this sector
+    if (secMatch && b.status === 'draft' && setterMatch) {
       publishedBoulderIds.push(b.id);
       return {
         ...b,
@@ -831,7 +899,7 @@ export function publishBatch(
     }
 
     // 2. Mark specified boulders as archived
-    if (archiveBoulderIds.includes(b.id) && b.sectorId === sectorId) {
+    if (archiveBoulderIds.includes(b.id) && secMatch) {
       archivedBoulderIds.push(b.id);
       return {
         ...b,

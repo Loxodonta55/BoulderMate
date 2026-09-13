@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR, RADAR_AXIS_DEFINITIONS } from '../types/boulder';
 import { X, Check, Trash2, Archive, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { SEED_GRADE_SCALES } from '../lib/seedData';
+import * as gymStorage from '../lib/gymStorage';
 
 export function resolveScaleId(
   boulder: WallBoulder | null,
@@ -11,29 +13,37 @@ export function resolveScaleId(
     return defaultScaleId || gradeScales[0]?.id || '';
   }
 
+  const targetScaleId = boulder.gradeScaleId || (boulder as any).grade_scale_id;
+
+  // If this boulder has NO scale id at all (e.g. brand new pin before any selection), use defaultScaleId
+  if (!targetScaleId) {
+    if (defaultScaleId && gradeScales.some(s => s.id === defaultScaleId)) {
+      return defaultScaleId;
+    }
+    return gradeScales[0]?.id || '';
+  }
+
   // 1. Direct ID match
-  const directMatch = gradeScales.find(s => s.id === boulder.gradeScaleId);
+  const directMatch = gradeScales.find(s => s.id === targetScaleId);
   if (directMatch) return directMatch.id;
 
   // 2. Normalized colorName match (e.g. "Schwarz", "schwarz", "weiß", "weiss")
-  if (boulder.gradeScaleId) {
-    const normGradeScaleId = boulder.gradeScaleId.toLowerCase().trim().replace(/ß/g, 'ss');
-    const colorMatch = gradeScales.find(s =>
-      s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === normGradeScaleId
-    );
-    if (colorMatch) return colorMatch.id;
+  const normGradeScaleId = targetScaleId.toLowerCase().trim().replace(/ß/g, 'ss');
+  const colorMatch = gradeScales.find(s =>
+    s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === normGradeScaleId
+  );
+  if (colorMatch) return colorMatch.id;
 
-    // 3. Alias format matching (e.g. "scale_6a_schwarz" -> "schwarz", "scale_minimum_blau" -> "blau")
-    const cleanKey = normGradeScaleId.replace(/^scale_(6a|minimum)_/, '');
-    const aliasMatch = gradeScales.find(s => {
-      const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
-      return norm === cleanKey || cleanKey === norm;
-    });
-    if (aliasMatch) return aliasMatch.id;
-  }
+  // 3. Alias format matching (e.g. "scale_6a_schwarz" -> "schwarz", "scale_minimum_blau" -> "blau")
+  const cleanKey = normGradeScaleId.replace(/^scale_(6a|minimum)_/, '');
+  const aliasMatch = gradeScales.find(s => {
+    const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+    return norm === cleanKey || cleanKey === norm;
+  });
+  if (aliasMatch) return aliasMatch.id;
 
   // 4. Match via boulder name or gradeScaleId containing color name
-  const query = `${boulder.gradeScaleId || ''} ${boulder.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
+  const query = `${targetScaleId} ${boulder.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
   const nameMatch = gradeScales.find(s => {
     const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
     return query.includes(norm);
@@ -48,11 +58,24 @@ export function resolveScaleId(
     if (fontMatch) return fontMatch.id;
   }
 
-  // 6. Check if defaultGradeScaleId exists in current gradeScales
-  if (defaultScaleId && gradeScales.some(s => s.id === defaultScaleId)) {
-    return defaultScaleId;
-  }
+  // 6. Look up targetScaleId in known gymStorage / SEED grade scales to find its real color name
+  try {
+    const allKnownScales = [...SEED_GRADE_SCALES, ...gymStorage.getGradeScales().map(sc => ({
+      id: sc.id,
+      colorName: sc.color_name,
+    }))];
+    const matchedKnown = allKnownScales.find(s => s.id === targetScaleId);
+    if (matchedKnown?.colorName) {
+      const normKnown = matchedKnown.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+      const foundInCurrent = gradeScales.find(s =>
+        s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === normKnown
+      );
+      if (foundInCurrent) return foundInCurrent.id;
+    }
+  } catch (e) {}
 
+  // 7. AC-15: For an EXISTING boulder with a configured scale, NEVER fall back to defaultScaleId
+  // (which is the color selected for the previous route!). Return the first scale of the gym instead.
   return gradeScales[0]?.id || '';
 }
 
@@ -116,8 +139,16 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
       const resolvedId = resolveScaleId(boulder, gradeScales, defaultGradeScaleId);
       setSelectedScaleId(resolvedId);
       setName(boulder.name || '');
-      setNotes(boulder.notes || '');
-      setRadar(boulder.radar ? { ...boulder.radar } : { ...DEFAULT_RADAR });
+      const initialRadar: RadarAttributes = {
+        maximalkraft: boulder.radar?.maximalkraft ?? (boulder as any).radar_maximalkraft ?? boulder.radar?.kraft ?? (boulder as any).radar_kraft ?? DEFAULT_RADAR.maximalkraft,
+        kraftausdauer: boulder.radar?.kraftausdauer ?? (boulder as any).radar_kraftausdauer ?? DEFAULT_RADAR.kraftausdauer,
+        technik: boulder.radar?.technik ?? (boulder as any).radar_technik ?? DEFAULT_RADAR.technik,
+        balance: boulder.radar?.balance ?? (boulder as any).radar_balance ?? DEFAULT_RADAR.balance,
+        koordination: boulder.radar?.koordination ?? (boulder as any).radar_koordination ?? DEFAULT_RADAR.koordination,
+        flexibilitaet: boulder.radar?.flexibilitaet ?? (boulder as any).radar_flexibilitaet ?? DEFAULT_RADAR.flexibilitaet,
+        kraft: boulder.radar?.kraft ?? (boulder as any).radar_kraft ?? boulder.radar?.maximalkraft ?? (boulder as any).radar_maximalkraft ?? DEFAULT_RADAR.kraft,
+      };
+      setRadar(initialRadar);
       setShowAdvanced(Boolean(boulder.name || boulder.notes));
     }
   }, [boulder, defaultGradeScaleId, gradeScales, isOpen]);
@@ -142,7 +173,12 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   };
 
   const handleRadarChange = (key: keyof RadarAttributes, val: number) => {
-    setRadar(prev => ({ ...prev, [key]: val }));
+    setRadar(prev => {
+      const next = { ...prev, [key]: val };
+      if (key === 'maximalkraft') next.kraft = val;
+      if (key === 'kraft') next.maximalkraft = val;
+      return next;
+    });
   };
 
   return (

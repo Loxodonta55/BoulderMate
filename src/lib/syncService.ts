@@ -337,26 +337,36 @@ export async function syncFromSupabase(): Promise<boolean> {
         }
         remoteIdsPerSector.get(resolvedSectorId)!.add(b.id);
 
+        const existingLocal = boulderMap.get(b.id);
+        const hasRemoteCustomRadar = Boolean(
+          (b.radar_maximalkraft && b.radar_maximalkraft !== 3) ||
+          (b.radar_kraftausdauer && b.radar_kraftausdauer !== 3) ||
+          (b.radar_technik && b.radar_technik !== 3) ||
+          (b.radar_balance && b.radar_balance !== 3) ||
+          (b.radar_koordination && b.radar_koordination !== 3) ||
+          (b.radar_flexibilitaet && b.radar_flexibilitaet !== 3)
+        );
+
         const boulderObj: WallBoulder = {
           id: b.id,
           sectorId: resolvedSectorId,
           gradeScaleId: b.grade_scale_id,
           positionX: b.position_x,
           positionY: b.position_y,
-          name: b.name || 'Unbenannter Boulder',
-          notes: b.notes || '',
-          setterId: b.setter_id || 'system',
+          name: (b.name && b.name !== 'Unbenannter Boulder') ? b.name : (existingLocal?.name || b.name || 'Unbenannter Boulder'),
+          notes: b.notes || existingLocal?.notes || '',
+          setterId: b.setter_id || existingLocal?.setterId || 'system',
           status: b.status || 'active',
           radar: {
-            maximalkraft: b.radar_maximalkraft || b.radar_kraft || 3,
-            kraftausdauer: b.radar_kraftausdauer || b.radar_kraft || 3,
-            kraft: b.radar_kraft || 3,
-            technik: b.radar_technik || 3,
-            balance: b.radar_balance || 3,
-            koordination: b.radar_koordination || 3,
-            flexibilitaet: b.radar_flexibilitaet || 3,
+            maximalkraft: hasRemoteCustomRadar ? (b.radar_maximalkraft || b.radar_kraft || 3) : (existingLocal?.radar?.maximalkraft ?? b.radar_maximalkraft ?? b.radar_kraft ?? 3),
+            kraftausdauer: hasRemoteCustomRadar ? (b.radar_kraftausdauer || b.radar_kraft || 3) : (existingLocal?.radar?.kraftausdauer ?? b.radar_kraftausdauer ?? b.radar_kraft ?? 3),
+            kraft: hasRemoteCustomRadar ? (b.radar_kraft || b.radar_maximalkraft || 3) : (existingLocal?.radar?.kraft ?? b.radar_kraft ?? 3),
+            technik: hasRemoteCustomRadar ? (b.radar_technik || 3) : (existingLocal?.radar?.technik ?? b.radar_technik ?? 3),
+            balance: hasRemoteCustomRadar ? (b.radar_balance || 3) : (existingLocal?.radar?.balance ?? b.radar_balance ?? 3),
+            koordination: hasRemoteCustomRadar ? (b.radar_koordination || 3) : (existingLocal?.radar?.koordination ?? b.radar_koordination ?? 3),
+            flexibilitaet: hasRemoteCustomRadar ? (b.radar_flexibilitaet || 3) : (existingLocal?.radar?.flexibilitaet ?? b.radar_flexibilitaet ?? 3),
           },
-          fontGrade: b.font_grade || undefined,
+          fontGrade: b.font_grade || existingLocal?.fontGrade || undefined,
           createdAt: b.created_at,
           publishedAt: b.published_at || undefined,
           archivedAt: b.archived_at || undefined,
@@ -407,7 +417,7 @@ export async function syncFromSupabase(): Promise<boolean> {
       for (const [localId, localB] of boulderMap.entries()) {
         const isLegacySeed = localId.startsWith('boulder-existing-') || localId.startsWith('boulder-6a-');
         const isDeleted = isBoulderDeleted(localId);
-        const isOrphanedActive = localB.status === 'active' && !remoteBoulderIdSet.has(localId);
+        const isOrphanedActive = localB.status === 'active' && !remoteBoulderIdSet.has(localId) && !remoteBoulderIdSet.has(stringToUuid(localId));
 
         if (isLegacySeed || isDeleted || isOrphanedActive ||
             localB.name === 'Glatteis' ||
@@ -1007,6 +1017,14 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
             targetGymId = matchedRemote.gym_id;
           }
         }
+      }
+
+      // Check SECTOR_ALIAS_MAP (AC-15)
+      const aliasSectorId = SECTOR_ALIAS_MAP[b.sectorId];
+      if (!resolvedSectorId && aliasSectorId && isValidUuid(aliasSectorId) && remoteSectors.some(s => s.id === aliasSectorId)) {
+        resolvedSectorId = aliasSectorId;
+        const matchedSec = remoteSectors.find(s => s.id === aliasSectorId);
+        targetGymId = matchedSec?.gym_id || null;
       }
 
       // WICHTIG: Niemals blind auf Sektoren einer fremden Halle fallbacken!

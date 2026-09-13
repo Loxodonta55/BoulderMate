@@ -133,19 +133,20 @@ export function ensureInitialGymData(): void {
     ]);
   }
 
-  // Auto-migrate legacy boulders referencing deprecated scale IDs
+  // Ensure legacy boulders retain their exact colors without destructive mutations (AC-14, AC-15)
   const allBoulders = getBoulders();
   let bouldersMigrated = false;
   const migratedBoulders = allBoulders.map(b => {
-    if (b.grade_scale_id === 'scale_6a_schwarz' || b.grade_scale_id === 'scale_6a_lila') {
+    if (b.grade_scale_id === 'scale_6a_schwarz') {
       bouldersMigrated = true;
-      return { ...b, grade_scale_id: 'scale_6a_beige' };
+      return { ...b, grade_scale_id: 'b61e5d67-e55e-4c34-a577-34e8370bd863' };
     }
     return b;
   });
   if (bouldersMigrated) {
     saveBoulders(migratedBoulders);
   }
+
 
   // Ensure 6a plus has default sectors if none exist yet
   const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s =>

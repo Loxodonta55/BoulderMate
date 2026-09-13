@@ -167,7 +167,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     }
   };
 
-  // Save changes from Bottom-Sheet (AC-4, AC-5, SPEC-013, AC-14)
+  // Save changes from Bottom-Sheet (AC-4, AC-5, SPEC-013, AC-14, AC-15)
   const handleSaveSheet = (data: {
     gradeScaleId: string;
     name?: string;
@@ -176,7 +176,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   }) => {
     if (!selectedBoulder) return;
 
-    // AC-14: Immediately persist to storage (works for both draft and active boulders!)
+    // AC-14 & AC-15: Immediately persist to storage & cloud (works for both draft and active boulders!)
     try {
       updateBoulderDetails(selectedBoulder.id, data);
     } catch (err) {
