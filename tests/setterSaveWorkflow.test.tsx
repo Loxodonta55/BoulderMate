@@ -89,6 +89,16 @@ describe('Schrauber-Bereich: Änderungen speichern & Veröffentlichen (SPEC-002 
     vi.spyOn(batchService, 'getSectors').mockReturnValue([sampleSector]);
     vi.spyOn(batchService, 'getGradeScales').mockReturnValue(sampleGradeScales);
 
+    const updateBoulderDetailsSpy = vi.spyOn(batchService, 'updateBoulderDetails').mockReturnValue(sampleActiveBoulder);
+    const updateBoulderPositionSpy = vi.spyOn(batchService, 'updateBoulderPosition').mockReturnValue(sampleActiveBoulder);
+    const publishBatchSpy = vi.spyOn(batchService, 'publishBatch').mockReturnValue({
+      sectorId: 'sec-1',
+      publishedCount: 0,
+      archivedCount: 0,
+      publishedBoulderIds: [],
+      archivedBoulderIds: [],
+    });
+
     render(
       <BatchBoulderWorkflow
         currentRole="setter"
@@ -122,16 +132,6 @@ describe('Schrauber-Bereich: Änderungen speichern & Veröffentlichen (SPEC-002 
     expect(screen.getByText(/Änderungen speichern \(1\)/i)).toBeInTheDocument();
 
     // Click bottom bar save button -> opens BatchSummaryModal
-    const updateBoulderDetailsSpy = vi.spyOn(batchService, 'updateBoulderDetails').mockReturnValue(sampleActiveBoulder);
-    const updateBoulderPositionSpy = vi.spyOn(batchService, 'updateBoulderPosition').mockReturnValue(sampleActiveBoulder);
-    const publishBatchSpy = vi.spyOn(batchService, 'publishBatch').mockReturnValue({
-      sectorId: 'sec-1',
-      publishedCount: 0,
-      archivedCount: 0,
-      publishedBoulderIds: [],
-      archivedBoulderIds: [],
-    });
-
     fireEvent.click(publishBtn);
 
     // Modal is open, verify confirm button

@@ -1,6 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR, RADAR_AXIS_DEFINITIONS } from '../types/boulder';
 import { X, Check, Trash2, Archive, Sparkles, SlidersHorizontal } from 'lucide-react';
+
+export function resolveScaleId(
+  boulder: WallBoulder | null,
+  gradeScales: GymGradeScale[],
+  defaultScaleId?: string
+): string {
+  if (!boulder || gradeScales.length === 0) {
+    return defaultScaleId || gradeScales[0]?.id || '';
+  }
+
+  // 1. Direct ID match
+  const directMatch = gradeScales.find(s => s.id === boulder.gradeScaleId);
+  if (directMatch) return directMatch.id;
+
+  // 2. Normalized colorName match (e.g. "Schwarz", "schwarz", "weiß", "weiss")
+  if (boulder.gradeScaleId) {
+    const normGradeScaleId = boulder.gradeScaleId.toLowerCase().trim().replace(/ß/g, 'ss');
+    const colorMatch = gradeScales.find(s =>
+      s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === normGradeScaleId
+    );
+    if (colorMatch) return colorMatch.id;
+
+    // 3. Alias format matching (e.g. "scale_6a_schwarz" -> "schwarz", "scale_minimum_blau" -> "blau")
+    const cleanKey = normGradeScaleId.replace(/^scale_(6a|minimum)_/, '');
+    const aliasMatch = gradeScales.find(s => {
+      const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+      return norm === cleanKey || cleanKey === norm;
+    });
+    if (aliasMatch) return aliasMatch.id;
+  }
+
+  // 4. Match via boulder name or gradeScaleId containing color name
+  const query = `${boulder.gradeScaleId || ''} ${boulder.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
+  const nameMatch = gradeScales.find(s => {
+    const norm = s.colorName.toLowerCase().trim().replace(/ß/g, 'ss');
+    return query.includes(norm);
+  });
+  if (nameMatch) return nameMatch.id;
+
+  // 5. Match by Font grade
+  if (boulder.fontGrade) {
+    const fontMatch = gradeScales.find(
+      s => s.fontRangeMin === boulder.fontGrade || s.fontRangeMax === boulder.fontGrade
+    );
+    if (fontMatch) return fontMatch.id;
+  }
+
+  // 6. Check if defaultGradeScaleId exists in current gradeScales
+  if (defaultScaleId && gradeScales.some(s => s.id === defaultScaleId)) {
+    return defaultScaleId;
+  }
+
+  return gradeScales[0]?.id || '';
+}
 
 interface BoulderBottomSheetProps {
   isOpen: boolean;
@@ -41,31 +95,31 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
+  const currentBoulderIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    setShowDeleteConfirm(false);
-    setIsDeleting(false);
-    if (boulder) {
-      let matchedScale = gradeScales.find(s => s.id === boulder.gradeScaleId);
-      if (!matchedScale && boulder.gradeScaleId) {
-        const norm = boulder.gradeScaleId.toLowerCase().trim().replace(/ß/g, 'ss');
-        matchedScale = gradeScales.find(s => s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === norm);
-      }
-      setSelectedScaleId(matchedScale ? matchedScale.id : (defaultGradeScaleId || gradeScales[0]?.id || ''));
+    if (!isOpen || !boulder) {
+      currentBoulderIdRef.current = null;
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+      setValidationError('');
+      return;
+    }
+
+    // Only initialize form fields when opening sheet or switching to a different boulder
+    if (currentBoulderIdRef.current !== boulder.id) {
+      currentBoulderIdRef.current = boulder.id;
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+      setValidationError('');
+
+      const resolvedId = resolveScaleId(boulder, gradeScales, defaultGradeScaleId);
+      setSelectedScaleId(resolvedId);
       setName(boulder.name || '');
       setNotes(boulder.notes || '');
       setRadar(boulder.radar ? { ...boulder.radar } : { ...DEFAULT_RADAR });
-      // If boulder already has custom name or notes, open advanced section
-      if (boulder.name || boulder.notes) {
-        setShowAdvanced(true);
-      }
-    } else {
-      setSelectedScaleId(defaultGradeScaleId || (gradeScales[0]?.id ?? ''));
-      setName('');
-      setNotes('');
-      setRadar({ ...DEFAULT_RADAR });
-      setShowAdvanced(false);
+      setShowAdvanced(Boolean(boulder.name || boulder.notes));
     }
-    setValidationError('');
   }, [boulder, defaultGradeScaleId, gradeScales, isOpen]);
 
   if (!isOpen || !boulder) return null;

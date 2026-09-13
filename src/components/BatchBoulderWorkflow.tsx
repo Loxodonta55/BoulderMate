@@ -14,6 +14,7 @@ import {
   publishBatch,
   updateSectorPhoto,
   getLastSelectedGradeScaleId,
+  setLastSelectedGradeScaleId,
 } from '../lib/batchBoulderService';
 import { useGymSectorData } from '../hooks/useGymSectorData';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
@@ -153,7 +154,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     setIsSheetOpen(true);
   };
 
-  // Pin move (AC-7, SPEC-013)
+  // Pin move (AC-7, SPEC-013, AC-14)
   const handlePinMove = (boulderId: string, newX: number, newY: number) => {
     setBoulders(prev =>
       prev.map(b => (b.id === boulderId ? { ...b, positionX: newX, positionY: newY } : b))
@@ -161,10 +162,12 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     const target = boulders.find(b => b.id === boulderId);
     if (target && target.status !== 'draft') {
       setPendingModifiedIds(prev => prev.includes(boulderId) ? prev : [...prev, boulderId]);
+    } else {
+      updateBoulderPosition(boulderId, newX, newY);
     }
   };
 
-  // Save changes from Bottom-Sheet (AC-4, AC-5, SPEC-013)
+  // Save changes from Bottom-Sheet (AC-4, AC-5, SPEC-013, AC-14)
   const handleSaveSheet = (data: {
     gradeScaleId: string;
     name?: string;
@@ -173,12 +176,25 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   }) => {
     if (!selectedBoulder) return;
 
+    // AC-14: Immediately persist to storage (works for both draft and active boulders!)
+    try {
+      updateBoulderDetails(selectedBoulder.id, data);
+    } catch (err) {
+      console.warn('Fehler beim Aktualisieren der Boulder-Details:', err);
+    }
+
+    // AC-5 & AC-14: Update last selected color for the current gym
+    const targetGymId = gym?.id || selectedGymId || 'gym-minimum-zh';
+    setLastSelectedGradeScaleId(targetGymId, data.gradeScaleId);
+
     setBoulders(prev =>
       prev.map(b => (b.id === selectedBoulder.id ? { ...b, ...data } : b))
     );
     if (selectedBoulder.status !== 'draft') {
       setPendingModifiedIds(prev => prev.includes(selectedBoulder.id) ? prev : [...prev, selectedBoulder.id]);
       showToast('Änderung vorgemerkt! Mit "Speichern" unten final bestätigen.');
+    } else {
+      showToast('Pin aktualisiert!');
     }
     setIsSheetOpen(false);
     setSelectedBoulder(null);

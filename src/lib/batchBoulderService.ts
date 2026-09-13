@@ -542,13 +542,9 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
     }
   } catch (e) {}
 
-  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3, and deprecated scale_6a IDs -> scale_6a_beige
+  // Auto-migrate legacy boulders: kraft -> maximalkraft, kraftausdauer -> 3
   all = all.map(b => {
     let updated = b;
-    if (b.gradeScaleId === 'scale_6a_schwarz' || b.gradeScaleId === 'scale_6a_lila') {
-      hasMigrated = true;
-      updated = { ...updated, gradeScaleId: 'scale_6a_beige' };
-    }
     if (updated.radar && (updated.radar.maximalkraft === undefined || updated.radar.kraftausdauer === undefined)) {
       hasMigrated = true;
       const mk = updated.radar.maximalkraft ?? updated.radar.kraft ?? 3;
@@ -672,8 +668,10 @@ export function createDraftBoulder(
   current.push(newBoulder);
   saveWallBoulders(current);
 
-  // AC-5: Save last selected color
-  setLastSelectedGradeScaleId('gym-minimum-zh', input.gradeScaleId);
+  // AC-5 & AC-14: Save last selected color for the sector's gym
+  const targetSector = getSectorById(input.sectorId);
+  const targetGymId = targetSector?.gymId || 'gym-minimum-zh';
+  setLastSelectedGradeScaleId(targetGymId, input.gradeScaleId);
 
   return newBoulder;
 }
@@ -713,7 +711,19 @@ export function updateBoulderDetails(
   const all = getWallBoulders();
   const idx = all.findIndex(b => b.id === boulderId);
   if (idx === -1) {
-    throw new Error(`Boulder mit ID "${boulderId}" existiert nicht.`);
+    console.warn(`Boulder mit ID "${boulderId}" existiert nicht.`);
+    return {
+      id: boulderId,
+      sectorId: '',
+      gradeScaleId: updates.gradeScaleId || '',
+      positionX: 0,
+      positionY: 0,
+      setterId: '',
+      status: 'active',
+      radar: DEFAULT_RADAR,
+      createdAt: new Date().toISOString(),
+      ...updates,
+    };
   }
 
   const updatedRadar: RadarAttributes = {
@@ -733,7 +743,9 @@ export function updateBoulderDetails(
   };
 
   saveWallBoulders(all);
-  syncBridge.syncBoulders([all[idx]]);
+  if (all[idx].status !== 'draft') {
+    syncBridge.syncBoulders([all[idx]]);
+  }
   return all[idx];
 }
 

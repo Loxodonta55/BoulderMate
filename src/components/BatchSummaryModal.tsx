@@ -30,18 +30,46 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
   if (!isOpen || !sector) return null;
 
   const scaleMap = new Map<string, GymGradeScale>();
-  gradeScales.forEach(s => scaleMap.set(s.id, s));
+  gradeScales.forEach(s => {
+    scaleMap.set(s.id, s);
+    if (s.colorName) {
+      const colorLower = s.colorName.toLowerCase().trim();
+      const colorAscii = colorLower.replace(/ß/g, 'ss');
+      scaleMap.set(`scale_6a_${colorAscii}`, s);
+      scaleMap.set(`scale_minimum_${colorAscii}`, s);
+      scaleMap.set(colorLower, s);
+      scaleMap.set(colorAscii, s);
+    }
+  });
+
+  const resolveScale = (scaleIdOrName?: string): GymGradeScale | undefined => {
+    if (!scaleIdOrName) return gradeScales[0];
+    if (scaleMap.has(scaleIdOrName)) return scaleMap.get(scaleIdOrName);
+    const clean = scaleIdOrName.replace(/^scale_(6a|minimum)_/, '').toLowerCase().trim().replace(/ß/g, 'ss');
+    const matched = gradeScales.find(s => s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === clean);
+    return matched || gradeScales[0];
+  };
 
   // Count drafts per color
-  const draftCountsByScale: Record<string, number> = {};
+  const draftCountsByScale: Record<string, { scale: GymGradeScale | undefined; count: number }> = {};
   draftBoulders.forEach(b => {
-    draftCountsByScale[b.gradeScaleId] = (draftCountsByScale[b.gradeScaleId] || 0) + 1;
+    const scale = resolveScale(b.gradeScaleId);
+    const key = scale?.id || b.gradeScaleId;
+    if (!draftCountsByScale[key]) {
+      draftCountsByScale[key] = { scale, count: 0 };
+    }
+    draftCountsByScale[key].count += 1;
   });
 
   // Count archives per color
-  const archiveCountsByScale: Record<string, number> = {};
+  const archiveCountsByScale: Record<string, { scale: GymGradeScale | undefined; count: number }> = {};
   archivedBoulders.forEach(b => {
-    archiveCountsByScale[b.gradeScaleId] = (archiveCountsByScale[b.gradeScaleId] || 0) + 1;
+    const scale = resolveScale(b.gradeScaleId);
+    const key = scale?.id || b.gradeScaleId;
+    if (!archiveCountsByScale[key]) {
+      archiveCountsByScale[key] = { scale, count: 0 };
+    }
+    archiveCountsByScale[key].count += 1;
   });
 
   const totalNew = draftBoulders.length;
@@ -133,7 +161,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
               </p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {modifiedBoulders.map(b => {
-                  const scale = scaleMap.get(b.gradeScaleId);
+                  const scale = resolveScale(b.gradeScaleId);
                   return (
                     <div
                       key={b.id}
@@ -168,8 +196,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                 Neue Boulder nach Farbe:
               </p>
               <div className="space-y-2">
-                {Object.entries(draftCountsByScale).map(([scaleId, count]) => {
-                  const scale = scaleMap.get(scaleId);
+                {Object.entries(draftCountsByScale).map(([scaleId, { scale, count }]) => {
                   return (
                     <div
                       key={scaleId}
@@ -181,7 +208,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                           style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
                         />
                         <span className="font-headline font-bold uppercase tracking-wider text-sm text-[#E8E0D4]">{scale?.colorName || 'Unbekannt'}</span>
-                        <span className="text-[#A89F91] font-mono text-[11px]">({scale?.difficultyLabel})</span>
+                        <span className="text-[#A89F91] font-mono text-[11px]">({scale?.difficultyLabel || 'Hallenfarbe'})</span>
                       </div>
                       <span className="font-bold font-mono text-[#C9A96E] bg-[#2A2A2A] px-2.5 py-0.5 rounded-none border border-[#333333]">
                         {count}×
@@ -202,8 +229,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                 Als archiviert (abgeschraubt) markiert:
               </p>
               <div className="space-y-2">
-                {Object.entries(archiveCountsByScale).map(([scaleId, count]) => {
-                  const scale = scaleMap.get(scaleId);
+                {Object.entries(archiveCountsByScale).map(([scaleId, { scale, count }]) => {
                   return (
                     <div
                       key={scaleId}

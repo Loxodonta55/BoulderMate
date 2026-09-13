@@ -9,7 +9,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Sector, WallBoulder, Ascent, BoulderRating } from '../types/boulder';
+import { Sector, WallBoulder, Ascent, BoulderRating, GymGradeScale } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted, isValidUuid, stringToUuid } from './storageUtils';
@@ -22,6 +22,7 @@ const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
 const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
 const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
+const STORAGE_KEY_GRADE_SCALES = 'boulderapp_grade_scales_v2';
 
 export interface SyncStatus {
   lastSyncTime: string | null;
@@ -1015,37 +1016,73 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
       const gymRemoteScales = remoteScales.filter(rs => rs.gym_id === targetGymId);
 
       let resolvedScaleId: string | null = null;
+      let isRealMatch = false;
+
+      // a) Direktes UUID Match in gymRemoteScales
       if (isValidUuid(b.gradeScaleId) && gymRemoteScales.some(s => s.id === b.gradeScaleId)) {
         resolvedScaleId = b.gradeScaleId;
-      } else {
-        const localSc = localScales.find(s => s.id === b.gradeScaleId);
-        if (localSc) {
-          const normLocalColor = localSc.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
+        isRealMatch = true;
+      }
+
+      // b) Lokale Skalen abgleichen (gymStorage & V2 Grade Scales)
+      if (!resolvedScaleId) {
+        const v2Scales = getStorageJson<GymGradeScale[]>(STORAGE_KEY_GRADE_SCALES, []);
+        const allLocal = [...localScales.map(s => ({ id: s.id, colorName: s.color_name })), ...v2Scales];
+        const localSc = allLocal.find(s =>
+          s.id === b.gradeScaleId ||
+          (s.colorName && b.gradeScaleId && s.colorName.toLowerCase().trim().replace(/ß/g, 'ss') === b.gradeScaleId.toLowerCase().trim().replace(/ß/g, 'ss'))
+        );
+        if (localSc?.colorName) {
+          const normLocalColor = localSc.colorName.trim().toLowerCase().replace(/ß/g, 'ss');
           const matchedScale = gymRemoteScales.find(rs =>
             rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss') === normLocalColor
           );
-          if (matchedScale) resolvedScaleId = matchedScale.id;
+          if (matchedScale) {
+            resolvedScaleId = matchedScale.id;
+            isRealMatch = true;
+          }
         }
       }
-      // Fallback per Farbname aus Boulder-Name innerhalb DIESER Halle
-      if (!resolvedScaleId && b.name) {
-        const nameNorm = b.name.trim().toLowerCase().replace(/ß/g, 'ss');
-        const matchedByName = gymRemoteScales.find(rs =>
-          nameNorm.includes(rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss'))
-        );
-        if (matchedByName) resolvedScaleId = matchedByName.id;
+
+      // c) Alias-Format (z.B. scale_6a_schwarz, scale_minimum_blau)
+      if (!resolvedScaleId && b.gradeScaleId) {
+        const cleanScaleKey = b.gradeScaleId.replace(/^scale_(6a|minimum)_/, '').toLowerCase().trim().replace(/ß/g, 'ss');
+        const matchedByAlias = gymRemoteScales.find(rs => {
+          const norm = rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss');
+          return norm === cleanScaleKey || cleanScaleKey === norm;
+        });
+        if (matchedByAlias) {
+          resolvedScaleId = matchedByAlias.id;
+          isRealMatch = true;
+        }
       }
-      // Fallback auf erste Skala DIESER Halle (niemals fremde Halle!)
+
+      // d) Farbname aus gradeScaleId oder Boulder-Name
+      if (!resolvedScaleId && (b.name || b.gradeScaleId)) {
+        const query = `${b.gradeScaleId || ''} ${b.name || ''}`.toLowerCase().replace(/ß/g, 'ss');
+        const matchedByName = gymRemoteScales.find(rs =>
+          query.includes(rs.color_name.trim().toLowerCase().replace(/ß/g, 'ss'))
+        );
+        if (matchedByName) {
+          resolvedScaleId = matchedByName.id;
+          isRealMatch = true;
+        }
+      }
+
+      // Fallback auf erste Skala DIESER Halle nur für Supabase NOT NULL Spalte (niemals für lokalen Cache!)
       if (!resolvedScaleId && gymRemoteScales.length > 0) {
         resolvedScaleId = gymRemoteScales[0].id;
       }
 
       if (!resolvedScaleId) continue;
 
-      resolvedScaleMapping.set(b.id, resolvedScaleId);
-
       const boulderUuid = isValidUuid(b.id) ? b.id : stringToUuid(b.id);
-      resolvedScaleMapping.set(boulderUuid, resolvedScaleId);
+
+      // AC-14: Lokalen Cache NUR synchronisieren, wenn eine echte, eindeutige Farb-Übereinstimmung vorlag!
+      if (isRealMatch) {
+        resolvedScaleMapping.set(b.id, resolvedScaleId);
+        resolvedScaleMapping.set(boulderUuid, resolvedScaleId);
+      }
       const setterUuid = toKnownAuthUserUuid(b.setterId);
 
       upsertRows.push({
