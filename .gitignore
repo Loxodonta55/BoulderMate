@@ -7,3 +7,4 @@ dist
 .env.*.local
 .agent/mcp_config.json
 Bilder6aPlus/
+src/data/*.json

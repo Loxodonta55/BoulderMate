@@ -204,8 +204,11 @@ export async function syncFromSupabase(): Promise<boolean> {
         });
       }
 
-      setStorageJson(STORAGE_KEY_SECTORS, Array.from(sectorMap.values()));
-      gymStorage.saveSectors(Array.from(v1SecMap.values()));
+      const sortedV2 = Array.from(sectorMap.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      const sortedV1 = Array.from(v1SecMap.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      setStorageJson(STORAGE_KEY_SECTORS, sortedV2);
+      gymStorage.saveSectors(sortedV1);
       currentSyncStatus.syncedSectors = sectorMap.size;
 
       if (typeof window !== 'undefined') {
@@ -921,7 +924,8 @@ export async function syncSectorOrderToSupabase(gymId: string, orderedSectorIds:
       }
       return s;
     });
-    gymStorage.saveSectors(updatedV1);
+    const sortedV1 = updatedV1.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    gymStorage.saveSectors(sortedV1);
 
     const updatedV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []).map(s => {
       const sGym = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
@@ -936,7 +940,8 @@ export async function syncSectorOrderToSupabase(gymId: string, orderedSectorIds:
       }
       return s;
     });
-    setStorageJson(STORAGE_KEY_SECTORS, updatedV2);
+    const sortedV2 = updatedV2.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    setStorageJson(STORAGE_KEY_SECTORS, sortedV2);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {

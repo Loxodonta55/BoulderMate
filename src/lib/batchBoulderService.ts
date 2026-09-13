@@ -153,10 +153,21 @@ export function getSectors(gymId?: string): Sector[] {
   try {
     const v1Sectors = gymId && gymId !== 'all' ? gymStorage.getSectors(gymId) : gymStorage.getSectors();
     for (const s of v1Sectors) {
-      const existingByName = all.find(item => 
-        (item.gymId === s.gym_id || (item.gymId.includes('6a') && s.gym_id.includes('6a'))) && 
-        item.name.trim().toLowerCase() === s.name.trim().toLowerCase()
-      );
+      const sGymNorm = (s.gym_id === 'gym-6a-plus' || s.gym_id?.includes('6a') || s.gym_id?.includes('f2b11564'))
+        ? 'gym-6a-plus'
+        : (s.gym_id === 'gym-minimum-zh' || s.gym_id?.includes('minimum') || s.gym_id?.includes('814696b2'))
+        ? 'gym-minimum-zh'
+        : s.gym_id;
+
+      const existingByName = all.find(item => {
+        const itemGymNorm = (item.gymId === 'gym-6a-plus' || item.gymId?.includes('6a') || item.gymId?.includes('f2b11564'))
+          ? 'gym-6a-plus'
+          : (item.gymId === 'gym-minimum-zh' || item.gymId?.includes('minimum') || item.gymId?.includes('814696b2'))
+          ? 'gym-minimum-zh'
+          : item.gymId;
+        return (item.id === s.id || (itemGymNorm === sGymNorm && item.name.trim().toLowerCase() === s.name.trim().toLowerCase()));
+      });
+
       if (existingByName) {
         if (s.wall_photo_url && s.wall_photo_url !== existingByName.wallPhotoUrl) {
           existingByName.wallPhotoUrl = s.wall_photo_url;
@@ -169,7 +180,7 @@ export function getSectors(gymId?: string): Sector[] {
       } else {
         all.push({
           id: s.id,
-          gymId: s.gym_id,
+          gymId: sGymNorm,
           name: s.name,
           wallPhotoUrl: s.wall_photo_url || '/images/walls/overhang.jpg',
           sortOrder: s.sort_order || 1,
@@ -187,7 +198,11 @@ export function getSectors(gymId?: string): Sector[] {
   const seenKey = new Set<string>();
   for (const s of all) {
     if (!s || !s.name) continue;
-    const normalizedGymId = (s.gymId === 'gym-6a-plus' || s.gymId.includes('6a')) ? 'gym-6a-plus' : s.gymId;
+    const normalizedGymId = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gymId;
     const key = `${normalizedGymId}::${s.name.trim().toLowerCase()}`;
     if (!seenKey.has(key)) {
       seenKey.add(key);
@@ -200,6 +215,8 @@ export function getSectors(gymId?: string): Sector[] {
     }
   }
 
+  deduped.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
   if (hasMigrated || deduped.length !== all.length) {
     setStorageJson(STORAGE_KEY_SECTORS, deduped);
     all = deduped;
@@ -209,8 +226,19 @@ export function getSectors(gymId?: string): Sector[] {
     return all.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a')) ? 'gym-6a-plus' : gymId;
-  return all.filter(s => s.gymId === targetGymNorm || s.gymId === gymId).sort((a, b) => a.sortOrder - b.sortOrder);
+  const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+    ? 'gym-6a-plus'
+    : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+    ? 'gym-minimum-zh'
+    : gymId;
+  return all.filter(s => {
+    const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gymId;
+    return sNorm === targetGymNorm || s.gymId === gymId;
+  }).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function reorderSectors(gymId: string, orderedSectorIds: string[]): Sector[] {
@@ -221,19 +249,40 @@ export function reorderSectors(gymId: string, orderedSectorIds: string[]): Secto
     // Non-admin or standalone test environment
   }
 
+  const targetGymNorm = (gymId === 'gym-6a-plus' || gymId.includes('6a') || gymId.includes('f2b11564'))
+    ? 'gym-6a-plus'
+    : (gymId === 'gym-minimum-zh' || gymId.includes('minimum') || gymId.includes('814696b2'))
+    ? 'gym-minimum-zh'
+    : gymId;
+
   const all = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
-  const gymSectors = all.filter(s => s.gymId === gymId);
-  const otherSectors = all.filter(s => s.gymId !== gymId);
+  const gymSectors = all.filter(s => {
+    const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gymId;
+    return sNorm === targetGymNorm || s.gymId === gymId;
+  });
+  const otherSectors = all.filter(s => {
+    const sNorm = (s.gymId === 'gym-6a-plus' || s.gymId?.includes('6a') || s.gymId?.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (s.gymId === 'gym-minimum-zh' || s.gymId?.includes('minimum') || s.gymId?.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : s.gymId;
+    return sNorm !== targetGymNorm && s.gymId !== gymId;
+  });
 
   const updatedGymSectors = gymSectors.map(sec => {
     const newIndex = orderedSectorIds.indexOf(sec.id);
     return {
       ...sec,
-      sortOrder: newIndex !== -1 ? newIndex + 1 : sec.sortOrder,
+      sortOrder: newIndex !== -1 ? newIndex + 1 : (sec.sortOrder || 999),
     };
-  });
+  }).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  setStorageJson(STORAGE_KEY_SECTORS, [...otherSectors, ...updatedGymSectors]);
+  const combined = [...otherSectors, ...updatedGymSectors].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  setStorageJson(STORAGE_KEY_SECTORS, combined);
 
   // AC-4.8: Cloud-Persistenz der Sektor-Sortierung aufwärts nach Supabase
   syncBridge.syncSectorOrder(gymId, orderedSectorIds);

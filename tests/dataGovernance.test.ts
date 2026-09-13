@@ -43,50 +43,14 @@ describe('SPEC-013: Sauberer Datenhaushalt, Produktions-Integrität & Environmen
     expect(pkg.scripts['db:pull']).toBe('node scripts/pull-from-prod.js');
   });
 
-  it('AC-2: src/data/prodSnapshot.json contains valid downloaded production data', () => {
+  it('AC-2: No static prodSnapshot.json exists in repository (prevents stale snapshot and mock pollution)', () => {
     const snapshotPath = path.join(projectRoot, 'src', 'data', 'prodSnapshot.json');
-    expect(fs.existsSync(snapshotPath)).toBe(true);
-
-    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-    expect(snapshot.stats).toBeDefined();
-    expect(snapshot.stats.gyms).toBeGreaterThanOrEqual(2);
-    expect(snapshot.stats.sectors).toBeGreaterThanOrEqual(11);
-    expect(snapshot.stats.gradeScales).toBeGreaterThanOrEqual(13);
-    expect(snapshot.stats.boulders).toBeGreaterThanOrEqual(70);
-
-    // Verify gym IDs
-    const gymIds = snapshot.gyms.map((g: any) => g.id);
-    expect(gymIds).toContain('f2b11564-ca86-4ed4-b51c-3affb346144b'); // 6a plus
-    expect(gymIds).toContain('814696b2-303e-4897-9bdb-d83505a63489'); // Minimum
+    expect(fs.existsSync(snapshotPath)).toBe(false);
   });
 
-  it('AC-5: Farbskalen pro Halle haben keine doppelten Farbnamen', () => {
-    const snapshotPath = path.join(projectRoot, 'src', 'data', 'prodSnapshot.json');
-    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-
-    const scalesByGym: Record<string, Set<string>> = {};
-    for (const sc of snapshot.gradeScales) {
-      if (!scalesByGym[sc.gym_id]) {
-        scalesByGym[sc.gym_id] = new Set();
-      }
-      const normColor = sc.color_name.trim().toLowerCase();
-      expect(scalesByGym[sc.gym_id].has(normColor)).toBe(false);
-      scalesByGym[sc.gym_id].add(normColor);
-    }
-  });
-
-  it('AC-5: Sektoren pro Halle haben keine doppelten Sektornamen', () => {
-    const snapshotPath = path.join(projectRoot, 'src', 'data', 'prodSnapshot.json');
-    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-
-    const sectorsByGym: Record<string, Set<string>> = {};
-    for (const sec of snapshot.sectors) {
-      if (!sectorsByGym[sec.gym_id]) {
-        sectorsByGym[sec.gym_id] = new Set();
-      }
-      const normName = sec.name.trim().toLowerCase();
-      expect(sectorsByGym[sec.gym_id].has(normName)).toBe(false);
-      sectorsByGym[sec.gym_id].add(normName);
-    }
+  it('AC-2: .gitignore prevents committing any JSON snapshot dumps in src/data/', () => {
+    const gitignorePath = path.join(projectRoot, '.gitignore');
+    const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+    expect(gitignore).toContain('src/data/*.json');
   });
 });

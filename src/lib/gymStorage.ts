@@ -125,7 +125,7 @@ export function ensureInitialGymData(): void {
     setGymGradeScales(gym6a.id, CURRENT_USER.id, [
       { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gym_id: gym6a.id, color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Gemütlich', font_range_min: '3', font_range_max: '4+', sort_order: 1 },
       { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gym_id: gym6a.id, color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Flott', font_range_min: '5', font_range_max: '5+', sort_order: 2 },
-      { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Trick', font_range_min: '6a', font_range_max: '6b', sort_order: 3 },
+      { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gym_id: gym6a.id, color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Tricky', font_range_min: '6a', font_range_max: '6b', sort_order: 3 },
       { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gym_id: gym6a.id, color_name: 'Rot', color_hex: '#ef4444', difficulty_label: 'Rassig', font_range_min: '6b+', font_range_max: '6c+', sort_order: 4 },
       { id: '3e322450-4c56-4422-8c88-7f518b716352', gym_id: gym6a.id, color_name: 'Weiss', color_hex: '#f8fafc', difficulty_label: 'Böse', font_range_min: '7a', font_range_max: '7b', sort_order: 5 },
       { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gym_id: gym6a.id, color_name: 'Schwarz', color_hex: '#1e293b', difficulty_label: 'Sehr schwer', font_range_min: '7B', font_range_max: '7C+', sort_order: 6 },
@@ -148,16 +148,20 @@ export function ensureInitialGymData(): void {
   }
 
   // Ensure 6a plus has default sectors if none exist yet
-  const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id === gym6a.id);
+  const current6aSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s =>
+    s.gym_id === gym6a.id || s.gym_id?.includes('6a') || s.gym_id?.includes('f2b11564')
+  );
   if (current6aSectors.length === 0) {
-    const otherSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s => s.gym_id !== gym6a.id);
+    const otherSectors = getStorageJson<Sector[]>(SECTORS_KEY, []).filter(s =>
+      s.gym_id !== gym6a.id && !s.gym_id?.includes('6a') && !s.gym_id?.includes('f2b11564')
+    );
     const new6aSectors: Sector[] = [
-      { id: 'sec_6a_slab_vorne', gym_id: gym6a.id, name: 'Slab Vorne', wall_photo_url: '/images/walls/6aplus/SlapVorne.jpg', sort_order: 1, created_at: new Date().toISOString() },
-      { id: 'sec_6a_ecke_vorne', gym_id: gym6a.id, name: 'Ecke Vorne', wall_photo_url: '/images/walls/6aplus/EckeVorne.jpg', sort_order: 2, created_at: new Date().toISOString() },
-      { id: 'sec_6a_zwischenwand_vorne', gym_id: gym6a.id, name: 'Zwischenwand Vorne', wall_photo_url: '/images/walls/6aplus/ZwischenwandVorne.jpg', sort_order: 3, created_at: new Date().toISOString() },
-      { id: 'sec_6a_ueberhang_vorne', gym_id: gym6a.id, name: 'Überhang Vorne', wall_photo_url: '/images/walls/6aplus/UerberhangVorne.jpg', sort_order: 4, created_at: new Date().toISOString() },
-      { id: 'sec_6a_verlaengerung_ueberhang', gym_id: gym6a.id, name: 'Verlängerung Überhang', wall_photo_url: '/images/walls/6aplus/VerlaengerungUeberhang.jpg', sort_order: 5, created_at: new Date().toISOString() },
-      { id: 'sec_6a_ecke_mitte', gym_id: gym6a.id, name: 'Ecke Mitte', wall_photo_url: '/images/walls/6aplus/EckeMitte.jpg', sort_order: 6, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ueberhang_vorne', gym_id: gym6a.id, name: 'Überhang Vorne', wall_photo_url: '/images/walls/6aplus/UerberhangVorne.jpg', sort_order: 1, created_at: new Date().toISOString() },
+      { id: 'sec_6a_zwischenwand_vorne', gym_id: gym6a.id, name: 'Zwischenwand Vorne', wall_photo_url: '/images/walls/6aplus/ZwischenwandVorne.jpg', sort_order: 2, created_at: new Date().toISOString() },
+      { id: 'sec_6a_verlaengerung_ueberhang', gym_id: gym6a.id, name: 'Verlängerung Überhang', wall_photo_url: '/images/walls/6aplus/VerlaengerungUeberhang.jpg', sort_order: 3, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ecke_mitte', gym_id: gym6a.id, name: 'Ecke Mitte', wall_photo_url: '/images/walls/6aplus/EckeMitte.jpg', sort_order: 4, created_at: new Date().toISOString() },
+      { id: 'sec_6a_slab_vorne', gym_id: gym6a.id, name: 'Slab Vorne', wall_photo_url: '/images/walls/6aplus/SlapVorne.jpg', sort_order: 5, created_at: new Date().toISOString() },
+      { id: 'sec_6a_ecke_vorne', gym_id: gym6a.id, name: 'Ecke Vorne', wall_photo_url: '/images/walls/6aplus/EckeVorne.jpg', sort_order: 6, created_at: new Date().toISOString() },
       { id: 'sec_6a_cave', gym_id: gym6a.id, name: 'Cave', wall_photo_url: '/images/walls/6aplus/Cave.jpg', sort_order: 7, created_at: new Date().toISOString() },
       { id: 'sec_6a_cave_wand', gym_id: gym6a.id, name: 'Cave Wand', wall_photo_url: '/images/walls/6aplus/CaveWand.jpg', sort_order: 8, created_at: new Date().toISOString() },
     ];
@@ -313,6 +317,13 @@ export function saveGradeScales(scales: GradeScale[]): void {
   setStorageJson(GRADE_SCALES_KEY, deduped);
 }
 
+export function normalizeGymSectorGymId(gym_id?: string): string {
+  if (!gym_id) return '';
+  if (gym_id === 'gym-6a-plus' || gym_id.includes('6a') || gym_id.includes('f2b11564')) return 'gym-6a-plus';
+  if (gym_id === 'gym-minimum-zh' || gym_id.includes('minimum') || gym_id.includes('814696b2')) return 'gym-minimum-zh';
+  return gym_id;
+}
+
 export function getSectors(gym_id?: string): Sector[] {
   let all = getStorageJson<Sector[]>(SECTORS_KEY, []);
   let hasMigrated = false;
@@ -326,7 +337,7 @@ export function getSectors(gym_id?: string): Sector[] {
       return { ...s, wall_photo_url: '/images/walls/roof.jpg' };
     }
     // 6a plus sectors: ensure they have their own dedicated photos instead of Minimum's
-    if (s.gym_id === 'gym-6a-plus') {
+    if (s.gym_id === 'gym-6a-plus' || s.gym_id?.includes('6a') || s.gym_id?.includes('f2b11564')) {
       if (s.name.includes('Wettkampf') && s.wall_photo_url === '/images/walls/overhang.jpg') {
         hasMigrated = true;
         return { ...s, wall_photo_url: '/images/walls/six-a-comp.jpg' };
@@ -345,7 +356,15 @@ export function getSectors(gym_id?: string): Sector[] {
   if (hasMigrated) {
     saveSectors(all);
   }
-  return gym_id ? all.filter(s => s.gym_id === gym_id).sort((a, b) => a.sort_order - b.sort_order) : all;
+
+  if (!gym_id || gym_id === 'all') {
+    return all.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }
+
+  const targetGymNorm = normalizeGymSectorGymId(gym_id);
+  return all
+    .filter(s => normalizeGymSectorGymId(s.gym_id) === targetGymNorm || s.gym_id === gym_id)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 }
 
 export function saveSectors(sectors: Sector[]): void {
@@ -375,7 +394,11 @@ export function deleteGymBoulder(boulder_id: string): boolean {
 // User role check in gym
 export function getUserRoleInGym(gym_id: string, user_id: string): GymRole | null {
   const members = getMembers();
-  const membership = members.find(m => m.gym_id === gym_id && m.user_id === user_id);
+  const targetGymNorm = normalizeGymSectorGymId(gym_id);
+  const membership = members.find(m => {
+    if (m.user_id !== user_id) return false;
+    return m.gym_id === gym_id || normalizeGymSectorGymId(m.gym_id) === targetGymNorm;
+  });
   return membership ? membership.role : null;
 }
 
@@ -608,17 +631,18 @@ export function reorderSectors(
     throw new Error('Nur Hallen-Admins dürfen Sektoren sortieren.');
   }
 
-  const all = getSectors();
-  const gymSectors = all.filter(s => s.gym_id === gym_id);
-  const otherSectors = all.filter(s => s.gym_id !== gym_id);
+  const targetGymNorm = normalizeGymSectorGymId(gym_id);
+  const all = getStorageJson<Sector[]>(SECTORS_KEY, []);
+  const gymSectors = all.filter(s => normalizeGymSectorGymId(s.gym_id) === targetGymNorm || s.gym_id === gym_id);
+  const otherSectors = all.filter(s => normalizeGymSectorGymId(s.gym_id) !== targetGymNorm && s.gym_id !== gym_id);
 
   const updatedGymSectors = gymSectors.map(sec => {
     const newIndex = orderedSectorIds.indexOf(sec.id);
     return {
       ...sec,
-      sort_order: newIndex !== -1 ? newIndex + 1 : sec.sort_order
+      sort_order: newIndex !== -1 ? newIndex + 1 : (sec.sort_order || 999)
     };
-  });
+  }).sort((a, b) => a.sort_order - b.sort_order);
 
   saveSectors([...otherSectors, ...updatedGymSectors]);
 
@@ -628,7 +652,8 @@ export function reorderSectors(
     if (v2Sectors && v2Sectors.length > 0) {
       let changed = false;
       const updatedV2 = v2Sectors.map(s => {
-        if (s.gymId === gym_id) {
+        const sNorm = normalizeGymSectorGymId(s.gymId);
+        if (sNorm === targetGymNorm || s.gymId === gym_id) {
           const newIndex = orderedSectorIds.indexOf(s.id);
           if (newIndex !== -1 && s.sortOrder !== newIndex + 1) {
             changed = true;
@@ -636,7 +661,7 @@ export function reorderSectors(
           }
         }
         return s;
-      });
+      }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
       if (changed) {
         setStorageJson('boulderapp_sectors_v2', updatedV2);
       }

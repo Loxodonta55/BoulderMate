@@ -24,7 +24,7 @@ export const SEED_GYM: Gym = {
 export const SEED_6A_PLUS_GRADE_SCALES: GymGradeScale[] = [
   { id: 'b65dc31e-21e5-4612-a0cc-2b60891c78de', gymId: 'gym-6a-plus', colorName: 'Blau', colorHex: '#3b82f6', difficultyLabel: 'Gemütlich', fontRangeMin: '3', fontRangeMax: '4+', sortOrder: 1 },
   { id: '6d5f72b1-6e4d-45e8-8a9f-bd5cb60222b9', gymId: 'gym-6a-plus', colorName: 'Grün', colorHex: '#22c55e', difficultyLabel: 'Flott', fontRangeMin: '5', fontRangeMax: '5+', sortOrder: 2 },
-  { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Trick', fontRangeMin: '6a', fontRangeMax: '6b', sortOrder: 3 },
+  { id: 'fce60743-1a3a-4122-9b60-bd91cbb56abd', gymId: 'gym-6a-plus', colorName: 'Gelb', colorHex: '#eab308', difficultyLabel: 'Tricky', fontRangeMin: '6a', fontRangeMax: '6b', sortOrder: 3 },
   { id: 'f7bdc2a9-7af8-47f0-b144-67f1fbcd8dc1', gymId: 'gym-6a-plus', colorName: 'Rot', colorHex: '#ef4444', difficultyLabel: 'Rassig', fontRangeMin: '6b+', fontRangeMax: '6c+', sortOrder: 4 },
   { id: '3e322450-4c56-4422-8c88-7f518b716352', gymId: 'gym-6a-plus', colorName: 'Weiss', colorHex: '#f8fafc', difficultyLabel: 'Böse', fontRangeMin: '7a', fontRangeMax: '7b', sortOrder: 5 },
   { id: 'b61e5d67-e55e-4c34-a577-34e8370bd863', gymId: 'gym-6a-plus', colorName: 'Schwarz', colorHex: '#1e293b', difficultyLabel: 'Sehr schwer', fontRangeMin: '7B', fontRangeMax: '7C+', sortOrder: 6 },
@@ -42,12 +42,12 @@ export const SEED_GRADE_SCALES: GymGradeScale[] = [
 ];
 
 export const SEED_6A_PLUS_SECTORS: Sector[] = [
-  { id: 'sec_6a_slab_vorne', gymId: 'gym-6a-plus', name: 'Slab Vorne', wallPhotoUrl: '/images/walls/6aplus/SlapVorne.jpg', sortOrder: 1, createdAt: '2026-09-01T10:00:00Z' },
-  { id: 'sec_6a_ecke_vorne', gymId: 'gym-6a-plus', name: 'Ecke Vorne', wallPhotoUrl: '/images/walls/6aplus/EckeVorne.jpg', sortOrder: 2, createdAt: '2026-09-01T10:00:00Z' },
-  { id: 'sec_6a_zwischenwand_vorne', gymId: 'gym-6a-plus', name: 'Zwischenwand Vorne', wallPhotoUrl: '/images/walls/6aplus/ZwischenwandVorne.jpg', sortOrder: 3, createdAt: '2026-09-01T10:00:00Z' },
-  { id: 'sec_6a_ueberhang_vorne', gymId: 'gym-6a-plus', name: 'Überhang Vorne', wallPhotoUrl: '/images/walls/6aplus/UerberhangVorne.jpg', sortOrder: 4, createdAt: '2026-09-01T10:00:00Z' },
-  { id: 'sec_6a_verlaengerung_ueberhang', gymId: 'gym-6a-plus', name: 'Verlängerung Überhang', wallPhotoUrl: '/images/walls/6aplus/VerlaengerungUeberhang.jpg', sortOrder: 5, createdAt: '2026-09-01T10:00:00Z' },
-  { id: 'sec_6a_ecke_mitte', gymId: 'gym-6a-plus', name: 'Ecke Mitte', wallPhotoUrl: '/images/walls/6aplus/EckeMitte.jpg', sortOrder: 6, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_ueberhang_vorne', gymId: 'gym-6a-plus', name: 'Überhang Vorne', wallPhotoUrl: '/images/walls/6aplus/UerberhangVorne.jpg', sortOrder: 1, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_zwischenwand_vorne', gymId: 'gym-6a-plus', name: 'Zwischenwand Vorne', wallPhotoUrl: '/images/walls/6aplus/ZwischenwandVorne.jpg', sortOrder: 2, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_verlaengerung_ueberhang', gymId: 'gym-6a-plus', name: 'Verlängerung Überhang', wallPhotoUrl: '/images/walls/6aplus/VerlaengerungUeberhang.jpg', sortOrder: 3, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_ecke_mitte', gymId: 'gym-6a-plus', name: 'Ecke Mitte', wallPhotoUrl: '/images/walls/6aplus/EckeMitte.jpg', sortOrder: 4, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_slab_vorne', gymId: 'gym-6a-plus', name: 'Slab Vorne', wallPhotoUrl: '/images/walls/6aplus/SlapVorne.jpg', sortOrder: 5, createdAt: '2026-09-01T10:00:00Z' },
+  { id: 'sec_6a_ecke_vorne', gymId: 'gym-6a-plus', name: 'Ecke Vorne', wallPhotoUrl: '/images/walls/6aplus/EckeVorne.jpg', sortOrder: 6, createdAt: '2026-09-01T10:00:00Z' },
   { id: 'sec_6a_cave', gymId: 'gym-6a-plus', name: 'Cave', wallPhotoUrl: '/images/walls/6aplus/Cave.jpg', sortOrder: 7, createdAt: '2026-09-01T10:00:00Z' },
   { id: 'sec_6a_cave_wand', gymId: 'gym-6a-plus', name: 'Cave Wand', wallPhotoUrl: '/images/walls/6aplus/CaveWand.jpg', sortOrder: 8, createdAt: '2026-09-01T10:00:00Z' },
 ];

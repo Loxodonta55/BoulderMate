@@ -67,33 +67,7 @@ async function main() {
     }
   }
 
-  // Snapshot Datei für lokale Entwicklung / Offline-Testing anlegen
-  const snapshotData = {
-    exportedAt: new Date().toISOString(),
-    source: 'Supabase PROD (vuladpswvflfwwgdjejr)',
-    stats: {
-      gyms: gyms.length,
-      gradeScales: rawScales.length,
-      sectors: sectors.length,
-      boulders: boulders.length,
-    },
-    gyms,
-    gradeScales: rawScales,
-    sectors,
-    boulders,
-  };
-
-  const dataDir = path.join(projectRoot, 'src', 'data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-
-  const snapshotPath = path.join(dataDir, 'prodSnapshot.json');
-  fs.writeFileSync(snapshotPath, JSON.stringify(snapshotData, null, 2), 'utf-8');
-  console.log(`\n💾 [Snapshot] Lokaler Testdaten-Snapshot erfolgreich gespeichert nach:`);
-  console.log(`   ${snapshotPath}`);
-  console.log(`   (Dateigröße: ${(fs.statSync(snapshotPath).size / 1024).toFixed(1)} KB)`);
-  console.log(`\n✨ Downward-Sync abgeschlossen! Entwickler haben jetzt echte Daten zum lokalen Testen.`);
+  console.log(`\n✨ Live-Inspektion erfolgreich! Keine lokalen Snapshot-Dateien erzeugt.`);
 }
 
 main().catch(err => {
