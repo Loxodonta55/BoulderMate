@@ -295,13 +295,13 @@ describe('Climber Fullscreen Wall Optimization & Navigation Suite', () => {
     });
   });
 
-  describe('4) Landscape Orientation & Route Name Suppression (User Follow-up Requirements)', () => {
-    it('strictly suppresses route name badges in fullscreen landscape mode (window width >= 640px)', () => {
+  describe('4) Landscape Orientation & Complete Route Name Suppression (User Follow-up Requirements)', () => {
+    it('strictly suppresses route name badges on climber wall pins in all modes (fullscreen and normal view)', () => {
       // Simulate rotating mobile phone into landscape (844px wide > 640px sm breakpoint)
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 844 });
       Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 390 });
 
-      // In fullscreen mode: route names MUST NOT be rendered under pins
+      // 1. In fullscreen mode: route names MUST NOT be rendered under pins
       const { unmount } = render(
         <WallPhotoCanvas
           mode="climber"
@@ -316,7 +316,7 @@ describe('Climber Fullscreen Wall Optimization & Navigation Suite', () => {
       expect(screen.queryByText('Wand Route Gelb')).not.toBeInTheDocument();
       unmount();
 
-      // In non-fullscreen mode on desktop/tablet width, the label element exists for hover
+      // 2. In normal view: route names MUST ALSO NOT be rendered under pins
       render(
         <WallPhotoCanvas
           mode="climber"
@@ -328,7 +328,7 @@ describe('Climber Fullscreen Wall Optimization & Navigation Suite', () => {
         />
       );
 
-      expect(screen.getByText('Wand Route Gelb')).toBeInTheDocument();
+      expect(screen.queryByText('Wand Route Gelb')).not.toBeInTheDocument();
     });
 
     it('constrains canvas container with maxWidth 100% and maxHeight 100% in fullscreen to prevent edge clipping', () => {

@@ -12,7 +12,6 @@ import {
   Zap,
   Trophy,
   Clock,
-  Star,
   Maximize2,
   BoxSelect,
   Check,
@@ -683,19 +682,6 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                       </span>
                     )}
                   </div>
-
-                  {/* Pin Label Tag with Compact Rating (AC-10) - Strictly excluded in fullscreen mode; only on desktop hover */}
-                  {!isFullscreen && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-1.5 shadow-md pointer-events-none transition-opacity">
-                      <span>{boulder.name || scale?.colorName || 'Route'}</span>
-                      {stats && stats.totalRatings > 0 && (
-                        <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
-                          <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
-                          <span>{stats.avgStars.toFixed(1)}</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </button>
               );
             }
