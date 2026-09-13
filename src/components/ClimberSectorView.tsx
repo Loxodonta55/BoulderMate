@@ -251,6 +251,53 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSectorFullscreen, currentSectorIndex, sectors]);
 
+  // Progressive HTML5 Fullscreen API integration for true full-screen hardware monitor usage
+  useEffect(() => {
+    if (isSectorFullscreen) {
+      try {
+        const docEl = document.documentElement;
+        if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+          if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+          } else if ((docEl as any).webkitRequestFullscreen) {
+            (docEl as any).webkitRequestFullscreen();
+          }
+        }
+      } catch {
+        // Fullscreen API may not be permitted in some contexts
+      }
+    } else {
+      try {
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen();
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [isSectorFullscreen]);
+
+  // Sync state if user exits native fullscreen via browser controls or Esc key
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      if (!isFs && isSectorFullscreen) {
+        setIsSectorFullscreen(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, [isSectorFullscreen]);
+
 
   // Listen to cross-component boulder events (such as deletion or batch publish)
   useEffect(() => {
@@ -793,7 +840,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
       {/* Immersive Fullscreen Sector View (Requirement 1, 1a, 1b: Edge-to-Edge Wall, Zero Header, Zero Footer) */}
       {isSectorFullscreen && selectedSector && (
         <div
-          className="fixed inset-0 z-50 bg-black w-screen h-[100dvh] flex items-center justify-center select-none animate-in fade-in duration-150 overflow-hidden"
+          className="fixed inset-0 z-50 bg-black w-full h-full h-[100dvh] flex items-center justify-center select-none animate-in fade-in duration-150 overflow-hidden"
           data-testid="sector-fullscreen-modal"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -827,7 +874,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             </span>
           </div>
 
-          {/* Quick Floating Lateral Switch Arrows (Left & Right Edge) */}
+          {/* Quick Floating Lateral Switch Arrows (Left & Right Edge) - Discreet & non-obstructive */}
           {sectors.length > 1 && (
             <>
               <button
@@ -837,11 +884,11 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                   goToPreviousSector();
                 }}
                 data-testid="fullscreen-prev-sector-btn"
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/40 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md"
+                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-[2px] bg-black/30 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
                 title="Vorheriger Sektor (oder nach rechts wischen)"
                 aria-label="Vorheriger Sektor"
               >
-                <ChevronLeft className="w-6 h-6 text-[#C9A96E]" />
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[#C9A96E]" />
               </button>
 
               <button
@@ -851,11 +898,11 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                   goToNextSector();
                 }}
                 data-testid="fullscreen-next-sector-btn"
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/40 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md"
+                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-[2px] bg-black/30 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
                 title="Nächster Sektor (oder nach links wischen)"
                 aria-label="Nächster Sektor"
               >
-                <ChevronRight className="w-6 h-6 text-[#C9A96E]" />
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#C9A96E]" />
               </button>
             </>
           )}

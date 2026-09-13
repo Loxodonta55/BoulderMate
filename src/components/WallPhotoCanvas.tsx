@@ -282,19 +282,48 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     if (!isFullscreen) return;
 
     const updateSize = () => {
-      if (viewportRef.current) {
-        const rect = viewportRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          setViewportSize({ width: rect.width, height: rect.height });
-          return;
+      if (typeof window === 'undefined') return;
+
+      // Prefer visualViewport if available for accurate visible area on mobile browsers
+      const vvWidth = window.visualViewport?.width;
+      const vvHeight = window.visualViewport?.height;
+      const winW = vvWidth && vvWidth > 0 ? vvWidth : window.innerWidth;
+      const winH = vvHeight && vvHeight > 0 ? vvHeight : window.innerHeight;
+
+      // Check element client bounds
+      const elW = viewportRef.current?.clientWidth;
+      const elH = viewportRef.current?.clientHeight;
+
+      const effectiveWidth = elW && elW > 50 ? elW : winW;
+      const effectiveHeight = elH && elH > 50 ? elH : winH;
+
+      setViewportSize(prev => {
+        if (prev.width === effectiveWidth && prev.height === effectiveHeight) {
+          return prev;
         }
-      }
-      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+        return { width: effectiveWidth, height: effectiveHeight };
+      });
     };
 
     updateSize();
-    window.addEventListener('resize', updateSize);
-    window.addEventListener('orientationchange', updateSize);
+
+    // Multi-frame triggers for mobile orientation change settling (Safari/Chrome delay layout recalculation)
+    const handleReorient = () => {
+      updateSize();
+      if (typeof requestAnimationFrame !== 'undefined') {
+        requestAnimationFrame(updateSize);
+      }
+      setTimeout(updateSize, 50);
+      setTimeout(updateSize, 150);
+      setTimeout(updateSize, 300);
+      setTimeout(updateSize, 600);
+    };
+
+    window.addEventListener('resize', handleReorient);
+    window.addEventListener('orientationchange', handleReorient);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleReorient);
+    }
 
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && viewportRef.current) {
@@ -303,8 +332,11 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
     }
 
     return () => {
-      window.removeEventListener('resize', updateSize);
-      window.removeEventListener('orientationchange', updateSize);
+      window.removeEventListener('resize', handleReorient);
+      window.removeEventListener('orientationchange', handleReorient);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleReorient);
+      }
       if (ro) ro.disconnect();
     };
   }, [isFullscreen]);
@@ -335,8 +367,11 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   let containerStyle: React.CSSProperties;
   if (isFullscreen) {
     const imgAspect = aspectRatio || (16 / 9);
-    const vpWidth = Math.max(100, viewportSize.width);
-    const vpHeight = Math.max(100, viewportSize.height);
+    // Measure available viewport cleanly
+    const curVpW = viewportRef.current?.clientWidth || viewportSize.width || (typeof window !== 'undefined' ? window.innerWidth : 1000);
+    const curVpH = viewportRef.current?.clientHeight || viewportSize.height || (typeof window !== 'undefined' ? window.innerHeight : 800);
+    const vpWidth = Math.max(100, curVpW);
+    const vpHeight = Math.max(100, curVpH);
     const vpAspect = vpWidth / vpHeight;
 
     let baseWidth: number;
@@ -352,15 +387,23 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
       baseWidth = vpHeight * imgAspect;
     }
 
+    // Safety clamp: when not zoomed, base dimensions MUST NOT exceed viewport bounds to avoid cutting off edges
+    if (zoomLevel <= 1) {
+      baseWidth = Math.min(baseWidth, vpWidth);
+      baseHeight = Math.min(baseHeight, vpHeight);
+    }
+
     const finalWidth = Math.round(baseWidth * zoomLevel);
     const finalHeight = Math.round(baseHeight * zoomLevel);
 
     containerStyle = {
       width: `${finalWidth}px`,
       height: `${finalHeight}px`,
-      minWidth: `${finalWidth}px`,
-      minHeight: `${finalHeight}px`,
+      maxWidth: zoomLevel <= 1 ? '100%' : undefined,
+      maxHeight: zoomLevel <= 1 ? '100%' : undefined,
+      aspectRatio: `${imgAspect}`,
       margin: 'auto',
+      position: 'relative',
     };
   } else {
     containerStyle = {
@@ -513,7 +556,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         ref={viewportRef}
         className={
           isFullscreen
-            ? 'relative w-full h-full overflow-auto bg-black flex items-center justify-center touch-pan-x touch-pan-y overscroll-contain'
+            ? `relative w-full h-full ${zoomLevel > 1 ? 'overflow-auto' : 'overflow-hidden'} bg-black flex items-center justify-center touch-pan-x touch-pan-y overscroll-contain`
             : 'relative w-full overflow-auto bg-black'
         }
         onMouseMove={handleMouseMove}
@@ -641,16 +684,18 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                     )}
                   </div>
 
-                  {/* Pin Label Tag with Compact Rating (AC-10) - Hidden on mobile to avoid clutter */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-90 group-hover:opacity-100 hidden sm:flex items-center gap-1.5 shadow-md pointer-events-none">
-                    <span>{boulder.name || scale?.colorName || 'Route'}</span>
-                    {stats && stats.totalRatings > 0 && (
-                      <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
-                        <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
-                        <span>{stats.avgStars.toFixed(1)}</span>
-                      </span>
-                    )}
-                  </div>
+                  {/* Pin Label Tag with Compact Rating (AC-10) - Strictly excluded in fullscreen mode; only on desktop hover */}
+                  {!isFullscreen && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded-none bg-[#1E1E1E] border border-[#333333] text-[10px] font-mono font-bold text-[#E8E0D4] whitespace-nowrap opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-1.5 shadow-md pointer-events-none transition-opacity">
+                      <span>{boulder.name || scale?.colorName || 'Route'}</span>
+                      {stats && stats.totalRatings > 0 && (
+                        <span className="flex items-center gap-0.5 text-[#C9A96E] border-l border-[#333333] pl-1 font-bold">
+                          <Star className="w-2.5 h-2.5 fill-[#C9A96E]" />
+                          <span>{stats.avgStars.toFixed(1)}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </button>
               );
             }

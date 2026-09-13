@@ -1,4 +1,4 @@
-﻿# SPEC-016: Immersive Vollbild-Wandansicht, Smartphone-Rotation & Sofortiger Sektorwechsel
+# SPEC-016: Immersive Vollbild-Wandansicht, Smartphone-Rotation & Sofortiger Sektorwechsel
 
 ## Status: APPROVED (IMPLEMENTIERT)
 - **Erstellt am**: 2026-09-13
@@ -47,11 +47,15 @@ Beim Klettern in der Boulderhalle wird das Smartphone oft mit einer Hand bedient
 - **AC-16.3**: Horizontales Wischen wechselt den Sektor unmittelbar während der Geste mit nahtlosem Wrap-Around.
 - **AC-16.4**: Das Wandbild wird mit korrekter Aspect-Ratio zentriert, Pins behalten ihre relativen Koordinaten exakt bei.
 - **AC-16.5**: Double-Tap schaltet zwischen Einpassung (1x) und Zoom (1.8x) um; freies Scrollen über die Wand ist jederzeit möglich.
+- **AC-16.6**: **Strikte Routennamen-Unterdrückung im Vollbild**: Im Vollbildmodus werden niemals Text-Badges oder Routennamen unter den Pins gerendert — auch nicht beim Drehen des Smartphones ins Querformat (`>= 640px`). Detailinfos öffnen sich erst bei gezieltem Fingertipp auf den Pin.
+- **AC-16.7**: **Zero Edge-Clipping**: Bei Rotation ins Querformat wird das Wandbild weder links noch rechts abgeschnitten. Feste `minWidth`-Vorgaben wurden eliminiert und durch `maxWidth: 100%` & `maxHeight: 100%` ersetzt. Seitliche Schwebepfeile sind unaufdringlich (`opacity-40 hover:opacity-100`) und verdecken keine Kletterrouten.
+- **AC-16.8**: **Hardware-Monitor Fullscreen API**: Der Vollbildmodus ruft progressiv die native HTML5 Fullscreen API (`requestFullscreen()`) auf, um Browser-Adressleisten und Systemleisten auszublenden und den echten gesamten Bildschirm zu nutzen.
 
 ---
 
 ## 4. Verifikation
 Vollständig getestet und verifiziert durch:
-- `tests/climberFullscreenWallOptimization.test.tsx` (8 Tests, 100% grün)
+- `tests/climberFullscreenWallOptimization.test.tsx` (10 Tests, 100% grün)
 - `tests/pinCoordinateAlignment.test.tsx` (4 Tests, 100% grün)
 - `tests/mobileFirstExperience.test.tsx` (Integrationstest, 100% grün)
+- 33 Testdateien / 269 Tests im Gesamtprojekt erfolgreich (100% Pass-Rate)

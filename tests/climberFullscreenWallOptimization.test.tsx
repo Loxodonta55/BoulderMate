@@ -294,4 +294,65 @@ describe('Climber Fullscreen Wall Optimization & Navigation Suite', () => {
       expect(screen.getByText('100%')).toBeInTheDocument();
     });
   });
+
+  describe('4) Landscape Orientation & Route Name Suppression (User Follow-up Requirements)', () => {
+    it('strictly suppresses route name badges in fullscreen landscape mode (window width >= 640px)', () => {
+      // Simulate rotating mobile phone into landscape (844px wide > 640px sm breakpoint)
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 844 });
+      Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 390 });
+
+      // In fullscreen mode: route names MUST NOT be rendered under pins
+      const { unmount } = render(
+        <WallPhotoCanvas
+          mode="climber"
+          photoUrl="/img-wall.jpg"
+          sectorName="Test Wand"
+          boulders={testBoulders}
+          gradeScales={sampleGradeScales}
+          isFullscreen={true}
+        />
+      );
+
+      expect(screen.queryByText('Wand Route Gelb')).not.toBeInTheDocument();
+      unmount();
+
+      // In non-fullscreen mode on desktop/tablet width, the label element exists for hover
+      render(
+        <WallPhotoCanvas
+          mode="climber"
+          photoUrl="/img-wall.jpg"
+          sectorName="Test Wand"
+          boulders={testBoulders}
+          gradeScales={sampleGradeScales}
+          isFullscreen={false}
+        />
+      );
+
+      expect(screen.getByText('Wand Route Gelb')).toBeInTheDocument();
+    });
+
+    it('constrains canvas container with maxWidth 100% and maxHeight 100% in fullscreen to prevent edge clipping', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 844 });
+      Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 390 });
+
+      render(
+        <WallPhotoCanvas
+          mode="climber"
+          photoUrl="/img-wall.jpg"
+          sectorName="Test Wand"
+          boulders={testBoulders}
+          gradeScales={sampleGradeScales}
+          isFullscreen={true}
+        />
+      );
+
+      const img = screen.getByAltText('Test Wand');
+      const container = img.parentElement as HTMLElement;
+      expect(container).toBeInTheDocument();
+      expect(container.style.maxWidth).toBe('100%');
+      expect(container.style.maxHeight).toBe('100%');
+      // minWidth must NOT be set to prevent horizontal edge cut-off
+      expect(container.style.minWidth).toBe('');
+    });
+  });
 });
