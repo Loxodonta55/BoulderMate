@@ -7,6 +7,7 @@ import {
   getSectors as getGymSectors,
   reorderSectors,
   resetAllGymData,
+  ensureInitialGymData,
   CURRENT_USER
 } from '../src/lib/gymStorage';
 import {
@@ -274,5 +275,55 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
     ]);
 
     fromSpy.mockRestore();
+  });
+
+  it('preserves custom sector order across app re-initialization (deployment / reload)', () => {
+    // 1. Initial gym setup
+    ensureInitialGymData();
+    const gym6aId = 'gym-6a-plus';
+    const initialSectors = getGymSectors(gym6aId);
+    expect(initialSectors.length).toBeGreaterThan(0);
+
+    // 2. Admin customizes the order (e.g., reverse order)
+    const reversedIds = [...initialSectors].reverse().map(s => s.id);
+    reorderSectors(gym6aId, adminUserId, reversedIds);
+
+    const reordered = getGymSectors(gym6aId);
+    expect(reordered.map(s => s.id)).toEqual(reversedIds);
+
+    // 3. Simulate new deployment or page reload by calling ensureInitialGymData() again
+    ensureInitialGymData();
+
+    // 4. Custom order MUST be preserved and NOT reset
+    const afterDeployment = getGymSectors(gym6aId);
+    expect(afterDeployment.map(s => s.id)).toEqual(reversedIds);
+
+    const batchAfterDeployment = getBatchSectors(gym6aId);
+    expect(batchAfterDeployment.map(s => s.id)).toEqual(reversedIds);
+  });
+
+  it('normalizes UUID vs slug gym IDs when reordering sectors and querying them', () => {
+    const slugGymId = 'gym-6a-plus';
+    const uuidGymId = 'f2b11564-ca86-4ed4-b51c-3affb346144b';
+
+    ensureInitialGymData();
+    const sectors = getGymSectors(slugGymId);
+    expect(sectors.length).toBeGreaterThan(2);
+
+    // Reorder using UUID
+    const targetOrder = [sectors[2].id, sectors[0].id, sectors[1].id, ...sectors.slice(3).map(s => s.id)];
+    reorderSectors(uuidGymId, adminUserId, targetOrder);
+
+    // Query via slug
+    const fromSlug = getGymSectors(slugGymId);
+    expect(fromSlug[0].id).toBe(sectors[2].id);
+    expect(fromSlug[1].id).toBe(sectors[0].id);
+    expect(fromSlug[2].id).toBe(sectors[1].id);
+
+    // Query via batchBoulderService using slug
+    const batchFromSlug = getBatchSectors(slugGymId);
+    expect(batchFromSlug[0].id).toBe(sectors[2].id);
+    expect(batchFromSlug[1].id).toBe(sectors[0].id);
+    expect(batchFromSlug[2].id).toBe(sectors[1].id);
   });
 });
