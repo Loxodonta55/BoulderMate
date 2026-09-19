@@ -60,6 +60,7 @@ test.describe('SPEC-001 / SPEC-002: Sectors & Routes Authoring (Setter-Studio & 
     const nextSectorBtn = page.locator('button[aria-label*="Nächster"], button:has-text("Nächster Sektor")');
     if (await nextSectorBtn.isVisible()) {
       const initialSectorText = await page.locator('h3, h2').first().innerText();
+      expect(initialSectorText).toBeDefined();
       await nextSectorBtn.click();
       await page.waitForTimeout(500);
       const newSectorText = await page.locator('h3, h2').first().innerText();
