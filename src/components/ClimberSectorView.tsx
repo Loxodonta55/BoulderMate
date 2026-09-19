@@ -932,7 +932,23 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             <span className="text-[#8B8680] text-[10px] shrink-0">
               {currentSectorIndex + 1}/{sectors.length}
             </span>
+            {boulders.length === 0 && (
+              <span className="text-[10px] font-mono text-[#C9A96E] bg-[#2A2A2A] px-1.5 py-0.5 border border-[#C9A96E]/30 shrink-0">
+                0 Routen
+              </span>
+            )}
           </div>
+
+          {/* Empty Sector Notice in Fullscreen (so climbers immediately know the wall is empty) */}
+          {boulders.length === 0 && (
+            <div
+              data-testid="fullscreen-empty-notice"
+              className="absolute top-14 left-3 z-40 bg-black/80 backdrop-blur-md border border-[#C9A96E]/40 px-3 py-1.5 rounded-[2px] text-[11px] font-mono text-[#E8E0D4] shadow-lg flex items-center gap-2 pointer-events-none max-w-[calc(100%-24px)] animate-in fade-in duration-200"
+            >
+              <Info className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
+              <span>In diesem Sektor wurden noch keine Routen gesetzt (Wische für nächsten Sektor)</span>
+            </div>
+          )}
 
           {/* Quick Floating Lateral Switch Arrows (Left & Right Edge) - Discreet & non-obstructive */}
           {sectors.length > 1 && (
