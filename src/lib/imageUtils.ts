@@ -100,27 +100,60 @@ const ACCEPTED_MIME_TYPES = [
   'image/gif',
   'image/avif',
   'image/bmp',
+  'image/heic',
+  'image/heic-sequence',
+  'image/heif',
+  'image/heif-sequence',
 ];
 
 const MAX_RAW_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB limit for raw uploads
 
 /**
- * Validates whether a file is a supported image and within raw size limits
+ * Validates whether a file is a supported image and within raw size limits.
+ * Specially tuned for mobile browsers (iOS Safari, Android Chrome) where camera intents
+ * or gallery pickers may return HEIC/HEIF, empty MIME types, or application/octet-stream.
  */
 export function validateImageFile(file: File): ImageValidationResult {
   if (!file) {
     return { valid: false, error: 'Keine Datei ausgewählt.' };
   }
 
-  // Check MIME type or extension
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+
+  // Explicitly reject non-image files (documents, text, audio, video, archives, code)
+  const isNonImageMime =
+    type.startsWith('application/pdf') ||
+    type.startsWith('text/') ||
+    type.startsWith('video/') ||
+    type.startsWith('audio/') ||
+    type === 'application/zip' ||
+    type === 'application/json';
+
+  const isNonImageExt = /\.(pdf|txt|docx?|xlsx?|zip|tar|gz|mp4|mov|avi|mp3|wav|json|html|css|js|ts|tsx|jsx)$/i.test(
+    name
+  );
+
+  if (isNonImageMime || isNonImageExt) {
+    return {
+      valid: false,
+      error: 'Ungültiges Bildformat. Erlaubt sind JPG, PNG, WebP, GIF, AVIF, HEIC oder BMP.',
+    };
+  }
+
+  // Accept any image/* mime type, recognized formats, or common mobile formats
   const isAcceptedType =
-    ACCEPTED_MIME_TYPES.includes(file.type.toLowerCase()) ||
-    /\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(file.name);
+    type.startsWith('image/') ||
+    ACCEPTED_MIME_TYPES.includes(type) ||
+    /\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(name) ||
+    // On mobile devices, files picked from camera or gallery often have empty type or generic type
+    type === '' ||
+    type === 'application/octet-stream';
 
   if (!isAcceptedType) {
     return {
       valid: false,
-      error: 'Ungültiges Bildformat. Erlaubt sind JPG, PNG, WebP, GIF, AVIF oder BMP.',
+      error: 'Ungültiges Bildformat. Erlaubt sind JPG, PNG, WebP, GIF, AVIF, HEIC oder BMP.',
     };
   }
 
@@ -166,7 +199,12 @@ export function readFileAsDataUrl(file: File): Promise<string> {
 
 /**
  * Resizes and compresses an image file to prevent overflowing browser storage
- * Targets max 1600px dimension and ~0.82 JPEG quality
+ * Targets max 1600px dimension and ~0.82 JPEG quality.
+ *
+ * Mobile-Hardened:
+ * 1. Uses off-thread createImageBitmap where available (auto EXIF orientation).
+ * 2. Uses URL.createObjectURL instead of multi-megabyte base64 strings in Image.src to prevent WebKit data URL limits.
+ * 3. Provides resilient fallbacks so transient decode errors never block sector creation.
  */
 export async function processLocalImageFile(
   file: File,
@@ -178,11 +216,10 @@ export async function processLocalImageFile(
     throw new Error(validation.error || 'Ungültige Bilddatei.');
   }
 
-  const rawDataUrl = await readFileAsDataUrl(file);
-
   // If in environment without window/Image/canvas or jsdom (no native image decoding), return data URL
   const isJsdom = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
   if (typeof window === 'undefined' || typeof Image === 'undefined' || isJsdom) {
+    const rawDataUrl = await readFileAsDataUrl(file);
     return {
       dataUrl: rawDataUrl,
       originalSize: file.size,
@@ -193,9 +230,89 @@ export async function processLocalImageFile(
     };
   }
 
-  return new Promise((resolve, reject) => {
+  // 1. Off-thread decoding via createImageBitmap (modern, respects EXIF orientation)
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() =>
+        createImageBitmap(file)
+      );
+      let width = bitmap.width;
+      let height = bitmap.height;
+
+      if (!width || !height) {
+        width = 1200;
+        height = 800;
+      }
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#121212';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        if (typeof (bitmap as any).close === 'function') {
+          (bitmap as any).close();
+        }
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        if (compressedDataUrl && compressedDataUrl.startsWith('data:image/jpeg')) {
+          const approxSizeBytes = Math.round((compressedDataUrl.length * 3) / 4);
+          return {
+            dataUrl: compressedDataUrl,
+            originalSize: file.size,
+            compressedSize: approxSizeBytes,
+            width,
+            height,
+            mimeType: 'image/jpeg',
+          };
+        }
+      } else {
+        if (typeof (bitmap as any).close === 'function') {
+          (bitmap as any).close();
+        }
+      }
+    } catch {
+      // Fall through to Image with ObjectURL / DataURL
+    }
+  }
+
+  // 2. HTMLImageElement with ObjectURL (memory-efficient streaming, avoids base64 in memory)
+  let objectUrl: string | null = null;
+  try {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      objectUrl = URL.createObjectURL(file);
+    }
+  } catch {
+    objectUrl = null;
+  }
+
+  const srcUrl = objectUrl || (await readFileAsDataUrl(file));
+
+  return new Promise<ProcessedImageResult>((resolve, reject) => {
     const img = new Image();
+
+    const cleanup = () => {
+      if (objectUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {}
+      }
+    };
+
     img.onload = () => {
+      cleanup();
       try {
         let width = img.naturalWidth || img.width;
         let height = img.naturalHeight || img.height;
@@ -205,7 +322,6 @@ export async function processLocalImageFile(
           height = 800;
         }
 
-        // Calculate proportional downscaled dimensions
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
             height = Math.round((height * maxDimension) / width);
@@ -216,26 +332,25 @@ export async function processLocalImageFile(
           }
         }
 
-        // Render to canvas
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          // Fallback if 2d context is unavailable
-          resolve({
-            dataUrl: rawDataUrl,
-            originalSize: file.size,
-            compressedSize: rawDataUrl.length,
-            width,
-            height,
-            mimeType: file.type || 'image/jpeg',
-          });
+          readFileAsDataUrl(file).then(rawUrl => {
+            resolve({
+              dataUrl: rawUrl,
+              originalSize: file.size,
+              compressedSize: rawUrl.length,
+              width,
+              height,
+              mimeType: file.type || 'image/jpeg',
+            });
+          }).catch(reject);
           return;
         }
 
-        // Clean background for transparency conversion
         ctx.fillStyle = '#121212';
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
@@ -252,15 +367,41 @@ export async function processLocalImageFile(
           mimeType: 'image/jpeg',
         });
       } catch (err) {
-        reject(err instanceof Error ? err : new Error('Fehler bei der Bildkomprimierung.'));
+        readFileAsDataUrl(file).then(rawUrl => {
+          resolve({
+            dataUrl: rawUrl,
+            originalSize: file.size,
+            compressedSize: rawUrl.length,
+            width: 1200,
+            height: 800,
+            mimeType: file.type || 'image/jpeg',
+          });
+        }).catch(() => {
+          reject(err instanceof Error ? err : new Error('Fehler bei der Bildkomprimierung.'));
+        });
       }
     };
 
-    img.onerror = () => {
-      reject(new Error('Die Bilddatei konnte nicht geladen oder dekodiert werden.'));
+    img.onerror = async () => {
+      cleanup();
+      // Resilient fallback: If Image decode failed (e.g. WebKit memory or unknown header),
+      // try reading as data URL so the user is never blocked
+      try {
+        const rawUrl = await readFileAsDataUrl(file);
+        resolve({
+          dataUrl: rawUrl,
+          originalSize: file.size,
+          compressedSize: rawUrl.length,
+          width: 1200,
+          height: 800,
+          mimeType: file.type || 'image/jpeg',
+        });
+      } catch {
+        reject(new Error('Die Bilddatei konnte nicht geladen oder dekodiert werden.'));
+      }
     };
 
-    img.src = rawDataUrl;
+    img.src = srcUrl;
   });
 }
 
@@ -274,14 +415,31 @@ export async function processUploadedImage(file: File): Promise<string> {
 
 /**
  * Captures the current frame of an active HTMLVideoElement into a compressed JPEG Data URL.
+ * Validates video availability and ensures proper aspect ratio preservation.
  */
 export function captureVideoFrame(
   video: HTMLVideoElement,
   maxDimension = 1600,
   quality = 0.85
 ): string {
-  let width = video.videoWidth || 1280;
-  let height = video.videoHeight || 720;
+  if (!video) {
+    throw new Error('Kein Video-Element für die Aufnahme vorhanden.');
+  }
+
+  let width = video.videoWidth;
+  let height = video.videoHeight;
+
+  // If video dimensions not yet exposed (e.g. readyState < 2 or mocked in tests),
+  // fallback to client dimensions or standard 1280x720 video resolution
+  if (!width || !height) {
+    if (video.clientWidth > 0 && video.clientHeight > 0) {
+      width = video.clientWidth;
+      height = video.clientHeight;
+    } else {
+      width = 1280;
+      height = 720;
+    }
+  }
 
   if (width > maxDimension || height > maxDimension) {
     if (width > height) {
@@ -314,5 +472,25 @@ export function isCameraSupported(): boolean {
     !!navigator.mediaDevices &&
     typeof navigator.mediaDevices.getUserMedia === 'function'
   );
+}
+
+/**
+ * Derives a clean, readable sector name from an uploaded file name.
+ * e.g. "Wettkampfwand_Vorne.jpg" -> "Wettkampfwand Vorne"
+ */
+export function cleanFileNameToSectorName(fileName: string, fallbackIndex?: number): string {
+  if (!fileName) {
+    return fallbackIndex !== undefined ? `Sektor ${fallbackIndex}` : 'Neuer Sektor';
+  }
+  const withoutExt = fileName.replace(/\.[^/.]+$/, '');
+  const cleaned = withoutExt.replace(/[_\-.]+/g, ' ').trim();
+  if (cleaned.length === 0) {
+    return fallbackIndex !== undefined ? `Sektor ${fallbackIndex}` : 'Neuer Sektor';
+  }
+  // If it's something like "IMG 1234" or "PXL 2026", provide a friendlier name if index given
+  if (/^(img|pxl|dsc|photo|image)[\s\d]+$/i.test(cleaned) && fallbackIndex !== undefined) {
+    return `Sektor ${fallbackIndex} (${cleaned})`;
+  }
+  return cleaned;
 }
 

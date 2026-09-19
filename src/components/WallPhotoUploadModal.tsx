@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   WALL_PRESETS,
   WallPreset,
@@ -24,6 +24,7 @@ interface WallPhotoUploadModalProps {
   isOpen: boolean;
   sectorName: string;
   currentPhotoUrl?: string;
+  initialTab?: 'camera' | 'upload' | 'presets' | 'url';
   onClose: () => void;
   onPhotoSelected: (photoUrl: string) => void;
 }
@@ -32,11 +33,13 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
   isOpen,
   sectorName,
   currentPhotoUrl,
+  initialTab = 'camera',
   onClose,
   onPhotoSelected,
 }) => {
-  const [activeTab, setActiveTab] = useState<'camera' | 'upload' | 'presets' | 'url'>('upload');
+  const [activeTab, setActiveTab] = useState<'camera' | 'upload' | 'presets' | 'url'>(initialTab);
   const [selectedPhoto, setSelectedPhoto] = useState<string>(currentPhotoUrl || (WALL_PRESETS[0]?.url || ''));
+  const [isNewCapture, setIsNewCapture] = useState<boolean>(false);
   const [urlInput, setUrlInput] = useState<string>('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -50,12 +53,41 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [shutterFlash, setShutterFlash] = useState<boolean>(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const stopCamera = () => {
+  // Callback ref to instantly bind active stream as soon as <video> mounts into DOM
+  const handleVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      try {
+        if (node.srcObject !== streamRef.current) {
+          node.srcObject = streamRef.current;
+        }
+        node.play().catch(() => {});
+      } catch (e) {
+        // Autoplay may be restricted before user gesture
+      }
+    }
+  }, []);
+
+  // Sync effect when camera state or stream changes (SPEC-017 AC-2)
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      try {
+        if (videoRef.current.srcObject !== streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+        }
+        videoRef.current.play().catch(() => {});
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }, [isCameraActive]);
+
+  const stopCamera = useCallback(() => {
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach(track => {
@@ -70,7 +102,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
       videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
-  };
+  }, []);
 
   const startCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
     setCameraError(null);
@@ -78,22 +110,53 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
 
     try {
       if (!isCameraSupported()) {
-        throw new Error('Kamerazugriff im aktuellen Browser nicht verfügbar. Bitte nutze die System-Kamera oder lade eine Bilddatei hoch.');
+        throw new Error(
+          'Kamerazugriff (WebRTC) im aktuellen Browser nicht verfügbar oder ungesicherte HTTP-Verbindung. Bitte nutze die Handy-Kamera oder den Datei-Upload.'
+        );
       }
 
       // Stop previous tracks if running
       stopCamera();
 
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: facing },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      };
+      let stream: MediaStream | null = null;
+      let lastErr: any = null;
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // 1. Primary attempt: Ideal 1080p resolution and requested facingMode
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        });
+      } catch (err1) {
+        lastErr = err1;
+        // 2. Secondary fallback: Simplified facingMode without strict resolutions
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing },
+            audio: false,
+          });
+        } catch (err2) {
+          lastErr = err2;
+          // 3. Tertiary fallback: Any available video device
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
+          } catch (err3) {
+            lastErr = err3;
+          }
+        }
+      }
+
+      if (!stream) {
+        throw lastErr || new Error('Kamera konnte nicht initialisiert werden.');
+      }
+
       streamRef.current = stream;
       setIsCameraActive(true);
 
@@ -104,9 +167,11 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
     } catch (err: any) {
       setIsCameraActive(false);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('Kamerazugriff verweigert. Bitte erlaube den Kamerazugriff in deinen Browser-Einstellungen oder nutze den Button "System-Kamera öffnen".');
+        setCameraError(
+          'Kamerazugriff wurde im Browser verweigert. Bitte erlaube den Kamerazugriff in den Browsereinstellungen oder nutze den Button "Handy-Kamera öffnen".'
+        );
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setCameraError('Keine Kamera am Gerät gefunden. Nutze die System-Kamera oder den Datei-Upload.');
+        setCameraError('Keine Kamera am Gerät gefunden. Nutze die Handy-Kamera oder den Datei-Upload.');
       } else {
         setCameraError(err.message || 'Kamera konnte nicht gestartet werden.');
       }
@@ -115,14 +180,12 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
     }
   };
 
-  // Switch camera facing mode
+  // Switch camera facing mode (SPEC-017 AC-5)
   const handleToggleFacingMode = () => {
-    const nextFacing = cameraFacingMode === 'environment' ? 'user' : 'environment';
-    setCameraFacingMode(nextFacing);
-    startCamera(nextFacing);
+    setCameraFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'));
   };
 
-  // Capture frame from active camera stream
+  // Capture frame from active camera stream (SPEC-017 AC-4, AC-6)
   const handleCapturePhoto = () => {
     if (!videoRef.current) return;
     try {
@@ -131,19 +194,20 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
 
       const dataUrl = captureVideoFrame(videoRef.current, 1600, 0.85);
       if (!dataUrl) {
-        throw new Error('Konnte kein Bild vom Live-Sucher aufnehmen.');
+        throw new Error('Konnte kein Bild vom Live-Sucher aufnehmen. Bitte erneut versuchen oder die Handy-Kamera nutzen.');
       }
 
       setSelectedPhoto(dataUrl);
+      setIsNewCapture(true);
       const timeStr = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setFileName(`Kamerafoto_${timeStr}.jpg`);
+      setFileName(`Kameraaufnahme_${timeStr}.jpg`);
       stopCamera();
     } catch (err: any) {
       setErrorMessage(err.message || 'Fehler bei der Aufnahme.');
     }
   };
 
-  // Native mobile camera input handler
+  // Native mobile camera input handler (SPEC-017 AC-3)
   const handleCameraFileCapture = async (file: File) => {
     if (!file) return;
     setIsProcessing(true);
@@ -151,13 +215,27 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
     try {
       const dataUrl = await processUploadedImage(file);
       setSelectedPhoto(dataUrl);
+      setIsNewCapture(true);
       setFileName(`${file.name || 'Kameraaufnahme.jpg'} (${(file.size / 1024).toFixed(0)} KB)`);
+      stopCamera();
     } catch (err: any) {
       setErrorMessage(err.message || 'Fehler beim Verarbeiten des Fotos.');
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // Reset tab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+      setSelectedPhoto(currentPhotoUrl || (WALL_PRESETS[0]?.url || ''));
+      setIsNewCapture(false);
+      setFileName(null);
+      setErrorMessage(null);
+      setCameraError(null);
+    }
+  }, [isOpen, initialTab, currentPhotoUrl]);
 
   // Lifecycle for camera stream
   useEffect(() => {
@@ -169,7 +247,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
     return () => {
       stopCamera();
     };
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, cameraFacingMode]);
 
   if (!isOpen) return null;
 
@@ -335,14 +413,75 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                 }}
               />
 
-              {isCameraActive ? (
+              {isNewCapture && selectedPhoto && !isCameraActive ? (
+                /* Captured Photo Review & Instant Confirmation Card (SPEC-017 AC-4) */
+                <div className="space-y-4">
+                  <div className="relative w-full aspect-video sm:aspect-[16/9] bg-black rounded-none overflow-hidden border border-[#C9A96E]/60 shadow-lg">
+                    <img
+                      src={selectedPhoto}
+                      alt="Aufgenommenes Wandfoto"
+                      className="w-full h-full object-contain"
+                      data-testid="captured-photo-preview"
+                    />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 bg-black/80 border border-[#C9A96E] text-[#C9A96E] text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+                      <Check className="w-3.5 h-3.5 text-[#C9A96E]" />
+                      <span>{fileName ? `✓ ${fileName}` : '✓ Foto aufgenommen'}</span>
+                    </div>
+                  </div>
+
+                  {/* Instant Confirmation / Retake Action Bar (SPEC-017 AC-4) */}
+                  <div className="p-3 bg-[#121212] border border-[#333333] space-y-2.5">
+                    <p className="text-xs font-mono text-[#A89F91]">
+                      Wandfoto prüfen: Ist die Wand vollständig und scharf abgebildet?
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleConfirm}
+                        disabled={isProcessing}
+                        className="flex-1 py-3 px-4 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs rounded-[2px] tracking-wider flex items-center justify-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
+                        data-testid="instant-confirm-photo-btn"
+                      >
+                        <Check className="w-4 h-4 text-[#121212]" />
+                        <span>Dieses Foto verwenden</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPhoto('');
+                          setIsNewCapture(false);
+                          setFileName(null);
+                          startCamera(cameraFacingMode);
+                        }}
+                        className="py-2.5 px-4 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] font-mono text-xs border border-[#333333] rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        data-testid="instant-retake-photo-btn"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <span>Foto wiederholen</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="py-2.5 px-3 bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] font-mono text-xs border border-[#333333] rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        title="Mit Handy-Kamera neu aufnehmen"
+                      >
+                        <Smartphone className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <span className="sm:hidden">Handy-Kamera</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : isCameraActive ? (
                 <div className="relative w-full h-72 sm:h-80 bg-black rounded-none overflow-hidden border border-[#333333]">
                   <video
-                    ref={videoRef}
+                    ref={handleVideoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-black"
                     data-testid="camera-video-viewfinder"
                   />
 
@@ -356,17 +495,29 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                     <div className="flex items-center justify-between pointer-events-auto">
                       <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/75 border border-[#C9A96E]/50 text-[#C9A96E] text-[10px] font-mono uppercase tracking-wider">
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        Live-Sucher
+                        Live-Sucher ({cameraFacingMode === 'environment' ? 'Rückkamera' : 'Frontkamera'})
                       </span>
 
-                      <button
-                        type="button"
-                        onClick={handleToggleFacingMode}
-                        className="p-1.5 rounded-none bg-black/75 hover:bg-black text-[#E8E0D4] border border-[#333333] transition"
-                        title="Kamera wechseln"
-                      >
-                        <SwitchCamera className="w-4 h-4 text-[#C9A96E]" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="p-1.5 rounded-none bg-black/75 hover:bg-black text-[#E8E0D4] border border-[#333333] transition flex items-center gap-1 text-[10px] font-mono cursor-pointer"
+                          title="Native Handy-Kamera öffnen"
+                        >
+                          <Smartphone className="w-3.5 h-3.5 text-[#C9A96E]" />
+                          <span className="hidden sm:inline">Handy-Kamera</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleToggleFacingMode}
+                          className="p-1.5 rounded-none bg-black/75 hover:bg-black text-[#E8E0D4] border border-[#333333] transition cursor-pointer"
+                          title="Kamera wechseln"
+                          data-testid="toggle-camera-facing-btn"
+                        >
+                          <SwitchCamera className="w-4 h-4 text-[#C9A96E]" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-center">
@@ -385,7 +536,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                     <button
                       type="button"
                       onClick={handleCapturePhoto}
-                      className="group flex items-center gap-2 px-5 py-2.5 rounded-none bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs shadow-lg transition border border-[#121212]"
+                      className="group flex items-center gap-2 px-6 py-3 rounded-none bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs shadow-lg transition border border-[#121212] cursor-pointer"
                       data-testid="capture-photo-button"
                     >
                       <Camera className="w-4 h-4 text-[#121212] group-hover:scale-110 transition-transform" />
@@ -421,7 +572,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                       type="button"
                       onClick={() => startCamera(cameraFacingMode)}
                       disabled={isStartingCamera}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] rounded-none font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50"
+                      className="w-full sm:w-auto px-5 py-3 bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] rounded-none font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-md"
                       data-testid="start-camera-button"
                     >
                       <Camera className="w-4 h-4" />
@@ -431,36 +582,13 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                     <button
                       type="button"
                       onClick={() => cameraInputRef.current?.click()}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] rounded-none font-mono text-xs flex items-center justify-center gap-2 transition"
+                      className="w-full sm:w-auto px-5 py-3 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#C9A96E]/40 rounded-none font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
                       data-testid="open-system-camera-button"
                     >
                       <Smartphone className="w-4 h-4 text-[#C9A96E]" />
                       <span>System-Kamera öffnen</span>
                     </button>
                   </div>
-                </div>
-              )}
-
-              {/* Option to retake if photo already selected */}
-              {selectedPhoto && !isCameraActive && (
-                <div className="flex items-center justify-between pt-1">
-                  {fileName && (
-                    <span className="text-xs font-mono text-[#C9A96E] bg-[#2A2A2A] border border-[#333333] px-2.5 py-1 rounded-none">
-                      ✓ {fileName}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedPhoto('');
-                      setFileName(null);
-                      startCamera(cameraFacingMode);
-                    }}
-                    className="text-xs font-mono text-[#C9A96E] hover:underline flex items-center gap-1.5 ml-auto"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Foto wiederholen (Erneut fotografieren)</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -472,7 +600,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
+                accept="image/*,.heic,.heif,.HEIC,.HEIF"
                 className="hidden"
                 onChange={e => {
                   if (e.target.files && e.target.files[0]) {
@@ -584,8 +712,8 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
             </div>
           )}
 
-          {/* Live Preview */}
-          {selectedPhoto && (
+          {/* Live Preview (For upload, presets, or url tabs) */}
+          {selectedPhoto && activeTab !== 'camera' && (
             <div className="pt-2">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-headline font-bold uppercase tracking-wider text-[#A89F91]">

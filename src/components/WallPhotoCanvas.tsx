@@ -16,6 +16,7 @@ import {
   BoxSelect,
   Check,
   Edit3,
+  Star,
 } from 'lucide-react';
 
 export interface WallPhotoCanvasProps {
@@ -773,6 +774,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                 const isFlash = userAscent?.type === 'flash';
                 const isTop = userAscent?.type === 'top';
                 const isProject = userAscent?.type === 'project';
+                const isFiveStar = Boolean(stats && stats.avgStars >= 4.8 && stats.totalRatings >= 1);
                 const isFavorite = Boolean(stats && stats.avgStars >= 4.2 && stats.totalRatings >= 1);
                 const isDimmed =
                   filterMode !== 'all' && filteredBoulderIds && !filteredBoulderIds.has(boulder.id);
@@ -812,27 +814,39 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                       {/* Pulse Ring / Favorite Sandstone Aura */}
                       <span
                         className={`absolute -inset-1.5 rounded-full pointer-events-none ${
-                          isFavorite
+                          isFiveStar
+                            ? 'ring-2 ring-[#C9A96E] opacity-95 animate-pulse bg-[#C9A96E]/30'
+                            : isFavorite
                             ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
                             : 'opacity-75 animate-ping'
                         }`}
-                        style={{ backgroundColor: isFavorite ? '#C9A96E' : colorHex }}
+                        style={{ backgroundColor: isFiveStar || isFavorite ? '#C9A96E' : colorHex }}
                       />
 
                       {/* Main Pin Disc (SPEC-005: 50% circle) */}
                       <div
-                        className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md"
+                        className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md ${
+                          isFiveStar ? 'ring-2 ring-[#C9A96E]' : ''
+                        }`}
                         style={{ backgroundColor: colorHex }}
                       >
-                        {/* Favorite Micro Star/Sparkle Badge */}
-                        {isFavorite && (
+                        {/* 5-Star Floating Mini-Badge (AC-18) */}
+                        {isFiveStar ? (
+                          <span
+                            className="absolute -top-3 -right-2 px-1 py-0.2 bg-[#C9A96E] text-[#121212] rounded-none border border-[#121212] text-[8px] font-mono font-black flex items-center gap-0.5 shadow-md z-30"
+                            title={`5.0 Hallen-Klassiker (${stats?.avgStars.toFixed(1)} ★)`}
+                          >
+                            <span>5.0</span>
+                            <Star className="w-2 h-2 fill-[#121212] text-[#121212]" />
+                          </span>
+                        ) : isFavorite ? (
                           <span
                             className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
                             title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
                           >
                             <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
                           </span>
-                        )}
+                        ) : null}
 
                         {/* Status Icon Indicator */}
                         {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}

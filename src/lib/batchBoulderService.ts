@@ -295,7 +295,13 @@ export function getSectorById(sectorId: string): Sector | null {
   const gyms = getGyms();
   for (const gym of gyms) {
     const sectors = getSectors(gym.id);
-    const found = sectors.find(s => s.id === sectorId);
+    const found = sectors.find(s =>
+      s.id === sectorId ||
+      (SECTOR_ALIAS_MAP[sectorId] && s.id === SECTOR_ALIAS_MAP[sectorId]) ||
+      (SECTOR_ALIAS_MAP[s.id] && SECTOR_ALIAS_MAP[s.id] === sectorId) ||
+      stringToUuid(s.id) === sectorId ||
+      stringToUuid(sectorId) === s.id
+    );
     if (found) return found;
   }
   return null;
@@ -585,7 +591,7 @@ export function getWallBoulders(sectorId?: string): WallBoulder[] {
         }
       } catch {}
     }
-    return all.filter(b => altIds.has(b.sectorId));
+    return all.filter(b => altIds.has(b.sectorId) || (SECTOR_ALIAS_MAP[b.sectorId] && altIds.has(SECTOR_ALIAS_MAP[b.sectorId])) || altIds.has(stringToUuid(b.sectorId)));
   }
   return all;
 }
@@ -912,7 +918,19 @@ export function publishBatch(
   });
 
   saveWallBoulders(updated);
-  syncBridge.syncBoulders(updated);
+
+  const affectedBoulders = updated.filter(b => publishedBoulderIds.includes(b.id) || archivedBoulderIds.includes(b.id));
+  if (affectedBoulders.length > 0) {
+    syncBridge.syncBoulders(affectedBoulders);
+  } else {
+    syncBridge.syncBoulders(updated);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+      detail: { action: 'batch_published', sectorId, count: publishedBoulderIds.length }
+    }));
+  }
 
   return {
     sectorId,

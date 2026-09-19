@@ -1,6 +1,7 @@
 import { Boulder, BoulderInput, BoulderFilterOptions, BoulderStats } from '../types/boulder';
 import { getGradeScore, fontToVGrade, isValidGrade } from './gradeConverter';
 import { getStorageJson, setStorageJson } from './storageUtils';
+import { syncBridge } from './syncBridge';
 
 const STORAGE_KEY = 'boulder_app_records_v1';
 
@@ -64,6 +65,11 @@ export function getStoredBoulders(): Boulder[] {
 
 export function saveStoredBoulders(boulders: Boulder[]): void {
   setStorageJson(STORAGE_KEY, boulders);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:climber_routes_updated', {
+      detail: { count: boulders.length }
+    }));
+  }
 }
 
 export function createBoulder(input: BoulderInput): Boulder {
@@ -90,6 +96,7 @@ export function createBoulder(input: BoulderInput): Boulder {
 
   const existing = getStoredBoulders();
   saveStoredBoulders([newBoulder, ...existing]);
+  syncBridge.syncClimberRoute(newBoulder);
   return newBoulder;
 }
 
@@ -121,6 +128,7 @@ export function updateBoulder(id: string, input: BoulderInput): Boulder {
 
   existing[index] = updated;
   saveStoredBoulders(existing);
+  syncBridge.syncClimberRoute(updated);
   return updated;
 }
 
@@ -129,6 +137,7 @@ export function deleteBoulder(id: string): boolean {
   const filtered = existing.filter(b => b.id !== id);
   if (filtered.length !== existing.length) {
     saveStoredBoulders(filtered);
+    syncBridge.deleteClimberRoute(id);
     return true;
   }
   return false;

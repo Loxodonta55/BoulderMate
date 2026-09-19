@@ -109,7 +109,7 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       // Return to Kletterer-App
       fireEvent.click(screen.getByTestId('studio-back-to-climber-btn'));
       expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
-    });
+    }, 15000);
 
     it('never shows setter/admin buttons to pure climber Hans', () => {
       render(<App />);

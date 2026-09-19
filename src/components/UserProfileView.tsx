@@ -92,6 +92,17 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
     }
   }, [boulders]);
 
+  useEffect(() => {
+    const handleRoutesUpdated = () => {
+      setLocalBoulders(getStoredBoulders());
+      setVersion(v => v + 1);
+    };
+    window.addEventListener('bouldermate:climber_routes_updated', handleRoutesUpdated);
+    return () => {
+      window.removeEventListener('bouldermate:climber_routes_updated', handleRoutesUpdated);
+    };
+  }, []);
+
   const handleDataChanged = () => {
     setLocalBoulders(getStoredBoulders());
     setVersion(v => v + 1);

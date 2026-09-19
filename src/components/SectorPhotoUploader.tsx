@@ -109,7 +109,7 @@ export const SectorPhotoUploader: React.FC<SectorPhotoUploaderProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
+        accept="image/*,.heic,.heif,.HEIC,.HEIF"
         onChange={handleInputChange}
         className="hidden"
       />

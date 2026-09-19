@@ -8,3 +8,6 @@ dist
 .agent/mcp_config.json
 Bilder6aPlus/
 src/data/*.json
+playwright-report/
+test-results/
+

@@ -18,7 +18,7 @@ import {
 import { GradeScaleConfig } from './GradeScaleConfig';
 import { SectorManager } from './SectorManager';
 import { getProfiles } from '../lib/profileService';
-import { syncGymMemberToSupabase, removeGymMemberFromSupabase } from '../lib/syncService';
+import { syncGymMemberToSupabase, removeGymMemberFromSupabase, syncFromSupabase } from '../lib/syncService';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { Building2, Search, Plus, MapPin, Globe, Shield, X, Users, UserCheck, Trash2, Compass } from 'lucide-react';
 
@@ -94,6 +94,30 @@ export const GymManagement: React.FC<GymManagementProps> = ({
   useEffect(() => {
     refreshData();
   }, [searchQuery]);
+
+  // SPEC-019: Reaktive Event-Listener für Live-Sektor- und Hallen-Updates aus Supabase & Lokalem Cache
+  useEffect(() => {
+    const handleUpdate = () => {
+      refreshData();
+    };
+    window.addEventListener('bouldermate:sectors_updated', handleUpdate);
+    window.addEventListener('bouldermate:gyms_updated', handleUpdate);
+    window.addEventListener('bouldermate:boulders_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('bouldermate:sectors_updated', handleUpdate);
+      window.removeEventListener('bouldermate:gyms_updated', handleUpdate);
+      window.removeEventListener('bouldermate:boulders_updated', handleUpdate);
+    };
+  }, [searchQuery, selectedGymId, activeGymId]);
+
+  // SPEC-019: Beim Mounten leisen Hintergrund-Sync aus Supabase anstoßen
+  useEffect(() => {
+    syncFromSupabase().then((synced) => {
+      if (synced) {
+        refreshData();
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleSelectGym = (id: string) => {
     setSelectedGymId(id);
@@ -278,7 +302,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
       {selectedGym ? (
         <div className="space-y-4">
           {/* Gym Header Banner */}
-          <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-3.5 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#E8E0D4] font-bold shrink-0">
                 {selectedGym.logo_url ? (
@@ -321,11 +345,11 @@ export const GymManagement: React.FC<GymManagementProps> = ({
             </div>
 
             {/* View Tabs */}
-            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-auto">
-              <div className="flex bg-[#121212] p-1 rounded-none border border-[#333333] text-xs font-headline uppercase tracking-wider">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-auto w-full md:w-auto">
+              <div className="flex bg-[#121212] p-1 rounded-none border border-[#333333] text-xs font-headline uppercase tracking-wider overflow-x-auto no-scrollbar max-w-full">
                 <button
                   onClick={() => setActiveTab('sectors')}
-                  className={`px-3.5 py-1.5 rounded-[2px] font-bold transition-all ${
+                  className={`px-3 sm:px-3.5 py-1.5 rounded-[2px] font-bold transition-all whitespace-nowrap ${
                     activeTab === 'sectors' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
                   }`}
                 >
@@ -335,7 +359,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                   <>
                     <button
                       onClick={() => setActiveTab('grading')}
-                      className={`px-3.5 py-1.5 rounded-[2px] font-bold transition-all ${
+                      className={`px-3 sm:px-3.5 py-1.5 rounded-[2px] font-bold transition-all whitespace-nowrap ${
                         activeTab === 'grading' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
                       }`}
                     >
@@ -343,7 +367,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({
                     </button>
                     <button
                       onClick={() => setActiveTab('team')}
-                      className={`px-3.5 py-1.5 rounded-[2px] font-bold transition-all ${
+                      className={`px-3 sm:px-3.5 py-1.5 rounded-[2px] font-bold transition-all whitespace-nowrap ${
                         activeTab === 'team' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
                       }`}
                     >

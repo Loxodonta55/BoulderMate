@@ -600,11 +600,12 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         onConfirmPublish={handlePublishBatch}
       />
 
-      {/* Update Sector Photo Dialog with File Upload & Presets (AC-2) */}
+      {/* Update Sector Photo Dialog with File Upload & Presets (AC-2, SPEC-017) */}
       <WallPhotoUploadModal
         isOpen={isPhotoModalOpen}
         sectorName={selectedSector?.name || ''}
         currentPhotoUrl={selectedSector?.wallPhotoUrl}
+        initialTab="camera"
         onClose={() => setIsPhotoModalOpen(false)}
         onPhotoSelected={handlePhotoSelected}
       />

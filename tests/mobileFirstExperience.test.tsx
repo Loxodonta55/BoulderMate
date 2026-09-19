@@ -189,6 +189,60 @@ describe('Mobile-First Experience Test Suite', () => {
     expect(onRefresh).toHaveBeenCalled();
   });
 
+  it('5b) Mobiler Neuer-Sektor-Button: immer im Portrait- & Landscape-Modus sichtbar und bedienbar', () => {
+    const gymId = 'gym-new-sector-test';
+    const s1: Sector & { active_boulder_count: number } = {
+      id: 'sec-1',
+      gym_id: gymId,
+      name: 'Eingang',
+      wall_photo_url: '/1.jpg',
+      sort_order: 1,
+      created_at: '',
+      active_boulder_count: 2,
+    };
+
+    const { rerender } = render(
+      <SectorManager
+        gymId={gymId}
+        userId={CURRENT_USER.id}
+        isAdmin={true}
+        sectors={[s1]}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    // Neuer Sektor button exists and has responsive classes
+    const addSectorBtn = screen.getByTestId('add-sector-btn');
+    expect(addSectorBtn).toBeInTheDocument();
+    expect(addSectorBtn).toHaveTextContent(/Neuer Sektor/i);
+    expect(addSectorBtn.className).toContain('whitespace-nowrap');
+
+    // Clicking it opens the form
+    fireEvent.click(addSectorBtn);
+    expect(screen.getByText(/Neuen Sektor im Topo anlegen/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/z\.B\. Wettkampfwand/i)).toBeInTheDocument();
+
+    // Cancel form
+    fireEvent.click(screen.getByText('Abbrechen'));
+    expect(screen.queryByText(/Neuen Sektor im Topo anlegen/i)).not.toBeInTheDocument();
+
+    // Empty state also provides add sector button
+    rerender(
+      <SectorManager
+        gymId={gymId}
+        userId={CURRENT_USER.id}
+        isAdmin={true}
+        sectors={[]}
+        onRefresh={vi.fn()}
+      />
+    );
+
+    const emptyAddBtn = screen.getByTestId('empty-add-sector-btn');
+    expect(emptyAddBtn).toBeInTheDocument();
+    fireEvent.click(emptyAddBtn);
+    expect(screen.getByText(/Neuen Sektor im Topo anlegen/i)).toBeInTheDocument();
+  });
+
   it('6) Schnelle Interaktion: BoulderDetailModal schließt sofort nach Bewertungsabgabe & Überspringen', () => {
     const handleClose = vi.fn();
     const handleDataChanged = vi.fn();

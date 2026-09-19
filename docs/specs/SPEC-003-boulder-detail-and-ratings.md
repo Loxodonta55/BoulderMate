@@ -71,6 +71,19 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
 - [x] **AC-17: Bidirektionale Fake-User & UUID-Harmonisierung**:
   - Test- und Demo-Personas (`user-boris`, `hans-kletterer`, etc.) werden beim Supabase-Sync deterministisch auf UUIDs gemappt und beim Laden wieder sauber mit ihren Nicknames und Profilen aufgelöst (kein anonymer Fallback auf "Kletterer").
   - Ratings und Ascents werden über den zusammengesetzten Primärschlüssel `(boulderId, userId)` sauber dedupliziert.
+- [x] **AC-18: Mobile Hero Score Box & 5-Sterne King-Line Highlight (Vorschlag 1)**:
+  - **Erkennbarkeit auf Mobile**:
+    - Auf mobilen Geräten und in der Routen-Kartenliste (`ClimberSectorView`) besitzen Routen oben rechts eine markante **Hero Score Box** für sofortige Erfassbarkeit beim Daumenscrollen.
+    - Bewertete Routen zeigen den Schnitt in fetter Typografie (z.B. `4.2 ★`) und darunter kompakt die Stimmenzahl (z.B. `5 Votes`).
+    - Unbewertete Routen (0 Wertungen) zeigen einen motivierenden Call-to-Action Stempel (`+ Bewerten / 0 Wertung`), der Kletterer einlädt, die erste Wertung abzugeben.
+  - **5-Sterne Highlight ("King Lines" / Hallen-Klassiker)**:
+    - Bouldern mit einer Höchstwertung ($\ge 4.8$ bzw. $5.0$ Sterne bei mindestens 1 Wertung) wird eine herausgehobene Sonderstellung zuteil:
+      1. **Massive Gold-Hero-Plakette** rechts oben (`bg-[#C9A96E] text-[#121212]` mit fetter Ziffer `5.0 ★`).
+      2. **Visuelle Schärpe (Ribbon/Badge)** links oben: `★ 5.0 HALLEN-KLASSIKER`.
+      3. **Goldener 2px-Rahmen (`border-[#C9A96E]`) mit dezentem warmem Gold-Glow (`gold-glow` Animation)**.
+      4. **Footer-Leiste**: Volle 5-Sterne-Reihe `★★★★★` mit dem Label `100% Empfehlung` und sichtbarer Wertungsanzahl.
+  - **Touchpoint Wandfoto (Pins)**:
+    - 5-Sterne Boulder am Wandfoto (`WallPhotoCanvas`) erhalten einen schwebenden Mini-Badge (`5.0 ★`), eine verstärkte Gold-Aura (`ring-2 ring-[#C9A96E] animate-pulse`) und heben sich direkt an der Wand als Meisterwerke ab.
 
 ## Technical Design
 

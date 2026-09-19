@@ -741,16 +741,32 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                     projectsCount: 0,
                     gradeFeelPercentages: { soft: 0, fair: 0, stiff: 0 }
                   };
+                  const isFiveStar = stats.avgStars >= 4.8 && stats.totalRatings >= 1;
                   const isFavorite = stats.avgStars >= 4.2 && stats.totalRatings >= 1;
 
                   return (
                     <div
                       key={boulder.id}
                       onClick={() => setSelectedBoulder(boulder)}
-                      className={`p-4 rounded-none bg-[#1E1E1E] border transition cursor-pointer flex flex-col justify-between group ${
-                        isFavorite ? 'border-[#C9A96E]/50 hover:border-[#C9A96E]' : 'border-[#333333] hover:border-[#8B8680]'
+                      className={`p-4 rounded-none bg-[#1E1E1E] transition cursor-pointer flex flex-col justify-between group relative ${
+                        isFiveStar
+                          ? 'border-2 border-[#C9A96E] gold-glow hover:border-[#F5F0E8]'
+                          : isFavorite
+                          ? 'border border-[#C9A96E]/50 hover:border-[#C9A96E]'
+                          : 'border border-[#333333] hover:border-[#8B8680]'
                       }`}
                     >
+                      {/* Top Ribbon Badge for 5.0 King Lines (SPEC-003 AC-18) */}
+                      {isFiveStar && (
+                        <div
+                          data-testid="five-star-ribbon"
+                          className="absolute -top-3 left-4 bg-[#C9A96E] text-[#121212] px-2.5 py-0.5 text-[10px] font-headline font-bold uppercase tracking-wider shadow-md flex items-center gap-1 z-10"
+                        >
+                          <Star className="w-2.5 h-2.5 fill-[#121212] text-[#121212]" />
+                          <span>5.0 HALLEN-KLASSIKER</span>
+                        </div>
+                      )}
+
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -769,24 +785,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Top-Right Badges: Rating & Ascent Status */}
+                          {/* Top-Right Badges: Hero Rating Badge & Ascent Status */}
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Compact Rating Tag (AC-10 & AC-11) */}
-                            {stats.totalRatings > 0 && (
-                              <span
-                                className={`px-2 py-0.5 rounded-none text-[10px] font-mono font-bold flex items-center gap-1 border ${
-                                  isFavorite
-                                    ? 'bg-[#C9A96E]/20 text-[#C9A96E] border-[#C9A96E]/40'
-                                    : 'bg-[#2A2A2A] text-[#E8E0D4] border-[#333333]'
-                                }`}
-                                title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} Wertungen)`}
-                              >
-                                <Star className="w-2.5 h-2.5 fill-current text-[#C9A96E]" />
-                                <span>{stats.avgStars.toFixed(1)}</span>
-                                {isFavorite && <Sparkles className="w-2.5 h-2.5 text-[#C9A96E]" />}
-                              </span>
-                            )}
-
                             {/* Ascent Badge */}
                             {userAscent?.type === 'flash' && (
                               <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
@@ -806,6 +806,50 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                                 <span>Projekt</span>
                               </span>
                             )}
+
+                            {/* Hero Score Badge (Vorschlag 1: Sofortige Mobile Erfassung) */}
+                            {isFiveStar ? (
+                              <div
+                                data-testid={`hero-score-${boulder.id}`}
+                                className="bg-[#C9A96E] text-[#121212] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[#F5F0E8]/50 shadow-md"
+                                title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
+                              >
+                                <div className="flex items-center gap-1 font-mono font-black text-sm leading-none">
+                                  <span>{stats.avgStars.toFixed(1)}</span>
+                                  <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                                </div>
+                                <span className="text-[9px] font-mono font-bold tracking-tight uppercase mt-0.5">
+                                  {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
+                                </span>
+                              </div>
+                            ) : stats.totalRatings > 0 ? (
+                              <div
+                                data-testid={`hero-score-${boulder.id}`}
+                                className="bg-[#2A2A2A] text-[#E8E0D4] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[#333333]"
+                                title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
+                              >
+                                <div className="flex items-center gap-1 font-mono font-bold text-xs leading-none text-[#C9A96E]">
+                                  <span>{stats.avgStars.toFixed(1)}</span>
+                                  <Star className="w-2.5 h-2.5 fill-[#C9A96E] text-[#C9A96E]" />
+                                </div>
+                                <span className="text-[9px] font-mono text-[#A89F91] mt-0.5">
+                                  {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                data-testid={`hero-score-${boulder.id}`}
+                                className="bg-[#181818] text-[#A89F91] px-2 py-1 flex flex-col items-center justify-center shrink-0 border border-dashed border-[#333333] group-hover:border-[#C9A96E]/50 transition"
+                                title="Noch nicht bewertet – sei der Erste!"
+                              >
+                                <span className="text-[10px] font-mono font-bold text-[#C9A96E] leading-none">
+                                  + Bewerten
+                                </span>
+                                <span className="text-[8px] font-mono text-[#6B6358] mt-0.5 uppercase">
+                                  0 Wertung
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -817,14 +861,27 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                       </div>
 
                       {/* Footer KPI of Route Card */}
-                      <div className="pt-3 mt-2 border-t border-[#333333] flex items-center justify-between text-xs font-mono text-[#A89F91]">
-                        <div className="flex items-center gap-1 text-[#C9A96E] font-bold">
-                          <Star className="w-3.5 h-3.5 fill-[#C9A96E]" />
-                          <span>{stats.avgStars > 0 ? stats.avgStars.toFixed(1) : '–'}</span>
-                          <span className="text-[10px] text-[#6B6358] font-normal">
-                            ({stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})
-                          </span>
-                        </div>
+                      <div className="pt-2.5 mt-2 border-t border-[#333333] flex items-center justify-between text-xs font-mono">
+                        {isFiveStar ? (
+                          <div className="flex items-center gap-1.5 text-[#C9A96E]">
+                            <span className="tracking-widest text-sm font-bold">★★★★★</span>
+                            <span className="text-[10px] text-[#E8E0D4] font-bold">
+                              100% Empfehlung ({stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})
+                            </span>
+                          </div>
+                        ) : stats.totalRatings > 0 ? (
+                          <div className="flex items-center gap-1 text-[#C9A96E] font-bold">
+                            <Star className="w-3.5 h-3.5 fill-[#C9A96E]" />
+                            <span>{stats.avgStars.toFixed(1)}</span>
+                            <span className="text-[10px] text-[#6B6358] font-normal">
+                              ({stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-[#6B6358]">
+                            <span className="text-[11px] italic">Noch keine Wertungen (0 Wertungen)</span>
+                          </div>
+                        )}
 
                         <span className="text-[11px] text-[#E8E0D4] flex items-center gap-1 group-hover:text-[#F5F0E8] transition font-semibold">
                           <span>Details & Log</span>

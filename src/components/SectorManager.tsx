@@ -3,6 +3,7 @@ import { Sector } from '../types/gym';
 import { createSector, reorderSectors, updateSectorWallPhoto, deleteSector } from '../lib/gymStorage';
 import { syncSectorOrderToSupabase } from '../lib/syncService';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
+import { BatchSectorModal } from './BatchSectorModal';
 import {
   Layers,
   Plus,
@@ -15,6 +16,7 @@ import {
   GripVertical,
   ArrowUpDown,
   Check,
+  Images,
 } from 'lucide-react';
 
 interface Props {
@@ -31,6 +33,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   const [newSectorPhoto, setNewSectorPhoto] = useState('/images/walls/overhang.jpg');
   const [activeUploadSector, setActiveUploadSector] = useState<Sector | null>(null);
   const [isUploadForNewSector, setIsUploadForNewSector] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const successTimerRef = React.useRef<any>(null);
@@ -173,37 +176,48 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   };
 
   return (
-    <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-[#333333] pb-3">
+    <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-3.5 sm:p-5 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#333333] pb-3">
         <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-[#C9A96E]" />
-          <h3 className="text-base font-bold text-[#E8E0D4] font-headline uppercase tracking-wider">
+          <Layers className="w-5 h-5 text-[#C9A96E] shrink-0" />
+          <h3 className="text-sm sm:text-base font-bold text-[#E8E0D4] font-headline uppercase tracking-wider">
             Sektoren & Wandbereiche (Topo-Tafeln)
           </h3>
         </div>
         {isAdmin && !isAdding && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
             {sectors.length > 1 && (
               <button
                 type="button"
                 onClick={() => setIsReorderMode(!isReorderMode)}
                 data-testid="toggle-reorder-mode-btn"
-                className={`px-3 py-1.5 text-xs font-headline uppercase tracking-wider rounded-[2px] transition-all flex items-center gap-1.5 border ${
+                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-headline uppercase tracking-wider rounded-[2px] transition-all flex items-center justify-center gap-1.5 border whitespace-nowrap ${
                   isReorderMode
                     ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold shadow-sm'
                     : 'bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
                 }`}
                 title="Sektor-Reihenfolge auf Smartphone oder Desktop anpassen"
               >
-                <ArrowUpDown className="w-3.5 h-3.5" />
+                <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
                 <span>{isReorderMode ? 'Kartenansicht' : 'Reihenfolge anpassen'}</span>
               </button>
             )}
             <button
-              onClick={() => setIsAdding(true)}
-              className="px-3.5 py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all flex items-center gap-1.5"
+              type="button"
+              onClick={() => setIsBatchModalOpen(true)}
+              data-testid="batch-add-sector-btn"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#C9A96E] hover:text-[#E8E0D4] border border-[#C9A96E]/50 rounded-[2px] transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+              title="Mehrere Sektoren auf einmal per Multi-Upload anlegen"
             >
-              <Plus className="w-3.5 h-3.5" /> Neuer Sektor
+              <Images className="w-3.5 h-3.5 shrink-0" /> Mehrere anlegen
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAdding(true)}
+              data-testid="add-sector-btn"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5 shrink-0" /> Neuer Sektor
             </button>
           </div>
         )}
@@ -226,8 +240,22 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
       {/* Add Sector Form */}
       {isAdding && (
         <form onSubmit={handleAddSector} className="p-4 bg-[#121212] border border-[#333333] rounded-none space-y-3">
-          <div className="font-bold text-xs text-[#E8E0D4] font-headline uppercase tracking-wider">
-            Neuen Sektor im Topo anlegen
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2A2A2A] pb-2">
+            <div className="font-bold text-xs text-[#E8E0D4] font-headline uppercase tracking-wider">
+              Neuen Sektor im Topo anlegen
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsAdding(false);
+                setIsBatchModalOpen(true);
+              }}
+              data-testid="switch-to-batch-modal-btn"
+              className="text-[11px] font-mono text-[#C9A96E] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            >
+              <Images className="w-3 h-3" />
+              <span>Mehrere Sektoren auf einmal anlegen? Zum Multi-Upload</span>
+            </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -268,17 +296,17 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#A89F91] rounded-[2px] text-xs font-headline uppercase tracking-wider"
+              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#A89F91] rounded-[2px] text-xs font-headline uppercase tracking-wider text-center"
             >
               Abbrechen
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-bold font-headline uppercase tracking-wider rounded-[2px] text-xs"
+              className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-bold font-headline uppercase tracking-wider rounded-[2px] text-xs text-center"
             >
               Sektor speichern
             </button>
@@ -557,8 +585,28 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
       </div>
 
       {sectors.length === 0 && (
-        <div className="text-center py-8 text-stone-500 text-xs font-mono italic">
-          Noch keine Sektoren angelegt. Lege jetzt den ersten Wandbereich an!
+        <div className="text-center py-8 text-stone-500 text-xs font-mono italic space-y-3">
+          <p>Noch keine Sektoren angelegt. Lege jetzt die ersten Wandbereiche an!</p>
+          {isAdmin && !isAdding && (
+            <div className="flex flex-wrap items-center justify-center gap-2.5 not-italic">
+              <button
+                type="button"
+                onClick={() => setIsBatchModalOpen(true)}
+                data-testid="empty-batch-add-sector-btn"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline uppercase tracking-wider bg-[#C9A96E] hover:bg-[#B8985D] text-[#121212] rounded-[2px] transition-all shadow-sm"
+              >
+                <Images className="w-3.5 h-3.5" /> Mehrere Sektoren auf einmal anlegen
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAdding(true)}
+                data-testid="empty-add-sector-btn"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Einzelnen Sektor anlegen
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -586,6 +634,20 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
           }}
         />
       )}
+
+      {/* SPEC-018: Batch Sector Creation Modal */}
+      <BatchSectorModal
+        isOpen={isBatchModalOpen}
+        gymId={gymId}
+        userId={userId}
+        existingSectorCount={sectors.length}
+        onClose={() => setIsBatchModalOpen(false)}
+        onSuccess={(count) => {
+          setSuccessMsg(`${count} ${count === 1 ? 'Sektor' : 'Sektoren'} erfolgreich angelegt!`);
+          setTimeout(() => setSuccessMsg(null), 3500);
+          onRefresh();
+        }}
+      />
     </div>
   );
 };

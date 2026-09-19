@@ -23,7 +23,8 @@ import {
   getComments,
   addComment,
   deleteComment,
-  isUserMatch
+  isUserMatch,
+  isBoulderMatch
 } from '../lib/ratingAndAscentService';
 import { syncBridge } from '../lib/syncBridge';
 import { useBackHandler } from '../hooks/useBackHandler';
@@ -101,14 +102,14 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   useEffect(() => {
     const handleRatingsUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
-      if (!customEvent.detail?.boulderId || customEvent.detail.boulderId === boulder.id) {
+      if (!customEvent.detail?.boulderId || isBoulderMatch(customEvent.detail.boulderId, boulder.id)) {
         setDataVersion(v => v + 1);
       }
     };
 
     const handleAscentsUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
-      if (!customEvent.detail?.boulderId || customEvent.detail.boulderId === boulder.id) {
+      if (!customEvent.detail?.boulderId || isBoulderMatch(customEvent.detail.boulderId, boulder.id)) {
         setDataVersion(v => v + 1);
       }
     };

@@ -271,4 +271,56 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
    - Deployments übertragen ausschließlich reinen Programmcode.
    - Es werden beim Deployment niemals automatische Daten-Push-Skripte gegen Supabase ausgeführt. Produktionsdaten dürfen weder überschrieben noch durch lokale Caches verfälscht werden.
 
+---
+
+## 13. Testkonzept & Automatisierte Qualitätssicherung (Playwright E2E & Mobile Data Sync Testing)
+
+> **Verbindliche Direktive**: Jedes Feature, das Daten schreibt, verändert oder synchronisiert, **MUSS zwingend durch automatisierte Playwright-E2E-Tests abgedeckt sein**. Reine Unit-Tests in JSDOM reichen für Datenübertragung, WebSockets und mobile Gerätelimitationen nicht aus.
+
+### 13.1 Die 5 Säulen des E2E-Testkonzepts
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│              E2E & MOBILE DATA SYNC TEST-ARCHITEKTUR                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. Dual-Device Realtime    │ Mobile (Pixel/iPhone) ↔ Desktop (Laptop)  │
+│ 2. Offline-Resilienz       │ context.setOffline(true/false) & Queue     │
+│ 3. Mobile OS Lifecycle     │ visibilitychange (Standby / Backgrounding) │
+│ 4. Contract & Network API  │ Interception von /rest/v1/ & WebSocket     │
+│ 5. Touch & Pin-Präzision   │ Echte Touch-Taps & relative Koordinaten    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Dual-Device / Multi-Context Testing (Mobile ↔ Desktop)**:
+   - Playwright steuert innerhalb eines einzigen Testlaufs zwei isolierte Browser-Instanzen parallel (Mobile Context mit touch/kleinem Viewport + Desktop Context).
+   - Eine Schreibaktion auf dem Smartphone (z. B. Sektor anlegen, Top loggen, Route bewerten) muss ohne Seiten-Reload in Echtzeit (via Supabase Realtime / WebSocket) auf dem Desktop sichtbar werden – und umgekehrt.
+
+2. **Offline-Resilienz & Reconnect-Sync**:
+   - Kletterhallen weisen oft schlechten Empfang auf.
+   - Der Test simuliert Netzwerkabbrüche (`context.setOffline(true)`), erfasst Schreibvorgänge im lokalen Speicher (`localStorage` / `IndexedDB`), stellt die Verbindung wieder her (`context.setOffline(false)`) und verifiziert, dass die Queue vollständig und duplikatfrei an Supabase übermittelt wird.
+
+3. **Mobile OS Lifecycle & Tab-Freezing (`visibilitychange`)**:
+   - Mobile Betriebssysteme frieren inaktive Tabs ein.
+   - Der Test simuliert Display-Standby und App-Wechsel (`visibilityState: 'hidden'` gefolgt von `'visible'`).
+   - Die App muss beim Aufwachen selbstständig einen Re-Sync (`syncFromSupabase()`) anstoßen und eventuell verpasste Cloud-Änderungen einpflegen.
+
+4. **Payload- & Contract-Validierung (Network Interception)**:
+   - Alle ausgehenden Supabase-Requests (`/rest/v1/ratings`, `/rest/v1/ascents`, `/rest/v1/sectors`, `/rest/v1/boulders`) werden überwacht.
+   - Validierung auf saubere UUID-Formate (keine veralteten Slugs), korrekte ISO-Timestamps und erfolgreiche HTTP-Statuscodes (200/201/204 – niemals unbemerkte 400er oder 409er).
+
+5. **Touch- & Koordinaten-Präzision**:
+   - Wand-Pins und Routenmarkierungen werden mit echten Touch-Events (`hasTouch: true`) getestet.
+   - Relative Koordinaten (0..1) müssen auf allen DPI-Skalierungen (`devicePixelRatio: 1, 2, 3`) und Orientierungen pixelgenau am Griff verbleiben.
+
+### 13.2 Pflicht-Testabdeckung für alle datenschreibenden Features
+
+| Feature-Bereich | Datenschreibender Vorgang | Primäre Speicher / Tabellen | E2E-Prüfkriterium |
+| :--- | :--- | :--- | :--- |
+| **Ratings & Reviews** | Sternvergabe (1–5), Grad-Barometer (Soft/Fair/Stiff), Radar | `boulderapp_ratings_v3`, Supabase `ratings` | Schnitt-Neuberechnung, Barometer-Update, sofortige Sichtbarkeit bei anderen Nutzern |
+| **Begehungen (Logging)** | Flash ⚡, Top ✅, Projekt 🎯 | `boulderapp_ascents_v3`, Supabase `ascents` | Zähler-Inkrement, Logbuch-Eintrag, Dual-Tap Flow |
+| **Sektoren & Wände** | Sektor anlegen, Foto hochladen, Sektor-Reorder, Löschen | `boulder_sectors_v1`, `boulderapp_sectors_v2`, Supabase `sectors` | Dual-Store Lockstep, Cloud-Persistierung, Touch-Reorder |
+| **Boulder & Routen** | Route setzen (Farbe, Grad, Radar), Route bearbeiten/löschen | `boulderapp_wall_boulders_v2`, Supabase `boulders` | Relative Pin-Koordinaten, Archivierung/Löschung ohne Geister-Pins |
+| **Profile & Sync-Bridge** | Nickname, Avatar, Multi-User-Wechsel, Sync-Status | `boulderapp_profiles`, Supabase `user_profiles` | Konsistenz über alle Tabs, leise Hintergrund-Synchronisation |
+
+
 

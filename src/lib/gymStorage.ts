@@ -617,9 +617,110 @@ export function createSector(
   const all = getSectors();
   saveSectors([...all, newSector]);
 
+  // SPEC-019: V2 Cache (boulderapp_sectors_v2) im Gleichschritt halten & Event dispatchen
+  try {
+    const localV2 = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    const normGymId = normalizeGymSectorGymId(gym_id);
+    const newV2Sector = {
+      id: newSector.id,
+      gymId: normGymId,
+      name: newSector.name,
+      wallPhotoUrl: newSector.wall_photo_url,
+      sortOrder: newSector.sort_order,
+      createdAt: newSector.created_at,
+    };
+    const filteredV2 = localV2.filter(s => s.id !== newSector.id && !(s.name?.trim().toLowerCase() === newSector.name.toLowerCase() && normalizeGymSectorGymId(s.gymId) === normGymId));
+    setStorageJson('boulderapp_sectors_v2', [...filteredV2, newV2Sector]);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'create', sector: newSector }
+      }));
+    }
+  } catch (_) {}
+
   syncBridge.syncSector(newSector);
 
   return newSector;
+}
+
+/**
+ * SPEC-018: Mehrere Sektoren auf einmal anlegen (Batch Sector Creation)
+ * Erlaubt Hallen-Admins das gleichzeitige Erstellen mehrerer Sektoren (z.B. initiales Setup).
+ */
+export function createSectorsBatch(
+  gym_id: string,
+  user_id: string,
+  inputs: Array<{ name: string; wall_photo_url: string; sort_order?: number }>
+): Sector[] {
+  if (!isGymAdmin(gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Sektoren anlegen.');
+  }
+
+  if (!inputs || inputs.length === 0) {
+    throw new Error('Mindestens ein Sektor muss angegeben werden.');
+  }
+
+  const existingSectors = getSectors(gym_id);
+  let nextSortOrder = existingSectors.length + 1;
+  const now = new Date().toISOString();
+
+  const newSectors: Sector[] = inputs.map((input, idx) => {
+    if (!input.name || input.name.trim().length === 0) {
+      throw new Error(`Sektor #${idx + 1}: Sektorname ist ein Pflichtfeld.`);
+    }
+    if (!input.wall_photo_url || input.wall_photo_url.trim().length === 0) {
+      throw new Error(`Sektor "${input.name}": Wandfoto (wall_photo_url) ist ein Pflichtfeld.`);
+    }
+
+    return {
+      id: 'sec_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 7),
+      gym_id,
+      name: input.name.trim(),
+      wall_photo_url: input.wall_photo_url.trim(),
+      sort_order: input.sort_order !== undefined ? input.sort_order : nextSortOrder++,
+      created_at: now
+    };
+  });
+
+  const all = getSectors();
+  saveSectors([...all, ...newSectors]);
+
+  // SPEC-019: V2 Cache (boulderapp_sectors_v2) im Gleichschritt halten & Event dispatchen
+  try {
+    const localV2 = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    const normGymId = normalizeGymSectorGymId(gym_id);
+    const newV2List = [...localV2];
+    for (const s of newSectors) {
+      const v2Sec = {
+        id: s.id,
+        gymId: normGymId,
+        name: s.name,
+        wallPhotoUrl: s.wall_photo_url,
+        sortOrder: s.sort_order,
+        createdAt: s.created_at,
+      };
+      const idx = newV2List.findIndex(item => item.id === s.id || (item.name?.trim().toLowerCase() === s.name.toLowerCase() && normalizeGymSectorGymId(item.gymId) === normGymId));
+      if (idx >= 0) {
+        newV2List[idx] = v2Sec;
+      } else {
+        newV2List.push(v2Sec);
+      }
+    }
+    setStorageJson('boulderapp_sectors_v2', newV2List);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'batch_create', count: newSectors.length }
+      }));
+    }
+  } catch (_) {}
+
+  for (const s of newSectors) {
+    syncBridge.syncSector(s);
+  }
+
+  return newSectors;
 }
 
 // AC-4: Sektoren können in ihrer Anzeigereihenfolge (sort_order) sortiert werden.
@@ -713,6 +814,24 @@ export function updateSectorWallPhoto(
   sector.wall_photo_url = new_wall_photo_url.trim();
   saveSectors(all);
 
+  // SPEC-019: V2 Cache (boulderapp_sectors_v2) im Gleichschritt halten & Event dispatchen
+  try {
+    const localV2 = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    const updatedV2 = localV2.map(s => {
+      if (s.id === sector.id || (s.name?.trim().toLowerCase() === sector.name.trim().toLowerCase() && normalizeGymSectorGymId(s.gymId) === normalizeGymSectorGymId(sector.gym_id))) {
+        return { ...s, wallPhotoUrl: new_wall_photo_url.trim() };
+      }
+      return s;
+    });
+    setStorageJson('boulderapp_sectors_v2', updatedV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'update_photo', sectorId: sector.id }
+      }));
+    }
+  } catch (_) {}
+
   syncBridge.syncSector(sector);
 
   // Assert coordinates remain untouched (AC-5 verification guarantee)
@@ -751,6 +870,23 @@ export function deleteSector(
 
   const remaining = all.filter(s => s.id !== sector_id);
   saveSectors(remaining);
+
+  // SPEC-019: V2 Cache (boulderapp_sectors_v2) im Gleichschritt halten & Event dispatchen
+  try {
+    const localV2 = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    const remainingV2 = localV2.filter(s => s.id !== sector_id && s.name !== sector.name);
+    setStorageJson('boulderapp_sectors_v2', remainingV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'delete', sectorId: sector_id }
+      }));
+    }
+  } catch (_) {}
+
+  // SPEC-019: Cloud-Löschung nach Supabase
+  syncBridge.deleteSector(sector_id);
+
   return true;
 }
 
@@ -769,8 +905,9 @@ export function searchGymsWithSectors(query?: string): Array<Gym & { sectors: Ar
     : gyms;
 
   return filteredGyms.map(gym => {
+    const targetGymNorm = normalizeGymSectorGymId(gym.id);
     const gymSectors = sectors
-      .filter(s => s.gym_id === gym.id)
+      .filter(s => normalizeGymSectorGymId(s.gym_id) === targetGymNorm || s.gym_id === gym.id)
       .sort((a, b) => a.sort_order - b.sort_order)
       .map(sec => {
         const activeCount = boulders.filter(b => b.sector_id === sec.id && b.status === 'active').length;

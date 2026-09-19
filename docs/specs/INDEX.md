@@ -21,4 +21,7 @@
 | [SPEC-014](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-014-real-user-auth-and-systemic-integration.md) | Echte Benutzer-Authentifizierung, Identität & Systemische Ökosystem-Integration | APPROVED | Boris | 2026-09-13 |
 | [SPEC-015](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-015-mobile-first-navigation-and-android-back-button.md) | Mobile-First Hierarchische Navigation & Android Hardware Back-Button Handling | APPROVED | Boris | 2026-09-13 |
 | [SPEC-016](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-016-fullscreen-wall-view-and-orientation-optimization.md) | Immersive Vollbild-Wandansicht, Smartphone-Rotation & Sofortiger Sektorwechsel | DONE | Boris | 2026-09-13 |
+| [SPEC-017](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-017-mobile-schrauber-kamera-integration.md) | Mobile Schrauber-Kamera-Integration & Wandfoto-Erfassung | DONE | Boris | 2026-09-17 |
+| [SPEC-018](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-018-multi-sector-batch-creation.md) | Multi-Sektor-Batch-Erstellung & Multi-Foto-Upload (Hallen-Setup) | DONE | Boris | 2026-09-17 |
+| [SPEC-019](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-019-cross-device-sector-and-gym-realtime-sync.md) | Geräteübergreifende Echtzeit-Synchronisation für Sektoren, Hallen & Routen (Mobile <-> Desktop) | DONE | Boris | 2026-09-17 |
 

@@ -8,14 +8,14 @@
  * - Nahtlose Fallbacks bei Verbindungsabbrüchen.
  */
 
-import { supabase, isSupabaseConfigured } from './supabase';
-import { Sector, WallBoulder, Ascent, BoulderRating, GymGradeScale } from '../types/boulder';
+import { supabase, isSupabaseConfigured, uploadSectorPhoto } from './supabase';
+import { Sector, WallBoulder, Ascent, BoulderRating, GymGradeScale, Boulder } from '../types/boulder';
 import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted, isValidUuid, stringToUuid } from './storageUtils';
 import { registerSyncHandlers } from './syncBridge';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
-import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY, isTestEnv } from './authService';
+import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY, isTestEnv, getCurrentAuthUser } from './authService';
 import { getProfiles, STORAGE_KEY_PROFILES } from './profileService';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
@@ -23,6 +23,7 @@ const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
 const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
 const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
 const STORAGE_KEY_GRADE_SCALES = 'boulderapp_grade_scales_v2';
+const STORAGE_KEY_CLIMBER_ROUTES = 'boulder_app_records_v1';
 
 export interface SyncStatus {
   lastSyncTime: string | null;
@@ -524,6 +525,61 @@ export async function syncFromSupabase(): Promise<boolean> {
       }
     }
 
+    // 6. Climber Routes (Klettermodus-Routen) laden & mergen
+    try {
+      const { data: dbClimberRoutes } = await supabase.from('climber_routes').select('*');
+      if (dbClimberRoutes && dbClimberRoutes.length > 0) {
+        const localRoutes = getStorageJson<Boulder[]>(STORAGE_KEY_CLIMBER_ROUTES, []);
+        const routeMap = new Map<string, Boulder>();
+        localRoutes.forEach(r => routeMap.set(r.id, r));
+
+        for (const r of dbClimberRoutes) {
+          const originalId = r.metadata?.originalId || r.id;
+          let matchedKey: string | null = null;
+          for (const [k] of routeMap.entries()) {
+            if (k === originalId || k === r.id || stringToUuid(k) === r.id) {
+              matchedKey = k;
+              break;
+            }
+          }
+          const targetId = matchedKey || originalId;
+          const existing = routeMap.get(targetId);
+
+          routeMap.set(targetId, {
+            id: targetId,
+            name: r.name || 'Unbenannter Boulder',
+            location: r.location || '',
+            sector: r.sector || existing?.sector || undefined,
+            date: r.date || existing?.date || new Date().toISOString().slice(0, 10),
+            gradeScale: (r.grade_scale as any) || existing?.gradeScale || 'font',
+            grade: r.grade || existing?.grade || '6A',
+            colorHex: r.color_hex || existing?.colorHex || undefined,
+            ascentStyle: (r.ascent_style as any) || existing?.ascentStyle || 'top',
+            attempts: r.attempts || existing?.attempts || 1,
+            wallAngle: (r.wall_angle as any) || existing?.wallAngle || undefined,
+            holdTypes: Array.isArray(r.hold_types) ? r.hold_types : (existing?.holdTypes || []),
+            perceivedDifficulty: (r.perceived_difficulty as any) || existing?.perceivedDifficulty || undefined,
+            rating: r.rating || existing?.rating || undefined,
+            cruxDescription: r.crux_description || existing?.cruxDescription || undefined,
+            notes: r.notes || existing?.notes || '',
+            tags: Array.isArray(r.tags) ? r.tags : (existing?.tags || []),
+            createdAt: r.created_at || existing?.createdAt || new Date().toISOString(),
+            updatedAt: r.updated_at || existing?.updatedAt || new Date().toISOString(),
+          });
+        }
+
+        const mergedRoutes = Array.from(routeMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setStorageJson(STORAGE_KEY_CLIMBER_ROUTES, mergedRoutes);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('bouldermate:climber_routes_updated', {
+            detail: { action: 'synced', count: mergedRoutes.length }
+          }));
+        }
+      }
+    } catch (routeErr) {
+      console.warn('[Sync] Fehler beim Laden von climber_routes:', routeErr);
+    }
+
     currentSyncStatus.lastSyncTime = new Date().toISOString();
     return true;
   } catch (err: any) {
@@ -715,11 +771,13 @@ export function resolveUserIdAndNickname(remoteUserId?: string): { userId: strin
 
 export function toKnownAuthUserUuid(userId?: string): string {
   if (!userId) return '00000000-1d0e-4000-8000-e92d69136f33';
+  for (const [uuid, demoKey] of Object.entries(SUPABASE_UUID_TO_DEMO_KEY)) {
+    if (demoKey === userId) return uuid;
+  }
   if (KNOWN_AUTH_USER_UUIDS.has(userId)) return userId;
   if (isValidUuid(userId)) return userId;
   const converted = stringToUuid(userId);
-  if (KNOWN_AUTH_USER_UUIDS.has(converted)) return converted;
-  return '00000000-1d0e-4000-8000-e92d69136f33';
+  return converted;
 }
 
 /**
@@ -814,11 +872,47 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
     const match = existingSectors?.find(s => s.name.trim().toLowerCase() === sector.name.trim().toLowerCase());
     const sectorUuid = match?.id || (isValidUuid(sector.id) ? sector.id : stringToUuid(sector.id));
 
+    let photoUrl = sector.wall_photo_url || sector.wallPhotoUrl || null;
+
+    // If photoUrl is a base64 data URL, upload to Supabase Storage bucket 'sector-photos'
+    if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('data:')) {
+      try {
+        const arr = photoUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const cleanName = (sector.name || 'sector').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+        const fileName = `${cleanName}_${Date.now()}.${ext}`;
+        const uploadedUrl = await uploadSectorPhoto(blob, fileName, photoUrl);
+        if (uploadedUrl && !uploadedUrl.startsWith('data:')) {
+          photoUrl = uploadedUrl;
+          // Update local sector record to release base64 memory and avoid localStorage quota overflows
+          try {
+            const allLocal = gymStorage.getSectors();
+            const idx = allLocal.findIndex(s => s.id === sector.id);
+            if (idx >= 0) {
+              allLocal[idx].wall_photo_url = uploadedUrl;
+              gymStorage.saveSectors(allLocal);
+            }
+          } catch {}
+        }
+      } catch (storageErr) {
+        console.warn('[Sync] Storage upload fallback to base64 data URL:', storageErr);
+      }
+    }
+
     const payload = {
       id: sectorUuid,
       gym_id: targetGymId,
       name: sector.name.trim(),
-      wall_photo_url: sector.wall_photo_url || sector.wallPhotoUrl || null,
+      wall_photo_url: photoUrl,
       sort_order: sector.sort_order || sector.sortOrder || 1,
       created_at: sector.created_at || sector.createdAt || new Date().toISOString(),
     };
@@ -832,6 +926,26 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
     return true;
   } catch (e) {
     console.warn('[Sync] Ausnahme beim Aufwärts-Sync des Sektors:', e);
+    return false;
+  }
+}
+
+/**
+ * Löscht einen Sektor in Supabase (Cloud).
+ */
+export async function deleteSectorFromSupabase(sectorId: string): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv || !sectorId) return true;
+  try {
+    const uuid = isValidUuid(sectorId) ? sectorId : stringToUuid(sectorId);
+    const { error } = await supabase.from('sectors').delete().eq('id', uuid);
+    if (error) {
+      console.warn('[Sync] Fehler beim Löschen des Sektors auf Supabase:', error.message);
+      return false;
+    }
+    console.log(`[Sync] Sektor ${uuid} erfolgreich auf Supabase gelöscht.`);
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Ausnahme beim Löschen des Sektors auf Supabase:', err);
     return false;
   }
 }
@@ -1131,8 +1245,14 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
 
     const { error } = await supabase.from('boulders').upsert(upsertRows);
     if (error) {
-      console.warn('[Sync] Fehler beim Aufwärts-Sync der Boulder:', error.message);
-      return false;
+      console.warn('[Sync] Fehler beim Aufwärts-Sync der Boulder als Batch:', error.message, 'Versuche Einzel-Upserts...');
+      for (const row of upsertRows) {
+        try {
+          await supabase.from('boulders').upsert([row]);
+        } catch (singleErr) {
+          console.warn('[Sync] Einzel-Upsert Fehler für Boulder:', row.id, singleErr);
+        }
+      }
     }
 
     // Lokalen V2-Cache synchronisieren: gradeScaleId auf die aufgelöste kanonische UUID setzen
@@ -1178,7 +1298,7 @@ export async function syncAscentToSupabase(ascent: Ascent): Promise<boolean> {
       created_at: ascent.createdAt || new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('ascents').upsert(payload);
+    const { error } = await supabase.from('ascents').upsert(payload, { onConflict: 'boulder_id,user_id' });
     if (error) {
       console.warn('[Sync] Fehler beim Aufwärts-Sync der Begehung:', error.message);
       return false;
@@ -1214,7 +1334,7 @@ export async function syncRatingToSupabase(rating: BoulderRating): Promise<boole
       created_at: rating.createdAt || new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('ratings').upsert(payload);
+    const { error } = await supabase.from('ratings').upsert(payload, { onConflict: 'boulder_id,user_id' });
     if (error) {
       console.warn('[Sync] Fehler beim Aufwärts-Sync der Bewertung:', error.message);
       return false;
@@ -1316,6 +1436,75 @@ export async function deleteAscentFromSupabase(userId: string, boulderId: string
     return true;
   } catch (e) {
     console.warn('[Sync] Fehler beim Löschen der Begehung in Supabase:', e);
+    return false;
+  }
+}
+
+/**
+ * Synchronisiert eine persönliche Kletterroute (Klettermodus) aufwärts nach Supabase.
+ */
+export async function syncClimberRouteToSupabase(route: Boulder): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv || !route) return true;
+  try {
+    const routeUuid = isValidUuid(route.id) ? route.id : stringToUuid(route.id);
+    const currentUser = getCurrentAuthUser();
+    const userUuid = toKnownAuthUserUuid(currentUser?.id);
+
+    const payload = {
+      id: routeUuid,
+      user_id: userUuid,
+      name: route.name || 'Unbenannter Boulder',
+      location: route.location || '',
+      date: route.date || new Date().toISOString().slice(0, 10),
+      grade_scale: route.gradeScale || 'font',
+      grade: route.grade || '6A',
+      ascent_style: route.ascentStyle || 'top',
+      attempts: route.attempts || 1,
+      rating: route.rating || null,
+      notes: route.notes || '',
+      tags: Array.isArray(route.tags) ? route.tags : [],
+      hold_types: Array.isArray(route.holdTypes) ? route.holdTypes : [],
+      sector: route.sector || null,
+      wall_angle: route.wallAngle || null,
+      color_hex: route.colorHex || null,
+      perceived_difficulty: route.perceivedDifficulty || null,
+      crux_description: route.cruxDescription || null,
+      metadata: { originalId: route.id },
+      created_at: route.createdAt || new Date().toISOString(),
+      updated_at: route.updatedAt || new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('climber_routes')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('[Sync] Fehler beim Aufwärts-Sync der Kletterroute:', error.message);
+      return false;
+    }
+    console.log(`[Sync] Kletterroute "${payload.name}" (${payload.id}) erfolgreich nach Supabase synchronisiert.`);
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Ausnahme beim Aufwärts-Sync der Kletterroute:', err);
+    return false;
+  }
+}
+
+/**
+ * Löscht eine Kletterroute aus Supabase.
+ */
+export async function deleteClimberRouteFromSupabase(routeId: string): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv || !routeId) return true;
+  try {
+    const routeUuid = isValidUuid(routeId) ? routeId : stringToUuid(routeId);
+    await supabase.from('climber_routes').delete().eq('id', routeUuid);
+    if (routeId !== routeUuid) {
+      await supabase.from('climber_routes').delete().eq('id', routeId);
+    }
+    console.log(`[Sync] Kletterroute ${routeId} (${routeUuid}) in Supabase gelöscht.`);
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Fehler beim Löschen der Kletterroute in Supabase:', err);
     return false;
   }
 }
@@ -1520,14 +1709,299 @@ export function handleRealtimeAscentChange(payload: any): void {
 }
 
 /**
- * Führt eine unaufdringliche Hintergrund-Synchronisation von Bewertungen und Begehungen aus.
+ * Verarbeitet eine eingehende Realtime-Änderung auf der Tabelle public.sectors (SPEC-019).
+ */
+export function handleRealtimeSectorChange(payload: any): void {
+  if (!payload) return;
+  const { eventType, new: newRow, old: oldRow } = payload;
+
+  if (eventType === 'DELETE') {
+    const targetId = oldRow?.id;
+    if (!targetId) return;
+
+    // Delete from V1 (gymStorage)
+    const localV1 = gymStorage.getSectors();
+    const filteredV1 = localV1.filter(s => s.id !== targetId && stringToUuid(s.id) !== targetId);
+    gymStorage.saveSectors(filteredV1);
+
+    // Delete from V2 (batchBoulderService)
+    const localV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+    const filteredV2 = localV2.filter(s => s.id !== targetId && stringToUuid(s.id) !== targetId);
+    setStorageJson(STORAGE_KEY_SECTORS, filteredV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'delete', sectorId: targetId }
+      }));
+    }
+    return;
+  }
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    const targetGymId = (newRow.gym_id && newRow.gym_id.includes('f2b11564'))
+      ? 'gym-6a-plus'
+      : (newRow.gym_id && newRow.gym_id.includes('814696b2'))
+      ? 'gym-minimum-zh'
+      : newRow.gym_id;
+
+    const resolvedUrl = newRow.wall_photo_url || '/images/walls/overhang.jpg';
+
+    // Update V1 (gymStorage)
+    const localV1 = gymStorage.getSectors();
+    const v1SecMap = new Map(localV1.map(s => [s.id, s]));
+    let foundV1Key: string | null = null;
+    for (const [k, localSec] of v1SecMap.entries()) {
+      if (k === newRow.id || stringToUuid(k) === newRow.id || (localSec.name.trim().toLowerCase() === newRow.name.trim().toLowerCase() && (localSec.gym_id === targetGymId || localSec.gym_id.includes('6a')))) {
+        foundV1Key = k;
+        break;
+      }
+    }
+    const v1Id = foundV1Key || newRow.id;
+    v1SecMap.set(v1Id, {
+      id: v1Id,
+      gym_id: targetGymId,
+      name: newRow.name,
+      wall_photo_url: resolvedUrl,
+      sort_order: newRow.sort_order || 1,
+      created_at: newRow.created_at || new Date().toISOString(),
+    });
+    const sortedV1 = Array.from(v1SecMap.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    gymStorage.saveSectors(sortedV1);
+
+    // Update V2 (batchBoulderService)
+    const localV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+    const v2SecMap = new Map(localV2.map(s => [s.id, s]));
+    let foundV2Key: string | null = null;
+    for (const [k, localSec] of v2SecMap.entries()) {
+      if (k === newRow.id || stringToUuid(k) === newRow.id || (localSec.name.trim().toLowerCase() === newRow.name.trim().toLowerCase() && (localSec.gymId === targetGymId || localSec.gymId.includes('6a')))) {
+        foundV2Key = k;
+        break;
+      }
+    }
+    const canonicalId = foundV2Key || newRow.id;
+    v2SecMap.set(canonicalId, {
+      id: canonicalId,
+      gymId: targetGymId,
+      name: newRow.name,
+      wallPhotoUrl: resolvedUrl,
+      sortOrder: newRow.sort_order || 1,
+      createdAt: newRow.created_at || new Date().toISOString(),
+    });
+    const sortedV2 = Array.from(v2SecMap.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    setStorageJson(STORAGE_KEY_SECTORS, sortedV2);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: eventType.toLowerCase(), sectorId: canonicalId, name: newRow.name }
+      }));
+    }
+  }
+}
+
+/**
+ * Verarbeitet eine eingehende Realtime-Änderung auf der Tabelle public.boulders (SPEC-019).
+ */
+export function handleRealtimeBoulderChange(payload: any): void {
+  if (!payload) return;
+  const { eventType, new: newRow, old: oldRow } = payload;
+
+  if (eventType === 'DELETE') {
+    const targetId = oldRow?.id;
+    if (!targetId) return;
+
+    markBoulderDeleted(targetId);
+    const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+    const filtered = localBoulders.filter(b => b.id !== targetId && stringToUuid(b.id) !== targetId);
+    setStorageJson(STORAGE_KEY_WALL_BOULDERS, filtered);
+
+    const v1Boulders = gymStorage.getBoulders().filter(b => b.id !== targetId && stringToUuid(b.id) !== targetId);
+    gymStorage.saveBoulders(v1Boulders);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+        detail: { action: 'delete', boulderId: targetId }
+      }));
+    }
+    return;
+  }
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    if (isBoulderDeleted(newRow.id)) return;
+
+    const allSectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+    let resolvedSectorId = newRow.sector_id;
+    const matchingSec = allSectors.find(s =>
+      s.id === newRow.sector_id ||
+      stringToUuid(s.id) === newRow.sector_id ||
+      (SECTOR_ALIAS_MAP[s.id] && (SECTOR_ALIAS_MAP[s.id] === newRow.sector_id || stringToUuid(SECTOR_ALIAS_MAP[s.id]) === newRow.sector_id)) ||
+      (SECTOR_ALIAS_MAP[newRow.sector_id] && (SECTOR_ALIAS_MAP[newRow.sector_id] === s.id || stringToUuid(SECTOR_ALIAS_MAP[newRow.sector_id]) === s.id))
+    );
+    if (matchingSec) {
+      resolvedSectorId = matchingSec.id;
+    }
+
+    const localBoulders = getStorageJson<WallBoulder[]>(STORAGE_KEY_WALL_BOULDERS, []);
+    const existing = localBoulders.find(b => b.id === newRow.id || stringToUuid(b.id) === newRow.id);
+
+    const boulderObj: WallBoulder = {
+      id: newRow.id,
+      sectorId: resolvedSectorId,
+      gradeScaleId: newRow.grade_scale_id,
+      positionX: newRow.position_x,
+      positionY: newRow.position_y,
+      name: (newRow.name && newRow.name !== 'Unbenannter Boulder') ? newRow.name : (existing?.name || newRow.name || 'Unbenannter Boulder'),
+      notes: newRow.notes || existing?.notes || '',
+      setterId: newRow.setter_id || existing?.setterId || 'system',
+      status: newRow.status || 'active',
+      radar: {
+        maximalkraft: newRow.radar_maximalkraft || newRow.radar_kraft || existing?.radar?.maximalkraft || 3,
+        kraftausdauer: newRow.radar_kraftausdauer || newRow.radar_kraft || existing?.radar?.kraftausdauer || 3,
+        kraft: newRow.radar_kraft || newRow.radar_maximalkraft || existing?.radar?.kraft || 3,
+        technik: newRow.radar_technik || existing?.radar?.technik || 3,
+        balance: newRow.radar_balance || existing?.radar?.balance || 3,
+        koordination: newRow.radar_koordination || existing?.radar?.koordination || 3,
+        flexibilitaet: newRow.radar_flexibilitaet || existing?.radar?.flexibilitaet || 3,
+      },
+      fontGrade: newRow.font_grade || existing?.fontGrade || undefined,
+      createdAt: newRow.created_at,
+      publishedAt: newRow.published_at || undefined,
+      archivedAt: newRow.archived_at || undefined,
+    };
+
+    let found = false;
+    const updated = localBoulders.map(b => {
+      if (b.id === newRow.id || stringToUuid(b.id) === newRow.id) {
+        found = true;
+        return boulderObj;
+      }
+      return b;
+    });
+    if (!found) {
+      updated.push(boulderObj);
+    }
+    setStorageJson(STORAGE_KEY_WALL_BOULDERS, updated);
+
+    // V1 update
+    const v1Boulders = gymStorage.getBoulders();
+    let v1Found = false;
+    const v1Updated = v1Boulders.map(b => {
+      if (b.id === newRow.id || stringToUuid(b.id) === newRow.id) {
+        v1Found = true;
+        return {
+          id: newRow.id,
+          sector_id: resolvedSectorId,
+          grade_scale_id: newRow.grade_scale_id,
+          position_x: newRow.position_x,
+          position_y: newRow.position_y,
+          status: newRow.status || 'active',
+          name: newRow.name,
+        };
+      }
+      return b;
+    });
+    if (!v1Found) {
+      v1Updated.push({
+        id: newRow.id,
+        sector_id: resolvedSectorId,
+        grade_scale_id: newRow.grade_scale_id,
+        position_x: newRow.position_x,
+        position_y: newRow.position_y,
+        status: newRow.status || 'active',
+        name: newRow.name,
+      });
+    }
+    gymStorage.saveBoulders(v1Updated);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+        detail: { action: eventType.toLowerCase(), boulderId: newRow.id }
+      }));
+    }
+  }
+}
+
+/**
+ * Verarbeitet eine eingehende Realtime-Änderung auf der Tabelle public.climber_routes.
+ */
+export function handleRealtimeClimberRouteChange(payload: any): void {
+  if (!payload) return;
+  const { eventType, new: newRow, old: oldRow } = payload;
+  const localRoutes = getStorageJson<Boulder[]>(STORAGE_KEY_CLIMBER_ROUTES, []);
+
+  if (eventType === 'DELETE') {
+    const targetId = oldRow?.id;
+    if (!targetId) return;
+    const filtered = localRoutes.filter(r => r.id !== targetId && stringToUuid(r.id) !== targetId);
+    setStorageJson(STORAGE_KEY_CLIMBER_ROUTES, filtered);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:climber_routes_updated', {
+        detail: { action: 'delete', routeId: targetId }
+      }));
+    }
+    return;
+  }
+
+  if (eventType === 'INSERT' || eventType === 'UPDATE') {
+    if (!newRow) return;
+    const existing = localRoutes.find(r => r.id === newRow.id || stringToUuid(r.id) === newRow.id);
+    const resolvedId = existing?.id || newRow.metadata?.originalId || newRow.id;
+
+    const routeObj: Boulder = {
+      id: resolvedId,
+      name: newRow.name || 'Unbenannter Boulder',
+      location: newRow.location || '',
+      sector: newRow.sector || undefined,
+      date: newRow.date || new Date().toISOString().slice(0, 10),
+      gradeScale: (newRow.grade_scale as any) || 'font',
+      grade: newRow.grade || '6A',
+      colorHex: newRow.color_hex || undefined,
+      ascentStyle: (newRow.ascent_style as any) || 'top',
+      attempts: newRow.attempts || 1,
+      wallAngle: (newRow.wall_angle as any) || undefined,
+      holdTypes: Array.isArray(newRow.hold_types) ? newRow.hold_types : [],
+      perceivedDifficulty: (newRow.perceived_difficulty as any) || undefined,
+      rating: newRow.rating || undefined,
+      cruxDescription: newRow.crux_description || undefined,
+      notes: newRow.notes || '',
+      tags: Array.isArray(newRow.tags) ? newRow.tags : [],
+      createdAt: newRow.created_at || new Date().toISOString(),
+      updatedAt: newRow.updated_at || new Date().toISOString(),
+    };
+
+    let found = false;
+    const updated = localRoutes.map(r => {
+      if (r.id === resolvedId || stringToUuid(r.id) === newRow.id || r.id === newRow.id) {
+        found = true;
+        return routeObj;
+      }
+      return r;
+    });
+
+    if (!found) {
+      updated.unshift(routeObj);
+    }
+
+    setStorageJson(STORAGE_KEY_CLIMBER_ROUTES, updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:climber_routes_updated', {
+        detail: { action: eventType.toLowerCase(), route: routeObj }
+      }));
+    }
+  }
+}
+
+/**
+ * Führt eine unaufdringliche Hintergrund-Synchronisation von Bewertungen, Begehungen und Kletterrouten aus.
  */
 export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
   if (!supabase || !isSupabaseConfigured) return false;
   try {
-    const [ascentsRes, ratingsRes] = await Promise.all([
+    const [ascentsRes, ratingsRes, routesRes] = await Promise.all([
       supabase.from('ascents').select('*'),
-      supabase.from('ratings').select('*')
+      supabase.from('ratings').select('*'),
+      supabase.from('climber_routes').select('*')
     ]);
 
     let ascentsChanged = false;
@@ -1611,6 +2085,59 @@ export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
       }
     }
 
+    let routesChanged = false;
+    if (routesRes.data && routesRes.data.length > 0) {
+      const localRoutes = getStorageJson<Boulder[]>(STORAGE_KEY_CLIMBER_ROUTES, []);
+      const routeMap = new Map<string, Boulder>();
+      localRoutes.forEach(r => routeMap.set(r.id, r));
+
+      for (const r of routesRes.data) {
+        const originalId = r.metadata?.originalId || r.id;
+        let matchedKey: string | null = null;
+        for (const [k] of routeMap.entries()) {
+          if (k === originalId || k === r.id || stringToUuid(k) === r.id) {
+            matchedKey = k;
+            break;
+          }
+        }
+        const targetId = matchedKey || originalId;
+        const existing = routeMap.get(targetId);
+
+        if (!existing || existing.name !== r.name || existing.grade !== r.grade || existing.updatedAt !== r.updated_at) {
+          routesChanged = true;
+          routeMap.set(targetId, {
+            id: targetId,
+            name: r.name || 'Unbenannter Boulder',
+            location: r.location || '',
+            sector: r.sector || existing?.sector || undefined,
+            date: r.date || existing?.date || new Date().toISOString().slice(0, 10),
+            gradeScale: (r.grade_scale as any) || existing?.gradeScale || 'font',
+            grade: r.grade || existing?.grade || '6A',
+            colorHex: r.color_hex || existing?.colorHex || undefined,
+            ascentStyle: (r.ascent_style as any) || existing?.ascentStyle || 'top',
+            attempts: r.attempts || existing?.attempts || 1,
+            wallAngle: (r.wall_angle as any) || existing?.wallAngle || undefined,
+            holdTypes: Array.isArray(r.hold_types) ? r.hold_types : (existing?.holdTypes || []),
+            perceivedDifficulty: (r.perceived_difficulty as any) || existing?.perceivedDifficulty || undefined,
+            rating: r.rating || existing?.rating || undefined,
+            cruxDescription: r.crux_description || existing?.cruxDescription || undefined,
+            notes: r.notes || existing?.notes || '',
+            tags: Array.isArray(r.tags) ? r.tags : (existing?.tags || []),
+            createdAt: r.created_at || existing?.createdAt || new Date().toISOString(),
+            updatedAt: r.updated_at || existing?.updatedAt || new Date().toISOString(),
+          });
+        }
+      }
+
+      if (routesChanged) {
+        const merged = Array.from(routeMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setStorageJson(STORAGE_KEY_CLIMBER_ROUTES, merged);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('bouldermate:climber_routes_updated', { detail: { action: 'quiet_sync', count: merged.length } }));
+        }
+      }
+    }
+
     return true;
   } catch (e) {
     return false;
@@ -1646,6 +2173,27 @@ export function startRealtimeSync(): () => void {
           handleRealtimeAscentChange(payload);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sectors' },
+        (payload) => {
+          handleRealtimeSectorChange(payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'boulders' },
+        (payload) => {
+          handleRealtimeBoulderChange(payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'climber_routes' },
+        (payload) => {
+          handleRealtimeClimberRouteChange(payload);
+        }
+      )
       .subscribe((status) => {
         console.log('[Supabase Realtime] Connected with status:', status);
       });
@@ -1654,15 +2202,33 @@ export function startRealtimeSync(): () => void {
   }
 
   if (typeof window !== 'undefined' && !realtimePollInterval) {
+    let pollCount = 0;
     realtimePollInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         syncRatingsAndAscentsQuietly().catch(() => {});
+        pollCount++;
+        // Alle 3 Zyklen (~12s) auch Sektoren & Boulder im Hintergrund prüfen
+        if (pollCount >= 3) {
+          pollCount = 0;
+          syncFromSupabase().catch(() => {});
+        }
       }
-    }, 8000);
+    }, 4000);
 
     const onVisibilityOrFocus = () => {
       if (document.visibilityState === 'visible') {
         syncRatingsAndAscentsQuietly().catch(() => {});
+        syncFromSupabase().catch(() => {});
+
+        // Mobile WebSocket reconnect if channel dropped
+        if (realtimeChannel) {
+          const state = realtimeChannel.state;
+          if (state === 'closed' || state === 'errored' || state === 'timed_out') {
+            console.log('[Realtime] Reconnecting dead channel after mobile app resume...', state);
+            stopRealtimeSync();
+            startRealtimeSync();
+          }
+        }
       }
     };
     window.addEventListener('focus', onVisibilityOrFocus);
@@ -1689,6 +2255,7 @@ export function stopRealtimeSync(): void {
 // Wire implementations into syncBridge (SOLID: Dependency Inversion)
 registerSyncHandlers({
   syncSector: syncSectorToSupabase,
+  deleteSector: deleteSectorFromSupabase,
   syncSectorOrder: syncSectorOrderToSupabase,
   syncGradeScales: syncGradeScalesToSupabase,
   syncBoulders: syncBouldersToSupabase,
@@ -1698,4 +2265,6 @@ registerSyncHandlers({
   syncRating: syncRatingToSupabase,
   deleteRating: deleteRatingFromSupabase,
   syncRatingsAndAscentsQuietly: syncRatingsAndAscentsQuietly,
+  syncClimberRoute: syncClimberRouteToSupabase,
+  deleteClimberRoute: deleteClimberRouteFromSupabase,
 });

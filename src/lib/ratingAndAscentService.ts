@@ -15,6 +15,8 @@ import {
   getStorageString,
   setStorageJson,
   removeStorageItem,
+  isValidUuid,
+  stringToUuid,
 } from './storageUtils';
 import { syncBridge } from './syncBridge';
 
@@ -84,12 +86,21 @@ export function resetAscentAndRatingStorage(): void {
   removeStorageItem(STORAGE_KEY_COMMENTS);
 }
 
+export function isBoulderMatch(b1?: string, b2?: string): boolean {
+  if (!b1 || !b2) return false;
+  if (b1 === b2) return true;
+  if (b1.toLowerCase() === b2.toLowerCase()) return true;
+  if (stringToUuid(b1) === b2 || b1 === stringToUuid(b2)) return true;
+  if (isValidUuid(b1) && isValidUuid(b2) && b1.toLowerCase() === b2.toLowerCase()) return true;
+  return false;
+}
+
 export function deleteBoulderInteractions(boulderId: string): void {
-  const ascents = getAscents().filter(a => a.boulderId !== boulderId);
+  const ascents = getAscents().filter(a => !isBoulderMatch(a.boulderId, boulderId));
   setStorageJson(STORAGE_KEY_ASCENTS, ascents);
-  const ratings = getRatings().filter(r => r.boulderId !== boulderId);
+  const ratings = getRatings().filter(r => !isBoulderMatch(r.boulderId, boulderId));
   setStorageJson(STORAGE_KEY_RATINGS, ratings);
-  const comments = getComments().filter(c => c.boulderId !== boulderId);
+  const comments = getComments().filter(c => !isBoulderMatch(c.boulderId, boulderId));
   setStorageJson(STORAGE_KEY_COMMENTS, comments);
 }
 
@@ -111,12 +122,13 @@ export function getAscents(boulderId?: string): Ascent[] {
     }
   }
 
-  return boulderId ? list.filter(a => a.boulderId === boulderId) : list;
+  return boulderId ? list.filter(a => isBoulderMatch(a.boulderId, boulderId)) : list;
 }
 
 export function isUserMatch(u1?: string, u2?: string): boolean {
   if (!u1 || !u2) return false;
   if (u1 === u2) return true;
+  if (u1.toLowerCase() === u2.toLowerCase()) return true;
   const DEMO_MAP: Record<string, string> = {
     'user-boris': '00000000-1d0e-4000-8000-e92d69136f33',
     'admin-6aplus': '00000000-37e7-4000-8000-0743462b539d',
@@ -126,12 +138,14 @@ export function isUserMatch(u1?: string, u2?: string): boolean {
     'schrauber-minimum': '00000000-5a7c-4000-8000-7702607a9a42',
   };
   if (DEMO_MAP[u1] === u2 || DEMO_MAP[u2] === u1) return true;
+  if (stringToUuid(u1) === u2 || u1 === stringToUuid(u2)) return true;
+  if (isValidUuid(u1) && isValidUuid(u2) && u1.toLowerCase() === u2.toLowerCase()) return true;
   return false;
 }
 
 export function getUserAscent(userId: string, boulderId: string): Ascent | null {
   const all = getAscents(boulderId);
-  return all.find(a => isUserMatch(a.userId, userId)) || null;
+  return all.find(a => isUserMatch(a.userId, userId) && isBoulderMatch(a.boulderId, boulderId)) || null;
 }
 
 /**
@@ -149,7 +163,7 @@ export function logAscent(
   userAvatarUrl?: string
 ): { ascent: Ascent; isFirstTopOrFlash: boolean } {
   const all = getAscents();
-  const existingIdx = all.findIndex(a => a.userId === userId && a.boulderId === boulderId);
+  const existingIdx = all.findIndex(a => isUserMatch(a.userId, userId) && isBoulderMatch(a.boulderId, boulderId));
   const now = getUniqueIsoTimestamp();
 
   let isFirstTopOrFlash = false;
@@ -194,7 +208,7 @@ export function logAscent(
 
 export function deleteAscent(userId: string, boulderId: string): boolean {
   const all = getAscents();
-  const filtered = all.filter(a => !(a.userId === userId && a.boulderId === boulderId));
+  const filtered = all.filter(a => !(isUserMatch(a.userId, userId) && isBoulderMatch(a.boulderId, boulderId)));
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_ASCENTS, filtered);
     notifyAscentsChanged(boulderId);
@@ -232,12 +246,12 @@ export function getRatings(boulderId?: string): BoulderRating[] {
     }
   }
 
-  return boulderId ? list.filter(r => r.boulderId === boulderId) : list;
+  return boulderId ? list.filter(r => isBoulderMatch(r.boulderId, boulderId)) : list;
 }
 
 export function getUserRating(userId: string, boulderId: string): BoulderRating | null {
   const all = getRatings(boulderId);
-  return all.find(r => isUserMatch(r.userId, userId)) || null;
+  return all.find(r => isUserMatch(r.userId, userId) && isBoulderMatch(r.boulderId, boulderId)) || null;
 }
 
 /**
@@ -251,7 +265,7 @@ export function saveRating(
   input: RatingInput
 ): BoulderRating {
   const all = getRatings();
-  const existingIdx = all.findIndex(r => r.userId === userId && r.boulderId === boulderId);
+  const existingIdx = all.findIndex(r => isUserMatch(r.userId, userId) && isBoulderMatch(r.boulderId, boulderId));
   const now = new Date().toISOString();
 
   let result: BoulderRating;
@@ -295,7 +309,7 @@ export function saveRating(
  */
 export function deleteRating(userId: string, boulderId: string): boolean {
   const all = getRatings();
-  const filtered = all.filter(r => !(r.userId === userId && r.boulderId === boulderId));
+  const filtered = all.filter(r => !(isUserMatch(r.userId, userId) && isBoulderMatch(r.boulderId, boulderId)));
   if (filtered.length !== all.length) {
     setStorageJson(STORAGE_KEY_RATINGS, filtered);
     notifyRatingsChanged(boulderId);
@@ -323,7 +337,7 @@ export function getComments(boulderId?: string): BoulderComment[] {
     }
   }
 
-  const filtered = boulderId ? list.filter(c => c.boulderId === boulderId) : list;
+  const filtered = boulderId ? list.filter(c => isBoulderMatch(c.boulderId, boulderId)) : list;
   return [...filtered].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );

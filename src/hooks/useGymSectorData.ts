@@ -36,7 +36,7 @@ export function useGymSectorData(
       setSelectedGymId(currentGym.id);
       const gymSectors = getSectors(currentGym.id);
       setSectors(gymSectors);
-      setSelectedSectorId(gymSectors.length > 0 ? gymSectors[0].id : '');
+      setSelectedSectorId(prev => (prev && gymSectors.some(s => s.id === prev)) ? prev : (gymSectors.length > 0 ? gymSectors[0].id : ''));
       const scales = getGradeScales(currentGym.id);
       setGradeScales(scales);
     } else {

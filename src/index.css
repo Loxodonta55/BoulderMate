@@ -192,3 +192,18 @@ input, select, textarea {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* SPEC-003 AC-18: 5-Sterne King-Line Gold Glow */
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(201, 169, 110, 0);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(201, 169, 110, 0.35);
+  }
+}
+
+.gold-glow {
+  animation: goldPulse 3s infinite ease-in-out;
+}
+

@@ -285,5 +285,27 @@ describe('SPEC-003: UI Components Integration', () => {
       fireEvent.click(resetBtn);
       expect(screen.queryByText('Filter zurücksetzen')).not.toBeInTheDocument();
     });
+
+    it('renders AC-18: Mobile Hero Score Box and 5-Sterne Hallen-Klassiker highlight', () => {
+      render(<ClimberSectorView currentUser={sampleUser} />);
+
+      // boulder-existing-2 has 1 rating of 5 stars -> 5.0 Hallen-Klassiker
+      expect(screen.getByTestId('five-star-ribbon')).toBeInTheDocument();
+      expect(screen.getByText(/5.0 HALLEN-KLASSIKER/i)).toBeInTheDocument();
+
+      const fiveStarHero = screen.getByTestId('hero-score-boulder-existing-2');
+      expect(fiveStarHero).toBeInTheDocument();
+      expect(fiveStarHero).toHaveTextContent('5.0');
+      expect(fiveStarHero).toHaveTextContent(/1 Vote/i);
+
+      // boulder-existing-1 has 3 ratings (5, 4, 4) -> 4.3 stars (rated, but not 5-star)
+      const ratedHero = screen.getByTestId('hero-score-boulder-existing-1');
+      expect(ratedHero).toBeInTheDocument();
+      expect(ratedHero).toHaveTextContent('4.3');
+      expect(ratedHero).toHaveTextContent(/3 Votes/i);
+
+      // 5-star footer shows 100% Empfehlung
+      expect(screen.getByText(/100% Empfehlung/i)).toBeInTheDocument();
+    });
   });
 });

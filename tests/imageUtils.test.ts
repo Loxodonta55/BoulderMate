@@ -25,9 +25,30 @@ describe('imageUtils (SPEC-005)', () => {
       expect(validateImageFile(jpg).valid).toBe(true);
     });
 
-    it('should reject non-image file formats', () => {
+    it('should validate HEIC and HEIF photos from iPhone cameras', () => {
+      const heicMime = new File(['fake-heic'], 'IMG_4821.HEIC', { type: 'image/heic' });
+      const heifMime = new File(['fake-heif'], 'photo.heif', { type: 'image/heif' });
+      const heicExtOnly = new File(['fake-heic'], 'wall_overhang.heic', { type: '' });
+      const heicUpperExt = new File(['fake-heic'], 'DSC0012.HEIC', { type: 'application/octet-stream' });
+
+      expect(validateImageFile(heicMime).valid).toBe(true);
+      expect(validateImageFile(heifMime).valid).toBe(true);
+      expect(validateImageFile(heicExtOnly).valid).toBe(true);
+      expect(validateImageFile(heicUpperExt).valid).toBe(true);
+    });
+
+    it('should accept mobile files with empty or octet-stream MIME types if not explicitly non-image', () => {
+      const mobileCameraPhoto = new File(['raw-pixel-data'], 'camera_capture_12984', { type: '' });
+      const galleryExport = new File(['raw-bytes'], 'photo', { type: 'application/octet-stream' });
+
+      expect(validateImageFile(mobileCameraPhoto).valid).toBe(true);
+      expect(validateImageFile(galleryExport).valid).toBe(true);
+    });
+
+    it('should reject non-image file formats even with empty or generic MIME', () => {
       const pdf = new File(['fake-pdf'], 'topo.pdf', { type: 'application/pdf' });
       const txt = new File(['fake-txt'], 'notes.txt', { type: 'text/plain' });
+      const docWithEmptyMime = new File(['doc'], 'document.docx', { type: '' });
 
       const pdfRes = validateImageFile(pdf);
       expect(pdfRes.valid).toBe(false);
@@ -35,6 +56,9 @@ describe('imageUtils (SPEC-005)', () => {
 
       const txtRes = validateImageFile(txt);
       expect(txtRes.valid).toBe(false);
+
+      const docRes = validateImageFile(docWithEmptyMime);
+      expect(docRes.valid).toBe(false);
     });
 
     it('should reject files that exceed maximum size', () => {
@@ -99,6 +123,15 @@ describe('imageUtils (SPEC-005)', () => {
       expect(result.dataUrl).toBeTruthy();
       expect(result.dataUrl).toMatch(/^data:image\//);
       expect(result.mimeType).toBe('image/jpeg');
+    });
+
+    it('should process HEIC photo from iPhone without error', async () => {
+      const heicFile = new File(['fake-heic-binary'], 'IMG_9942.HEIC', { type: 'image/heic' });
+      const result = await processLocalImageFile(heicFile);
+
+      expect(result.dataUrl).toBeTruthy();
+      expect(result.dataUrl).toMatch(/^data:image\//);
+      expect(result.originalSize).toBe(heicFile.size);
     });
 
     it('processUploadedImage should return dataUrl directly', async () => {

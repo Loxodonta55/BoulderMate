@@ -1,4 +1,4 @@
-﻿/**
+/**
  * syncBridge.ts
  * 
  * SOLID: Dependency Inversion Principle (DIP).
@@ -9,6 +9,7 @@
 
 export interface SyncHandlers {
   syncSector?: (sector: any) => Promise<boolean>;
+  deleteSector?: (sectorId: string) => Promise<boolean>;
   syncSectorOrder?: (gymId: string, orderedSectorIds: string[]) => Promise<boolean>;
   syncGradeScales?: (gymId: string, scales: any[]) => Promise<boolean>;
   syncBoulders?: (boulders: any[]) => Promise<boolean>;
@@ -18,6 +19,8 @@ export interface SyncHandlers {
   syncRating?: (rating: any) => Promise<boolean>;
   deleteRating?: (userId: string, boulderId: string) => Promise<boolean>;
   syncRatingsAndAscentsQuietly?: () => Promise<boolean>;
+  syncClimberRoute?: (route: any) => Promise<boolean>;
+  deleteClimberRoute?: (routeId: string) => Promise<boolean>;
 }
 
 const handlers: SyncHandlers = {};
@@ -29,6 +32,9 @@ export function registerSyncHandlers(newHandlers: Partial<SyncHandlers>): void {
 export const syncBridge = {
   syncSector(sector: any): Promise<boolean> {
     return handlers.syncSector ? handlers.syncSector(sector).catch(() => false) : Promise.resolve(false);
+  },
+  deleteSector(sectorId: string): Promise<boolean> {
+    return handlers.deleteSector ? handlers.deleteSector(sectorId).catch(() => false) : Promise.resolve(false);
   },
   syncSectorOrder(gymId: string, orderedSectorIds: string[]): Promise<boolean> {
     return handlers.syncSectorOrder ? handlers.syncSectorOrder(gymId, orderedSectorIds).catch(() => false) : Promise.resolve(false);
@@ -56,5 +62,11 @@ export const syncBridge = {
   },
   syncRatingsAndAscentsQuietly(): Promise<boolean> {
     return handlers.syncRatingsAndAscentsQuietly ? handlers.syncRatingsAndAscentsQuietly().catch(() => false) : Promise.resolve(false);
+  },
+  syncClimberRoute(route: any): Promise<boolean> {
+    return handlers.syncClimberRoute ? handlers.syncClimberRoute(route).catch(() => false) : Promise.resolve(false);
+  },
+  deleteClimberRoute(routeId: string): Promise<boolean> {
+    return handlers.deleteClimberRoute ? handlers.deleteClimberRoute(routeId).catch(() => false) : Promise.resolve(false);
   },
 };
