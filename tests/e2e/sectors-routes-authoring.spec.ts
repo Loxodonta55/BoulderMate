@@ -14,9 +14,16 @@ test.describe('SPEC-001 / SPEC-002: Sectors & Routes Authoring (Setter-Studio & 
 
   test('Setter can access Schrauber-Studio and view active sector walls with pins', async ({ page }) => {
     // Open Role Gateway or switch to Schrauber-Studio
-    const studioBtn = page.locator('button:has-text("SCHRAUBER-STUDIO"), button:has-text("Studio")').first();
-    if (await studioBtn.isVisible()) {
-      await studioBtn.click();
+    const roleGatewaySetter = page.getByTestId('role-gateway-setter-btn');
+    if (await roleGatewaySetter.isVisible()) {
+      await roleGatewaySetter.click();
+    } else {
+      const workspaceBtn = page.locator('button[data-testid*="workspace"], button:has-text("Arbeitsbereich")').first();
+      if (await workspaceBtn.isVisible()) {
+        await workspaceBtn.click();
+        await expect(roleGatewaySetter).toBeVisible();
+        await roleGatewaySetter.click();
+      }
     }
 
     // Verify wall view or sector editor is loaded
@@ -50,10 +57,15 @@ test.describe('SPEC-001 / SPEC-002: Sectors & Routes Authoring (Setter-Studio & 
   });
 
   test('Mobile Touch Navigation: Switching sectors via swipe or previous/next buttons', async ({ page }) => {
-    // Access Kletterer-App
-    const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
-    if (await klettererAppBtn.isVisible()) {
-      await klettererAppBtn.click();
+    // Access Kletterer-App if role gateway is open
+    const climberBtn = page.getByTestId('role-gateway-climber-btn');
+    if (await climberBtn.isVisible()) {
+      await climberBtn.click();
+    } else {
+      const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
+      if (await klettererAppBtn.isVisible()) {
+        await klettererAppBtn.click();
+      }
     }
 
     // Locate Next Sector button

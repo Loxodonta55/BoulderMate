@@ -66,6 +66,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
           {/* 1. Kletterer-App */}
           <button
             type="button"
+            data-testid="role-gateway-climber-btn"
             onClick={() => onSelectMode('climber')}
             className={`w-full p-4 sm:p-5 rounded-none border text-left transition group flex items-center justify-between gap-4 ${
               currentMode === 'climber'
@@ -98,6 +99,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
           {roleInfo.canAccessSetterStudio ? (
             <button
               type="button"
+              data-testid="role-gateway-setter-btn"
               onClick={() => onSelectMode('setter')}
               className={`w-full p-4 sm:p-5 rounded-none border text-left transition group flex items-center justify-between gap-4 ${
                 currentMode === 'setter'

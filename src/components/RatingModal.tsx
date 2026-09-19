@@ -79,14 +79,14 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       3,
   });
 
-  // Reset to step 1 whenever modal opens
+  // Reset to step 1 whenever modal opens (or boulder rating ID changes)
   useEffect(() => {
     if (isOpen) {
       setStep(1);
       setGradeFeel(existingRating?.gradeFeel || undefined);
       setQualityStars(existingRating?.qualityStars || 5);
     }
-  }, [isOpen, existingRating]);
+  }, [isOpen, existingRating?.id]);
 
   if (!isOpen) return null;
 

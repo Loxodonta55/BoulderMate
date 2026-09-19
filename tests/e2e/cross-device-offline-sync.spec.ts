@@ -2,20 +2,21 @@ import { test, expect, devices } from '@playwright/test';
 
 test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycle', () => {
 
-  test('Dual-Device: Action on Mobile (Pixel 7) is reflected on Desktop without page reload', async ({ playwright }) => {
+  test('Dual-Device: Action on Mobile (Pixel 7) is reflected on Desktop without page reload', async ({ playwright, baseURL }) => {
     const browser = await playwright.chromium.launch();
+    const targetURL = baseURL || 'http://localhost:5173';
 
     // 1. Mobile Context (Kletterer on Smartphone)
     const mobileContext = await browser.newContext({
       ...devices['Pixel 7'],
-      baseURL: 'https://bouldermate.ch',
+      baseURL: targetURL,
     });
     const mobilePage = await mobileContext.newPage();
 
     // 2. Desktop Context (Second user / Admin on Desktop)
     const desktopContext = await browser.newContext({
       viewport: { width: 1440, height: 900 },
-      baseURL: 'https://bouldermate.ch',
+      baseURL: targetURL,
     });
     const desktopPage = await desktopContext.newPage();
 
@@ -44,16 +45,16 @@ test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycl
         await desktopKlettererApp.click();
       }
 
-      // Desktop opens GELBE AUSDAUER to observe live community feed
-      const desktopRoute = desktopPage.getByText('GELBE AUSDAUER').first();
+      // Desktop opens first available route to observe live community feed
+      const desktopRoute = desktopPage.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
       await expect(desktopRoute).toBeVisible({ timeout: 10000 });
       await desktopRoute.click();
 
       const desktopModal = desktopPage.locator('.fixed.inset-0.z-50');
       await expect(desktopModal).toBeVisible();
 
-      // Mobile rates the route or logs an ascent
-      const mobileRoute = mobilePage.getByText('GELBE AUSDAUER').first();
+      // Mobile opens the same route and logs an ascent
+      const mobileRoute = mobilePage.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
       await expect(mobileRoute).toBeVisible({ timeout: 10000 });
       await mobileRoute.click();
 
@@ -89,7 +90,7 @@ test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycl
     }
 
     // Open route
-    const route = page.getByText('GELBE AUSDAUER').first();
+    const route = page.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
     await expect(route).toBeVisible({ timeout: 10000 });
     await route.click();
 
