@@ -26,7 +26,48 @@ export function setStorageString(key: string, value: string): void {
   if (isLocalStorageAvailable()) {
     try {
       window.localStorage.setItem(key, value);
-    } catch (e) {
+    } catch (e: any) {
+      if (
+        e &&
+        (e.name === 'QuotaExceededError' ||
+          e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+          e.code === 22 ||
+          e.code === 1014)
+      ) {
+        console.warn(`[Storage] Quota exceeded writing "${key}". Initiating automatic storage compaction...`);
+        try {
+          // 1. Purge legacy or heavy reconstructed caches
+          window.localStorage.removeItem('boulder_app_records_v1');
+
+          // 2. Clean bloated base64 images from sector caches if present
+          for (const secKey of ['boulderapp_sectors_v2', 'boulder_sectors_v1']) {
+            const raw = window.localStorage.getItem(secKey);
+            if (raw && raw.includes('data:image')) {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  for (const s of parsed) {
+                    if (s.wallPhotoUrl && s.wallPhotoUrl.startsWith('data:')) {
+                      s.wallPhotoUrl = '/images/walls/overhang.jpg';
+                    }
+                    if (s.wall_photo_url && s.wall_photo_url.startsWith('data:')) {
+                      s.wall_photo_url = '/images/walls/overhang.jpg';
+                    }
+                  }
+                  window.localStorage.setItem(secKey, JSON.stringify(parsed));
+                }
+              } catch {}
+            }
+          }
+
+          // Retry writing the key
+          window.localStorage.setItem(key, value);
+          console.log(`[Storage] Successfully saved "${key}" after storage compaction.`);
+          return;
+        } catch (retryErr) {
+          console.error(`[Storage] Retry failed for key "${key}":`, retryErr);
+        }
+      }
       console.error(`Failed writing key "${key}" to localStorage:`, e);
     }
   }

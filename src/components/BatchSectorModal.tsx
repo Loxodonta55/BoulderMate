@@ -5,9 +5,11 @@ import {
   readFileAsDataUrl,
   validateImageFile,
   formatBytes,
-  cleanFileNameToSectorName
+  cleanFileNameToSectorName,
+  dataUrlToBlob
 } from '../lib/imageUtils';
 import { createSectorsBatch } from '../lib/gymStorage';
+import { uploadSectorPhoto } from '../lib/supabase';
 import {
   Layers,
   Upload,
@@ -174,11 +176,21 @@ export const BatchSectorModal: React.FC<BatchSectorModalProps> = ({
 
         let finalPhotoUrl = item.photoUrl;
 
-        // If it's a raw user file, compress client-side
+        // If it's a raw user file, compress client-side and upload to Supabase Storage
         if (item.file) {
           try {
             const processed = await processLocalImageFile(item.file);
-            finalPhotoUrl = processed.dataUrl;
+            try {
+              const blob = dataUrlToBlob(processed.dataUrl);
+              const uploadedUrl = await uploadSectorPhoto(
+                blob,
+                item.file.name || `${item.name}.jpg`,
+                processed.dataUrl
+              );
+              finalPhotoUrl = uploadedUrl;
+            } catch {
+              finalPhotoUrl = processed.dataUrl;
+            }
           } catch (compressErr) {
             // Fallback to raw dataUrl if canvas compression fails
             finalPhotoUrl = item.photoUrl;
