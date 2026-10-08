@@ -19,6 +19,7 @@ import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser } from './lib/authService';
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
+import { startFeedbackQueueSync } from './lib/feedbackService';
 import { AppHeader } from './components/AppHeader';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { useBackHandler } from './hooks/useBackHandler';
@@ -225,8 +226,12 @@ export const App: React.FC = () => {
     // Start Supabase Realtime multi-user sync (AC-15)
     const cleanupRealtime = startRealtimeSync();
 
+    // SPEC-026 AC-9: wartendes Feedback nachsenden (jetzt und bei jedem «online»)
+    const cleanupFeedbackQueue = startFeedbackQueueSync();
+
     return () => {
       cleanupRealtime();
+      cleanupFeedbackQueue();
     };
   }, []);
 

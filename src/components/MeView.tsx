@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope } from 'lucide-react';
+import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope, MessageSquareText } from 'lucide-react';
 import { CurrentUser, WallBoulder, LogbookEntry, AscentType } from '../types/boulder';
 import { getProfileData, updateProfile, deleteAccount } from '../lib/profileService';
 import { getAthletePerformanceReport } from '../lib/performanceService';
@@ -12,6 +12,8 @@ import { DeepDiveView } from './DeepDiveView';
 import { SegmentedControl, ListGroup, ListRow } from './ui/primitives';
 import { showToast } from './ui/Toast';
 import { useBackHandler } from '../hooks/useBackHandler';
+import { FeedbackSheet } from './FeedbackSheet';
+import { getCurrentAuthUser } from '../lib/authService';
 
 /**
  * SPEC-020 §5.3/§5.4 · «Ich» – eine Seite ohne Sub-Tabs + Einstellungen (iOS-Settings-Stil).
@@ -57,8 +59,10 @@ export const MeView: React.FC<MeViewProps> = ({
   const [nameDraft, setNameDraft] = useState('');
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   useBackHandler({ id: 'me-settings', isOpen: isSettingsOpen, onBack: () => setIsSettingsOpen(false) });
+  useBackHandler({ id: 'me-feedback', isOpen: isFeedbackOpen, onBack: () => setIsFeedbackOpen(false) });
   useBackHandler({ id: 'me-deep-dive', isOpen: isDeepDiveOpen, onBack: () => setIsDeepDiveOpen(false) });
 
   useEffect(() => {
@@ -237,6 +241,17 @@ export const MeView: React.FC<MeViewProps> = ({
             />
           </ListGroup>
 
+          {/* SPEC-026: Feedback an das App-Team */}
+          <ListGroup title="Hilfe">
+            <ListRow
+              testId="settings-feedback"
+              icon={<MessageSquareText className="w-5 h-5 text-[var(--bm-text-2)]" />}
+              title="Feedback geben"
+              subtitle="Fehler, Ideen, Lob"
+              onClick={() => setIsFeedbackOpen(true)}
+            />
+          </ListGroup>
+
           <ListGroup>
             <ListRow
               testId="settings-logout"
@@ -260,6 +275,15 @@ export const MeView: React.FC<MeViewProps> = ({
             />
           </ListGroup>
         </div>
+        <FeedbackSheet
+          open={isFeedbackOpen}
+          onClose={() => setIsFeedbackOpen(false)}
+          userId={currentUser.id}
+          nickname={profile.nickname}
+          email={getCurrentAuthUser()?.email}
+          gymId={activeGymId}
+          gymName={getGyms().find(g => g.id === activeGymId)?.name}
+        />
       </div>
     );
   }
