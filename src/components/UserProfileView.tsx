@@ -6,7 +6,6 @@ import {
   deleteAccount,
 } from '../lib/profileService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
-import { getStoredBoulders } from '../lib/storage';
 import { getRatings } from '../lib/ratingAndAscentService';
 import { formatRelativeDate } from '../lib/formatUtils';
 import { ProfileKPIsBar } from './ProfileKPIsBar';
@@ -14,7 +13,7 @@ import { GradeDistributionChart } from './GradeDistributionChart';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import { BoulderDetailModal } from './BoulderDetailModal';
 import { AthletePerformanceView } from './AthletePerformanceView';
-import { LegacyLogbookView } from './LegacyLogbookView';
+import { DeepDiveView } from './DeepDiveView';
 import { getAthletePerformanceReport } from '../lib/performanceService';
 import { useBackHandler } from '../hooks/useBackHandler';
 import {
@@ -54,7 +53,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   initialSubTab = 'overall',
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'overall' | 'deep_dive'>(initialSubTab);
-  const [localBoulders, setLocalBoulders] = useState<Boulder[]>(() => boulders || getStoredBoulders());
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [activeSegment, setActiveSegment] = useState<'overview' | 'performance'>('overview');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -88,13 +86,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
   useEffect(() => {
     if (boulders) {
-      setLocalBoulders(boulders);
+      setVersion(v => v + 1);
     }
   }, [boulders]);
 
   useEffect(() => {
     const handleRoutesUpdated = () => {
-      setLocalBoulders(getStoredBoulders());
       setVersion(v => v + 1);
     };
     window.addEventListener('bouldermate:climber_routes_updated', handleRoutesUpdated);
@@ -104,7 +101,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   }, []);
 
   const handleDataChanged = () => {
-    setLocalBoulders(getStoredBoulders());
     setVersion(v => v + 1);
     onDataChanged?.();
   };
@@ -485,11 +481,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       )}
     </>
   ) : (
-    /* Sub-Bereich 2: Deep Dive Logbook */
-    <LegacyLogbookView
-      boulders={localBoulders}
-      onDataChanged={handleDataChanged}
-    />
+    /* Sub-Bereich 2: Deep Dive (nur Wand-Begehungen, gleicher Hallenfilter) */
+    <DeepDiveView userId={currentUser.id} gymId={selectedGymId} version={version} onSelectBoulder={handleOpenBoulderById} />
   )}
 
       {/* Settings Modal (AC-7) */}
@@ -514,7 +507,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           currentUser={currentUser}
           isOpen={!!selectedBoulder}
           onClose={() => setSelectedBoulder(null)}
-          onDataChanged={() => setVersion(v => v + 1)}
+          onDataChanged={handleDataChanged}
         />
       )}
     </div>

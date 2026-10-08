@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User } from 'lucide-react';
+import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope } from 'lucide-react';
 import { CurrentUser, WallBoulder, LogbookEntry, AscentType } from '../types/boulder';
 import { getProfileData, updateProfile, deleteAccount } from '../lib/profileService';
 import { getAthletePerformanceReport } from '../lib/performanceService';
@@ -8,6 +8,7 @@ import { UserRoleInfo, AppMode } from '../lib/roleService';
 import { AthletePerformanceView } from './AthletePerformanceView';
 import { RadarChart } from './RadarChart';
 import { BoulderSheet } from './BoulderSheet';
+import { DeepDiveView } from './DeepDiveView';
 import { SegmentedControl, ListGroup, ListRow } from './ui/primitives';
 import { showToast } from './ui/Toast';
 import { useBackHandler } from '../hooks/useBackHandler';
@@ -55,8 +56,10 @@ export const MeView: React.FC<MeViewProps> = ({
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
+  const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
 
   useBackHandler({ id: 'me-settings', isOpen: isSettingsOpen, onBack: () => setIsSettingsOpen(false) });
+  useBackHandler({ id: 'me-deep-dive', isOpen: isDeepDiveOpen, onBack: () => setIsDeepDiveOpen(false) });
 
   useEffect(() => {
     const bump = () => setVersion(v => v + 1);
@@ -104,6 +107,24 @@ export const MeView: React.FC<MeViewProps> = ({
     return Array.from(map.values());
   }, [logbook]);
 
+  // Ein Filter für «Ich» und Deep Dive (SPEC-004 Deep Dive v2)
+  const scopeControl = (
+    <SegmentedControl
+      testId="me-scope"
+      value={scope}
+      onChange={setScope}
+      options={[
+        { value: 'gym', label: gymName.length > 22 ? 'Diese Halle' : gymName },
+        { value: 'all', label: 'Alle Hallen' },
+      ]}
+    />
+  );
+
+  const openBoulderById = (id: string) => {
+    const found = getWallBoulders().find(b => b.id === id);
+    if (found) setSelectedBoulder(found);
+  };
+
   const openEntry = (entry: LogbookEntry) => {
     const found = getWallBoulders().find(b => b.id === entry.boulderId);
     if (found) setSelectedBoulder(found);
@@ -117,6 +138,16 @@ export const MeView: React.FC<MeViewProps> = ({
     if (!selectedBoulder) return undefined;
     return getGyms().flatMap(g => getGradeScales(g.id)).find(s => s.id === selectedBoulder.gradeScaleId);
   }, [selectedBoulder]);
+
+  const boulderSheet = selectedBoulder && (
+    <BoulderSheet
+      boulder={selectedBoulder}
+      sector={selectedSector}
+      gradeScale={selectedScale}
+      currentUser={currentUser}
+      onClose={() => setSelectedBoulder(null)}
+    />
+  );
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify({ profile, logbook }, null, 2)], { type: 'application/json' });
@@ -234,6 +265,25 @@ export const MeView: React.FC<MeViewProps> = ({
   }
 
   // ---------------------------------------------------------------------------
+  // Deep Dive (gepushter Screen, gleicher Hallenfilter wie «Ich»)
+  // ---------------------------------------------------------------------------
+  if (isDeepDiveOpen) {
+    return (
+      <>
+        <DeepDiveView
+          userId={currentUser.id}
+          gymId={gymFilter}
+          version={version}
+          filter={scopeControl}
+          onBack={() => setIsDeepDiveOpen(false)}
+          onSelectBoulder={openBoulderById}
+        />
+        {boulderSheet}
+      </>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Ich
   // ---------------------------------------------------------------------------
   return (
@@ -271,15 +321,7 @@ export const MeView: React.FC<MeViewProps> = ({
         </div>
       </div>
 
-      <SegmentedControl
-        testId="me-scope"
-        value={scope}
-        onChange={setScope}
-        options={[
-          { value: 'gym', label: gymName.length > 22 ? 'Diese Halle' : gymName },
-          { value: 'all', label: 'Alle Hallen' },
-        ]}
-      />
+      {scopeControl}
 
       {/* Hero-Zahlen */}
       <div className="grid grid-cols-3 gap-2.5" data-testid="me-kpis">
@@ -347,13 +389,7 @@ export const MeView: React.FC<MeViewProps> = ({
           </div>
         ) : isStyleExpanded ? (
           <>
-            <AthletePerformanceView
-              report={report}
-              onSelectBoulder={id => {
-                const b = getWallBoulders().find(x => x.id === id);
-                if (b) setSelectedBoulder(b);
-              }}
-            />
+            <AthletePerformanceView report={report} onSelectBoulder={openBoulderById} />
             <button
               type="button"
               onClick={() => setIsStyleExpanded(false)}
@@ -388,6 +424,17 @@ export const MeView: React.FC<MeViewProps> = ({
         )}
       </section>
 
+      {/* Deep Dive: schwerste Routen und was sie verlangen */}
+      <ListGroup>
+        <ListRow
+          testId="me-open-deep-dive"
+          icon={<Microscope className="w-5 h-5 text-[var(--bm-accent)]" />}
+          title="Deep Dive"
+          subtitle="Was deine schwersten Routen verlangen"
+          onClick={() => setIsDeepDiveOpen(true)}
+        />
+      </ListGroup>
+
       {/* Verlauf */}
       <section className="space-y-2.5" data-testid="private-logbook-section">
         <h2 className="text-[20px] font-semibold">Verlauf</h2>
@@ -412,15 +459,7 @@ export const MeView: React.FC<MeViewProps> = ({
         )}
       </section>
 
-      {selectedBoulder && (
-        <BoulderSheet
-          boulder={selectedBoulder}
-          sector={selectedSector}
-          gradeScale={selectedScale}
-          currentUser={currentUser}
-          onClose={() => setSelectedBoulder(null)}
-        />
-      )}
+      {boulderSheet}
     </div>
   );
 };
