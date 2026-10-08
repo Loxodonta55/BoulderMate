@@ -8,9 +8,9 @@
 --   test-schrauber@bouldermate.ch   (Schrauber 6a Plus)
 --   test-kletterer@bouldermate.ch   (nur Kletterer)
 --
--- UND unten bei «2.» die Adresse deines eigenen Kontos eintragen (die Google-Adresse,
--- mit der du dich auf bouldermate.ch anmeldest). Dieses Konto wird Plattform-Admin und
--- bekommt den Umschalter «Ansehen als …».
+-- Bei «2.» steht Hans' Google-Adresse. Dieses Konto wird Plattform-Admin und
+-- bekommt den Umschalter «Ansehen als …». Das Konto muss sich vorher einmal per Google
+-- angemeldet haben, sonst gibt es noch keinen Eintrag in auth.users.
 -- ============================================================
 
 -- 1. Jeder angemeldete Nutzer darf seine eigenen Hallen-Rollen lesen
@@ -25,7 +25,8 @@ INSERT INTO public.user_profiles (id, email, nickname, is_platform_admin)
 SELECT u.id, u.email, COALESCE(NULLIF(split_part(u.email, '@', 1), ''), 'Admin'), true
 FROM auth.users u
 WHERE lower(u.email) IN (
-  lower('DEINE-ADRESSE@gmail.com'),   -- ← hier deine Adresse eintragen
+  'loxodonta55@googlemail.com',   -- Boris (Google liefert je nach Konto gmail.com oder googlemail.com)
+  'loxodonta55@gmail.com',
   'boris@bouldermate.ch'
 )
 ON CONFLICT (id) DO UPDATE SET is_platform_admin = true;
@@ -54,7 +55,12 @@ CROSS JOIN (
 ) AS g
 ON CONFLICT ON CONSTRAINT uq_gym_user_role DO NOTHING;
 
--- 5. Kontrolle: sollte die Test-Konten mit ihren Rollen zeigen
+-- 5. So heisst Hans' Adresse in Supabase (falls die Kontrolle unten sein Konto nicht zeigt)
+SELECT email, raw_app_meta_data->>'provider' AS anbieter, created_at
+FROM auth.users
+WHERE email ILIKE '%donta55%';
+
+-- 6. Kontrolle (der SQL-Editor zeigt nur dieses letzte Ergebnis): Admins und Test-Konten mit Rollen
 SELECT p.email, p.nickname, p.is_platform_admin, m.role, g.name AS halle
 FROM public.user_profiles p
 LEFT JOIN public.gym_members m ON m.user_id = p.id
