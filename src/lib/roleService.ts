@@ -1,7 +1,8 @@
 import { GymMemberRole } from '../types/boulder';
 import { GymMember } from '../types/gym';
 import { getMembers, saveMembers } from './gymStorage';
-import { isPlatformAdmin as checkPlatformAdmin } from './authService';
+import { isPlatformAdmin as checkPlatformAdmin, getActiveViewAs } from './authService';
+import { applyViewAs } from './viewAsService';
 
 export type AppMode = 'climber' | 'setter' | 'admin';
 
@@ -87,7 +88,7 @@ export function getUserRoleInfo(userId: string, gymId?: string): UserRoleInfo {
   const isAdmin = roles.has('admin');
   const isSetter = roles.has('setter');
 
-  return {
+  const info: UserRoleInfo = {
     userId,
     gymId,
     roles: rolesArray,
@@ -101,6 +102,9 @@ export function getUserRoleInfo(userId: string, gymId?: string): UserRoleInfo {
     canAppointSetters: isAdmin || platformAdmin,
     canAppointAdmins: isAdmin || platformAdmin,
   };
+
+  // SPEC-027: «Ansehen als …» des angemeldeten Plattform-Admins
+  return applyViewAs(info, getActiveViewAs(userId));
 }
 
 /**

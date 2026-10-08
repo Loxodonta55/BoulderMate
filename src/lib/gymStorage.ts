@@ -1,5 +1,5 @@
 import { Gym, GymMember, GradeScale, Sector, BoulderReference, GymRole, User } from '../types/gym';
-import { isPlatformAdmin } from './authService';
+import { isPlatformAdmin, isRealPlatformAdmin, getActiveViewAs } from './authService';
 import { SEED_EXISTING_BOULDERS } from './seedData';
 
 export type { GradeScale };
@@ -451,6 +451,8 @@ export function updateGymLocation(gym_id: string, user_id: string, lat: number, 
 
 export function isGymAdmin(gym_id: string, user_id: string): boolean {
   if (isPlatformAdmin(user_id)) return true;
+  // SPEC-027: In der Vorschau «Hallen-Admin» ist der Plattform-Admin Admin jeder Halle
+  if (getActiveViewAs(user_id) === 'hallen-admin') return true;
   return getUserRoleInGym(gym_id, user_id) === 'admin';
 }
 
@@ -461,7 +463,9 @@ export function createGym(
   input: { id?: string; name: string; address?: string; city?: string; logo_url?: string; website?: string; initial_admin_user_id?: string },
   user_id: string = CURRENT_USER.id
 ): Gym {
-  if (!isPlatformAdmin(user_id)) {
+  // SPEC-027: echte Rechte prüfen, damit die Grunddaten auch während «Ansehen als …» entstehen
+  // (den Knopf «Halle anlegen» blendet die Vorschau trotzdem aus)
+  if (!isRealPlatformAdmin(user_id)) {
     throw new Error('Nur Plattform-Administratoren dürfen neue Hallen anlegen.');
   }
 

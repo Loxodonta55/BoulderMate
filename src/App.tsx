@@ -18,7 +18,9 @@ import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
-import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED } from './lib/authService';
+import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED, canUseViewAs, getActiveViewAs } from './lib/authService';
+import { onViewAsChange, setStoredViewAs, ViewAsMode } from './lib/viewAsService';
+import { ViewAsSwitcher } from './components/ViewAsSwitcher';
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { startFeedbackQueueSync } from './lib/feedbackService';
 import { AppHeader } from './components/AppHeader';
@@ -57,6 +59,8 @@ export const App: React.FC = () => {
   const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
 
   // SPEC-024 AC-2.4 / AC-5.1: Rückkehr von Google (?code= oder ?error=) beim Start auswerten
+  // SPEC-027: «Ansehen als …» (nur Plattform-Admins)
+  const [viewAsMode, setViewAsMode] = useState<ViewAsMode>(() => getActiveViewAs());
   const [oauthReturn] = useState(() => readOAuthReturnFromUrl());
   const [isFinishingOAuth, setIsFinishingOAuth] = useState(oauthReturn.status === 'pending');
   const [authNotice, setAuthNotice] = useState<string | null>(oauthReturn.status === 'error' ? oauthReturn.message : null);
@@ -124,7 +128,22 @@ export const App: React.FC = () => {
       };
     }
     return getUserRoleInfo(climberId, activeGymId);
-  }, [climberId, activeGymId]);
+  }, [climberId, activeGymId, viewAsMode, authSession]);
+
+  // SPEC-027 AC-3: Neue Vorschau → zurück zur Wand, bei Sonderrechten fragt die Arbeitsbereich-Wahl neu
+  useEffect(() => {
+    return onViewAsChange(() => {
+      setViewAsMode(getActiveViewAs());
+      setAppMode('climber');
+      if (climberId) {
+        setHasChosenModeForUser(prev => ({ ...prev, [climberId]: false }));
+      }
+    });
+  }, [climberId]);
+
+  useEffect(() => {
+    setViewAsMode(getActiveViewAs());
+  }, [authSession]);
 
   const currentUser = useMemo(() => {
     if (!climberId || !authSession) {
@@ -168,7 +187,7 @@ export const App: React.FC = () => {
         setIsRoleGatewayOpen(true);
       }
     }
-  }, [climberId, activeGymId, roleInfo.canAccessSetterStudio, roleInfo.canAccessAdminConsole, appMode]);
+  }, [climberId, activeGymId, roleInfo.canAccessSetterStudio, roleInfo.canAccessAdminConsole, appMode, viewAsMode]);
 
   const handleSelectMode = (mode: AppMode) => {
     setAppMode(mode);
@@ -506,6 +525,15 @@ export const App: React.FC = () => {
           refreshGyms();
         }}
       />
+
+      {/* SPEC-027: «Ansehen als …» nur für echte Plattform-Admins */}
+      {authSession && canUseViewAs() && (
+        <ViewAsSwitcher
+          mode={viewAsMode}
+          onChange={setStoredViewAs}
+          raised={appMode === 'climber'}
+        />
+      )}
 
       {/* SPEC-022 AC-11: Toasts (Loggen · Rückgängig) */}
       <ToastHost />

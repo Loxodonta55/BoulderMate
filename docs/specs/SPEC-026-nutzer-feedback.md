@@ -1,6 +1,6 @@
 # SPEC-026: Nutzer-Feedback – Fehler, Ideen und Lob direkt aus der App
 
-## Status: IN PROGRESS (umgesetzt 2026-10-08, uncommitted; Migration durch Hans offen)
+## Status: DONE (umgesetzt und auf main 2026-10-08; Migration laut Hans am 2026-10-08 eingespielt)
 
 > **Owner:** Hans · **Created:** 2026-10-08 · **Baut auf:** SPEC-020 (Design System «Kreide», Einstellungen im iOS-Stil), SPEC-022 (Kletterer-UX, ein Ort pro Funktion), SPEC-024 (Datenschutzerklärung)
 >

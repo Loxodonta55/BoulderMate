@@ -9,6 +9,7 @@ import {
 } from './storageUtils';
 import { getMembers, saveMembers } from './gymStorage';
 import { GymMember } from '../types/gym';
+import { getStoredViewAs, isViewAsFeatureEnabled, ViewAsMode } from './viewAsService';
 
 export interface AuthUser {
   id: string;
@@ -108,6 +109,26 @@ export const SUPABASE_UUID_TO_DEMO_KEY: Record<string, string> = {
   '00000000-5a7c-4000-8000-7702607a9a42': 'schrauber-minimum',
 };
 
+/**
+ * SPEC-027 AC-6: Test-Personen (Boris, Admin 6a Plus, …) gibt es nur lokal im Dev-Build, in Tests
+ * und ohne Supabase. Live (bouldermate.ch) meldet man sich nur mit einem echten Konto an.
+ */
+export function allowDemoLogins(): boolean {
+  return demoLoginsAllowedFor({
+    isTest: isTestEnv,
+    isDev: Boolean((import.meta as any).env?.DEV),
+    supabaseReady: Boolean(supabase && isSupabaseConfigured),
+  });
+}
+
+export function demoLoginsAllowedFor(env: { isTest: boolean; isDev: boolean; supabaseReady: boolean }): boolean {
+  return env.isTest || env.isDev || !env.supabaseReady;
+}
+
+export function isDemoSession(user: AuthUser): boolean {
+  return user.provider === 'simulation' || Boolean(DEMO_USERS[user.id]) || user.id.startsWith('user_email_');
+}
+
 let currentSessionUser: AuthUser | null = null;
 const authListeners: Array<(user: AuthUser | null) => void> = [];
 let hasSubscribedToSupabaseAuth = false;
@@ -174,7 +195,9 @@ export async function syncUserProfileWithSupabase(userId: string): Promise<Parti
  * Wandelt ein Supabase Auth User-Objekt in unser kanonisches AuthUser-Modell um.
  */
 export async function mapSupabaseUserToAuthUser(sbUser: any): Promise<AuthUser> {
-  const isBoris = sbUser.email === 'boris@bouldermate.ch' || sbUser.id === '00000000-1d0e-4000-8000-e92d69136f33';
+  // SPEC-027 AC-6: Live zählt nur is_platform_admin aus der Datenbank, nicht die E-Mail-Adresse
+  const isBoris = allowDemoLogins() &&
+    (sbUser.email === 'boris@bouldermate.ch' || sbUser.id === '00000000-1d0e-4000-8000-e92d69136f33');
   
   // Standard-Metadaten (SPEC-024 F3: bei Google der Vorname, wie im DB-Trigger handle_new_user)
   const meta = sbUser.user_metadata || {};
@@ -222,6 +245,12 @@ export function initAuthSession(): AuthUser | null {
     removeStorageItem(STORAGE_AUTH_KEY);
   }
 
+  // SPEC-027 AC-6: Live keine Test-Personen aus dem Browser-Speicher übernehmen
+  if (currentSessionUser && !allowDemoLogins() && isDemoSession(currentSessionUser)) {
+    currentSessionUser = null;
+    removeStorageItem(STORAGE_AUTH_KEY);
+  }
+
   // Supabase Auth Listener einmalig registrieren (im Browser, nicht im Test)
   if (typeof window !== 'undefined' && supabase && isSupabaseConfigured && !isTestEnv && !hasSubscribedToSupabaseAuth) {
     hasSubscribedToSupabaseAuth = true;
@@ -231,6 +260,11 @@ export function initAuthSession(): AuthUser | null {
         const mapped = await mapSupabaseUserToAuthUser(session.user);
         currentSessionUser = mapped;
         setStorageJson(STORAGE_AUTH_KEY, currentSessionUser);
+        notifyListeners();
+      } else if (currentSessionUser && !allowDemoLogins()) {
+        // SPEC-027 AC-6: Ohne gültige Supabase-Session ist man live nicht angemeldet
+        currentSessionUser = null;
+        removeStorageItem(STORAGE_AUTH_KEY);
         notifyListeners();
       }
     }).catch(err => {
@@ -393,7 +427,7 @@ export async function signInWithPassword(email: string, password: string): Promi
   if (error) {
     // Falls es sich um ein lokales Testkonto handelt und Supabase fehlschlägt
     const matchedDemo = Object.values(DEMO_USERS).find(u => u.email.toLowerCase() === cleanEmail);
-    if (matchedDemo && password === 'bouldermate2026') {
+    if (matchedDemo && password === 'bouldermate2026' && allowDemoLogins()) {
       return setSessionUser(matchedDemo);
     }
     throw new Error('Ungültige Anmeldedaten. Bitte E-Mail und Passwort prüfen.');
@@ -418,6 +452,11 @@ export async function signInWithEmail(email: string, password?: string): Promise
   // Wenn Passwort übergeben wurde, echter Supabase Login
   if (password) {
     return signInWithPassword(email, password);
+  }
+
+  // SPEC-027 AC-6: Ohne Passwort gibt es live keine Anmeldung
+  if (!allowDemoLogins()) {
+    throw new Error('Bitte ein Passwort angeben.');
   }
 
   // Suche in Demo-Accounts (z.B. für vitest Unit-Tests)
@@ -643,7 +682,10 @@ export function getAvailableTestUsers(): AuthUser[] {
   return PRIMARY_FAKE_USERS;
 }
 
-export function isPlatformAdmin(userId: string): boolean {
+/**
+ * Echte Plattform-Admin-Rechte, ohne «Ansehen als …».
+ */
+export function isRealPlatformAdmin(userId: string): boolean {
   if (
     userId === 'user-boris' || 
     userId === '00000000-1d0e-4000-8000-e92d69136f33'
@@ -654,4 +696,31 @@ export function isPlatformAdmin(userId: string): boolean {
   if (user?.isPlatformAdmin) return true;
   if (currentSessionUser?.id === userId && currentSessionUser.isPlatformAdmin) return true;
   return false;
+}
+
+/**
+ * Plattform-Admin-Rechte, wie die App sie gerade anwenden soll.
+ * SPEC-027: Während einer Rollen-Vorschau verhält sich der Plattform-Admin wie die gewählte Rolle.
+ */
+export function isPlatformAdmin(userId: string): boolean {
+  return isRealPlatformAdmin(userId) && getActiveViewAs(userId) === 'echt';
+}
+
+/**
+ * SPEC-027 AC-1: Den Umschalter «Ansehen als …» sieht nur ein echter Plattform-Admin.
+ */
+export function canUseViewAs(): boolean {
+  const user = currentSessionUser;
+  return Boolean(user) && isViewAsFeatureEnabled() && isRealPlatformAdmin(user!.id);
+}
+
+/**
+ * SPEC-027 AC-2: Die Vorschau gilt nur für den angemeldeten Plattform-Admin selbst, nie für andere Nutzer.
+ */
+export function getActiveViewAs(userId?: string): ViewAsMode {
+  const user = currentSessionUser;
+  if (!user || !isViewAsFeatureEnabled()) return 'echt';
+  if (userId !== undefined && userId !== user.id) return 'echt';
+  if (!isRealPlatformAdmin(user.id)) return 'echt';
+  return getStoredViewAs();
 }

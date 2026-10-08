@@ -80,7 +80,7 @@ Diese Schritte gehen nur mit Hans' Zugängen (Google-Konto, Supabase-Dashboard).
    - Nutzertyp **Extern**.
    - App-Name «BoulderMate», Support-E-Mail, Startseite `https://bouldermate.ch`.
    - **Datenschutzerklärung-URL**: Die App hat heute keine Datenschutzseite. Für die Freigabe und für DSGVO/DSG wird eine gebraucht (F6: Entwurf `/datenschutz` von Claude, Text prüft Hans).
-   - Autorisierte Domains: `bouldermate.ch` und `supabase.co`.
+   - Autorisierte Domains: `bouldermate.ch` und `vuladpswvflfwwgdjejr.supabase.co` (nicht `supabase.co`: Google lehnt sie als öffentliche Domain ab).
    - Bereiche (Scopes): nur `openid`, `email`, `profile` (keine sensiblen Bereiche, daher keine aufwendige Prüfung).
    - Status von «Testen» auf **«In Produktion»** stellen, sonst können sich nur eingetragene Testnutzer (max. 100) anmelden.
 3. **Anmeldedaten → OAuth-Client-ID erstellen**, Typ **Webanwendung**:
