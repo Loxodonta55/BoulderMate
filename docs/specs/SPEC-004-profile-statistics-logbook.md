@@ -6,6 +6,18 @@
 
 > **Update (08.10.2026, Kletterer-UX, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md)):** Die `MeView` ist eingebunden und ersetzt die Sub-Tabs: eine Seite mit Kennzahlen, Grad-Pyramide (nur gekletterte Grade, schwerster oben), kompaktem «Dein Stil» (Radar plus Stärke/Baustelle, aufklappbar) und Logbuch. Einstellungen und Abmelden liegen hinter dem Zahnrad. Die untere Leiste hat nur «Wand» und «Ich». Tests: `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
 
+> **Update (08.10.2026, Deep Dive v2, Wunsch Hans):** Der Deep Dive ist zurück, aber neu gedacht und eng an die Wand gebunden. Er ersetzt AC-3, AC-4 und US-3/US-4 (die alte `LegacyLogbookView` mit manueller Erfassung, Outdoor-Formular, Neigungs-/Grifftyp-Filtern und Backup ist gelöscht).
+>
+> - **DD-1 Einstieg:** Auf «Ich» führt die Zeile «Deep Dive» (`me-open-deep-dive`) auf eine eigene Seite (`deep-dive-view`, wie die Einstellungen ein gepushter Screen; Android-Zurück über `me-deep-dive`). Keine Unter-Tabs.
+> - **DD-2 Datenbasis:** Nur Boulder, die an der Wand als Top oder Flash abgehakt wurden (Projekte zählen nicht, pro Boulder ein Eintrag, Flash schlägt Top). Keine manuelle Eingabe.
+> - **DD-3 Filter:** Derselbe Umschalter `Halle | Alle Hallen` (`me-scope`) wie auf «Ich»; die Wahl gilt auf beiden Seiten.
+> - **DD-4 Deine schwersten 5:** Die fünf schwersten Tops nach Fb-Grad (bei Gleichstand Flash vor Top, dann neueste). Jede Zeile zeigt Farbe, Name, Grad, Sektor, Flash/Top und als Chips die auffälligen Merkmale ab Wert 4, z. B. «Maximalkraft 5» (Wert ≥ 4,5 hervorgehoben), sonst «Ausgeglichen». Tippen öffnet das `BoulderSheet`.
+> - **DD-5 Muster:** Gibt es mehr als 5 Tops, nennt ein Satz die Merkmale, die in den Top 5 im Schnitt mindestens 0,5 höher liegen als bei den übrigen Tops («Fällt auf: Maximalkraft Ø 4,6 statt 3,1»).
+> - **DD-6 Was jeder Grad verlangt:** Eine Zeile pro Fb-Grad (schwerster oben) mit Anzahl und bis zu zwei typischen Merkmalen (Ø ≥ 3,5); aufklappbar zu den einzelnen Routen mit ihren Merkmal-Chips.
+> - **DD-7 Merkmalswerte:** Achsen aus SPEC-008 (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität), Skala 1–5, Schrauber-Radar gewichtet mit Community-Einschätzungen (`computeAggregatedRadar`, SPEC-003).
+> - **Code:** `src/lib/deepDiveService.ts` (reine Funktion `buildDeepDiveReport`, Wrapper `getDeepDiveReport`), `src/components/DeepDiveView.tsx`, Einstieg in `MeView`.
+> - **Tests:** `tests/spec004DeepDive.test.tsx`, `tests/e2e/deep-dive.spec.ts`.
+
 ## Status: APPROVED (Konsolidiert durch SPEC-020)
 
 ## Summary
