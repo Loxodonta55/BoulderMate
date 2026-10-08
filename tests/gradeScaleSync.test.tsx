@@ -154,7 +154,7 @@ describe('SPEC-001 AC-2.1: Farbsystem Cross-Area Synchronisation (Admin ⟷ Schr
     const backToClimber = screen.getByTestId('studio-back-to-climber-btn');
     fireEvent.click(backToClimber);
 
-    expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
+    expect(screen.getByTestId('climber-header')).toBeInTheDocument();
 
     // Kletterer-Bereich hat ebenfalls Tuerkis synchronisiert
     const climberScales = getServiceGradeScales('gym-minimum-zh');

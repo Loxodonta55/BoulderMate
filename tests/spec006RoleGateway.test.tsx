@@ -108,7 +108,7 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
 
       // Return to Kletterer-App
       fireEvent.click(screen.getByTestId('studio-back-to-climber-btn'));
-      expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
+      expect(screen.getByTestId('climber-header')).toBeInTheDocument();
     }, 15000);
 
     it('never shows setter/admin buttons to pure climber Hans', () => {
@@ -164,7 +164,7 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       fireEvent.click(backToClimberBtn);
 
       // 3. In Kletterer-App: Verify absence of setter/admin actions
-      expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
+      expect(screen.getByTestId('climber-header')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Zum Schrauber-Bereich/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Sektoren & Wandfotos anlegen/i })).not.toBeInTheDocument();
     }, 15000);

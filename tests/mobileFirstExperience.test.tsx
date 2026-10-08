@@ -110,9 +110,6 @@ describe('Mobile-First Experience Test Suite', () => {
     createSector('gym-swipe', CURRENT_USER.id, { name: 'Sektor B (Dach)', wall_photo_url: '/b.jpg', sort_order: 2 });
     createSector('gym-swipe', CURRENT_USER.id, { name: 'Sektor C (Überhang)', wall_photo_url: '/c.jpg', sort_order: 3 });
 
-    const scrollIntoViewMock = vi.fn();
-    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
-
     render(
       <ClimberSectorView
         currentUser={{ id: 'climber-1', nickname: 'Climber 1', role: 'member', isPlatformAdmin: false }}
@@ -127,19 +124,14 @@ describe('Mobile-First Experience Test Suite', () => {
     const nextBtn = screen.getByLabelText('Nächster Sektor');
     fireEvent.click(nextBtn);
     expect(screen.getAllByText('Sektor B (Dach)').length).toBeGreaterThan(0);
-    expect(scrollIntoViewMock).toHaveBeenCalled();
-
-    // Verify the active sector tab has data-sector-id matching Sektor B
-    const sectorBTabs = screen.getAllByText('Sektor B (Dach)');
-    const activeTab = sectorBTabs.find(el => el.closest('button')?.getAttribute('data-sector-id'));
-    expect(activeTab).toBeTruthy();
+    // Sektor-Pill zeigt Position (SPEC-022 F3)
+    expect(screen.getByTestId('sector-pill-name')).toHaveTextContent('2/3');
 
     // Swipe right / click prev (prev sector)
-    scrollIntoViewMock.mockClear();
     const prevBtn = screen.getByLabelText('Vorheriger Sektor');
     fireEvent.click(prevBtn);
     expect(screen.getAllByText('Sektor A (Platte)').length).toBeGreaterThan(0);
-    expect(scrollIntoViewMock).toHaveBeenCalled();
+    expect(screen.getByTestId('sector-pill-name')).toHaveTextContent('1/3');
   });
 
   it('5) Mobiles Sektor-Umordnen: provides touch reorder mode and direct mobile move buttons', () => {

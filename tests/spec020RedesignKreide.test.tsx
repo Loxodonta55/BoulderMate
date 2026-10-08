@@ -146,11 +146,6 @@ describe('SPEC-020 Redesign «Kreide» & Text-Diät', () => {
         <MobileBottomNav
           activeTab="wall"
           onSelectTab={vi.fn()}
-          canAccessPrivilegedWorkspace={false}
-          onOpenRoleGateway={vi.fn()}
-          onOpenLoginModal={vi.fn()}
-          isLoggedIn
-          nickname="Hans"
         />
       );
       expect(screen.getByText('Ich')).toBeInTheDocument();

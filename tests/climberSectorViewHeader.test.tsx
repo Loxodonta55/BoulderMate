@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import { createGym, createSector, resetAllGymData, CURRENT_USER } from '../src/lib/gymStorage';
 import { clearBatchServiceStorage } from '../src/lib/batchBoulderService';
@@ -46,15 +46,16 @@ describe('ClimberSectorView Header Layout & Typography (Bugfix Verification)', (
     // 1. Kein Erklär-Label mehr im Header (Text-Diät)
     expect(screen.queryByText('Sektoren & Wandansicht')).not.toBeInTheDocument();
 
-    // 2. Sector heading: Must display full "Überhang vorne" as an uppercase headline and NOT be truncated into "Ü..."
-    const headings = screen.getAllByText(/Überhang vorne/i);
-    expect(headings.length).toBeGreaterThanOrEqual(2); // One in h2 title, one in sector tabs
+    // 2. Sektorname steht vollständig in der Sektor-Pill (SPEC-022 F3), CSS kürzt nur optisch
     const h2Title = screen.getByRole('heading', { name: /Überhang vorne/i, level: 2 });
     expect(h2Title).toBeInTheDocument();
     expect(h2Title.textContent).toMatch(/Überhang vorne/i);
-    expect(h2Title.getAttribute('title')).toMatch(/Überhang vorne/i);
+    expect(screen.getByTestId('sector-pill-name').getAttribute('aria-label')).toMatch(/Überhang vorne/i);
 
-    // 3. Sector tabs: All sectors must be rendered in tabs
+    // 3. Alle Sektoren sind über das Sektor-Sheet erreichbar (keine Chip-Leiste mehr)
+    expect(screen.queryByRole('button', { name: /^Zwischenwand vorne$/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('sector-pill-name'));
+    expect(screen.getByTestId('sector-list-sheet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Zwischenwand vorne/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Verlängerung Überhang/i })).toBeInTheDocument();
 
@@ -63,10 +64,7 @@ describe('ClimberSectorView Header Layout & Typography (Bugfix Verification)', (
     expect(screen.queryByText(/^Sync$/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('toggle-fullscreen-btn')).toBeInTheDocument();
 
-    // 5. Gym select dropdown exists and contains both gyms
-    const select = screen.getByTitle('Halle wählen') as HTMLSelectElement;
-    expect(select).toBeInTheDocument();
-    expect(select.value).toBe('gym-6a-plus');
-    expect(screen.getAllByText(/6a plus Kletter- & Boulderhalle Winterthur/i).length).toBeGreaterThanOrEqual(2);
+    // 5. Keine zweite Hallenauswahl in der Wand (SPEC-022 F2: nur im App-Header)
+    expect(screen.queryByTitle('Halle wählen')).not.toBeInTheDocument();
   });
 });

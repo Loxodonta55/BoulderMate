@@ -4,6 +4,8 @@
 
 > **Update (06.10.2026, Text-Diät & Palette «Kreide», SPEC-020):** Der Schrauber wird mit Namen angezeigt, sonst «Hallenteam» (nie eine UUID). Die Radar-Karte heißt nur noch «Charakter», der Untertitel «Aggregiert aus…» entfällt. Soft/Fair/Stiff erscheinen ohne Farbkreis-Emojis (🟢🟡🔴), weil sie mit Grifffarben verwechselt wurden. Die Routenkarten unter dem Foto haben keinen Footer «Details & Log / Wertungen» mehr; ein Tap auf die Karte öffnet das Detail. Farben kommen ausschließlich aus den `--bm-*`-Tokens. Tests: `tests/spec020RedesignKreide.test.tsx`, `tests/spec003Components.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`, `tests/e2e/ascents-logging.spec.ts`.
 
+> **Update (08.10.2026, Kletterer-UX, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md)):** Das Kletterer-Detail ist jetzt das `BoulderSheet` (halb/voll). Loggen geht in 2 Taps (Zeile → Flash/Top/Projekt); ein erneuter Tap auf den aktiven Status ändert nichts. Danach erscheint statt des automatischen Bewertungsdialogs ein Toast mit «Rückgängig» und Mini-Sternen. Die Vollansicht zeigt «Wer war schon oben» (Begehungen und Bewertungen pro Person, Tap öffnet das Profil). Tests: `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts`, `tests/e2e/ascents-logging.spec.ts`, `tests/e2e/ratings-sync.spec.ts`.
+
 ## Status: DONE (Teilweise aktualisiert durch SPEC-020)
 
 ## Summary

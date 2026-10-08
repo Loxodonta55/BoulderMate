@@ -57,7 +57,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
 
       // Interne App-Navigation und Hallenwände sind für unangemeldete User NICHT sichtbar
-      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
       expect(screen.queryByTestId('tab-stats')).not.toBeInTheDocument();
       expect(screen.queryByTestId('header-gym-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('studio-gym-select')).not.toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // Nach erfolgreicher Registrierung gelangt der neue User in die App
       await waitFor(() => {
-        expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
+        expect(screen.getByTestId('climber-header')).toBeInTheDocument();
       });
     });
 
@@ -120,8 +120,8 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // Hans hat keine Schrauber/Admin-Berechtigungen -> direkt Kletterer-App
       expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
-      expect(screen.getByText('Wand & Sektoren')).toBeInTheDocument();
-      expect(screen.getByText('Meine Statistiken')).toBeInTheDocument();
+      expect(screen.getByTestId('climber-header')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-stats')).toHaveTextContent('Ich');
     });
 
     it('führt nach Logout aus dem Profil direkt zurück auf die Standalone Landing Page', () => {
@@ -134,17 +134,17 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       fireEvent.click(statsTab);
 
       // Einstellungen öffnen
-      const settingsBtn = screen.getByTestId('btn-open-settings');
+      const settingsBtn = screen.getByTestId('open-settings-btn');
       fireEvent.click(settingsBtn);
 
       // Logout button klicken
-      const logoutBtn = screen.getByTestId('btn-logout');
+      const logoutBtn = screen.getByTestId('settings-logout');
       fireEvent.click(logoutBtn);
 
       // Nun befindet sich der Nutzer wieder exklusiv auf der Landing Page
       expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
-      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
     });
 
     it('schließt das Role Gateway beim Klick auf X und bringt den Nutzer unangemeldet auf die Landing Page zurück', () => {
@@ -169,7 +169,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
 
       // Interne App-Bereiche sind nicht zugänglich
-      expect(screen.queryByText('Wand & Sektoren')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
       expect(screen.queryByText('Schrauber-Studio')).not.toBeInTheDocument();
     });
   });

@@ -210,13 +210,14 @@ flowchart TD
 |---|---|---|
 | §2.3 Palette «Kreide» (hell + dunkel, WCAG AA, keine fest codierten Farben, Radar über Tokens) | umgesetzt | `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts` |
 | AC-1.4 keine redundanten Hinweistexte, kein Entwickler-Footer | umgesetzt (Wand-Hinweise, «Filter:», «Sortierung:», SPEC-005-Footer entfernt) | dito |
-| AC-3.1 Filter-Chips | teilweise: `Alle`, `Top`, `Beliebt`, `Projekte` (statt `Neu`, `Noch offen`) | `tests/spec003Components.test.tsx` |
+| AC-3.1 Filter-Chips | umgesetzt mit SPEC-022: `Alle`, `Offen`, `Neu` (nur wenn es neue gibt), `★ Top`; keine Sortier-Auswahl mehr | `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts` |
 | AC-6.1 / AC-6.2 Schrauber-Name statt UUID, Fallback «Hallenteam», «Charakter»-Radar, keine Emoji-Legende | umgesetzt im `BoulderDetailModal` | `tests/spec020RedesignKreide.test.tsx`; E2E in `tests/e2e/climber-ux.spec.ts` (SPEC-022) |
 | AC-7.4 / AC-7.5 KPIs ohne Erklär-Untertitel, nur gekletterte Grade | umgesetzt in `ProfileKPIsBar` und `GradeDistributionChart` | `tests/spec020RedesignKreide.test.tsx` |
 | Tab «Ich» | umgesetzt in `MobileBottomNav` | Unit; E2E in `tests/e2e/climber-ux.spec.ts` (SPEC-022) |
 | AC-9.1 Landing auf einem Screen (≤ 40 Wörter) | umgesetzt mit `Konto erstellen` / `Als Kletterer testen` (Apple/Google-Login und `Ohne Konto umsehen` noch offen) | Unit + Playwright (kein Scrollen) |
 | AC-9.4 Personas nur im Dev-Build, kein Standardpasswort | umgesetzt (Landing + Login-Modal, Passwort ≥ 6 Zeichen) | `tests/spec020RedesignKreide.test.tsx`, `tests/landingPage.test.tsx` |
-| AC-1.1 Wandfoto ≥ 70 %, AC-2 Sektor-Pill, AC-5 `BoulderSheet`, AC-7.1 `MeView` ohne Sub-Tabs, doppelte Hallenwahl | offen (`BoulderSheet.tsx` und `MeView.tsx` existieren, sind aber nicht eingebunden) | beim Einbau Unit + Playwright ergänzen |
+| AC-2 Sektor-Pill, AC-5 `BoulderSheet`, AC-7.1 `MeView` ohne Sub-Tabs, doppelte Hallenwahl | umgesetzt mit [SPEC-022](SPEC-022-kletterer-ux-ordnung.md) (08.10.2026) | `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts` |
+| AC-1.1 Wandfoto ≥ 70 % | offen (SPEC-022 F14) | – |
 
 ## 6. Out-of-Scope (Zurückgestellt / ON HOLD)
 

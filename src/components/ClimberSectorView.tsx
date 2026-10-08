@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   WallBoulder,
   CurrentUser,
@@ -15,22 +15,26 @@ import {
 } from '../lib/ratingAndAscentService';
 import { useGymSectorData } from '../hooks/useGymSectorData';
 import { syncFromSupabase } from '../lib/syncService';
-import { BoulderDetailModal } from './BoulderDetailModal';
+import { BoulderSheet } from './BoulderSheet';
+import { Sheet } from './ui/Sheet';
+import {
+  ClimberWallFilter,
+  filterClimberBoulders,
+  sortByDifficulty,
+  formatGrade,
+  CLASSIC_MIN_STARS,
+} from '../lib/climberWallFilters';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { useBackHandler } from '../hooks/useBackHandler';
 import {
-  Layers,
   Zap,
-  Trophy,
-  Clock,
+  Check,
+  Target,
   Star,
-  Info,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Building2,
-  Sparkles,
-  Flame,
-  ArrowUpDown,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -47,25 +51,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   onSelectGym,
 }) => {
   const {
-    gyms,
     gym,
-    selectedGymId,
     sectors,
     selectedSectorId,
     selectedSector,
     gradeScales,
     scaleMap,
     setSelectedSectorId,
-    handleGymChange,
     refreshGymData,
   } = useGymSectorData(activeGymId, onSelectGym);
 
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [dataVersion, setDataVersion] = useState<number>(0);
-  type RatingFilter = 'all' | 'top_rated' | 'popular' | 'projects';
-  const [filterMode, setFilterMode] = useState<RatingFilter>('all');
-  const [sortBy, setSortBy] = useState<'rating_desc' | 'name_asc'>('rating_desc');
+  const [filterMode, setFilterMode] = useState<ClimberWallFilter>('all');
+  const [isSectorListOpen, setIsSectorListOpen] = useState<boolean>(false);
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
   const [isWallZoomed, setIsWallZoomed] = useState<boolean>(false);
 
@@ -100,64 +100,16 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   });
 
   useBackHandler({
+    id: 'sector-list-sheet',
+    isOpen: isSectorListOpen,
+    onBack: () => setIsSectorListOpen(false),
+  });
+
+  useBackHandler({
     id: 'boulder-detail-modal',
     isOpen: Boolean(selectedBoulder),
     onBack: () => setSelectedBoulder(null),
   });
-
-  const sectorTabsContainerRef = useRef<HTMLDivElement>(null);
-  const isFirstRender = useRef(true);
-
-  // Auto-scroll active sector button into view whenever selectedSectorId changes
-  useEffect(() => {
-    if (!selectedSectorId || !sectorTabsContainerRef.current) return;
-
-    const container = sectorTabsContainerRef.current;
-    const activeBtn = container.querySelector<HTMLButtonElement>(`[data-sector-id="${selectedSectorId}"]`);
-
-    if (activeBtn) {
-      const behavior = isFirstRender.current ? 'auto' : 'smooth';
-      isFirstRender.current = false;
-
-      const containerRect = container.getBoundingClientRect();
-      const btnRect = activeBtn.getBoundingClientRect();
-      let targetScrollLeft = 0;
-
-      if (containerRect.width > 0) {
-        targetScrollLeft =
-          container.scrollLeft +
-          (btnRect.left - containerRect.left) -
-          container.clientWidth / 2 +
-          activeBtn.offsetWidth / 2;
-      } else {
-        targetScrollLeft =
-          activeBtn.offsetLeft -
-          container.clientWidth / 2 +
-          activeBtn.offsetWidth / 2;
-      }
-
-      if (typeof container.scrollTo === 'function') {
-        container.scrollTo({
-          left: Math.max(0, targetScrollLeft),
-          behavior,
-        });
-      } else {
-        container.scrollLeft = Math.max(0, targetScrollLeft);
-      }
-
-      if (typeof activeBtn.scrollIntoView === 'function') {
-        try {
-          activeBtn.scrollIntoView({
-            behavior,
-            block: 'nearest',
-            inline: 'center',
-          });
-        } catch {
-          // ignore if options unsupported
-        }
-      }
-    }
-  }, [selectedSectorId, sectors]);
 
   // Sector indexing & swipe switching (Requirement 1 & 4, User Update: immediate sector change)
   const currentSectorIndex = useMemo(() => {
@@ -408,53 +360,34 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     return ids;
   }, [boulders, selectedSector?.rebuiltAt]);
 
+  // SPEC-022 F4/F5: Filter + feste Sortierung nach Schwierigkeit
   const processedBoulders = useMemo(() => {
-    let list = [...boulders];
+    const filtered = filterClimberBoulders(boulders, filterMode, { userAscentMap, statsMap, newBoulderIds });
+    return sortByDifficulty(filtered, resolveBoulderScale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boulders, filterMode, statsMap, userAscentMap, newBoulderIds, gradeScales, scaleMap]);
 
-    if (filterMode === 'top_rated') {
-      list = list.filter(b => {
-        const stats = statsMap.get(b.id);
-        return stats && stats.avgStars >= 4.0;
-      });
-    } else if (filterMode === 'popular') {
-      list = list.filter(b => {
-        const stats = statsMap.get(b.id);
-        return stats && (stats.totalTops + stats.totalFlashes) >= 2;
-      });
-    } else if (filterMode === 'projects') {
-      list = list.filter(b => {
-        const ascent = userAscentMap.get(b.id);
-        return ascent?.type === 'project';
-      });
+  // «Neu»-Chip nur, wenn es neue Boulder gibt; sonst Filter zurück auf «Alle»
+  useEffect(() => {
+    if (filterMode === 'new' && newBoulderIds.size === 0) setFilterMode('all');
+  }, [filterMode, newBoulderIds]);
+
+  // WallPhotoCanvas blendet nur aus, ob überhaupt gefiltert wird (filteredBoulderIds trägt die Auswahl)
+  const canvasFilterMode = filterMode === 'all' ? 'all' : 'top_rated';
+
+  const filteredIdSet = useMemo(() => new Set(processedBoulders.map(p => p.id)), [processedBoulders]);
+
+  const sectorRouteCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!isSectorListOpen) return counts;
+    for (const s of sectors) {
+      counts.set(s.id, getWallBoulders(s.id).filter(b => b.status === 'active').length);
     }
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors, isSectorListOpen, dataVersion]);
 
-    list.sort((a, b) => {
-      const statsA = statsMap.get(a.id);
-      const statsB = statsMap.get(b.id);
-      if (sortBy === 'rating_desc') {
-        const starsA = statsA?.avgStars || 0;
-        const starsB = statsB?.avgStars || 0;
-        if (starsB !== starsA) return starsB - starsA;
-        return (statsB?.totalRatings || 0) - (statsA?.totalRatings || 0);
-      } else if (sortBy === 'name_asc') {
-        return (a.name || '').localeCompare(b.name || '');
-      }
-      return 0;
-    });
-
-    return list;
-  }, [boulders, filterMode, sortBy, statsMap, userAscentMap]);
-
-  const handleRefreshData = () => {
-    setDataVersion(v => v + 1);
-    if (selectedBoulder) {
-      // Refresh current selected boulder object or deselect if deleted
-      const updated = getWallBoulders(selectedSectorId).find(b => b.id === selectedBoulder.id && b.status === 'active');
-      setSelectedBoulder(updated || null);
-    }
-  };
-
-  const resolveBoulderScale = (b: WallBoulder): GymGradeScale | undefined => {
+  function resolveBoulderScale(b: WallBoulder): GymGradeScale | undefined {
     if (b.gradeScaleId && scaleMap.has(b.gradeScaleId)) {
       return scaleMap.get(b.gradeScaleId);
     }
@@ -471,415 +404,255 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     }
 
     return gradeScales[0];
-  };
+  }
+
+
+  const filterChips: { id: ClimberWallFilter; label: React.ReactNode; show: boolean }[] = [
+    { id: 'all', label: 'Alle', show: true },
+    { id: 'open', label: 'Offen', show: true },
+    { id: 'new', label: 'Neu', show: newBoulderIds.size > 0 },
+    { id: 'top_rated', label: <><Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-star)]" />Top</>, show: true },
+  ];
+
+  const sectorBadge = (sector: typeof sectors[number]) =>
+    isSectorInRebuild(sector) ? (
+      <span className="text-[12px] font-semibold text-[var(--bm-warning)] shrink-0">Im Umbau</span>
+    ) : isRecentlyNew(sector.rebuiltAt) ? (
+      <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">Neu</span>
+    ) : null;
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
-      {/* Sector Selection Bar — Compact & Mobile-First */}
-      <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] p-3 sm:p-4 rounded-xl space-y-3 max-w-full">
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 w-full min-w-0">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--bm-accent)] mb-0.5">
-              <Layers className="w-4 h-4 text-[var(--bm-accent)] shrink-0" />
-              <span className="truncate">{gym?.name || 'Boulderhalle'}</span>
-            </div>
-            <h2 className="text-base sm:text-xl font-headline font-bold text-[var(--bm-text)] truncate" title={selectedSector?.name || 'Wandansicht'}>
-              {selectedSector?.name || 'Wandansicht'}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {gyms.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-[var(--bm-bg)] border border-[var(--bm-line)] px-2 py-1 rounded-xl">
-                <Building2 className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
-                <span className="text-[10px] font-mono text-[var(--bm-text-2)] hidden md:inline">Halle:</span>
-                <select
-                  value={selectedGymId}
-                  onChange={e => handleGymChange(e.target.value)}
-                  className="bg-transparent text-[var(--bm-text)] text-xs font-mono rounded-xl focus:outline-none max-w-[120px] sm:max-w-[180px] truncate cursor-pointer"
-                  title="Halle wählen"
-                >
-                  {gyms.map(g => (
-                    <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Vollbild Button (Requirement 1) */}
-            {selectedSector && (
-              <button
-                type="button"
-                onClick={() => setIsSectorFullscreen(true)}
-                data-testid="toggle-fullscreen-btn"
-                className="px-2.5 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] hover:border-[var(--bm-accent)] text-[var(--bm-accent)] hover:text-[var(--bm-strong)] rounded-xl text-xs font-headline font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0"
-                title="Sektor im Vollbild öffnen"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span>Vollbild</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Sector Tabs & Mobile Switcher */}
-        {sectors.length > 0 && (
-          <div className="flex items-center gap-1.5 w-full pt-2 border-t border-[var(--bm-elevated)] min-w-0">
-            {/* Prev sector button */}
-            <button
-              type="button"
-              onClick={goToPreviousSector}
-              disabled={!hasPreviousSector}
-              className="p-1.5 rounded-xl bg-[var(--bm-bg)] hover:bg-[var(--bm-elevated)] disabled:opacity-25 text-[var(--bm-text-2)] border border-[var(--bm-line)] transition cursor-pointer shrink-0"
-              title="Vorheriger Sektor (oder nach rechts wischen)"
-              aria-label="Vorheriger Sektor"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {/* Scrollable Sector List */}
-            <div
-              ref={sectorTabsContainerRef}
-              className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0 relative scroll-smooth"
-            >
-              {sectors.map(sector => {
-                const isSelected = sector.id === selectedSectorId;
-                return (
-                  <button
-                    key={sector.id}
-                    data-sector-id={sector.id}
-                    type="button"
-                    onClick={() => setSelectedSectorId(sector.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-headline transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold shadow-sm'
-                        : 'bg-[var(--bm-elevated)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border border-[var(--bm-line)]'
-                    }`}
-                  >
-                    <span>{sector.name}</span>
-                    {isSectorInRebuild(sector) ? (
-                      <span className="text-[9px] font-mono font-bold text-[var(--bm-accent)]">Im Umbau</span>
-                    ) : isRecentlyNew(sector.rebuiltAt) ? (
-                      <span className="px-1 rounded-xl text-[9px] font-mono font-black bg-[var(--bm-accent)] text-[var(--bm-on-accent)]">Neu</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Next sector button */}
-            <button
-              type="button"
-              onClick={goToNextSector}
-              disabled={!hasNextSector}
-              className="p-1.5 rounded-xl bg-[var(--bm-bg)] hover:bg-[var(--bm-elevated)] disabled:opacity-25 text-[var(--bm-text-2)] border border-[var(--bm-line)] transition cursor-pointer shrink-0"
-              title="Nächster Sektor (oder nach links wischen)"
-              aria-label="Nächster Sektor"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile Swipe Hint Badge */}
-      {sectors.length > 1 && (
-        <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bm-text-2)] px-2 -mt-3 sm:hidden">
-          <span>{currentSectorIndex + 1}/{sectors.length}</span>
-        </div>
-      )}
-
-
+    <div className="max-w-3xl mx-auto w-full overflow-hidden" data-testid="climber-wall-view">
       {sectors.length === 0 && (
-        <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-8 text-center max-w-lg mx-auto">
-          <Building2 className="w-12 h-12 text-[var(--bm-accent)] mx-auto mb-3 opacity-80" />
-          <h3 className="text-lg font-headline font-bold text-[var(--bm-text)] mb-2">
-            Keine Sektoren in "{gym?.name || 'dieser Halle'}"
-          </h3>
-          <p className="text-sm font-sans text-[var(--bm-text-2)]">
-            Noch keine Sektoren.
-          </p>
+        <div className="px-6 py-16 text-center" data-testid="climber-empty-gym">
+          <Building2 className="w-10 h-10 text-[var(--bm-text-3)] mx-auto mb-3" />
+          <p className="text-[17px] font-semibold text-[var(--bm-text)]">Noch keine Wände</p>
+          <p className="text-[15px] text-[var(--bm-text-2)] mt-1">{gym?.name || 'Diese Halle'} hat noch keine Sektoren.</p>
         </div>
       )}
 
       {selectedSector && (
         <>
-          {/* Wall Photo Canvas with Interactive Pins (AC-1) */}
-          <div className="space-y-3">
-            {/* Quick-Filter Pills (AC-10 & AC-11) */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-[var(--bm-surface)] border border-[var(--bm-line)]">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('all')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
-                    filterMode === 'all'
-                      ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)]'
-                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
-                  }`}
-                >
-                  <span>Alle ({boulders.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('top_rated')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
-                    filterMode === 'top_rated'
-                      ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
-                      : 'bg-[var(--bm-bg)] text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] border-[var(--bm-line)]'
-                  }`}
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>Top</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('popular')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
-                    filterMode === 'popular'
-                      ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
-                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
-                  }`}
-                >
-                  <Flame className="w-3 h-3 text-[var(--bm-danger)]" />
-                  <span>Beliebt</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('projects')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
-                    filterMode === 'projects'
-                      ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)] font-bold'
-                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
-                  }`}
-                >
-                  <Clock className="w-3 h-3" />
-                  <span>Projekte</span>
-                </button>
-              </div>
+          {/* SPEC-022 F1: Wandfoto als erstes Element, randlos */}
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="touch-pan-y relative"
+            data-testid="climber-wall-photo"
+          >
+            <WallPhotoCanvas
+              mode="climber"
+              photoUrl={selectedSector.wallPhotoUrl}
+              sectorName={selectedSector.name}
+              boulders={boulders}
+              gradeScales={gradeScales}
+              filterMode={canvasFilterMode}
+              filteredBoulderIds={filteredIdSet}
+              statsMap={statsMap}
+              userAscentMap={userAscentMap}
+              newBoulderIds={newBoulderIds}
+              onPinClick={setSelectedBoulder}
+              isFullscreen={isSectorFullscreen}
+              onToggleFullscreen={() => setIsSectorFullscreen(true)}
+              onZoomChange={(zoom) => setIsWallZoomed(zoom > 1.05)}
+            />
+          </div>
 
-              {filterMode !== 'all' && (
-                <button
-                  type="button"
-                  onClick={() => setFilterMode('all')}
-                  className="text-[11px] font-mono text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] underline cursor-pointer"
-                >
-                  Filter zurücksetzen
-                </button>
-              )}
+          <div className="px-2 sm:px-0 space-y-3 mt-3">
+            {/* SPEC-022 F3: Sektor-Pill */}
+            <div className="flex items-center gap-2" data-testid="sector-pill">
+              <button
+                type="button"
+                onClick={goToPreviousSector}
+                disabled={!hasPreviousSector}
+                className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] disabled:opacity-30 shrink-0"
+                aria-label="Vorheriger Sektor"
+                data-testid="sector-prev-btn"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSectorListOpen(true)}
+                className="flex-1 min-w-0 min-h-[44px] px-4 rounded-full bg-[var(--bm-surface)] flex items-center justify-center gap-2"
+                aria-label={`Sektor ${selectedSector.name}, alle Sektoren zeigen`}
+                data-testid="sector-pill-name"
+              >
+                <h2 className="text-[17px] font-semibold text-[var(--bm-text)] truncate">{selectedSector.name}</h2>
+                {sectorBadge(selectedSector)}
+                <span className="text-[14px] text-[var(--bm-text-2)] tabular-nums shrink-0">
+                  {currentSectorIndex + 1}/{sectors.length}
+                </span>
+                <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] shrink-0" />
+              </button>
+              <button
+                type="button"
+                onClick={goToNextSector}
+                disabled={!hasNextSector}
+                className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] disabled:opacity-30 shrink-0"
+                aria-label="Nächster Sektor"
+                data-testid="sector-next-btn"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSectorFullscreen(true)}
+                data-testid="toggle-fullscreen-btn"
+                className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] shrink-0"
+                title="Vollbild"
+                aria-label="Vollbild"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
             </div>
 
             {/* SPEC-021 AC-5: Wand wird gerade neu geschraubt */}
             {isSectorInRebuild(selectedSector) && (
-              <div
-                data-testid="climber-rebuild-notice"
-                className="px-1 text-xs font-mono font-bold text-[var(--bm-accent)]"
-              >
+              <p data-testid="climber-rebuild-notice" className="text-[13px] font-semibold text-[var(--bm-warning)] text-center">
                 Im Umbau
-              </div>
+              </p>
             )}
 
-            <div className="flex items-center justify-between px-1 text-xs font-mono text-[var(--bm-text-2)]">
-              <span className="font-semibold text-[var(--bm-text)]">
-                {filterMode !== 'all' && `${processedBoulders.length}/${boulders.length}`}
-              </span>
+            {/* SPEC-022 F4: Filter */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Filter" data-testid="climber-filter-chips">
+              {filterChips.filter(c => c.show).map(chip => {
+                const active = filterMode === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setFilterMode(chip.id)}
+                    data-testid={`filter-chip-${chip.id}`}
+                    className={`min-h-[36px] px-4 rounded-full text-[15px] font-medium flex items-center gap-1 shrink-0 transition ${
+                      active
+                        ? 'bg-[var(--bm-accent)] text-[var(--bm-on-accent)]'
+                        : 'bg-[var(--bm-surface)] text-[var(--bm-text)]'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
 
-            <div
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              className="touch-pan-y relative"
-            >
-              <WallPhotoCanvas
-                mode="climber"
-                photoUrl={selectedSector.wallPhotoUrl}
-                sectorName={selectedSector.name}
-                boulders={boulders}
-                gradeScales={gradeScales}
-                filterMode={filterMode}
-                filteredBoulderIds={new Set(processedBoulders.map(p => p.id))}
-                statsMap={statsMap}
-                userAscentMap={userAscentMap}
-                newBoulderIds={newBoulderIds}
-                onPinClick={setSelectedBoulder}
-                isFullscreen={isSectorFullscreen}
-                onToggleFullscreen={() => setIsSectorFullscreen(true)}
-                onZoomChange={(zoom) => setIsWallZoomed(zoom > 1.05)}
-              />
-            </div>
-          </div>
-
-          {/* Boulder Route List in this Sector */}
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-              <h3 className="text-base font-headline font-bold text-[var(--bm-text)] flex items-center gap-2">
-                <span>Routen in {selectedSector.name}</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-text-2)] font-mono font-semibold border border-[var(--bm-line)]">
-                  {processedBoulders.length} {filterMode !== 'all' ? `/ ${boulders.length}` : ''}
-                </span>
-              </h3>
-
-              {/* Sort selector (AC-11) */}
-              <div className="flex items-center gap-2 text-xs font-mono text-[var(--bm-text-2)]">
-                <ArrowUpDown className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                <select
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value as 'rating_desc' | 'name_asc')}
-                  className="bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] text-xs font-mono rounded-xl px-2.5 py-1 focus:outline-none focus:border-[var(--bm-accent)]"
+            {/* SPEC-022 F6: Routenliste */}
+            {boulders.length === 0 ? (
+              <p className="py-8 text-center text-[15px] text-[var(--bm-text-2)]" data-testid="climber-empty-sector">
+                Noch keine Boulder an dieser Wand.
+              </p>
+            ) : processedBoulders.length === 0 ? (
+              <div className="py-8 text-center space-y-3" data-testid="climber-empty-filter">
+                <p className="text-[15px] text-[var(--bm-text-2)]">Nichts gefunden.</p>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('all')}
+                  className="min-h-[44px] px-5 rounded-full bg-[var(--bm-surface)] text-[15px] font-medium text-[var(--bm-text)]"
                 >
-                  <option value="rating_desc">Beste Bewertung ↓</option>
-                  <option value="name_asc">Name (A–Z)</option>
-                </select>
-              </div>
-            </div>
-
-            {processedBoulders.length === 0 ? (
-              <div className="p-8 text-center bg-[var(--bm-surface)] border border-[var(--bm-line)] text-sm font-mono text-[var(--bm-text-2)]">
-                Keine Boulder gefunden für den aktuellen Filter.
+                  Alle zeigen
+                </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <ul className="rounded-2xl bg-[var(--bm-surface)] overflow-hidden divide-y divide-[var(--bm-line)]" data-testid="climber-route-list">
                 {processedBoulders.map(boulder => {
                   const scale = resolveBoulderScale(boulder);
-                  const userAscent = userAscentMap.get(boulder.id);
-                  const stats = statsMap.get(boulder.id) || {
-                    avgStars: 0,
-                    totalRatings: 0,
-                    totalTops: 0,
-                    totalFlashes: 0,
-                    topsCount: 0,
-                    flashesCount: 0,
-                    projectsCount: 0,
-                    gradeFeelPercentages: { soft: 0, fair: 0, stiff: 0 }
-                  };
-                  const isFiveStar = stats.avgStars >= 4.8 && stats.totalRatings >= 1;
-                  const isFavorite = stats.avgStars >= 4.2 && stats.totalRatings >= 1;
-
+                  const ascent = userAscentMap.get(boulder.id);
+                  const stats = statsMap.get(boulder.id);
+                  const avg = stats?.avgStars || 0;
+                  const isClassic = avg >= CLASSIC_MIN_STARS && (stats?.totalRatings || 0) >= 1;
+                  const grade = formatGrade(scale, boulder.fontGrade);
                   return (
-                    <div
-                      key={boulder.id}
-                      onClick={() => setSelectedBoulder(boulder)}
-                      className={`p-4 rounded-xl bg-[var(--bm-surface)] transition cursor-pointer flex flex-col justify-between group relative ${
-                        isFiveStar
-                          ? 'border-2 border-[var(--bm-accent)] gold-glow hover:border-[var(--bm-strong)]'
-                          : isFavorite
-                          ? 'border border-[var(--bm-accent)]/50 hover:border-[var(--bm-accent)]'
-                          : 'border border-[var(--bm-line)] hover:border-[var(--bm-text-2)]'
-                      }`}
-                    >
-                      {/* Top Ribbon Badge for 5.0 King Lines (SPEC-003 AC-18) */}
-                      {isFiveStar && (
-                        <div
-                          data-testid="five-star-ribbon"
-                          className="absolute -top-3 left-4 bg-[var(--bm-accent)] text-[var(--bm-bg)] px-2.5 py-0.5 text-[10px] font-headline font-bold shadow-md flex items-center gap-1 z-10"
-                        >
-                          <Star className="w-2.5 h-2.5 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
-                          <span>5.0 HALLEN-KLASSIKER</span>
-                        </div>
-                      )}
-
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Badge outside wall photo: square 0px */}
-                            <div
-                              className="w-5 h-5 rounded-xl border border-black/40 shrink-0"
-                              style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
-                            />
-                            <div className="min-w-0">
-                              <h4 className="text-sm font-headline font-bold text-[var(--bm-text)] group-hover:text-[var(--bm-strong)] transition truncate">
-                                {boulder.name || `${scale?.colorName || 'Boulder'} Problem`}
-                              </h4>
-                              <span className="text-[11px] font-mono text-[var(--bm-text-2)]">
-                                {scale?.difficultyLabel} • Fb {scale?.fontRangeMin} - {scale?.fontRangeMax}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Top-Right Badges: Hero Rating Badge & Ascent Status */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Ascent Badge */}
-                            {userAscent?.type === 'flash' && (
-                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-accent)]/40 flex items-center gap-1">
-                                <Zap className="w-3 h-3 fill-[var(--bm-star)]" />
-                                <span>Flash</span>
-                              </span>
+                    <li key={boulder.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBoulder(boulder)}
+                        data-testid={`route-row-${boulder.id}`}
+                        className="w-full min-h-[56px] px-4 py-2 flex items-center gap-3 text-left active:bg-[var(--bm-elevated)]"
+                      >
+                        <span
+                          className={`w-5 h-5 rounded-full shrink-0 ${isClassic ? 'ring-2 ring-offset-2 ring-offset-[var(--bm-surface)] ring-[var(--bm-star)]' : 'ring-1 ring-black/10'}`}
+                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
+                          data-testid={isClassic ? 'five-star-ribbon' : undefined}
+                          aria-hidden
+                        />
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-[16px] font-medium text-[var(--bm-text)] truncate">
+                              {boulder.name?.trim() || scale?.colorName || 'Boulder'}
+                            </span>
+                            {newBoulderIds.has(boulder.id) && (
+                              <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">Neu</span>
                             )}
-                            {userAscent?.type === 'top' && (
-                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-success)] border border-[var(--bm-success)]/50 flex items-center gap-1">
-                                <Trophy className="w-3 h-3 text-[var(--bm-success)]" />
-                                <span>Top</span>
-                              </span>
-                            )}
-                            {userAscent?.type === 'project' && (
-                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-text-2)] border border-[var(--bm-line)] flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-[var(--bm-text-2)]" />
-                                <span>Projekt</span>
-                              </span>
-                            )}
-
-                            {/* Hero Score Badge (Vorschlag 1: Sofortige Mobile Erfassung) */}
-                            {isFiveStar ? (
-                              <div
-                                data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[var(--bm-accent)] text-[var(--bm-bg)] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[var(--bm-strong)]/50 shadow-md"
-                                title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
-                              >
-                                <div className="flex items-center gap-1 font-mono font-black text-sm leading-none">
-                                  <span>{stats.avgStars.toFixed(1)}</span>
-                                  <Star className="w-3 h-3 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
-                                </div>
-                                <span className="text-[9px] font-mono font-bold tracking-tight mt-0.5">
-                                  {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
-                                </span>
-                              </div>
-                            ) : stats.totalRatings > 0 ? (
-                              <div
-                                data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[var(--bm-elevated)] text-[var(--bm-text)] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[var(--bm-line)]"
-                                title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
-                              >
-                                <div className="flex items-center gap-1 font-mono font-bold text-xs leading-none text-[var(--bm-accent)]">
-                                  <span>{stats.avgStars.toFixed(1)}</span>
-                                  <Star className="w-2.5 h-2.5 fill-[var(--bm-star)] text-[var(--bm-accent)]" />
-                                </div>
-                                <span className="text-[9px] font-mono text-[var(--bm-text-2)] mt-0.5">
-                                  {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
-                                </span>
-                              </div>
-                            ) : (
-                              <div
-                                data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[var(--bm-bg)] text-[var(--bm-text-2)] px-2 py-1 flex flex-col items-center justify-center shrink-0 border border-dashed border-[var(--bm-line)] group-hover:border-[var(--bm-accent)]/50 transition"
-                                title="Noch nicht bewertet – sei der Erste!"
-                              >
-                                <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] leading-none">
-                                  + Bewerten
-                                </span>
-                                <span className="text-[8px] font-mono text-[var(--bm-text-3)] mt-0.5">
-                                  0 Wertung
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {boulder.notes && (
-                          <p className="text-xs font-mono text-[var(--bm-text-2)] line-clamp-2 my-2 italic">
-                            "{boulder.notes}"
-                          </p>
+                          </span>
+                          <span className="block text-[13px] text-[var(--bm-text-2)] truncate">
+                            {[grade, scale?.colorName && boulder.name?.trim() ? scale.colorName : null].filter(Boolean).join(' · ')}
+                          </span>
+                        </span>
+                        {(stats?.totalRatings || 0) > 0 && (
+                          <span
+                            className="flex items-center gap-0.5 text-[14px] text-[var(--bm-text-2)] tabular-nums shrink-0"
+                            data-testid={`hero-score-${boulder.id}`}
+                            title={`${avg.toFixed(1)} Sterne (${stats!.totalRatings})`}
+                          >
+                            <Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-star)]" />
+                            {avg.toFixed(1)}
+                          </span>
                         )}
-                      </div>
-
-                    </div>
+                        <span className="w-6 flex justify-center shrink-0" data-testid={`route-status-${boulder.id}`}>
+                          {ascent?.type === 'flash' && <Zap className="w-5 h-5 fill-[var(--bm-star)] text-[var(--bm-star)]" aria-label="Flash" />}
+                          {ascent?.type === 'top' && <Check className="w-5 h-5 text-[var(--bm-success)]" aria-label="Top" />}
+                          {ascent?.type === 'project' && <Target className="w-5 h-5 text-[var(--bm-text-2)]" aria-label="Projekt" />}
+                        </span>
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </div>
         </>
+      )}
+
+      {/* SPEC-022 F3: Sektor-Liste */}
+      {isSectorListOpen && (
+        <Sheet open onClose={() => setIsSectorListOpen(false)} fitContent testId="sector-list-sheet" ariaLabel="Sektoren">
+          <div className="px-5 pb-4">
+            <h2 className="text-[20px] font-semibold mb-3">Sektoren</h2>
+            <ul className="rounded-2xl bg-[var(--bm-elevated)] overflow-hidden divide-y divide-[var(--bm-line)]">
+              {sectors.map(sector => {
+                const isSelected = sector.id === selectedSectorId;
+                const count = sectorRouteCounts.get(sector.id) ?? 0;
+                return (
+                  <li key={sector.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSectorId(sector.id);
+                        setIsSectorListOpen(false);
+                      }}
+                      data-testid={`sector-list-item-${sector.id}`}
+                      aria-current={isSelected ? 'true' : undefined}
+                      className="w-full min-h-[56px] px-4 flex items-center gap-3 text-left"
+                    >
+                      {sector.wallPhotoUrl ? (
+                        <img src={sector.wallPhotoUrl} alt="" className="w-12 h-9 rounded-md object-cover shrink-0 bg-[var(--bm-line)]" />
+                      ) : (
+                        <span className="w-12 h-9 rounded-md shrink-0 bg-[var(--bm-line)]" />
+                      )}
+                      <span className="flex-1 min-w-0">
+                        <span className={`block text-[16px] truncate ${isSelected ? 'font-semibold' : ''}`}>{sector.name}</span>
+                        <span className="block text-[13px] text-[var(--bm-text-2)]">{count} Boulder</span>
+                      </span>
+                      {sectorBadge(sector)}
+                      {isSelected && <Check className="w-5 h-5 text-[var(--bm-text)] shrink-0" aria-label="Aktuell" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Sheet>
       )}
 
       {/* Immersive Fullscreen Sector View (Requirement 1, 1a, 1b: Edge-to-Edge Wall, Zero Header, Zero Footer) */}
@@ -920,11 +693,6 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             {isSectorInRebuild(selectedSector) && (
               <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] shrink-0">Im Umbau</span>
             )}
-            {boulders.length === 0 && (
-              <span className="text-[10px] font-mono text-[var(--bm-accent)] bg-[var(--bm-elevated)] px-1.5 py-0.5 border border-[var(--bm-accent)]/30 shrink-0">
-                0 Routen
-              </span>
-            )}
           </div>
 
           {/* Empty Sector Notice in Fullscreen (so climbers immediately know the wall is empty) */}
@@ -933,8 +701,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               data-testid="fullscreen-empty-notice"
               className="absolute top-14 left-3 z-40 bg-black/80 backdrop-blur-md border border-[var(--bm-accent)]/40 px-3 py-1.5 rounded-xl text-[11px] font-mono text-[var(--bm-text)] shadow-lg flex items-center gap-2 pointer-events-none max-w-[calc(100%-24px)] animate-in fade-in duration-200"
             >
-              <Info className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
-              <span>In diesem Sektor wurden noch keine Routen gesetzt (Wische für nächsten Sektor)</span>
+              <span>Noch keine Boulder</span>
             </div>
           )}
 
@@ -979,8 +746,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               sectorName={selectedSector.name}
               boulders={boulders}
               gradeScales={gradeScales}
-              filterMode={filterMode}
-              filteredBoulderIds={new Set(processedBoulders.map(p => p.id))}
+              filterMode={canvasFilterMode}
+              filteredBoulderIds={filteredIdSet}
               statsMap={statsMap}
               userAscentMap={userAscentMap}
                 newBoulderIds={newBoulderIds}
@@ -991,25 +758,17 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             />
           </div>
 
-          {/* Minimal Floating Swipe Hint Badge (Bottom-Center, Zero Layout Height) */}
-          {sectors.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-md border border-[var(--bm-line)] px-3 py-1 rounded-xl text-[10px] font-mono text-[var(--bm-text-2)] pointer-events-none whitespace-nowrap opacity-80 transition-opacity">
-              ← Wischen für Sektorwechsel →
-            </div>
-          )}
         </div>
       )}
 
-      {/* Boulder Detail Modal */}
+      {/* SPEC-022 F7: Boulder-Sheet statt Detail-Modal */}
       {selectedBoulder && (
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={selectedBoulder}
           sector={selectedSector || undefined}
           gradeScale={resolveBoulderScale(selectedBoulder)}
           currentUser={currentUser}
-          isOpen={Boolean(selectedBoulder)}
           onClose={() => setSelectedBoulder(null)}
-          onDataChanged={handleRefreshData}
         />
       )}
     </div>

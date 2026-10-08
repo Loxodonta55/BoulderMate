@@ -256,53 +256,39 @@ describe('SPEC-003: UI Components Integration', () => {
       expect(favoritePin).toBeInTheDocument();
     });
 
-    it('provides quick-filter pills and sort dropdown to filter and order routes (AC-11)', () => {
+    it('provides the four SPEC-022 filter chips without sort dropdown or reset link (AC-11)', () => {
       render(<ClimberSectorView currentUser={sampleUser} />);
 
-      // Filter pills exist
-      const allFilter = screen.getByRole('button', { name: /Alle/i });
-      const topRatedFilter = screen.getByRole('button', { name: /^Top$/i });
-      const popularFilter = screen.getByRole('button', { name: /Beliebt/i });
-      const projectsFilter = screen.getByRole('button', { name: /Projekte/i });
+      expect(screen.getByTestId('filter-chip-all')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-chip-open')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-chip-top_rated')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Beliebt/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: /Beste Bewertung/i })).not.toBeInTheDocument();
 
-      expect(allFilter).toBeInTheDocument();
-      expect(topRatedFilter).toBeInTheDocument();
-      expect(popularFilter).toBeInTheDocument();
-      expect(projectsFilter).toBeInTheDocument();
-
-      // Sort select exists (ohne Label)
-      expect(screen.getByRole('option', { name: /Beste Bewertung/i })).toBeInTheDocument();
-
-      // Click "Top"
-      fireEvent.click(topRatedFilter);
-
-      // "Filter zurücksetzen" link appears
-      const resetBtn = screen.getByText('Filter zurücksetzen');
-      expect(resetBtn).toBeInTheDocument();
-
-      // Click reset
-      fireEvent.click(resetBtn);
+      // «Top» filtert auf ≥ 4 Sterne
+      fireEvent.click(screen.getByTestId('filter-chip-top_rated'));
+      expect(screen.getByTestId('filter-chip-top_rated')).toHaveAttribute('aria-pressed', 'true');
       expect(screen.queryByText('Filter zurücksetzen')).not.toBeInTheDocument();
+
+      // «Alle» setzt zurück
+      fireEvent.click(screen.getByTestId('filter-chip-all'));
+      expect(screen.getByTestId('filter-chip-all')).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('renders AC-18: Mobile Hero Score Box and 5-Sterne Hallen-Klassiker highlight', () => {
+    it('renders AC-18: compact star score and Hallen-Klassiker ring in the route list', () => {
       render(<ClimberSectorView currentUser={sampleUser} />);
 
-      // boulder-existing-2 has 1 rating of 5 stars -> 5.0 Hallen-Klassiker
+      // boulder-existing-2 has 1 rating of 5 stars -> Hallen-Klassiker (Ring am Farbpunkt statt Banner)
       expect(screen.getByTestId('five-star-ribbon')).toBeInTheDocument();
-      expect(screen.getByText(/5.0 HALLEN-KLASSIKER/i)).toBeInTheDocument();
+      expect(screen.queryByText(/5.0 HALLEN-KLASSIKER/i)).not.toBeInTheDocument();
 
       const fiveStarHero = screen.getByTestId('hero-score-boulder-existing-2');
-      expect(fiveStarHero).toBeInTheDocument();
       expect(fiveStarHero).toHaveTextContent('5.0');
-      expect(fiveStarHero).toHaveTextContent(/1 Vote/i);
 
-      // boulder-existing-1 has 3 ratings (5, 4, 4) -> 4.3 stars (rated, but not 5-star)
+      // boulder-existing-1 has 3 ratings (5, 4, 4) -> 4.3 stars
       const ratedHero = screen.getByTestId('hero-score-boulder-existing-1');
-      expect(ratedHero).toBeInTheDocument();
       expect(ratedHero).toHaveTextContent('4.3');
-      expect(ratedHero).toHaveTextContent(/3 Votes/i);
-
+      expect(ratedHero).not.toHaveTextContent(/Vote/i);
     });
   });
 });

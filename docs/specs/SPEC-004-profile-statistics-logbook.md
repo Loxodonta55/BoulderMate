@@ -4,6 +4,8 @@
 
 > **Update (06.10.2026, Text-Diät, SPEC-020):** Der Tab heißt «Ich» statt «Statistiken». Die KPI-Kacheln zeigen nur Zahl und Label, ohne Erklär-Untertitel («inkl. aller Flashes», «im 1. Versuch», «Fontainebleau-Maximum»). Die Gradverteilung zeigt nur Grade, die tatsächlich geklettert wurden. Der Hallenfilter heißt nur «Halle». Noch offen (SPEC-020 AC-7): verschachtelte Sub-Tabs durch die einzelne `MeView` ersetzen. Tests: `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`.
 
+> **Update (08.10.2026, Kletterer-UX, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md)):** Die `MeView` ist eingebunden und ersetzt die Sub-Tabs: eine Seite mit Kennzahlen, Grad-Pyramide (nur gekletterte Grade, schwerster oben), kompaktem «Dein Stil» (Radar plus Stärke/Baustelle, aufklappbar) und Logbuch. Einstellungen und Abmelden liegen hinter dem Zahnrad. Die untere Leiste hat nur «Wand» und «Ich». Tests: `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
+
 ## Status: APPROVED (Konsolidiert durch SPEC-020)
 
 ## Summary

@@ -6,6 +6,7 @@ import { getAthletePerformanceReport } from '../lib/performanceService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
 import { UserRoleInfo, AppMode } from '../lib/roleService';
 import { AthletePerformanceView } from './AthletePerformanceView';
+import { RadarChart } from './RadarChart';
 import { BoulderSheet } from './BoulderSheet';
 import { SegmentedControl, ListGroup, ListRow } from './ui/primitives';
 import { showToast } from './ui/Toast';
@@ -53,6 +54,7 @@ export const MeView: React.FC<MeViewProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [nameDraft, setNameDraft] = useState('');
+  const [isStyleExpanded, setIsStyleExpanded] = useState(false);
 
   useBackHandler({ id: 'me-settings', isOpen: isSettingsOpen, onBack: () => setIsSettingsOpen(false) });
 
@@ -87,9 +89,8 @@ export const MeView: React.FC<MeViewProps> = ({
 
   // Grad-Pyramide: nur der Bereich, in dem tatsächlich etwas geklettert wurde
   const pyramid = useMemo(() => {
-    const idx = gradeDistribution.map((g, i) => (g.totalCount > 0 ? i : -1)).filter(i => i >= 0);
-    if (idx.length === 0) return [];
-    return gradeDistribution.slice(Math.min(...idx), Math.max(...idx) + 1).reverse();
+    // SPEC-022: nur Grade mit mindestens einem Top/Flash, schwerster oben
+    return gradeDistribution.filter(g => g.totalCount > 0).reverse();
   }, [gradeDistribution]);
   const maxCount = Math.max(1, ...pyramid.map(p => p.totalCount));
 
@@ -329,16 +330,62 @@ export const MeView: React.FC<MeViewProps> = ({
         </div>
       </section>
 
-      {/* Stil */}
+      {/* Stil (SPEC-020 AC-7.6): Radar + eine Zeile, Details auf Wunsch */}
       <section className="space-y-2.5">
         <h2 className="text-[20px] font-semibold">Dein Stil</h2>
-        <AthletePerformanceView
-          report={report}
-          onSelectBoulder={id => {
-            const b = getWallBoulders().find(x => x.id === id);
-            if (b) setSelectedBoulder(b);
-          }}
-        />
+        {!report.isUnlocked ? (
+          <div className="rounded-2xl bg-[var(--bm-surface)] p-4 space-y-2" data-testid="me-style-locked">
+            <div className="h-2 rounded-full bg-[var(--bm-elevated)] overflow-hidden">
+              <span
+                className="block h-full bg-[var(--bm-accent)]"
+                style={{ width: `${Math.min(100, Math.round((report.loggedAscentsCount / report.minRequiredAscents) * 100))}%` }}
+              />
+            </div>
+            <p className="text-[15px] text-[var(--bm-text-2)]">
+              Noch {Math.max(0, report.minRequiredAscents - report.loggedAscentsCount)} Tops bis zu deinem Stil-Profil
+            </p>
+          </div>
+        ) : isStyleExpanded ? (
+          <>
+            <AthletePerformanceView
+              report={report}
+              onSelectBoulder={id => {
+                const b = getWallBoulders().find(x => x.id === id);
+                if (b) setSelectedBoulder(b);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setIsStyleExpanded(false)}
+              className="w-full min-h-[44px] text-[15px] font-medium text-[var(--bm-accent)]"
+              data-testid="me-style-less"
+            >
+              Weniger zeigen
+            </button>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-[var(--bm-surface)] p-4" data-testid="me-style-summary">
+            <div className="flex justify-center">
+              <RadarChart data={report.userRadar} referenceData={report.gymRadar} size={220} showLabels accentColor="var(--bm-accent)" />
+            </div>
+            <p className="text-[15px] text-center mt-2">
+              {[
+                report.strength ? `Stärke: ${report.strength.attributeLabel}` : null,
+                report.weakness ? `Baustelle: ${report.weakness.attributeLabel}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'Ausgeglichen'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsStyleExpanded(true)}
+              className="w-full mt-2 min-h-[44px] text-[15px] font-medium text-[var(--bm-accent)]"
+              data-testid="me-style-more"
+            >
+              Mehr zum Stil
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Verlauf */}
@@ -355,7 +402,7 @@ export const MeView: React.FC<MeViewProps> = ({
                   testId={`logbook-entry-${e.boulderId}`}
                   icon={<span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: e.gradeScale.colorHex }} />}
                   title={e.boulderName || e.gradeScale.colorName}
-                  subtitle={[e.fontGrade, e.sectorName].filter(Boolean).join(' · ')}
+                  subtitle={[e.fontGrade, e.sectorName && !/unbekannt/i.test(e.sectorName) ? e.sectorName : null].filter(Boolean).join(' · ')}
                   value={TYPE_ICON[e.type]}
                   onClick={() => openEntry(e)}
                 />

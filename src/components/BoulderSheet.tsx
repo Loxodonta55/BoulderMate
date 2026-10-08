@@ -21,7 +21,10 @@ import {
   saveRating,
   deleteRating,
   computeBoulderStatsAggregate,
+  isUserMatch,
 } from '../lib/ratingAndAscentService';
+import { syncBridge } from '../lib/syncBridge';
+import { PublicProfileModal } from './PublicProfileModal';
 import { getProfile } from '../lib/profileService';
 import { Sheet } from './ui/Sheet';
 import { showToast, hideToast } from './ui/Toast';
@@ -59,6 +62,14 @@ export function resolveSetterName(setterId?: string): string {
 
 const ASCENT_LABEL: Record<AscentType, string> = { flash: 'Flash', top: 'Top', project: 'Projekt' };
 
+const ASCENT_ICON: Record<AscentType, React.ReactNode> = {
+  flash: <Zap className="w-4 h-4 fill-[var(--bm-star)] text-[var(--bm-star)]" aria-label="Flash" />,
+  top: <Check className="w-4 h-4 text-[var(--bm-success)]" aria-label="Top" />,
+  project: <Target className="w-4 h-4 text-[var(--bm-text-2)]" aria-label="Projekt" />,
+};
+
+const FEEL_LABEL: Record<string, string> = { soft: 'Soft', fair: 'Fair', stiff: 'Stiff' };
+
 function vibrate() {
   try {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
@@ -80,8 +91,15 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
   const [version, setVersion] = useState(0);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   useBackHandler({ id: 'boulder-sheet-rating', isOpen: isRatingOpen, onBack: () => setIsRatingOpen(false) });
+  useBackHandler({ id: 'boulder-sheet-profile', isOpen: Boolean(profileUserId), onBack: () => setProfileUserId(null) });
+
+  // Beim Öffnen still mit Supabase abgleichen (wie zuvor im Detail-Modal)
+  useEffect(() => {
+    syncBridge.syncRatingsAndAscentsQuietly();
+  }, [boulder.id]);
 
   useEffect(() => {
     const bump = () => setVersion(v => v + 1);
@@ -204,6 +222,20 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
   const feel = stats.gradeFeelPercentages;
   const hasFeel = stats.gradeFeelCounts.soft + stats.gradeFeelCounts.fair + stats.gradeFeelCounts.stiff > 0;
 
+  // Begehungen und Bewertungen anderer pro Person zusammengeführt
+  const climbers = useMemo(() => {
+    const rows: { userId: string; nickname: string; ascent?: (typeof stats.ascents)[number]; rating?: (typeof stats.ratings)[number] }[] = [];
+    for (const a of stats.ascents) {
+      rows.push({ userId: a.userId, nickname: a.userNickname, ascent: a });
+    }
+    for (const r of stats.ratings || []) {
+      const row = rows.find(x => isUserMatch(x.userId, r.userId));
+      if (row) row.rating = r;
+      else rows.push({ userId: r.userId, nickname: r.userNickname || 'Kletterer', rating: r });
+    }
+    return rows;
+  }, [stats]);
+
   return (
     <>
       <Sheet
@@ -292,7 +324,7 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
               data-testid="boulder-sheet-more"
               className="w-full mt-3 min-h-[44px] text-[15px] font-medium text-[var(--bm-accent)]"
             >
-              Details & Bewertungen
+              Details
             </button>
           )}
 
@@ -371,6 +403,44 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
                 </div>
                 <p className="text-[13px] text-[var(--bm-text-2)]">Geschraubt von {resolveSetterName(boulder.setterId)}</p>
                 {boulder.notes && <p className="text-[15px] text-[var(--bm-text)]">{boulder.notes}</p>}
+              </section>
+
+              {/* SPEC-022 F8: Wer war schon oben (SPEC-015 AC-16) */}
+              <section className="space-y-3" data-testid="community-ratings-section">
+                <h3 className="text-[17px] font-semibold">
+                  Wer war schon oben <span className="text-[var(--bm-text-2)] font-normal">{climbers.length}</span>
+                </h3>
+                {climbers.length === 0 ? (
+                  <p className="text-[15px] text-[var(--bm-text-2)]">Noch niemand.</p>
+                ) : (
+                  <ul className="rounded-2xl bg-[var(--bm-elevated)] overflow-hidden divide-y divide-[var(--bm-line)]">
+                    {climbers.map(c => (
+                      <li key={c.userId}>
+                        <button
+                          type="button"
+                          onClick={() => setProfileUserId(c.userId)}
+                          data-testid={c.rating ? `community-rating-row-${c.userId}` : `community-ascent-row-${c.userId}`}
+                          className="w-full min-h-[52px] px-4 py-2 flex items-center gap-3 text-left"
+                        >
+                          <span className="w-8 h-8 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[13px] font-semibold shrink-0">
+                            {c.nickname.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="flex-1 min-w-0 text-[15px] truncate">{c.nickname}</span>
+                          {c.rating?.qualityStars ? (
+                            <span className="flex items-center gap-0.5 text-[14px] tabular-nums text-[var(--bm-text-2)]">
+                              <Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-star)]" />
+                              {c.rating.qualityStars}
+                            </span>
+                          ) : null}
+                          {c.rating?.gradeFeel && (
+                            <span className="text-[13px] text-[var(--bm-text-2)]">{FEEL_LABEL[c.rating.gradeFeel]}</span>
+                          )}
+                          {c.ascent && ASCENT_ICON[c.ascent.type]}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
 
               {/* Beta */}
@@ -459,6 +529,12 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
         </div>
       </Sheet>
 
+      {/* Über dem Sheet (z-60) anzeigen */}
+      <div className="relative z-[70]">
+      {profileUserId && (
+        <PublicProfileModal userId={profileUserId} isOpen onClose={() => setProfileUserId(null)} />
+      )}
+
       {isRatingOpen && (
         <RatingModal
           boulder={boulder}
@@ -470,6 +546,7 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
           onSave={handleSaveRating}
         />
       )}
+      </div>
     </>
   );
 };

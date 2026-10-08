@@ -3,7 +3,7 @@ import { test, expect, devices } from '@playwright/test';
 test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycle', () => {
 
   test('Dual-Device: Action on Mobile (Pixel 7) is reflected on Desktop without page reload', async ({ playwright, baseURL }) => {
-    const browser = await playwright.chromium.launch();
+    const browser = await playwright.chromium.launch(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : undefined);
     const targetURL = baseURL || 'http://localhost:5173';
 
     // 1. Mobile Context (Kletterer on Smartphone)
@@ -21,53 +21,36 @@ test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycl
     const desktopPage = await desktopContext.newPage();
 
     try {
-      // Both open the app
+      // Lokal bleiben: keine Produktionsdaten schreiben
+      await mobileContext.route(/supabase\.co/, route => route.abort());
+      await desktopContext.route(/supabase\.co/, route => route.abort());
+
       await mobilePage.goto('/');
       await desktopPage.goto('/');
 
-      // Mobile logs in as Hans
-      const mobileLogin = mobilePage.locator('button:has-text("Hans (Kletterer)")');
-      if (await mobileLogin.isVisible()) {
-        await mobileLogin.click();
-      }
-      const mobileKlettererApp = mobilePage.locator('button:has-text("KLETTERER-APP")');
-      if (await mobileKlettererApp.isVisible()) {
-        await mobileKlettererApp.click();
-      }
+      // Handy: Hans (Kletterer), Desktop: Schrauber im Kletterer-Bereich
+      await mobilePage.getByTestId('quick-login-hans').click();
+      await desktopPage.getByTestId('quick-login-schrauber').click();
+      await desktopPage.getByTestId('role-gateway-climber-btn').click();
 
-      // Desktop logs in as Schrauber
-      const desktopLogin = desktopPage.locator('button:has-text("Schrauber 6aPlus")');
-      if (await desktopLogin.isVisible()) {
-        await desktopLogin.click();
-      }
-      const desktopKlettererApp = desktopPage.locator('button:has-text("KLETTERER-APP")');
-      if (await desktopKlettererApp.isVisible()) {
-        await desktopKlettererApp.click();
-      }
-
-      // Desktop opens first available route to observe live community feed
-      const desktopRoute = desktopPage.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
+      // Desktop öffnet die erste Route und beobachtet das Sheet
+      const desktopRoute = desktopPage.locator('[data-testid^="route-row-"]').first();
       await expect(desktopRoute).toBeVisible({ timeout: 10000 });
       await desktopRoute.click();
+      const desktopSheet = desktopPage.getByTestId('boulder-sheet');
+      await expect(desktopSheet).toBeVisible();
 
-      const desktopModal = desktopPage.locator('.fixed.inset-0.z-50');
-      await expect(desktopModal).toBeVisible();
-
-      // Mobile opens the same route and logs an ascent
-      const mobileRoute = mobilePage.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
+      // Handy loggt dieselbe Route (2 Taps)
+      const mobileRoute = mobilePage.locator('[data-testid^="route-row-"]').first();
       await expect(mobileRoute).toBeVisible({ timeout: 10000 });
       await mobileRoute.click();
+      await expect(mobilePage.getByTestId('boulder-sheet')).toBeVisible();
+      await mobilePage.getByTestId('log-project-btn').click();
 
-      const mobileModal = mobilePage.locator('.fixed.inset-0.z-50');
-      await expect(mobileModal).toBeVisible();
-
-      const mobileTopBtn = mobileModal.locator('button').filter({ hasText: /^TOP$/i }).first();
-      await mobileTopBtn.click();
-
-      // Assert: Both devices have consistent state without crashing
-      await mobilePage.waitForTimeout(1000);
-      expect(await mobileModal.isVisible()).toBeTruthy();
-      expect(await desktopModal.isVisible()).toBeTruthy();
+      // Beide Geräte bleiben stabil: Handy zurück an der Wand mit Toast, Desktop-Sheet weiter offen
+      await expect(mobilePage.getByText(/Projekt geloggt/)).toBeVisible();
+      await expect(mobilePage.getByTestId('climber-wall-view')).toBeVisible();
+      await expect(desktopSheet).toBeVisible();
 
     } finally {
       await mobileContext.close();
@@ -77,57 +60,39 @@ test.describe('SPEC-019: Cross-Device Sync, Offline Resilience & Mobile Lifecycl
   });
 
   test('Offline Resilience: Data logged during connection loss persists locally and syncs upon reconnect', async ({ page, context }) => {
+    await context.route(/supabase\.co/, route => route.abort());
     await page.goto('/');
+    await page.getByTestId('quick-login-hans').click();
 
-    // Login
-    const hansBtn = page.locator('button:has-text("Hans (Kletterer)")');
-    if (await hansBtn.isVisible()) {
-      await hansBtn.click();
-    }
-    const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
-    if (await klettererAppBtn.isVisible()) {
-      await klettererAppBtn.click();
-    }
-
-    // Open route
-    const route = page.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
+    const route = page.locator('[data-testid^="route-row-"]').first();
     await expect(route).toBeVisible({ timeout: 10000 });
+    const boulderId = (await route.getAttribute('data-testid'))!.replace('route-row-', '');
     await route.click();
 
-    // 1. Simulate Network Drop in climbing gym (Faraday-cage hall)
+    // 1. Funkloch in der Halle
     await context.setOffline(true);
 
-    // 2. Perform offline logging action
-    const detailModal = page.locator('.fixed.inset-0.z-50');
-    const flashBtn = detailModal.locator('button').filter({ hasText: /^FLASH$/i }).first();
-    await expect(flashBtn).toBeVisible();
-    await flashBtn.click();
+    // 2. Offline loggen (Projekt ist für Hans auf jeder Route eine Änderung oder bereits gesetzt)
+    await page.getByTestId('log-project-btn').click();
 
-    // 3. Verify local cache retained the offline change
-    const offlineAscents = await page.evaluate(() => {
-      return localStorage.getItem('boulderapp_ascents_v3');
-    });
-    expect(offlineAscents).toBeTruthy();
+    // 3. Lokaler Speicher hält den Eintrag
+    const offlineAscent = await page.evaluate(id => {
+      const all = JSON.parse(localStorage.getItem('boulderapp_ascents_v3') || '[]');
+      return all.find((a: any) => a.boulderId === id && (a.userId === 'hans-kletterer' || a.user_id === 'hans-kletterer'));
+    }, boulderId);
+    expect(offlineAscent?.type).toBe('project');
 
-    // 4. Reconnect to network
+    // 4. Wieder online: App bleibt bedienbar
     await context.setOffline(false);
-
-    // Trigger sync event / verify app stays responsive without uncaught network errors
     await page.waitForTimeout(1000);
     expect(await page.title()).toContain('BoulderMate');
+    await expect(page.getByTestId('climber-wall-view')).toBeVisible();
   });
 
   test('Mobile Tab-Freezing & Focus Recovery: visibilitychange triggers background sync', async ({ page }) => {
+    await page.context().route(/supabase\.co/, route => route.abort());
     await page.goto('/');
-
-    const hansBtn = page.locator('button:has-text("Hans (Kletterer)")');
-    if (await hansBtn.isVisible()) {
-      await hansBtn.click();
-    }
-    const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
-    if (await klettererAppBtn.isVisible()) {
-      await klettererAppBtn.click();
-    }
+    await page.getByTestId('quick-login-hans').click();
 
     // Simulate mobile OS backgrounding the app (screen lock / app switch)
     await page.evaluate(() => {

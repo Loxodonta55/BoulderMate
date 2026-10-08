@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gym, GymMemberRole } from '../types/boulder';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
-import { Mountain, Wrench, BarChart3, Layers, ArrowLeft, User, Building2, LogIn } from 'lucide-react';
+import { Mountain, Wrench, Layers, ArrowLeft, User, Building2, ChevronDown } from 'lucide-react';
 
 export interface AppHeaderProps {
   appMode: AppMode;
@@ -38,9 +38,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   activeTab,
   onSelectTab,
   roleInfo,
-  isLoggedIn,
   onOpenRoleGateway,
-  onOpenLoginModal,
   onSwitchToClimber,
 }) => {
   if (appMode === 'setter') {
@@ -181,118 +179,95 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     );
   }
 
-  // Climber Header (SPEC-005)
+  // Kletterer-Header (SPEC-022 F2/F12): Hallenwahl als einziges Element auf dem Handy
+  const showPersonaSwitcher = import.meta.env.DEV;
   return (
-    <header className="border-b border-[var(--bm-line)] bg-[var(--bm-surface)] sticky top-0 z-40 w-full overflow-hidden">
-      <div className="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
-        {/* Brand & Gym Switcher */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center text-[var(--bm-accent)] shrink-0">
-            <Mountain className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2]" />
+    <header className="bg-[var(--bm-surface)]/95 backdrop-blur-md sticky top-0 z-40 w-full overflow-hidden" data-testid="climber-header">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-4 w-full">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-7 h-7 rounded-lg bg-[var(--bm-elevated)] flex items-center justify-center text-[var(--bm-text)] shrink-0" aria-hidden>
+            <Mountain className="w-4 h-4 stroke-[2]" />
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="text-xs sm:text-base font-headline text-[var(--bm-text)] shrink-0">
-              BoulderMate
-            </span>
-            {gyms.length > 0 && (
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-[10px] font-mono text-[var(--bm-text-3)] hidden sm:inline">•</span>
-                <select
-                  value={activeGymId}
-                  onChange={(e) => onSelectGym(e.target.value)}
-                  className="bg-transparent text-[11px] sm:text-xs font-mono font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] focus:outline-none cursor-pointer border-b border-dashed border-[var(--bm-line)] pb-0.5 max-w-[100px] xs:max-w-[140px] sm:max-w-[200px] truncate min-w-0"
-                  title="Aktive Boulderhalle wechseln"
-                  data-testid="header-gym-select"
-                >
-                  {gyms.map((g) => (
-                    <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          <span className="hidden md:inline text-base font-semibold text-[var(--bm-text)] shrink-0">BoulderMate</span>
+          {gyms.length > 0 && (
+            <div className="relative flex items-center min-w-0">
+              <select
+                value={activeGymId}
+                onChange={(e) => onSelectGym(e.target.value)}
+                className="appearance-none bg-transparent text-[17px] font-semibold text-[var(--bm-text)] focus:outline-none cursor-pointer pr-6 min-h-[44px] truncate min-w-0 max-w-[70vw] md:max-w-[320px]"
+                title="Halle wählen"
+                aria-label="Halle wählen"
+                data-testid="header-gym-select"
+              >
+                {gyms.map((g) => (
+                  <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] absolute right-1 pointer-events-none" aria-hidden />
+            </div>
+          )}
         </div>
 
-        {/* Primary Focused Navigation */}
-        <nav className="hidden md:flex items-center p-0.5 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] shrink-0">
+        {/* Desktop: zwei Tabs wie die untere Leiste auf dem Handy */}
+        <nav className="hidden md:flex items-center p-0.5 rounded-xl bg-[var(--bm-bg)] shrink-0" aria-label="Bereiche">
           <button
             type="button"
             onClick={() => onSelectTab('wall')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-headline flex items-center gap-1.5 transition ${
-              activeTab === 'wall'
-                ? 'bg-[var(--bm-elevated)] text-[var(--bm-strong)] border-b-2 border-[var(--bm-strong)] font-bold'
-                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
+            data-testid="tab-wall"
+            aria-current={activeTab === 'wall' ? 'page' : undefined}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition ${
+              activeTab === 'wall' ? 'bg-[var(--bm-elevated)] text-[var(--bm-text)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Wand & Sektoren</span>
+            <Layers className="w-4 h-4" />
+            <span>Wand</span>
           </button>
-
           <button
             type="button"
             onClick={() => onSelectTab('stats')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-headline flex items-center gap-1.5 transition ${
-              activeTab === 'stats'
-                ? 'bg-[var(--bm-elevated)] text-[var(--bm-strong)] border-b-2 border-[var(--bm-strong)] font-bold'
-                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
-            }`}
             data-testid="tab-stats"
+            aria-current={activeTab === 'stats' ? 'page' : undefined}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition ${
+              activeTab === 'stats' ? 'bg-[var(--bm-elevated)] text-[var(--bm-text)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
+            }`}
           >
-            <BarChart3 className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-            <span>Meine Statistiken</span>
+            <User className="w-4 h-4" />
+            <span>Ich</span>
           </button>
         </nav>
 
-        {/* Header Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Active Climber Switcher / Auth indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] text-xs">
-            <User className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-            <span className="text-[var(--bm-text-3)] text-[10px] font-mono hidden md:inline">Kletterer:</span>
-            <select
-              value={climberId || ''}
-              onChange={(e) => onSelectClimber(e.target.value)}
-              className="bg-transparent text-[var(--bm-text)] font-mono font-bold focus:outline-none cursor-pointer text-xs max-w-[120px] truncate"
-              title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
-            >
-              {selectableClimbers.map((c) => (
-                <option key={c.id} value={c.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
-                  {c.nickname}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Login / Profile Modal Trigger (SPEC-000) */}
+        {/* SPEC-022 F12: Schrauber/Admins wechseln oft – kompakter Knopf nur für sie, reine Kletterer sehen ihn nie */}
+        {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
           <button
             type="button"
-            onClick={onOpenLoginModal}
-            className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-[var(--bm-surface)] hover:bg-[var(--bm-elevated)] border border-[var(--bm-line)] hover:border-[var(--bm-strong)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] text-xs font-mono flex items-center gap-1 sm:gap-1.5 transition shrink-0"
-            title="Anmelden oder Konto verwalten (SPEC-000)"
-            data-testid="login-modal-btn"
+            onClick={onOpenRoleGateway}
+            className="w-10 h-10 rounded-full bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center justify-center shrink-0"
+            title="Arbeitsbereich wechseln"
+            aria-label="Arbeitsbereich wechseln"
+            data-testid="climber-switch-workspace-btn"
           >
-            <LogIn className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
-            <span className="text-[11px] sm:text-xs max-w-[65px] xs:max-w-[90px] sm:max-w-none truncate font-bold sm:font-normal">
-              {isLoggedIn ? currentUser.nickname : 'Login'}
-            </span>
+            <Wrench className="w-4 h-4" />
           </button>
+        )}
 
-          {/* Discreet Privileged Workspace Switcher */}
-          {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
-            <button
-              type="button"
-              onClick={onOpenRoleGateway}
-              className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-mono transition flex items-center gap-1 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border border-[var(--bm-line)] shrink-0"
-              title="Arbeitsbereich wählen (Kletterer, Schrauber, Admin)"
-              data-testid="climber-switch-workspace-btn"
-            >
-              <Wrench className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
-              <span className="hidden xs:inline">Bereich</span>
-            </button>
-          )}
-        </div>
+        {/* Test-Personas wechseln: nur im Dev-Build (SPEC-020 AC-9.4) */}
+        {showPersonaSwitcher && (
+          <select
+            value={climberId || ''}
+            onChange={(e) => onSelectClimber(e.target.value)}
+            className="hidden sm:block bg-transparent text-[var(--bm-text-2)] text-xs focus:outline-none cursor-pointer max-w-[140px] truncate shrink-0"
+            title="Aktiven Kletterer wechseln für Multi-User-Bewertungen & Logbuch"
+            data-testid="dev-persona-select"
+          >
+            {selectableClimbers.map((c) => (
+              <option key={c.id} value={c.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
+                {c.nickname}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
     </header>
   );

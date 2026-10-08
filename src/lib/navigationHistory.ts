@@ -21,6 +21,12 @@ class NavigationHistoryManager {
   private ignorePopStateCount = 0;
   private currentPopStateHandling = false;
   private safetyTimer: any = null;
+  // History-Einträge, die BoulderMate selbst angelegt hat und die noch hinter der aktuellen Position liegen.
+  // Programmatisches Zurück geht nie weiter als diese Anzahl, sonst verlässt der Browser die App (leere Seite).
+  private ownEntries = 0;
+  // Programmatische Pops, die im selben Tick noch nicht ausgeführt wurden (siehe pop/flushBacks)
+  private pendingBacks = 0;
+  private flushScheduled = false;
 
   constructor() {
     this.init();
@@ -42,6 +48,8 @@ class NavigationHistoryManager {
     this.stack = [];
     this.isInitialized = false;
     this.ignorePopStateCount = 0;
+    this.ownEntries = 0;
+    this.pendingBacks = 0;
     this.currentPopStateHandling = false;
     if (this.safetyTimer) {
       clearTimeout(this.safetyTimer);
@@ -55,6 +63,8 @@ class NavigationHistoryManager {
   public reset() {
     this.stack = [];
     this.ignorePopStateCount = 0;
+    this.ownEntries = 0;
+    this.pendingBacks = 0;
     this.currentPopStateHandling = false;
     if (this.safetyTimer) {
       clearTimeout(this.safetyTimer);
@@ -93,15 +103,21 @@ class NavigationHistoryManager {
 
     this.stack.push(entry);
 
+    const state = {
+      bouldermate_nav: true,
+      id,
+      timestamp: entry.timestamp,
+    };
     try {
-      window.history.pushState(
-        {
-          bouldermate_nav: true,
-          id,
-          timestamp: entry.timestamp,
-        },
-        ''
-      );
+      if (this.pendingBacks > 0) {
+        // Im selben Tick wurde eine Ebene geschlossen (z. B. Rollen-Gateway → Studio):
+        // deren History-Eintrag wiederverwenden statt zurück + vor (Race, die aus der App führte).
+        this.pendingBacks--;
+        window.history.replaceState(state, '');
+      } else {
+        window.history.pushState(state, '');
+        this.ownEntries++;
+      }
     } catch (e) {
       console.warn('[NavigationHistory] pushState failed:', e);
     }
@@ -131,21 +147,46 @@ class NavigationHistoryManager {
 
     if (isTop && typeof window !== 'undefined') {
       const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
-      if (!isTestEnv) {
-        this.ignorePopStateCount++;
-        if (this.safetyTimer) clearTimeout(this.safetyTimer);
-        this.safetyTimer = setTimeout(() => {
-          if (this.ignorePopStateCount > 0) {
-            this.ignorePopStateCount = 0;
-          }
-        }, 150);
+      if (isTestEnv) {
+        // Tests erwarten das Zurück synchron
+        if (this.ownEntries <= 0) return;
+        this.ownEntries--;
+        try {
+          window.history.back();
+        } catch (e) {
+          console.warn('[NavigationHistory] history.back failed:', e);
+        }
+        return;
       }
+      this.pendingBacks++;
+      if (!this.flushScheduled) {
+        this.flushScheduled = true;
+        Promise.resolve().then(() => this.flushBacks());
+      }
+    }
+  }
 
-      try {
-        window.history.back();
-      } catch (e) {
-        console.warn('[NavigationHistory] history.back failed:', e);
+  /**
+   * Führt gesammelte programmatische Pops als ein einziges history.go(-n) aus,
+   * begrenzt auf die eigenen Einträge.
+   */
+  private flushBacks(): void {
+    this.flushScheduled = false;
+    const steps = Math.min(this.pendingBacks, this.ownEntries);
+    this.pendingBacks = 0;
+    if (steps <= 0) return;
+    this.ownEntries -= steps;
+    this.ignorePopStateCount++;
+    if (this.safetyTimer) clearTimeout(this.safetyTimer);
+    this.safetyTimer = setTimeout(() => {
+      if (this.ignorePopStateCount > 0) {
+        this.ignorePopStateCount = 0;
       }
+    }, 150);
+    try {
+      window.history.go(-steps);
+    } catch (e) {
+      console.warn('[NavigationHistory] history.go failed:', e);
     }
   }
 
@@ -179,6 +220,9 @@ class NavigationHistoryManager {
       this.ignorePopStateCount--;
       return;
     }
+
+    // Echter Zurück-Schritt des Nutzers: ein eigener Eintrag ist verbraucht
+    if (this.ownEntries > 0) this.ownEntries--;
 
     if (this.stack.length === 0) {
       // At root level: normal browser behavior / exit

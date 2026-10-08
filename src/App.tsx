@@ -10,7 +10,8 @@ import { GymManagement } from './components/GymManagement';
 import { ensureInitialGymData } from './lib/gymStorage';
 import { getGyms } from './lib/batchBoulderService';
 import { ClimberSectorView } from './components/ClimberSectorView';
-import { UserProfileView } from './components/UserProfileView';
+import { MeView } from './components/MeView';
+import { ToastHost } from './components/ui/Toast';
 import { getProfile } from './lib/profileService';
 import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
@@ -40,7 +41,8 @@ export const App: React.FC = () => {
 
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [activeGymId, setActiveGymId] = useState<string>('gym-6a-plus');
-  const [boulders, setBoulders] = useState<Boulder[]>([]);
+  // Legacy-Boulder-Store wird beim Start befüllt; die Kletterer-Screens lesen selbst aus dem Speicher
+  const [, setBoulders] = useState<Boulder[]>([]);
   const [climberNicknames, setClimberNicknames] = useState<Record<string, string>>({});
 
   const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
@@ -228,11 +230,6 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const refreshData = () => {
-    setBoulders(getStoredBoulders());
-    refreshGyms();
-  };
-
   // Dedicated Standalone Landing Page for unauthenticated visitors
   if (!authSession) {
     return (
@@ -304,7 +301,11 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area — Mobile-First paddings with room for bottom navigation */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-2 sm:px-4 py-3 sm:py-6 pb-24 md:pb-8">
+      <main
+        className={`flex-1 max-w-6xl w-full mx-auto pb-24 md:pb-8 ${
+          appMode === 'climber' && activeTab === 'wall' ? 'px-0 sm:px-4 pt-0 sm:pt-4' : 'px-2 sm:px-4 py-3 sm:py-6'
+        }`}
+      >
         {appMode === 'setter' ? (
           /* 1. Schrauber-Studio */
           <BatchBoulderWorkflow
@@ -337,11 +338,12 @@ export const App: React.FC = () => {
             }}
           />
         ) : (
-          /* 3. Kletterer-App: Meine Statistiken (Persönlicher Bereich mit Sub-Bereichen Overall Statistik & Deep Dive) */
-          <UserProfileView
+          /* 3. Kletterer-App: «Ich» – eine Seite ohne Unter-Tabs (SPEC-022 F10) */
+          <MeView
             currentUser={currentUser}
-            boulders={boulders}
-            onDataChanged={refreshData}
+            activeGymId={activeGymId}
+            roleInfo={roleInfo}
+            onSwitchMode={handleSelectMode}
             onProfileUpdated={(newNickname, newAvatar) => {
               if (climberId) {
                 setClimberNicknames(prev => ({
@@ -365,12 +367,6 @@ export const App: React.FC = () => {
               setClimberId(null);
               setActiveTab('wall');
             }}
-            onNavigateToWall={() => setActiveTab('wall')}
-            onOpenRoleGateway={
-              (roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole)
-                ? () => setIsRoleGatewayOpen(true)
-                : undefined
-            }
           />
         )}
       </main>
@@ -380,11 +376,6 @@ export const App: React.FC = () => {
         <MobileBottomNav
           activeTab={activeTab}
           onSelectTab={setActiveTab}
-          canAccessPrivilegedWorkspace={roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole}
-          onOpenRoleGateway={() => setIsRoleGatewayOpen(true)}
-          onOpenLoginModal={() => setIsLoginModalOpen(true)}
-          isLoggedIn={Boolean(authSession)}
-          nickname={currentUser.nickname}
         />
       )}
 
@@ -414,6 +405,9 @@ export const App: React.FC = () => {
           }
         }}
       />
+
+      {/* SPEC-022 AC-11: Toasts (Loggen · Rückgängig) */}
+      <ToastHost />
     </div>
   );
 };

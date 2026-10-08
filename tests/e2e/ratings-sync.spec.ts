@@ -1,107 +1,68 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+/**
+ * SPEC-003 / SPEC-019 / SPEC-022: Bewertung im Boulder-Sheet und Sichtbarkeit für andere Nutzer.
+ * Läuft rein lokal: Supabase wird blockiert, damit keine Testdaten in der Produktion landen.
+ * «Andere Nutzer» = zweite Anmeldung im selben Browser (gemeinsamer lokaler Speicher).
+ */
+
+async function openFirstRoute(page: Page) {
+  const row = page.locator('[data-testid^="route-row-"]').first();
+  await expect(row).toBeVisible({ timeout: 10000 });
+  const id = (await row.getAttribute('data-testid'))!;
+  await row.click();
+  await expect(page.getByTestId('boulder-sheet')).toBeVisible();
+  return id;
+}
+
+async function rateFair4(page: Page) {
+  await page.getByTestId('boulder-sheet-more').click();
+  await page.getByTestId('open-rating-btn').click();
+  await page.getByRole('button', { name: /^Fair/ }).first().click();
+  const next = page.getByRole('button', { name: /Weiter/ });
+  if (await next.isVisible().catch(() => false)) await next.click();
+  await page.getByRole('button', { name: '4 Sterne' }).first().click();
+  await page.getByRole('button', { name: /Bewertung speichern/i }).click();
+  await expect(page.getByText('Bewertung gespeichert')).toBeVisible();
+}
 
 test.describe('SPEC-003 / SPEC-019: Ratings & Review Sync (Data-Writing & Cross-User)', () => {
-
   test.beforeEach(async ({ page }) => {
-    // Navigate to application
+    await page.context().route(/supabase\.co/, route => route.abort());
     await page.goto('/');
-    
-    // Login as Hans (Kletterer)
-    const hansBtn = page.locator('button:has-text("Hans (Kletterer)")');
-    if (await hansBtn.isVisible()) {
-      await hansBtn.click();
-    }
-    
-    // Handle role gateway if shown
-    const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
-    if (await klettererAppBtn.isVisible()) {
-      await klettererAppBtn.click();
-    }
+    await page.getByTestId('quick-login-hans').click();
+    await expect(page.getByTestId('climber-wall-view')).toBeVisible();
   });
 
-  test('Hans submits a 4-star FAIR rating: writes to storage and recalculates community stats', async ({ page }) => {
-    // 1. Select a route
-    const routeCard = page.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
-    await expect(routeCard).toBeVisible({ timeout: 10000 });
-    await routeCard.click();
+  test('Hans submits a 4-star FAIR rating: writes to storage and shows up under «Wer war schon oben»', async ({ page }) => {
+    await openFirstRoute(page);
+    await rateFair4(page);
 
-    // 2. Open Rating Wizard (handles both first-time and editing)
-    const bewertenBtn = page.locator('button:has-text("Jetzt bewerten"), button:has-text("Bewertung anpassen")').first();
-    await expect(bewertenBtn).toBeVisible();
-    await bewertenBtn.click({ force: true });
-
-    // 3. Step 1: Difficulty Barometer
-    const ratingModal = page.locator('.fixed.inset-0').last();
-    const fairBtn = ratingModal.getByRole('button', { name: /fair/i });
-    if (await fairBtn.isVisible()) {
-      await fairBtn.click();
-      await page.waitForTimeout(300);
-    }
-
-    const weiterBtn = ratingModal.getByRole('button', { name: /weiter/i });
-    if (await weiterBtn.isVisible()) {
-      await weiterBtn.click();
-      await page.waitForTimeout(300);
-    }
-
-    // Step 2: Star Rating & Save
-    const star4 = page.locator('button[aria-label="4 Sterne"]').first();
-    await expect(star4).toBeVisible({ timeout: 5000 });
-    await star4.click();
-
-    const saveBtn = page.locator('button:has-text("BEWERTUNG SPEICHERN")').first();
-    await expect(saveBtn).toBeVisible();
-    await saveBtn.click();
-
-    // 5. Verify Modal closes and rating is saved in localStorage
-    await expect(saveBtn).not.toBeVisible({ timeout: 5000 });
-
-    const localRatings = await page.evaluate(() => {
-      return localStorage.getItem('boulderapp_ratings_v3');
-    });
-    expect(localRatings).toBeTruthy();
+    const localRatings = await page.evaluate(() => localStorage.getItem('boulderapp_ratings_v3'));
     expect(localRatings).toContain('hans-kletterer');
 
-    // 6. Reopen route to verify updated community review feed
-    await routeCard.click();
-    const detailModal = page.locator('.fixed.inset-0.z-50');
-    await expect(detailModal).toBeVisible();
-    await expect(detailModal.getByTestId('community-rating-row-hans-kletterer')).toBeVisible();
-    await expect(detailModal.getByText(/4\s*★|4/).first()).toBeVisible();
-    await expect(detailModal.getByText(/Fair/i).first()).toBeVisible();
+    const row = page.getByTestId('community-rating-row-hans-kletterer');
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('4');
+    await expect(row).toContainText('Fair');
   });
 
-  test('Multi-User Sync: Schrauber6aPlus sees Hans rating in the community review feed', async ({ page }) => {
-    // 1. Switch User to Schrauber6aPlus (handles desktop select or mobile login modal)
-    const userSelect = page.locator('select').filter({ hasText: 'Schrauber6aPlus' });
-    if (await userSelect.isVisible()) {
-      await userSelect.selectOption('schrauber-6aplus');
-    } else {
-      const loginModalBtn = page.getByTestId('login-modal-btn');
-      await loginModalBtn.click();
-      const personaBtn = page.getByTestId('persona-login-schrauber-6aplus');
-      await expect(personaBtn).toBeVisible();
-      await personaBtn.click();
-      await page.waitForTimeout(600);
-    }
+  test('Multi-User Sync: Schrauber6aPlus sees Hans rating in the community list', async ({ page, isMobile }) => {
+    const rowId = await openFirstRoute(page);
+    await rateFair4(page);
+    await page.getByTestId('boulder-sheet-close').click();
 
-    // Handle role gateway if shown
-    const klettererAppBtn = page.locator('button:has-text("KLETTERER-APP")');
-    if (await klettererAppBtn.isVisible()) {
-      await klettererAppBtn.click();
-    }
+    // Abmelden über Ich → Einstellungen, dann als Schrauber anmelden
+    await page.getByTestId(isMobile ? 'mobile-tab-stats' : 'tab-stats').click();
+    await page.getByTestId('open-settings-btn').click();
+    await page.getByTestId('settings-logout').click();
+    await page.getByTestId('quick-login-schrauber').click();
+    await page.getByTestId('role-gateway-climber-btn').click();
 
-    // 2. Open Route
-    const routeCard = page.locator('div.group').filter({ hasText: /Fb|Details & Log|Ausdauer|Boulder|Dynamo/i }).first();
-    await expect(routeCard).toBeVisible();
-    await routeCard.click();
-
-    // 3. Verify Hans's rating is visible to Schrauber
-    const detailModal = page.locator('.fixed.inset-0.z-50');
-    await expect(detailModal).toBeVisible();
-    await expect(detailModal.getByText('COMMUNITY-WERTUNGEN & REVIEWS')).toBeVisible();
-    await expect(detailModal.getByTestId('community-rating-row-hans-kletterer')).toBeVisible();
-    await expect(detailModal.getByText(/Fair/i).first()).toBeVisible();
+    await page.getByTestId(rowId).click();
+    await page.getByTestId('boulder-sheet-more').click();
+    const row = page.getByTestId('community-rating-row-hans-kletterer');
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('Fair');
   });
-
 });
