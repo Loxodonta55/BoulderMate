@@ -176,11 +176,11 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
   };
 
   return (
-    <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-3.5 sm:p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#333333] pb-3">
+    <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-3.5 sm:p-5 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--bm-line)] pb-3">
         <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-[#C9A96E] shrink-0" />
-          <h3 className="text-sm sm:text-base font-bold text-[#E8E0D4] font-headline uppercase tracking-wider">
+          <Layers className="w-5 h-5 text-[var(--bm-accent)] shrink-0" />
+          <h3 className="text-sm sm:text-base font-bold text-[var(--bm-text)] font-headline">
             Sektoren & Wandbereiche (Topo-Tafeln)
           </h3>
         </div>
@@ -191,10 +191,10 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 type="button"
                 onClick={() => setIsReorderMode(!isReorderMode)}
                 data-testid="toggle-reorder-mode-btn"
-                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-headline uppercase tracking-wider rounded-[2px] transition-all flex items-center justify-center gap-1.5 border whitespace-nowrap ${
+                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-headline rounded-xl transition-all flex items-center justify-center gap-1.5 border whitespace-nowrap ${
                   isReorderMode
-                    ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold shadow-sm'
-                    : 'bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
+                    ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
+                    : 'bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
                 }`}
                 title="Sektor-Reihenfolge auf Smartphone oder Desktop anpassen"
               >
@@ -206,7 +206,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
               type="button"
               onClick={() => setIsBatchModalOpen(true)}
               data-testid="batch-add-sector-btn"
-              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#2A2A2A] hover:bg-[#333333] text-[#C9A96E] hover:text-[#E8E0D4] border border-[#C9A96E]/50 rounded-[2px] transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-accent)] hover:text-[var(--bm-text)] border border-[var(--bm-accent)]/50 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
               title="Mehrere Sektoren auf einmal per Multi-Upload anlegen"
             >
               <Images className="w-3.5 h-3.5 shrink-0" /> Mehrere anlegen
@@ -215,7 +215,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
               type="button"
               onClick={() => setIsAdding(true)}
               data-testid="add-sector-btn"
-              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5 shrink-0" /> Neuer Sektor
             </button>
@@ -224,14 +224,14 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
       </div>
 
       {error && (
-        <div className="p-3 bg-[#121212] border border-[#A0522D] rounded-none text-[#A0522D] text-xs flex items-center gap-2 font-mono">
+        <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-danger)] rounded-xl text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-3 bg-[#121212] border border-[#4A5D3A] rounded-none text-[#4A5D3A] text-xs flex items-center gap-2 font-mono">
+        <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-success)] rounded-xl text-[var(--bm-success)] text-xs flex items-center gap-2 font-mono">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
@@ -239,9 +239,9 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
 
       {/* Add Sector Form */}
       {isAdding && (
-        <form onSubmit={handleAddSector} className="p-4 bg-[#121212] border border-[#333333] rounded-none space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2A2A2A] pb-2">
-            <div className="font-bold text-xs text-[#E8E0D4] font-headline uppercase tracking-wider">
+        <form onSubmit={handleAddSector} className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--bm-elevated)] pb-2">
+            <div className="font-bold text-xs text-[var(--bm-text)] font-headline">
               Neuen Sektor im Topo anlegen
             </div>
             <button
@@ -251,7 +251,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 setIsBatchModalOpen(true);
               }}
               data-testid="switch-to-batch-modal-btn"
-              className="text-[11px] font-mono text-[#C9A96E] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+              className="text-[11px] font-mono text-[var(--bm-accent)] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
             >
               <Images className="w-3 h-3" />
               <span>Mehrere Sektoren auf einmal anlegen? Zum Multi-Upload</span>
@@ -259,7 +259,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
                 Sektorname *
               </label>
               <input
@@ -268,11 +268,11 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 placeholder="z.B. Wettkampfwand, Höhle, Dach"
                 value={newSectorName}
                 onChange={(e) => setNewSectorName(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] rounded-none px-3 py-1.5 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+                className="w-full bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl px-3 py-1.5 text-xs text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
                 Wandfoto *
               </label>
               <div className="flex gap-2">
@@ -282,12 +282,12 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                   placeholder="URL oder Bilddatei auswählen"
                   value={newSectorPhoto}
                   onChange={(e) => setNewSectorPhoto(e.target.value)}
-                  className="flex-1 bg-[#1E1E1E] border border-[#333333] rounded-none px-3 py-1.5 text-xs text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
+                  className="flex-1 bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl px-3 py-1.5 text-xs text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setIsUploadForNewSector(true)}
-                  className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#C9A96E] rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center gap-1.5 shrink-0"
+                  className="px-3 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] text-[var(--bm-accent)] rounded-xl text-xs font-headline flex items-center gap-1.5 shrink-0"
                   title="Datei vom Computer hochladen oder Wandpreset wählen"
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -300,13 +300,13 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] text-[#A89F91] rounded-[2px] text-xs font-headline uppercase tracking-wider text-center"
+              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] text-[var(--bm-text-2)] rounded-xl text-xs font-headline text-center"
             >
               Abbrechen
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-bold font-headline uppercase tracking-wider rounded-[2px] text-xs text-center"
+              className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-bold font-headline rounded-xl text-xs text-center"
             >
               Sektor speichern
             </button>
@@ -317,23 +317,23 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
       {/* Mobile Touch Reorder Mode (Requirement 5) */}
       {isReorderMode && isAdmin && sectors.length > 1 && (
         <div
-          className="space-y-3 bg-[#141414] border border-[#333333] p-4 rounded-none animate-in fade-in duration-150"
+          className="space-y-3 bg-[var(--bm-bg)] border border-[var(--bm-line)] p-4 rounded-xl animate-in fade-in duration-150"
           data-testid="mobile-touch-reorder-view"
         >
-          <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-2.5">
+          <div className="flex items-center justify-between border-b border-[var(--bm-elevated)] pb-2.5">
             <div>
-              <h4 className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-                <ArrowUpDown className="w-4 h-4 text-[#C9A96E]" />
+              <h4 className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-[var(--bm-accent)]" />
                 <span>Mobile Sektor-Sortierung</span>
               </h4>
-              <p className="text-[11px] font-mono text-[#A89F91]">
+              <p className="text-[11px] font-mono text-[var(--bm-text-2)]">
                 Tippe auf Hoch/Runter, um die Reihenfolge der Sektoren anzupassen.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsReorderMode(false)}
-              className="px-3 py-1.5 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] text-xs font-headline font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] text-xs font-headline font-bold flex items-center gap-1 cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Fertig</span>
@@ -344,17 +344,17 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
             {sectors.map((sector, idx) => (
               <div
                 key={sector.id}
-                className="p-3 bg-[#1E1E1E] border border-[#333333] flex items-center justify-between gap-3"
+                className="p-3 bg-[var(--bm-surface)] border border-[var(--bm-line)] flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-8 h-8 rounded-none bg-[#2A2A2A] border border-[#333333] text-xs font-mono font-bold text-[#C9A96E] flex items-center justify-center shrink-0">
+                  <span className="w-8 h-8 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-xs font-mono font-bold text-[var(--bm-accent)] flex items-center justify-center shrink-0">
                     #{idx + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate">
+                    <p className="text-xs font-headline font-bold text-[var(--bm-text)] truncate">
                       {sector.name}
                     </p>
-                    <p className="text-[10px] font-mono text-[#A89F91]">
+                    <p className="text-[10px] font-mono text-[var(--bm-text-2)]">
                       {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
                     </p>
                   </div>
@@ -366,24 +366,24 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                     type="button"
                     disabled={idx === 0}
                     onClick={() => handleMove(idx, 'up')}
-                    className="p-2.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-20 text-[#E8E0D4] border border-[#333333] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
+                    className="p-2.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-[var(--bm-text)] border border-[var(--bm-line)] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
                     title="Nach oben verschieben"
                     aria-label="Nach oben verschieben"
                     data-testid={`touch-move-up-${sector.id}`}
                   >
-                    <ArrowUp className="w-4 h-4 text-[#C9A96E]" />
+                    <ArrowUp className="w-4 h-4 text-[var(--bm-accent)]" />
                   </button>
 
                   <button
                     type="button"
                     disabled={idx === sectors.length - 1}
                     onClick={() => handleMove(idx, 'down')}
-                    className="p-2.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-20 text-[#E8E0D4] border border-[#333333] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
+                    className="p-2.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-[var(--bm-text)] border border-[var(--bm-line)] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
                     title="Nach unten verschieben"
                     aria-label="Nach unten verschieben"
                     data-testid={`touch-move-down-${sector.id}`}
                   >
-                    <ArrowDown className="w-4 h-4 text-[#C9A96E]" />
+                    <ArrowDown className="w-4 h-4 text-[var(--bm-accent)]" />
                   </button>
                 </div>
               </div>
@@ -394,14 +394,14 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
 
       {/* Sector ordering guide for Admins */}
       {isAdmin && sectors.length > 1 && !isReorderMode && (
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#141210] border border-[#2e2a25] text-xs font-mono text-[#a89f91]">
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--bm-bg)] border border-[var(--bm-elevated)] text-xs font-mono text-[var(--bm-text-2)]">
           <div className="flex items-center gap-2">
-            <GripVertical className="w-4 h-4 text-[#C9A96E] shrink-0" />
+            <GripVertical className="w-4 h-4 text-[var(--bm-accent)] shrink-0" />
             <span>
-              <strong className="text-[#f4efe6]">Drag & Drop Sortierung:</strong> Ziehe Karten an den Griffen oder nutze die Pfeile, um den Hallenrundgang logisch anzuordnen.
+              <strong className="text-[var(--bm-text)]">Drag & Drop Sortierung:</strong> Ziehe Karten an den Griffen oder nutze die Pfeile, um den Hallenrundgang logisch anzuordnen.
             </span>
           </div>
-          <span className="text-[10px] text-[#78716c] hidden md:inline">
+          <span className="text-[10px] text-[var(--bm-text-2)] hidden md:inline">
             {sectors.length} Sektoren
           </span>
         </div>
@@ -423,12 +423,12 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
               onDragLeave={(e) => handleDragLeave(e, idx)}
               onDrop={(e) => handleDrop(e, idx)}
               onDragEnd={handleDragEnd}
-              className={`bg-[#1E1E1E] border rounded-none overflow-hidden flex flex-col group transition-all duration-150 ${
+              className={`bg-[var(--bm-surface)] border rounded-xl overflow-hidden flex flex-col group transition-all duration-150 ${
                 isDragging
-                  ? 'opacity-40 border-dashed border-[#C9A96E] scale-[0.98]'
+                  ? 'opacity-40 border-dashed border-[var(--bm-accent)] scale-[0.98]'
                   : isDragOver
-                  ? 'border-[#C9A96E] ring-2 ring-[#C9A96E] bg-[#24211e] scale-[1.01]'
-                  : 'border-[#333333] hover:border-[#8B8680]'
+                  ? 'border-[var(--bm-accent)] ring-2 ring-[var(--bm-accent)] bg-[var(--bm-elevated)] scale-[1.01]'
+                  : 'border-[var(--bm-line)] hover:border-[var(--bm-text-2)]'
               }`}
               data-testid={`sector-card-${sector.id}`}
             >
@@ -444,25 +444,25 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 />
 
                 {/* Status Badge */}
-                <div className="absolute top-2 left-2 flex items-center gap-1 bg-[#121212]/90 px-2 py-0.5 rounded-none border border-[#333333] text-[11px] font-mono text-[#E8E0D4]">
-                  <span className="w-1.5 h-1.5 rounded-none bg-[#4A5D3A]" />
+                <div className="absolute top-2 left-2 flex items-center gap-1 bg-[var(--bm-bg)]/90 px-2 py-0.5 rounded-xl border border-[var(--bm-line)] text-[11px] font-mono text-[var(--bm-text)]">
+                  <span className="w-1.5 h-1.5 rounded-xl bg-[var(--bm-success)]" />
                   {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
                 </div>
 
                 {/* Drag Handle & Reorder Buttons (Admin) */}
                 {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-[#121212]/95 p-1 rounded-none border border-[#333333] shadow-md">
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-[var(--bm-bg)]/95 p-1 rounded-xl border border-[var(--bm-line)] shadow-md">
                     {/* Drag Handle */}
                     <div
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-[#2A2A2A] text-[#A89F91] hover:text-[#C9A96E] cursor-grab active:cursor-grabbing transition-colors select-none"
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-[var(--bm-elevated)] text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] cursor-grab active:cursor-grabbing transition-colors select-none"
                       title="Per Drag & Drop verschieben (Reihenfolge anpassen)"
                       data-testid={`drag-handle-${sector.id}`}
                     >
-                      <GripVertical className="w-3.5 h-3.5 text-[#C9A96E]" />
-                      <span className="text-[10px] font-mono font-bold text-[#E8E0D4]">#{idx + 1}</span>
+                      <GripVertical className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+                      <span className="text-[10px] font-mono font-bold text-[var(--bm-text)]">#{idx + 1}</span>
                     </div>
 
-                    <div className="w-[1px] h-3.5 bg-[#333333]" />
+                    <div className="w-[1px] h-3.5 bg-[var(--bm-line)]" />
 
                     {/* Up / Down Arrows as Accessible Alternative */}
                     <button
@@ -472,7 +472,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                         e.stopPropagation();
                         handleMove(idx, 'up');
                       }}
-                      className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91] transition-colors"
+                      className="p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-2)] transition-colors"
                       title="Nach oben verschieben"
                       aria-label="Nach oben verschieben"
                       data-testid={`move-up-${sector.id}`}
@@ -486,7 +486,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                         e.stopPropagation();
                         handleMove(idx, 'down');
                       }}
-                      className="p-1 hover:text-[#C9A96E] disabled:opacity-20 text-[#A89F91] transition-colors"
+                      className="p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-2)] transition-colors"
                       title="Nach unten verschieben"
                       aria-label="Nach unten verschieben"
                       data-testid={`move-down-${sector.id}`}
@@ -498,22 +498,22 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
               </div>
 
               {/* Info & Actions Footer */}
-              <div className="p-3.5 flex flex-col gap-2.5 border-t border-[#333333] bg-[#1E1E1E]">
+              <div className="p-3.5 flex flex-col gap-2.5 border-t border-[var(--bm-line)] bg-[var(--bm-surface)]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isAdmin && (
                       <div
-                        className="cursor-grab active:cursor-grabbing p-1 text-[#6B6358] hover:text-[#C9A96E] transition-colors hidden sm:block"
+                        className="cursor-grab active:cursor-grabbing p-1 text-[var(--bm-text-3)] hover:text-[var(--bm-accent)] transition-colors hidden sm:block"
                         title="Drag & Drop Anfasser"
                       >
                         <GripVertical className="w-4 h-4" />
                       </div>
                     )}
                     <div>
-                      <h4 className="font-bold text-sm text-[#E8E0D4] font-headline uppercase tracking-wide">
+                      <h4 className="font-bold text-sm text-[var(--bm-text)] font-headline">
                         {sector.name}
                       </h4>
-                      <div className="text-[10px] text-[#6B6358] font-mono">
+                      <div className="text-[10px] text-[var(--bm-text-3)] font-mono">
                         SECTOR #{sector.sort_order} {sector.sort_order !== idx + 1 && `(Anzeige: #${idx + 1})`}
                       </div>
                     </div>
@@ -524,7 +524,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                       <button
                         type="button"
                         onClick={() => setActiveUploadSector(sector)}
-                        className="p-2 text-[#A89F91] hover:text-[#C9A96E] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333] flex items-center gap-1 text-xs"
+                        className="p-2 text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors border border-transparent hover:border-[var(--bm-line)] flex items-center gap-1 text-xs"
                         title="Wandfoto aktualisieren oder hochladen"
                       >
                         <Upload className="w-3.5 h-3.5" />
@@ -533,7 +533,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                       <button
                         type="button"
                         onClick={() => handleDelete(sector.id)}
-                        className="p-2 text-[#A89F91] hover:text-[#A0522D] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333]"
+                        className="p-2 text-[var(--bm-text-2)] hover:text-[var(--bm-danger)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors border border-transparent hover:border-[var(--bm-line)]"
                         title="Sektor löschen"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -544,9 +544,9 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
 
                 {/* Mobile Direct Reorder Bar (Requirement 5: Prominente Touch-Buttons auf Smartphone) */}
                 {isAdmin && sectors.length > 1 && (
-                  <div className="sm:hidden flex items-center justify-between pt-2 border-t border-[#2A2A2A]">
-                    <span className="text-[11px] font-mono text-[#A89F91]">
-                      Position: <strong className="text-[#E8E0D4]">#{idx + 1}</strong>
+                  <div className="sm:hidden flex items-center justify-between pt-2 border-t border-[var(--bm-elevated)]">
+                    <span className="text-[11px] font-mono text-[var(--bm-text-2)]">
+                      Position: <strong className="text-[var(--bm-text)]">#{idx + 1}</strong>
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -556,10 +556,10 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                           e.stopPropagation();
                           handleMove(idx, 'up');
                         }}
-                        className="px-3 py-1.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-20 text-xs font-mono text-[#E8E0D4] border border-[#333333] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-xs font-mono text-[var(--bm-text)] border border-[var(--bm-line)] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
                         title="Sektor nach oben verschieben"
                       >
-                        <ArrowUp className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <ArrowUp className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                         <span>Hoch</span>
                       </button>
                       <button
@@ -569,10 +569,10 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                           e.stopPropagation();
                           handleMove(idx, 'down');
                         }}
-                        className="px-3 py-1.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] disabled:opacity-20 text-xs font-mono text-[#E8E0D4] border border-[#333333] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-xs font-mono text-[var(--bm-text)] border border-[var(--bm-line)] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
                         title="Sektor nach unten verschieben"
                       >
-                        <ArrowDown className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <ArrowDown className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                         <span>Runter</span>
                       </button>
                     </div>
@@ -593,7 +593,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 type="button"
                 onClick={() => setIsBatchModalOpen(true)}
                 data-testid="empty-batch-add-sector-btn"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline uppercase tracking-wider bg-[#C9A96E] hover:bg-[#B8985D] text-[#121212] rounded-[2px] transition-all shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline bg-[var(--bm-accent)] hover:bg-[var(--bm-accent)] text-[var(--bm-bg)] rounded-xl transition-all shadow-sm"
               >
                 <Images className="w-3.5 h-3.5" /> Mehrere Sektoren auf einmal anlegen
               </button>
@@ -601,7 +601,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
                 type="button"
                 onClick={() => setIsAdding(true)}
                 data-testid="empty-add-sector-btn"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline uppercase tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition-all"
               >
                 <Plus className="w-3.5 h-3.5" /> Einzelnen Sektor anlegen
               </button>

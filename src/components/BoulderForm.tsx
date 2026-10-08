@@ -111,17 +111,17 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1E1E1E] border border-[#333333] rounded-none p-5 space-y-5">
-      <div className="flex items-center justify-between border-b border-[#333333] pb-4">
+    <form onSubmit={handleSubmit} className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-5 space-y-5">
+      <div className="flex items-center justify-between border-b border-[var(--bm-line)] pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-[#2A2A2A] border border-[#333333] text-[#C9A96E] rounded-none">
+          <div className="p-2 bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-accent)] rounded-xl">
             <Compass className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[#E8E0D4] font-headline tracking-wide uppercase">
+            <h2 className="text-xl font-bold text-[var(--bm-text)] font-headline">
               {initialData ? 'Route bearbeiten' : 'Routen-Protokoll // Neuer Boulder'}
             </h2>
-            <p className="text-[11px] text-[#A89F91] font-mono">
+            <p className="text-[11px] text-[var(--bm-text-2)] font-mono">
               Präzise Topo-Daten & Crux-Erfassung
             </p>
           </div>
@@ -129,17 +129,17 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
         <button
           type="button"
           onClick={onCancel}
-          className="p-2 text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] rounded-[2px] transition-colors border border-transparent hover:border-[#333333]"
+          className="p-2 text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors border border-transparent hover:border-[var(--bm-line)]"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
       {Object.keys(errors).length > 0 && (
-        <div className="bg-[#121212] border border-[#A0522D] rounded-none p-3 flex items-start gap-2.5 text-[#A0522D] text-xs font-mono">
-          <AlertCircle className="w-4 h-4 text-[#A0522D] shrink-0 mt-0.5" />
+        <div className="bg-[var(--bm-bg)] border border-[var(--bm-danger)] rounded-xl p-3 flex items-start gap-2.5 text-[var(--bm-danger)] text-xs font-mono">
+          <AlertCircle className="w-4 h-4 text-[var(--bm-danger)] shrink-0 mt-0.5" />
           <div>
-            <div className="font-bold mb-1 font-headline tracking-wider uppercase">Bitte korrigiere folgende Angaben:</div>
+            <div className="font-bold mb-1 font-headline">Bitte korrigiere folgende Angaben:</div>
             <ul className="list-disc pl-4 space-y-0.5">
               {Object.values(errors).map((err, idx) => (
                 <li key={idx}>{err}</li>
@@ -152,8 +152,8 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
       {/* Basic Info: Name, Location, Sector, Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
-            Boulder Name <span className="text-[#C9A96E]">*</span>
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
+            Boulder Name <span className="text-[var(--bm-accent)]">*</span>
           </label>
           <input
             type="text"
@@ -161,13 +161,13 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             placeholder="z.B. Midnight Lightning, Gelbe 12, Dach-Problem"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={`w-full bg-[#121212] border ${errors.name ? 'border-[#A0522D]' : 'border-[#333333]'} rounded-none px-3.5 py-2.5 text-xs md:text-sm text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-sans`}
+            className={`w-full bg-[var(--bm-bg)] border ${errors.name ? 'border-[var(--bm-danger)]' : 'border-[var(--bm-line)]'} rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-sans`}
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
-            Gebiet / Halle <span className="text-[#C9A96E]">*</span>
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
+            Gebiet / Halle <span className="text-[var(--bm-accent)]">*</span>
           </label>
           <input
             type="text"
@@ -175,50 +175,50 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             placeholder="z.B. Fontainebleau, Minimum Zürich, Magic Wood"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className={`w-full bg-[#121212] border ${errors.location ? 'border-[#A0522D]' : 'border-[#333333]'} rounded-none px-3.5 py-2.5 text-xs md:text-sm text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-sans`}
+            className={`w-full bg-[var(--bm-bg)] border ${errors.location ? 'border-[var(--bm-danger)]' : 'border-[var(--bm-line)]'} rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-sans`}
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
-            Sektor / Wandbereich <span className="text-[#6B6358]">(optional)</span>
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
+            Sektor / Wandbereich <span className="text-[var(--bm-text-3)]">(optional)</span>
           </label>
           <input
             type="text"
             placeholder="z.B. Cuvier Rempart, Wettkampfwand, Höhle"
             value={sector}
             onChange={(e) => setSector(e.target.value)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3.5 py-2.5 text-xs md:text-sm text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
-            Datum <span className="text-[#C9A96E]">*</span>
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
+            Datum <span className="text-[var(--bm-accent)]">*</span>
           </label>
           <input
             type="date"
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3.5 py-2.5 text-xs md:text-sm text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-mono"
           />
         </div>
       </div>
 
       {/* Grade Scale & Grade Selector */}
-      <div className="bg-[#121212] border border-[#333333] rounded-none p-4 space-y-3">
+      <div className="bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-[#E8E0D4] font-headline uppercase tracking-wider">
-            Bewertungssystem & Grad <span className="text-[#C9A96E]">*</span>
+          <label className="text-xs font-bold text-[var(--bm-text)] font-headline">
+            Bewertungssystem & Grad <span className="text-[var(--bm-accent)]">*</span>
           </label>
           {/* Scale Tabs */}
-          <div className="flex bg-[#1E1E1E] p-1 rounded-none border border-[#333333] text-xs font-headline uppercase">
+          <div className="flex bg-[var(--bm-surface)] p-1 rounded-xl border border-[var(--bm-line)] text-xs font-headline">
             <button
               type="button"
               onClick={() => handleScaleChange('font')}
-              className={`px-3 py-1 rounded-[2px] font-bold transition-all ${
-                gradeScale === 'font' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
+              className={`px-3 py-1 rounded-xl font-bold transition-all ${
+                gradeScale === 'font' ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
               }`}
             >
               Fontainebleau
@@ -226,8 +226,8 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             <button
               type="button"
               onClick={() => handleScaleChange('v_scale')}
-              className={`px-3 py-1 rounded-[2px] font-bold transition-all ${
-                gradeScale === 'v_scale' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
+              className={`px-3 py-1 rounded-xl font-bold transition-all ${
+                gradeScale === 'v_scale' ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
               }`}
             >
               V-Scale
@@ -235,8 +235,8 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             <button
               type="button"
               onClick={() => handleScaleChange('color')}
-              className={`px-3 py-1 rounded-[2px] font-bold transition-all ${
-                gradeScale === 'color' ? 'bg-[#F5F0E8] text-[#121212]' : 'text-[#A89F91] hover:text-[#E8E0D4]'
+              className={`px-3 py-1 rounded-xl font-bold transition-all ${
+                gradeScale === 'color' ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
               }`}
             >
               Hallen-Farben
@@ -246,16 +246,16 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
 
         {/* Grade Buttons Selection */}
         {gradeScale === 'font' && (
-          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-[#1E1E1E] rounded-none border border-[#333333]">
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-[var(--bm-surface)] rounded-xl border border-[var(--bm-line)]">
             {FONT_GRADES.map(g => (
               <button
                 type="button"
                 key={g}
                 onClick={() => setGrade(g)}
-                className={`px-3 py-1.5 rounded-[2px] text-xs font-mono font-bold transition-all border ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all border ${
                   grade === g
-                    ? 'bg-[#F5F0E8] text-[#121212] border-[#F5F0E8]'
-                    : 'bg-[#2A2A2A] border-[#333333] text-[#E8E0D4] hover:border-[#6B6358]'
+                    ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)]'
+                    : 'bg-[var(--bm-elevated)] border-[var(--bm-line)] text-[var(--bm-text)] hover:border-[var(--bm-text-3)]'
                 }`}
               >
                 {g}
@@ -265,16 +265,16 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
         )}
 
         {gradeScale === 'v_scale' && (
-          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-[#1E1E1E] rounded-none border border-[#333333]">
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-[var(--bm-surface)] rounded-xl border border-[var(--bm-line)]">
             {V_GRADES.map(g => (
               <button
                 type="button"
                 key={g}
                 onClick={() => setGrade(g)}
-                className={`px-3 py-1.5 rounded-[2px] text-xs font-mono font-bold transition-all border ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all border ${
                   grade === g
-                    ? 'bg-[#F5F0E8] text-[#121212] border-[#F5F0E8]'
-                    : 'bg-[#2A2A2A] border-[#333333] text-[#E8E0D4] hover:border-[#6B6358]'
+                    ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)]'
+                    : 'bg-[var(--bm-elevated)] border-[var(--bm-line)] text-[var(--bm-text)] hover:border-[var(--bm-text-3)]'
                 }`}
               >
                 {g}
@@ -293,19 +293,19 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
                   setGrade(c.value);
                   setColorHex(c.hex);
                 }}
-                className={`flex items-center gap-2 p-2 rounded-none text-left border text-xs transition-all ${
+                className={`flex items-center gap-2 p-2 rounded-xl text-left border text-xs transition-all ${
                   grade === c.value
-                    ? 'border-[#C9A96E] bg-[#2A2A2A] text-[#E8E0D4] font-bold'
-                    : 'border-[#333333] bg-[#1E1E1E] text-[#A89F91] hover:border-[#6B6358]'
+                    ? 'border-[var(--bm-accent)] bg-[var(--bm-elevated)] text-[var(--bm-text)] font-bold'
+                    : 'border-[var(--bm-line)] bg-[var(--bm-surface)] text-[var(--bm-text-2)] hover:border-[var(--bm-text-3)]'
                 }`}
               >
                 <span
-                  className="w-4 h-4 rounded-none border border-black/40 shrink-0"
+                  className="w-4 h-4 rounded-xl border border-black/40 shrink-0"
                   style={{ backgroundColor: c.hex }}
                 />
                 <div>
-                  <div className="font-bold font-headline uppercase">{c.value}</div>
-                  <div className="text-[10px] text-[#A89F91] font-mono">~{c.equivalentFont} ({c.equivalentV})</div>
+                  <div className="font-bold font-headline">{c.value}</div>
+                  <div className="text-[10px] text-[var(--bm-text-2)] font-mono">~{c.equivalentFont} ({c.equivalentV})</div>
                 </div>
               </button>
             ))}
@@ -317,8 +317,8 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Style Selector */}
         <div className="md:col-span-2 space-y-1.5">
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider">
-            Begehungsstil <span className="text-[#C9A96E]">*</span>
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline">
+            Begehungsstil <span className="text-[var(--bm-accent)]">*</span>
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {ASCENT_STYLES.map(style => (
@@ -326,14 +326,14 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
                 type="button"
                 key={style.value}
                 onClick={() => setAscentStyle(style.value)}
-                className={`p-2.5 rounded-none border text-left transition-all ${
+                className={`p-2.5 rounded-xl border text-left transition-all ${
                   ascentStyle === style.value
-                    ? 'border-[#C9A96E] bg-[#2A2A2A] text-[#C9A96E] font-bold'
-                    : 'border-[#333333] bg-[#121212] text-[#A89F91] hover:border-[#6B6358]'
+                    ? 'border-[var(--bm-accent)] bg-[var(--bm-elevated)] text-[var(--bm-accent)] font-bold'
+                    : 'border-[var(--bm-line)] bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:border-[var(--bm-text-3)]'
                 }`}
               >
-                <div className="text-xs font-bold font-headline uppercase tracking-wide">{style.label}</div>
-                <div className="text-[10px] text-[#6B6358] font-sans leading-tight mt-0.5">{style.description}</div>
+                <div className="text-xs font-bold font-headline">{style.label}</div>
+                <div className="text-[10px] text-[var(--bm-text-3)] font-sans leading-tight mt-0.5">{style.description}</div>
               </button>
             ))}
           </div>
@@ -341,32 +341,32 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
 
         {/* Attempts Stepper */}
         <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider">
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline">
             Versuche (Attempts)
           </label>
-          <div className="flex items-center space-x-2 bg-[#121212] border border-[#333333] rounded-none p-2 justify-between">
+          <div className="flex items-center space-x-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl p-2 justify-between">
             <button
               type="button"
               disabled={ascentStyle === 'flash' || ascentStyle === 'onsight' || attempts <= 1}
               onClick={() => setAttempts(Math.max(1, attempts - 1))}
-              className="w-9 h-9 flex items-center justify-center rounded-[2px] bg-[#2A2A2A] border border-[#333333] text-[#E8E0D4] hover:bg-[#333333] disabled:opacity-20 disabled:cursor-not-allowed"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-text)] hover:bg-[var(--bm-line)] disabled:opacity-20 disabled:cursor-not-allowed"
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="text-lg font-bold text-[#E8E0D4] min-w-[2rem] text-center font-mono">
+            <span className="text-lg font-bold text-[var(--bm-text)] min-w-[2rem] text-center font-mono">
               {attempts}
             </span>
             <button
               type="button"
               disabled={ascentStyle === 'flash' || ascentStyle === 'onsight'}
               onClick={() => setAttempts(attempts + 1)}
-              className="w-9 h-9 flex items-center justify-center rounded-[2px] bg-[#2A2A2A] border border-[#333333] text-[#E8E0D4] hover:bg-[#333333] disabled:opacity-20 disabled:cursor-not-allowed"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-text)] hover:bg-[var(--bm-line)] disabled:opacity-20 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
           {(ascentStyle === 'flash' || ascentStyle === 'onsight') && (
-            <div className="text-[11px] text-[#C9A96E] font-mono italic">
+            <div className="text-[11px] text-[var(--bm-accent)] font-mono italic">
               Fixiert auf 1 bei {ascentStyle === 'flash' ? 'Flash' : 'Onsight'}
             </div>
           )}
@@ -376,13 +376,13 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
       {/* Wall Angle & Perceived Difficulty */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Wandneigung
           </label>
           <select
             value={wallAngle || ''}
             onChange={(e) => setWallAngle((e.target.value as WallAngle) || undefined)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3.5 py-2 text-xs md:text-sm text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3.5 py-2 text-xs md:text-sm text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           >
             <option value="">Keine Angabe</option>
             {WALL_ANGLES.map(w => (
@@ -392,13 +392,13 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Subjektives Empfinden (Härte)
           </label>
           <select
             value={perceivedDifficulty || ''}
             onChange={(e) => setPerceivedDifficulty((e.target.value as PerceivedDifficulty) || undefined)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3.5 py-2 text-xs md:text-sm text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3.5 py-2 text-xs md:text-sm text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           >
             <option value="">Keine Angabe</option>
             {PERCEIVED_DIFFICULTIES.map(p => (
@@ -410,7 +410,7 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
 
       {/* Hold Types Multi-Select */}
       <div className="space-y-1.5">
-        <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider">
+        <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline">
           Griffformen (Mehrfachauswahl)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -421,10 +421,10 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
                 type="button"
                 key={ht.value}
                 onClick={() => toggleHoldType(ht.value)}
-                className={`px-3 py-1.5 rounded-none text-xs font-medium border transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
                   isSelected
-                    ? 'bg-[#2A2A2A] text-[#C9A96E] border-[#C9A96E] font-bold'
-                    : 'bg-[#121212] border-[#333333] text-[#A89F91] hover:text-[#E8E0D4]'
+                    ? 'bg-[var(--bm-elevated)] text-[var(--bm-accent)] border-[var(--bm-accent)] font-bold'
+                    : 'bg-[var(--bm-bg)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
                 }`}
               >
                 {ht.label}
@@ -436,7 +436,7 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
 
       {/* Star Rating */}
       <div className="space-y-1.5">
-        <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider">
+        <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline">
           Qualität / Charakter ({rating} von 5 Sternen)
         </label>
         <div className="flex items-center space-x-1">
@@ -445,11 +445,11 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
               type="button"
               key={star}
               onClick={() => setRating(star)}
-              className="p-1 text-[#333333] hover:text-[#C9A96E] focus:outline-none transition-colors"
+              className="p-1 text-[var(--bm-line)] hover:text-[var(--bm-accent)] focus:outline-none transition-colors"
             >
               <Star
                 className={`w-6 h-6 ${
-                  star <= rating ? 'text-[#C9A96E] fill-[#C9A96E]' : 'text-[#333333]'
+                  star <= rating ? 'text-[var(--bm-accent)] fill-[var(--bm-star)]' : 'text-[var(--bm-line)]'
                 }`}
               />
             </button>
@@ -460,7 +460,7 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
       {/* Crux Description & Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Schlüsselstelle (Crux) & Beta
           </label>
           <textarea
@@ -468,12 +468,12 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             placeholder="z.B. Hoher Heelhook rechts, weiter Zug auf Sloper, Trittwechsel vor dem Top..."
             value={cruxDescription}
             onChange={(e) => setCruxDescription(e.target.value)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-mono"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3 py-2 text-xs text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-mono"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Feld-Notizen & Tags
           </label>
           <textarea
@@ -481,30 +481,30 @@ export const BoulderForm: React.FC<Props> = ({ initialData, onSave, onCancel }) 
             placeholder="Wetter, Grip, Felstemperatur..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-2 text-xs text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-mono mb-2"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3 py-2 text-xs text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-mono mb-2"
           />
           <input
             type="text"
             placeholder="Tags (kommagetrennt, z.B. dyno, leiste, kniebar)"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-3 py-1.5 text-xs text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] font-mono"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-3 py-1.5 text-xs text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] font-mono"
           />
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[#333333]">
+      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[var(--bm-line)]">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-xs font-headline uppercase tracking-wider font-semibold text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition-colors"
+          className="px-4 py-2 text-xs font-headline font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] rounded-xl transition-colors"
         >
           Abbrechen
         </button>
         <button
           type="submit"
-          className="px-6 py-2 text-xs font-headline uppercase tracking-wider font-bold bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition-all flex items-center gap-2"
+          className="px-6 py-2 text-xs font-headline font-bold bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition-all flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
           {initialData ? 'Änderungen speichern' : 'Boulder erfassen'}

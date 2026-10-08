@@ -34,16 +34,16 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200" data-testid="public-profile-modal">
-      <div className="w-full max-w-2xl bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden my-4 flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-2xl bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
         {/* Header Bar */}
-        <div className="p-5 sm:p-6 border-b border-[#333333] bg-[#1E1E1E] flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-[var(--bm-line)] bg-[var(--bm-surface)] flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar - SPEC-005: 0px square avatar */}
-            <div className="w-14 h-14 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center overflow-hidden shrink-0">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={profile.nickname} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-xl font-mono font-bold text-[#F5F0E8]">
+                <span className="text-xl font-mono font-bold text-[var(--bm-strong)]">
                   {profile.nickname.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -51,15 +51,15 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+                <h2 className="text-lg sm:text-xl font-headline font-bold text-[var(--bm-text)]">
                   {profile.nickname}
                 </h2>
-                <span className="px-2 py-0.5 rounded-none text-[10px] font-mono uppercase bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
+                <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-text-2)]">
                   Kletterer
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-xs font-mono text-[#A89F91] mt-0.5">
-                <Calendar className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <div className="flex items-center gap-1 text-xs font-mono text-[var(--bm-text-2)] mt-0.5">
+                <Calendar className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                 <span>Mitglied seit {formattedDate}</span>
               </div>
             </div>
@@ -69,7 +69,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
+            className="p-2 rounded-xl text-[var(--bm-text-3)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] transition"
             aria-label="Schließen"
             data-testid="btn-close-public-profile"
           >
@@ -81,14 +81,14 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
           {/* Hallenfilter (AC-4) */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#A89F91]">
-              <MapPin className="w-3.5 h-3.5 text-[#C9A96E]" />
-              <span className="font-bold text-[#E8E0D4]">Hallen-Filter:</span>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--bm-text-2)]">
+              <MapPin className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+              <span className="font-bold text-[var(--bm-text)]">Hallen-Filter:</span>
             </div>
             <select
               value={selectedGymId}
               onChange={e => setSelectedGymId(e.target.value)}
-              className="px-3 py-1.5 rounded-none bg-[#121212] border border-[#333333] text-xs font-mono text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] text-xs font-mono text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] cursor-pointer"
               data-testid="select-gym-filter-public"
             >
               <option value="all">Alle Hallen (Gesamt)</option>
@@ -114,7 +114,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
           )}
 
           {/* Notice: Logbook is strictly private and hidden here (AC-6) */}
-          <div className="p-3 rounded-none bg-[#121212] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+          <div className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] text-center text-xs font-mono text-[var(--bm-text-3)]">
             🔒 Das persönliche Logbuch dieses Kletterers ist privat.
           </div>
         </div>

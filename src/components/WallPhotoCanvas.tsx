@@ -43,6 +43,7 @@ export interface WallPhotoCanvasProps {
   filteredBoulderIds?: Set<string>;
   statsMap?: Map<string, BoulderStatsAggregate>;
   userAscentMap?: Map<string, Ascent | null>;
+  newBoulderIds?: Set<string>; // SPEC-021 AC-10: «Neu»-Badge
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onZoomChange?: (zoomLevel: number) => void;
@@ -69,6 +70,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   filteredBoulderIds,
   statsMap,
   userAscentMap,
+  newBoulderIds,
   isFullscreen = false,
   onToggleFullscreen,
   onZoomChange,
@@ -562,26 +564,26 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
       className={
         isFullscreen
           ? 'relative w-full h-full bg-black select-none overflow-hidden'
-          : 'relative w-full rounded-none overflow-hidden border border-[#333333] bg-black select-none'
+          : 'relative w-full rounded-xl overflow-hidden border border-[var(--bm-line)] bg-black select-none'
       }
     >
       {/* Top-Left Mode & Instruction Badge (Hidden in Fullscreen mode for zero header clutter) */}
       {!isFullscreen && (
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#1E1E1E] px-3 py-1.5 rounded-none border border-[#333333] text-xs font-mono text-[#E8E0D4] shadow-md pointer-events-none">
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[var(--bm-surface)] px-3 py-1.5 rounded-xl border border-[var(--bm-line)] text-xs font-mono text-[var(--bm-text)] shadow-md pointer-events-none">
           {mode === 'setter' ? (
             <>
-              <Crosshair className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <Crosshair className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
               <span>Klick = Pin</span>
-              <span className="text-[#6B6358]">|</span>
+              <span className="text-[var(--bm-text-3)]">|</span>
               <span>Drag = Verschieben</span>
-              <span className="text-[#6B6358]">|</span>
-              <BoxSelect className="w-3.5 h-3.5 text-[#C9A96E]" />
-              <span className="text-[#C9A96E] font-semibold">Ziehen = Quadrat-Auswahl</span>
+              <span className="text-[var(--bm-text-3)]">|</span>
+              <BoxSelect className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+              <span className="text-[var(--bm-accent)] font-semibold">Ziehen = Quadrat-Auswahl</span>
             </>
           ) : (
             <>
-              <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
-              <span>Tippe auf Pin für Details & Logging</span>
+              <Info className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+              <span>Pin antippen</span>
             </>
           )}
         </div>
@@ -589,24 +591,24 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
       {/* Top-Right Zoom & Tooling Bar (Non-Fullscreen Mode) */}
       {!isFullscreen && (
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1E1E1E] p-1 rounded-none border border-[#333333] shadow-md">
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[var(--bm-surface)] p-1 rounded-xl border border-[var(--bm-line)] shadow-md">
           <button
             type="button"
             onClick={() => handleZoom(0.25)}
             disabled={zoomLevel >= 2.5}
-            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
             title="Vergrößern"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
-          <span className="text-xs font-mono px-1.5 text-[#E8E0D4] min-w-[3rem] text-center font-bold">
+          <span className="text-xs font-mono px-1.5 text-[var(--bm-text)] min-w-[3rem] text-center font-bold">
             {Math.round(zoomLevel * 100)}%
           </span>
           <button
             type="button"
             onClick={() => handleZoom(-0.25)}
             disabled={zoomLevel <= 1}
-            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
             title="Verkleinern"
           >
             <ZoomOut className="w-4 h-4" />
@@ -615,7 +617,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             <button
               type="button"
               onClick={() => setZoomLevel(1)}
-              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
+              className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
               title="Zoom zurücksetzen"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -624,11 +626,11 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
           {onToggleFullscreen && (
             <>
-              <span className="w-px h-4 bg-[#333333] mx-0.5" />
+              <span className="w-px h-4 bg-[var(--bm-line)] mx-0.5" />
               <button
                 type="button"
                 onClick={onToggleFullscreen}
-                className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
+                className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:text-[var(--bm-strong)] hover:bg-[var(--bm-elevated)] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
                 title="Sektor-Vollbildmodus"
                 data-testid="canvas-fullscreen-btn"
               >
@@ -640,11 +642,11 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
           {mode === 'setter' && onChangePhoto && (
             <>
-              <span className="w-px h-4 bg-[#333333] mx-0.5" />
+              <span className="w-px h-4 bg-[var(--bm-line)] mx-0.5" />
               <button
                 type="button"
                 onClick={onChangePhoto}
-                className="p-1.5 rounded-[2px] text-[#C9A96E] hover:text-[#F5F0E8] hover:bg-[#2A2A2A] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
+                className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:text-[var(--bm-strong)] hover:bg-[var(--bm-elevated)] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
                 title="Foto aufnehmen oder hochladen"
                 data-testid="canvas-camera-btn"
               >
@@ -658,35 +660,35 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
       {/* Floating Zoom Bar (Bottom-Right in Fullscreen Mode) */}
       {isFullscreen && (
-        <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1 bg-black/70 p-1 backdrop-blur-md rounded-none border border-[#333333] shadow-xl">
+        <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1 bg-black/70 p-1 backdrop-blur-md rounded-xl border border-[var(--bm-line)] shadow-xl">
           <button
             type="button"
             onClick={() => handleZoom(0.25)}
             disabled={zoomLevel >= 3.0}
-            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
             title="Vergrößern"
             aria-label="Vergrößern"
           >
-            <ZoomIn className="w-4 h-4 text-[#C9A96E]" />
+            <ZoomIn className="w-4 h-4 text-[var(--bm-accent)]" />
           </button>
-          <span className="text-xs font-mono px-1 text-[#E8E0D4] min-w-[2.8rem] text-center font-bold">
+          <span className="text-xs font-mono px-1 text-[var(--bm-text)] min-w-[2.8rem] text-center font-bold">
             {Math.round(zoomLevel * 100)}%
           </span>
           <button
             type="button"
             onClick={() => handleZoom(-0.25)}
             disabled={zoomLevel <= 1}
-            className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] disabled:opacity-30 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
             title="Verkleinern"
             aria-label="Verkleinern"
           >
-            <ZoomOut className="w-4 h-4 text-[#C9A96E]" />
+            <ZoomOut className="w-4 h-4 text-[var(--bm-accent)]" />
           </button>
           {zoomLevel > 1 && (
             <button
               type="button"
               onClick={() => setZoomLevel(1)}
-              className="p-1.5 rounded-[2px] text-[#C9A96E] hover:bg-[#2A2A2A] transition cursor-pointer"
+              className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
               title="Passend zurücksetzen (100%)"
               aria-label="Zoom zurücksetzen"
             >
@@ -734,8 +736,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             }}
             className={
               isFullscreen
-                ? 'block w-full h-full object-fill select-none pointer-events-none rounded-none'
-                : 'block w-full h-auto select-none pointer-events-none rounded-none'
+                ? 'block w-full h-full object-fill select-none pointer-events-none rounded-xl'
+                : 'block w-full h-auto select-none pointer-events-none rounded-xl'
             }
             draggable={false}
           />
@@ -744,7 +746,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           {isBoxSelecting && boxSelection && (
             <div
               data-testid="selection-rectangle"
-              className="absolute border-2 border-dashed border-[#C9A96E] bg-[#C9A96E]/20 z-30 pointer-events-none"
+              className="absolute border-2 border-dashed border-[var(--bm-accent)] bg-[var(--bm-accent)]/20 z-30 pointer-events-none"
               style={{
                 left: `${boxSelection.startX * 100}%`,
                 top: `${boxSelection.startY * 100}%`,
@@ -753,10 +755,10 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
               }}
             >
               {/* Corner Rock Accents (SPEC-005 sharp edges) */}
-              <div className="absolute -top-1 -left-1 w-2 h-2 bg-[#C9A96E]" />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#C9A96E]" />
-              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-[#C9A96E]" />
-              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-[#C9A96E]" />
+              <div className="absolute -top-1 -left-1 w-2 h-2 bg-[var(--bm-accent)]" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--bm-accent)]" />
+              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-[var(--bm-accent)]" />
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-[var(--bm-accent)]" />
             </div>
           )}
 
@@ -815,45 +817,55 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                       <span
                         className={`absolute -inset-1.5 rounded-full pointer-events-none ${
                           isFiveStar
-                            ? 'ring-2 ring-[#C9A96E] opacity-95 animate-pulse bg-[#C9A96E]/30'
+                            ? 'ring-2 ring-[var(--bm-accent)] opacity-95 animate-pulse bg-[var(--bm-accent)]/30'
                             : isFavorite
-                            ? 'ring-2 ring-[#C9A96E] opacity-90 animate-pulse'
+                            ? 'ring-2 ring-[var(--bm-accent)] opacity-90 animate-pulse'
                             : 'opacity-75 animate-ping'
                         }`}
-                        style={{ backgroundColor: isFiveStar || isFavorite ? '#C9A96E' : colorHex }}
+                        style={{ backgroundColor: isFiveStar || isFavorite ? 'var(--bm-star)' : colorHex }}
                       />
 
                       {/* Main Pin Disc (SPEC-005: 50% circle) */}
                       <div
-                        className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[#121212] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[#F5F0E8] shadow-md ${
-                          isFiveStar ? 'ring-2 ring-[#C9A96E]' : ''
+                        className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-[var(--bm-bg)] flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-[var(--bm-strong)] shadow-md ${
+                          isFiveStar ? 'ring-2 ring-[var(--bm-accent)]' : ''
                         }`}
                         style={{ backgroundColor: colorHex }}
                       >
                         {/* 5-Star Floating Mini-Badge (AC-18) */}
                         {isFiveStar ? (
                           <span
-                            className="absolute -top-3 -right-2 px-1 py-0.2 bg-[#C9A96E] text-[#121212] rounded-none border border-[#121212] text-[8px] font-mono font-black flex items-center gap-0.5 shadow-md z-30"
+                            className="absolute -top-3 -right-2 px-1 py-0.2 bg-[var(--bm-accent)] text-[var(--bm-bg)] rounded-xl border border-[var(--bm-bg)] text-[8px] font-mono font-black flex items-center gap-0.5 shadow-md z-30"
                             title={`5.0 Hallen-Klassiker (${stats?.avgStars.toFixed(1)} ★)`}
                           >
                             <span>5.0</span>
-                            <Star className="w-2 h-2 fill-[#121212] text-[#121212]" />
+                            <Star className="w-2 h-2 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
                           </span>
                         ) : isFavorite ? (
                           <span
-                            className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md ring-1 ring-[#121212]"
+                            className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[var(--bm-accent)] text-[var(--bm-bg)] flex items-center justify-center shadow-md ring-1 ring-[var(--bm-bg)]"
                             title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
                           >
                             <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
                           </span>
                         ) : null}
 
+                        {/* SPEC-021 AC-10: «Neu»-Badge */}
+                        {newBoulderIds?.has(boulder.id) && (
+                          <span
+                            data-testid={`new-badge-${boulder.id}`}
+                            className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-1 rounded-xl bg-[var(--bm-accent)] text-[var(--bm-on-accent)] border border-[var(--bm-bg)] text-[8px] font-mono font-black leading-tight shadow-md z-30"
+                          >
+                            Neu
+                          </span>
+                        )}
+
                         {/* Status Icon Indicator */}
-                        {isFlash && <Zap className="w-4 h-4 text-[#121212] fill-[#121212]" />}
-                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[#121212]" />}
-                        {isProject && <Clock className="w-3.5 h-3.5 text-[#121212]" />}
+                        {isFlash && <Zap className="w-4 h-4 text-[var(--bm-bg)] fill-[var(--bm-bg)]" />}
+                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
+                        {isProject && <Clock className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
                         {!userAscent && (
-                          <span className="text-[11px] font-mono font-bold text-[#121212]">
+                          <span className="text-[11px] font-mono font-bold text-[var(--bm-bg)]">
                             {scale?.colorName?.[0] || '●'}
                           </span>
                         )}
@@ -898,16 +910,16 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   >
                     {/* Pin Circle */}
                     <div
-                      className={`relative flex items-center justify-center transition-all duration-200 border-2 border-[#121212] ${
+                      className={`relative flex items-center justify-center transition-all duration-200 border-2 border-[var(--bm-bg)] ${
                     isDraft
-                      ? 'w-9 h-9 rounded-full ring-2 ring-[#F5F0E8] scale-105'
+                      ? 'w-9 h-9 rounded-full ring-2 ring-[var(--bm-strong)] scale-105'
                       : isMarkedForArchive
                       ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-35 grayscale'
                       : isModified
-                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-95 ring-2 ring-[#C9A96E] scale-105'
-                      : 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[#F5F0E8]/70'
-                  } ${isSelected ? 'ring-2 ring-[#C9A96E] scale-125 z-30' : ''} ${
-                    isMultiSelected ? 'ring-4 ring-[#C9A96E] scale-125 z-30 shadow-lg' : ''
+                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-95 ring-2 ring-[var(--bm-accent)] scale-105'
+                      : 'w-7 h-7 sm:w-8 sm:h-8 rounded-full opacity-85 hover:opacity-100 hover:scale-110 ring-1 ring-[var(--bm-strong)]/70'
+                  } ${isSelected ? 'ring-2 ring-[var(--bm-accent)] scale-125 z-30' : ''} ${
+                    isMultiSelected ? 'ring-4 ring-[var(--bm-accent)] scale-125 z-30 shadow-lg' : ''
                   } ${
                     isDragging ? 'scale-125 opacity-90 cursor-grabbing' : ''
                   }`}
@@ -916,19 +928,19 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   }}
                 >
                   {/* Inner Pin Icon / Details */}
-                  {isDraft && <Sparkles className="w-4 h-4 text-[#121212]" />}
-                  {isMarkedForArchive && <Archive className="w-3.5 h-3.5 text-[#121212]" />}
+                  {isDraft && <Sparkles className="w-4 h-4 text-[var(--bm-bg)]" />}
+                  {isMarkedForArchive && <Archive className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
                   {isModified && !isDraft && !isMarkedForArchive && (
-                    <Edit3 className="w-3 h-3 text-[#121212]" />
+                    <Edit3 className="w-3 h-3 text-[var(--bm-bg)]" />
                   )}
                   {!isDraft && !isMarkedForArchive && !isModified && (
-                    <div className="w-2 h-2 rounded-full bg-[#121212]/80" />
+                    <div className="w-2 h-2 rounded-full bg-[var(--bm-bg)]/80" />
                   )}
 
                   {/* Strikethrough line if marked for archive */}
                   {isMarkedForArchive && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-full h-0.5 bg-[#A0522D] rotate-45" />
+                      <div className="w-full h-0.5 bg-[var(--bm-danger)] rotate-45" />
                     </div>
                   )}
 
@@ -936,7 +948,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                   {isMultiSelected && (
                     <span
                       data-testid={`selection-badge-${boulder.id}`}
-                      className="absolute -top-1.5 -right-1.5 z-40 w-4 h-4 bg-[#C9A96E] text-[#121212] flex items-center justify-center shadow-md font-bold rounded-none"
+                      className="absolute -top-1.5 -right-1.5 z-40 w-4 h-4 bg-[var(--bm-accent)] text-[var(--bm-bg)] flex items-center justify-center shadow-md font-bold rounded-xl"
                       title="Ausgewählt"
                     >
                       <Check className="w-2.5 h-2.5 stroke-[3]" />
@@ -946,25 +958,25 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
                 {/* Pin Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30">
-                  <div className="bg-[#1E1E1E] text-[#E8E0D4] text-xs font-mono px-3 py-1.5 rounded-none border border-[#333333] whitespace-nowrap flex items-center gap-2">
+                  <div className="bg-[var(--bm-surface)] text-[var(--bm-text)] text-xs font-mono px-3 py-1.5 rounded-xl border border-[var(--bm-line)] whitespace-nowrap flex items-center gap-2">
                     <span
-                      className="w-2.5 h-2.5 rounded-none inline-block border border-black/30"
+                      className="w-2.5 h-2.5 rounded-xl inline-block border border-black/30"
                       style={{ backgroundColor: colorHex }}
                     />
                     <span className="font-bold">{boulder.name || scale?.colorName || 'Boulder'}</span>
-                    <span className="text-[#A89F91] text-[10px]">({scale?.difficultyLabel})</span>
+                    <span className="text-[var(--bm-text-2)] text-[10px]">({scale?.difficultyLabel})</span>
                     {isDraft && (
-                      <span className="bg-[#2A2A2A] text-[#4A5D3A] text-[10px] px-1.5 py-0.5 rounded-none border border-[#4A5D3A]/40 font-bold">
+                      <span className="bg-[var(--bm-elevated)] text-[var(--bm-success)] text-[10px] px-1.5 py-0.5 rounded-xl border border-[var(--bm-success)]/40 font-bold">
                         Entwurf
                       </span>
                     )}
                     {isMarkedForArchive && (
-                      <span className="bg-[#2A2A2A] text-[#A0522D] text-[10px] px-1.5 py-0.5 rounded-none border border-[#A0522D]/40 font-bold">
+                      <span className="bg-[var(--bm-elevated)] text-[var(--bm-danger)] text-[10px] px-1.5 py-0.5 rounded-xl border border-[var(--bm-danger)]/40 font-bold">
                         Archivieren
                       </span>
                     )}
                   </div>
-                  <div className="w-1.5 h-1.5 bg-[#1E1E1E] border-r border-b border-[#333333] rotate-45 -mt-1" />
+                  <div className="w-1.5 h-1.5 bg-[var(--bm-surface)] border-r border-b border-[var(--bm-line)] rotate-45 -mt-1" />
                 </div>
               </div>
               </div>

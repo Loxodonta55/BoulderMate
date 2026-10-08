@@ -1,6 +1,10 @@
 # SPEC-003: Boulder-Detailansicht, Bewertungen & Logging
 
-## Status: DONE
+> **Hinweis (04.10.2026):** Gemäß [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md) wurden Detailansicht (`BoulderDetailModal`) und Bewertungs-Modal (`RatingModal`) in einem einzigen, einheitlichen `BoulderSheet` (halb/voll geöffnet) zusammengeführt. Das dauerhafte Löschen von Routen im Kletterer-Bereich (**AC-13**) wurde gestrichen (Feature-Isolation: Routen-Management gehört exklusiv ins Schrauber-Studio).
+
+> **Update (06.10.2026, Text-Diät & Palette «Kreide», SPEC-020):** Der Schrauber wird mit Namen angezeigt, sonst «Hallenteam» (nie eine UUID). Die Radar-Karte heißt nur noch «Charakter», der Untertitel «Aggregiert aus…» entfällt. Soft/Fair/Stiff erscheinen ohne Farbkreis-Emojis (🟢🟡🔴), weil sie mit Grifffarben verwechselt wurden. Die Routenkarten unter dem Foto haben keinen Footer «Details & Log / Wertungen» mehr; ein Tap auf die Karte öffnet das Detail. Farben kommen ausschließlich aus den `--bm-*`-Tokens. Tests: `tests/spec020RedesignKreide.test.tsx`, `tests/spec003Components.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`, `tests/e2e/ascents-logging.spec.ts`.
+
+## Status: DONE (Teilweise aktualisiert durch SPEC-020)
 
 ## Summary
 Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwierigkeitsband, Community-Qualität, Grade-Feeling und Radar-Chart zu Klettereigenschaften), das Loggen eigener Begehungen (Flash, Top, Projekt) sowie die direkte Bewertung nach dem Durchstieg. Das Bewertungssystem umfasst ein 3-stufiges Grad-Empfinden (Soft / Fair / Stiff), eine 5-Sterne Qualitäts-/Spaßwertung sowie eine 6-Achsen-Charakterisierung (Maximalkraft, Kraft-Ausdauer, Technik, Balance, Koordination, Flexibilität), deren Durchschnitt gemeinsam mit der initialen Schrauber-Einschätzung aggregiert wird. Bei bestehenden Routen wird die bisherige Kraft als Maximalkraft übernommen und Kraft-Ausdauer initial auf 3 gesetzt.
@@ -145,6 +149,9 @@ wobei $W_{\text{setter}} = 5$ als Basisgewicht der Schrauber-Wertung dient und $
 Für Altdaten wird `Initial_Maximalkraft = Initial_Kraft` und `Initial_KraftAusdauer = 3` gesetzt.
 
 ### UI / UX (Design System SPEC-005 Konform)
+
+> Farbwerte in diesem Abschnitt sind historisch. Gültig ist die Palette «Kreide» aus [SPEC-020 §2.3](SPEC-020-ux-overhaul-design-system-v2.md): Sterne in `--bm-star` (Messing), Soft/Fair/Stiff in `--bm-success` / `--bm-warning` / `--bm-danger`, Radar in `--bm-star` auf `--bm-line`.
+
 - **Detail-Modal / View**:
   - Solider Felsblock-Charakter (`0px` Radius, 1px Border `#333333`, Hintergrund `#1E1E1E`).
   - Großzügiger Schwarzraum, keine überladenen Schachtelungen.

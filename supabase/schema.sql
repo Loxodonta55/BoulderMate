@@ -183,3 +183,9 @@ CREATE POLICY "Allow insert grade_scales" ON public.grade_scales FOR ALL USING (
 
 DROP POLICY IF EXISTS "Allow insert gyms" ON public.gyms;
 CREATE POLICY "Allow insert gyms" ON public.gyms FOR ALL USING (true) WITH CHECK (true);
+
+-- SPEC-021: Umschrauben (siehe supabase/migrations/20261006_spec021_umschrauben.sql)
+ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS draft_photo_url TEXT;
+ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS rebuild_started_at TIMESTAMPTZ;
+ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS rebuilt_at TIMESTAMPTZ;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS wall_photo_url TEXT;

@@ -237,7 +237,6 @@ describe('SPEC-003: UI Components Integration', () => {
     it('renders sector name and wall photo with active boulder pins', () => {
       render(<ClimberSectorView currentUser={sampleUser} />);
 
-      expect(screen.getByText('Sektoren & Wandansicht')).toBeInTheDocument();
       // Should show the sector button
       expect(screen.getAllByText('Überhang 45°').length).toBeGreaterThan(0);
 
@@ -262,19 +261,19 @@ describe('SPEC-003: UI Components Integration', () => {
 
       // Filter pills exist
       const allFilter = screen.getByRole('button', { name: /Alle/i });
-      const topRatedFilter = screen.getByRole('button', { name: /Top-Bewertet/i });
+      const topRatedFilter = screen.getByRole('button', { name: /^Top$/i });
       const popularFilter = screen.getByRole('button', { name: /Beliebt/i });
-      const projectsFilter = screen.getByRole('button', { name: /Meine Projekte/i });
+      const projectsFilter = screen.getByRole('button', { name: /Projekte/i });
 
       expect(allFilter).toBeInTheDocument();
       expect(topRatedFilter).toBeInTheDocument();
       expect(popularFilter).toBeInTheDocument();
       expect(projectsFilter).toBeInTheDocument();
 
-      // Sort select exists
-      expect(screen.getByText(/Sortierung:/i)).toBeInTheDocument();
+      // Sort select exists (ohne Label)
+      expect(screen.getByRole('option', { name: /Beste Bewertung/i })).toBeInTheDocument();
 
-      // Click "Top-Bewertet"
+      // Click "Top"
       fireEvent.click(topRatedFilter);
 
       // "Filter zurücksetzen" link appears
@@ -304,8 +303,6 @@ describe('SPEC-003: UI Components Integration', () => {
       expect(ratedHero).toHaveTextContent('4.3');
       expect(ratedHero).toHaveTextContent(/3 Votes/i);
 
-      // 5-star footer shows 100% Empfehlung
-      expect(screen.getByText(/100% Empfehlung/i)).toBeInTheDocument();
     });
   });
 });

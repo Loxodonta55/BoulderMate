@@ -29,7 +29,7 @@ import {
   stringToUuid,
   generateUuid,
 } from './storageUtils';
-import { deleteBoulderInteractions } from './ratingAndAscentService';
+import { deleteBoulderInteractions, clearGradeFeels } from './ratingAndAscentService';
 import { deleteBoulder } from './storage';
 import { syncBridge } from './syncBridge';
 
@@ -682,6 +682,11 @@ export function createDraftBoulder(
 
   // AC-5 & AC-14: Save last selected color for the sector's gym
   const targetSector = getSectorById(input.sectorId);
+
+  // SPEC-021 AC-4: Entwürfe eines Umbaus sind für alle Schrauber der Halle sichtbar
+  if (isSectorInRebuild(targetSector)) {
+    syncBridge.syncBoulders([newBoulder]);
+  }
   const targetGymId = targetSector?.gymId || 'gym-minimum-zh';
   setLastSelectedGradeScaleId(targetGymId, input.gradeScaleId);
 
@@ -781,6 +786,13 @@ export function updateBoulderDetails(
     updatedRadar.maximalkraft = updates.radar.kraft;
   }
 
+  // SPEC-021 AC-8: Grad einer aktiven Route geändert -> Grad-Einschätzungen zurücksetzen
+  const previous = all[idx];
+  const gradeChanged = previous.status !== 'draft' && (
+    (updates.gradeScaleId !== undefined && !isSameGradeScale(previous.gradeScaleId, updates.gradeScaleId)) ||
+    (updates.fontGrade !== undefined && (updates.fontGrade || '') !== (previous.fontGrade || ''))
+  );
+
   all[idx] = {
     ...all[idx],
     ...updates,
@@ -788,6 +800,12 @@ export function updateBoulderDetails(
   };
 
   saveWallBoulders(all);
+
+  if (gradeChanged) {
+    try {
+      clearGradeFeels(all[idx].id);
+    } catch (e) {}
+  }
 
   // Sync to gymStorage as well
   try {
@@ -800,7 +818,7 @@ export function updateBoulderDetails(
     }
   } catch (e) {}
 
-  if (all[idx].status !== 'draft') {
+  if (all[idx].status !== 'draft' || isSectorInRebuild(getSectorById(all[idx].sectorId))) {
     syncBridge.syncBoulders([all[idx]]);
   }
 
@@ -816,6 +834,11 @@ export function updateBoulderDetails(
 // Delete Draft Boulder
 export function deleteDraftBoulder(boulderId: string): void {
   const all = getWallBoulders();
+  const draft = all.find(b => b.id === boulderId && b.status === 'draft');
+  if (draft && isSectorInRebuild(getSectorById(draft.sectorId))) {
+    // SPEC-021: Umbau-Entwürfe liegen auch in Supabase
+    syncBridge.deleteBoulder(boulderId);
+  }
   const filtered = all.filter(b => !(b.id === boulderId && b.status === 'draft'));
   saveWallBoulders(filtered);
   try {
@@ -890,6 +913,9 @@ export function publishBatch(
     return false;
   };
 
+  // SPEC-021 AC-11: Abgeschraubte Routen merken sich das Wandfoto, auf dem sie hingen
+  const livePhotoUrl = getSectorById(sectorId)?.wallPhotoUrl;
+
   const updated = all.map(b => {
     const secMatch = isMatchingSector(b.sectorId, sectorId);
     const setterMatch = !setterId || b.setterId === setterId || b.setterId === 'setter-1' || b.setterId === 'system' || !b.setterId;
@@ -911,6 +937,7 @@ export function publishBatch(
         ...b,
         status: 'archived' as const,
         archivedAt: now,
+        wallPhotoUrl: b.wallPhotoUrl || livePhotoUrl,
       };
     }
 
@@ -939,4 +966,165 @@ export function publishBatch(
     publishedBoulderIds,
     archivedBoulderIds,
   };
+}
+
+// ==========================================
+// SPEC-021: Umschrauben (Wand neu schrauben)
+// ==========================================
+
+export const NEW_BADGE_DAYS = 7;
+
+export function isSectorInRebuild(sector?: Sector | null): boolean {
+  return Boolean(sector?.rebuildStartedAt);
+}
+
+// AC-10: «Neu»-Badge für die ersten 7 Tage
+export function isRecentlyNew(iso?: string, days: number = NEW_BADGE_DAYS): boolean {
+  if (!iso) return false;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t < days * 24 * 60 * 60 * 1000;
+}
+
+// Vergleicht zwei Farbskalen-IDs über die aufgelöste Hallenfarbe (IDs, Aliase wie scale_6a_blau)
+function isSameGradeScale(a?: string, b?: string): boolean {
+  if (!a || !b) return a === b;
+  if (a === b) return true;
+  const norm = (v: string) => v.replace(/^scale_(6a|minimum)_/, '').trim().toLowerCase().replace(/ß/g, 'ss');
+  let scales: GymGradeScale[] = [];
+  try {
+    scales = getGradeScales();
+  } catch (e) {}
+  const colorOf = (id: string) => {
+    const scale = scales.find(s => s.id === id);
+    return scale ? norm(scale.colorName) : norm(id);
+  };
+  return colorOf(a) === colorOf(b);
+}
+
+function patchSector(sectorId: string, patch: Partial<Sector>): Sector {
+  const sectors = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, [...SEED_SECTORS]);
+  let idx = sectors.findIndex(s => s.id === sectorId);
+  if (idx === -1) {
+    const sector = getSectorById(sectorId);
+    if (!sector) {
+      throw new Error(`Sektor mit ID "${sectorId}" wurde nicht gefunden.`);
+    }
+    idx = sectors.findIndex(s => s.id === sector.id);
+    if (idx === -1) {
+      sectors.push(sector);
+      idx = sectors.length - 1;
+    }
+  }
+
+  sectors[idx] = { ...sectors[idx], ...patch };
+  setStorageJson(STORAGE_KEY_SECTORS, sectors);
+
+  // Live-Foto auch im V1-Store setzen, sonst überschreibt getSectors() es wieder
+  if (patch.wallPhotoUrl) {
+    try {
+      const v1Sectors = gymStorage.getSectors();
+      const v1Sec = v1Sectors.find(s => s.id === sectors[idx].id || s.name.trim().toLowerCase() === sectors[idx].name.trim().toLowerCase());
+      if (v1Sec) {
+        v1Sec.wall_photo_url = patch.wallPhotoUrl;
+        gymStorage.saveSectors(v1Sectors);
+      }
+    } catch (e) {}
+  }
+
+  syncBridge.syncSector(sectors[idx]);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+      detail: { action: 'update', sectorId: sectors[idx].id }
+    }));
+  }
+
+  return sectors[idx];
+}
+
+// AC-2: Umbau starten bzw. Entwurfsfoto austauschen. Das Live-Foto bleibt unverändert.
+export function setRebuildPhoto(sectorId: string, photoUrl: string): Sector {
+  if (!photoUrl || !photoUrl.trim()) {
+    throw new Error('Ein Foto ist erforderlich.');
+  }
+  const sector = getSectorById(sectorId);
+  return patchSector(sectorId, {
+    draftPhotoUrl: photoUrl.trim(),
+    rebuildStartedAt: sector?.rebuildStartedAt || new Date().toISOString(),
+  });
+}
+
+// AC-6: «Wand fertig» – alte Routen abschrauben, Entwürfe veröffentlichen, Entwurfsfoto wird live
+export function completeSectorRebuild(sectorId: string): BatchPublishResult {
+  const sector = getSectorById(sectorId);
+  if (!sector || !isSectorInRebuild(sector)) {
+    throw new Error('Für diese Wand läuft kein Umbau.');
+  }
+
+  const now = new Date().toISOString();
+  const oldPhotoUrl = sector.wallPhotoUrl;
+  const newPhotoUrl = sector.draftPhotoUrl || sector.wallPhotoUrl;
+  const sectorIds = new Set(getWallBoulders(sectorId).map(b => b.id));
+
+  const publishedBoulderIds: string[] = [];
+  const archivedBoulderIds: string[] = [];
+
+  const updated = getWallBoulders().map(b => {
+    if (!sectorIds.has(b.id)) return b;
+    if (b.status === 'draft') {
+      publishedBoulderIds.push(b.id);
+      return { ...b, status: 'active' as const, publishedAt: now };
+    }
+    if (b.status === 'active') {
+      archivedBoulderIds.push(b.id);
+      return { ...b, status: 'archived' as const, archivedAt: now, wallPhotoUrl: b.wallPhotoUrl || oldPhotoUrl };
+    }
+    return b;
+  });
+
+  saveWallBoulders(updated);
+
+  patchSector(sector.id, {
+    wallPhotoUrl: newPhotoUrl,
+    draftPhotoUrl: undefined,
+    rebuildStartedAt: undefined,
+    rebuiltAt: now,
+  });
+
+  const affected = updated.filter(b => publishedBoulderIds.includes(b.id) || archivedBoulderIds.includes(b.id));
+  if (affected.length > 0) {
+    syncBridge.syncBoulders(affected);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+      detail: { action: 'rebuild_completed', sectorId, count: publishedBoulderIds.length }
+    }));
+  }
+
+  return {
+    sectorId,
+    publishedCount: publishedBoulderIds.length,
+    archivedCount: archivedBoulderIds.length,
+    publishedBoulderIds,
+    archivedBoulderIds,
+  };
+}
+
+// AC-7: Umbau verwerfen – Entwürfe und Entwurfsfoto löschen, Live-Wand bleibt
+export function discardSectorRebuild(sectorId: string): number {
+  const sector = getSectorById(sectorId);
+  if (!sector) {
+    throw new Error(`Sektor mit ID "${sectorId}" wurde nicht gefunden.`);
+  }
+  const drafts = getWallBoulders(sectorId).filter(b => b.status === 'draft');
+  drafts.forEach(b => deleteWallBoulder(b.id));
+
+  patchSector(sector.id, {
+    draftPhotoUrl: undefined,
+    rebuildStartedAt: undefined,
+  });
+
+  return drafts.length;
 }

@@ -174,10 +174,10 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       signOut();
       render(<App />);
 
-      // Verify guest state: Role Gateway does not appear, Gast is shown in header
+      // Verify guest state: Role Gateway does not appear, landing page is shown
       expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
       expect(screen.queryByText(/Hallo Boris/i)).not.toBeInTheDocument();
-      expect(screen.getByText('Gast')).toBeInTheDocument();
+      expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
 
       const loginBtn = screen.getByTestId('login-modal-btn');
       expect(loginBtn).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       // Open login modal
       fireEvent.click(loginBtn);
       expect(screen.getByText('Anmeldung & Konto')).toBeInTheDocument();
-      expect(screen.getByText(/Aktuell nicht angemeldet/i)).toBeInTheDocument();
+      expect(screen.getByTestId('input-register-email')).toBeInTheDocument();
 
       // Log in as Boris via Demo account button
       const borisBtn = screen.getByTestId('persona-login-user-boris');

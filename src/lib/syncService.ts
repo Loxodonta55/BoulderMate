@@ -40,6 +40,51 @@ let currentSyncStatus: SyncStatus = {
   syncedBoulders: 0,
 };
 
+// ==========================================
+// SPEC-021: Umbau-Felder (Sektor) & Foto-Historie (Boulder)
+// Solange die Migration supabase/migrations/20261006_spec021_umschrauben.sql
+// nicht eingespielt ist, fehlen die Spalten: dann ohne sie synchronisieren und lokale Werte behalten.
+// ==========================================
+let spec021ColumnsMissing = false;
+
+function isMissingColumnError(error: any): boolean {
+  const msg = `${error?.message || ''} ${error?.details || ''}`;
+  return error?.code === 'PGRST204' || error?.code === '42703' || /column|schema cache/i.test(msg);
+}
+
+function mapSectorRebuildFields(row: any, local?: Partial<Sector>): Pick<Sector, 'draftPhotoUrl' | 'rebuildStartedAt' | 'rebuiltAt'> {
+  if (row && 'rebuild_started_at' in row) {
+    return {
+      draftPhotoUrl: row.draft_photo_url || undefined,
+      rebuildStartedAt: row.rebuild_started_at || undefined,
+      rebuiltAt: row.rebuilt_at || undefined,
+    };
+  }
+  return {
+    draftPhotoUrl: local?.draftPhotoUrl,
+    rebuildStartedAt: local?.rebuildStartedAt,
+    rebuiltAt: local?.rebuiltAt,
+  };
+}
+
+async function uploadPhotoIfBase64(photoUrl: string | null | undefined, baseName: string): Promise<string | null> {
+  if (!photoUrl || typeof photoUrl !== 'string' || !photoUrl.startsWith('data:')) return photoUrl || null;
+  try {
+    const arr = photoUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+    const fileName = `${baseName.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${ext}`;
+    const uploadedUrl = await uploadSectorPhoto(new Blob([u8arr], { type: mime }), fileName, photoUrl);
+    return uploadedUrl || photoUrl;
+  } catch (e) {
+    console.warn('[Sync] Upload des Entwurfsfotos fehlgeschlagen:', e);
+    return photoUrl;
+  }
+}
+
 export function getSyncStatus(): SyncStatus {
   return currentSyncStatus;
 }
@@ -185,6 +230,7 @@ export async function syncFromSupabase(): Promise<boolean> {
           wallPhotoUrl: resolvedUrl,
           sortOrder: s.sort_order || 1,
           createdAt: s.created_at,
+          ...mapSectorRebuildFields(s, foundKey ? sectorMap.get(foundKey) : undefined),
         });
 
         // Also sync into V1 (gymStorage) so Hallenbereich sees the exact same sectors!
@@ -371,6 +417,7 @@ export async function syncFromSupabase(): Promise<boolean> {
           createdAt: b.created_at,
           publishedAt: b.published_at || undefined,
           archivedAt: b.archived_at || undefined,
+          wallPhotoUrl: b.wall_photo_url || existingLocal?.wallPhotoUrl || undefined,
         };
 
         // Do NOT deduplicate by generic name ("Unbenannter Boulder")!
@@ -908,7 +955,7 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
       }
     }
 
-    const payload = {
+    const payload: Record<string, any> = {
       id: sectorUuid,
       gym_id: targetGymId,
       name: sector.name.trim(),
@@ -917,7 +964,34 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
       created_at: sector.created_at || sector.createdAt || new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('sectors').upsert(payload);
+    // SPEC-021: Umbau-Felder (nur V2-Sektoren tragen sie)
+    const rebuildPayload: Record<string, any> = {};
+    if (sector.gymId !== undefined) {
+      let draftPhotoUrl = sector.draftPhotoUrl || null;
+      if (draftPhotoUrl && draftPhotoUrl.startsWith('data:')) {
+        draftPhotoUrl = await uploadPhotoIfBase64(draftPhotoUrl, `${sector.name || 'sector'}_umbau`);
+        if (draftPhotoUrl && !draftPhotoUrl.startsWith('data:')) {
+          const localV2 = getStorageJson<Sector[]>(STORAGE_KEY_SECTORS, []);
+          const localIdx = localV2.findIndex(s => s.id === sector.id);
+          if (localIdx >= 0 && localV2[localIdx].draftPhotoUrl === sector.draftPhotoUrl) {
+            localV2[localIdx] = { ...localV2[localIdx], draftPhotoUrl };
+            setStorageJson(STORAGE_KEY_SECTORS, localV2);
+          }
+        }
+      }
+      rebuildPayload.draft_photo_url = draftPhotoUrl;
+      rebuildPayload.rebuild_started_at = sector.rebuildStartedAt || null;
+      rebuildPayload.rebuilt_at = sector.rebuiltAt || null;
+    }
+
+    let { error } = await supabase.from('sectors').upsert(
+      spec021ColumnsMissing ? payload : { ...payload, ...rebuildPayload }
+    );
+    if (error && !spec021ColumnsMissing && Object.keys(rebuildPayload).length > 0 && isMissingColumnError(error)) {
+      spec021ColumnsMissing = true;
+      console.warn('[Sync] SPEC-021-Spalten fehlen in Supabase, synchronisiere ohne Umbau-Felder.');
+      ({ error } = await supabase.from('sectors').upsert(payload));
+    }
     if (error) {
       console.warn('[Sync] Fehler beim Aufwärts-Sync des Sektors:', error.message);
       return false;
@@ -1238,12 +1312,19 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
         created_at: b.createdAt || new Date().toISOString(),
         published_at: b.publishedAt || null,
         archived_at: b.archivedAt || null,
+        ...(spec021ColumnsMissing ? {} : { wall_photo_url: b.wallPhotoUrl || null }),
       });
     }
 
     if (upsertRows.length === 0) return true;
 
-    const { error } = await supabase.from('boulders').upsert(upsertRows);
+    let { error } = await supabase.from('boulders').upsert(upsertRows);
+    if (error && !spec021ColumnsMissing && isMissingColumnError(error)) {
+      spec021ColumnsMissing = true;
+      console.warn('[Sync] SPEC-021-Spalte boulders.wall_photo_url fehlt, synchronisiere ohne sie.');
+      upsertRows.forEach(row => delete row.wall_photo_url);
+      ({ error } = await supabase.from('boulders').upsert(upsertRows));
+    }
     if (error) {
       console.warn('[Sync] Fehler beim Aufwärts-Sync der Boulder als Batch:', error.message, 'Versuche Einzel-Upserts...');
       for (const row of upsertRows) {
@@ -1787,6 +1868,7 @@ export function handleRealtimeSectorChange(payload: any): void {
       wallPhotoUrl: resolvedUrl,
       sortOrder: newRow.sort_order || 1,
       createdAt: newRow.created_at || new Date().toISOString(),
+      ...mapSectorRebuildFields(newRow, foundV2Key ? v2SecMap.get(foundV2Key) : undefined),
     });
     const sortedV2 = Array.from(v2SecMap.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     setStorageJson(STORAGE_KEY_SECTORS, sortedV2);
@@ -1868,6 +1950,7 @@ export function handleRealtimeBoulderChange(payload: any): void {
       createdAt: newRow.created_at,
       publishedAt: newRow.published_at || undefined,
       archivedAt: newRow.archived_at || undefined,
+      wallPhotoUrl: newRow.wall_photo_url || existing?.wallPhotoUrl || undefined,
     };
 
     let found = false;

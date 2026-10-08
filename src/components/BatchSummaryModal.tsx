@@ -80,25 +80,25 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-lg bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="p-5 border-b border-[#333333] flex items-center justify-between">
+        <div className="p-5 border-b border-[var(--bm-line)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-none bg-[#2A2A2A] text-[#C9A96E] border border-[#333333]">
+            <div className="p-2.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-line)]">
               <Rocket className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Batch-Veröffentlichung</h2>
-              <p className="text-xs font-mono text-[#A89F91]">{sector.name}</p>
+              <h2 className="text-lg font-headline font-bold text-[var(--bm-text)]">Batch-Veröffentlichung</h2>
+              <p className="text-xs font-mono text-[var(--bm-text-2)]">{sector.name}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
+            className="p-2 rounded-xl text-[var(--bm-text-3)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -108,45 +108,45 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
           {/* Summary Overview Badges */}
           <div className={`grid ${totalModified > 0 ? 'grid-cols-3 gap-2 sm:gap-3' : 'grid-cols-2 gap-3'}`}>
-            <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#4A5D3A] flex items-center gap-2.5 sm:gap-3">
-              <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#4A5D3A] border border-[#333333]">
+            <div className="p-3 sm:p-4 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-success)] flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-success)] border border-[var(--bm-line)]">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-mono font-bold text-[#4A5D3A]">+{totalNew}</p>
-                <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Neu</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-[var(--bm-success)]">+{totalNew}</p>
+                <p className="text-[10px] sm:text-xs font-headline font-bold text-[var(--bm-text)]">Neu</p>
               </div>
             </div>
 
             {totalModified > 0 && (
-              <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#C9A96E] flex items-center gap-2.5 sm:gap-3">
-                <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#C9A96E] border border-[#333333]">
+              <div className="p-3 sm:p-4 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-accent)] flex items-center gap-2.5 sm:gap-3">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-line)]">
                   <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-mono font-bold text-[#C9A96E]">~{totalModified}</p>
-                  <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Geändert</p>
+                  <p className="text-xl sm:text-2xl font-mono font-bold text-[var(--bm-accent)]">~{totalModified}</p>
+                  <p className="text-[10px] sm:text-xs font-headline font-bold text-[var(--bm-text)]">Geändert</p>
                 </div>
               </div>
             )}
 
-            <div className="p-3 sm:p-4 rounded-none bg-[#121212] border border-[#A0522D] flex items-center gap-2.5 sm:gap-3">
-              <div className="p-2 sm:p-2.5 rounded-none bg-[#2A2A2A] text-[#A0522D] border border-[#333333]">
+            <div className="p-3 sm:p-4 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-danger)] flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-danger)] border border-[var(--bm-line)]">
                 <Archive className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-mono font-bold text-[#A0522D]">-{totalArchived}</p>
-                <p className="text-[10px] sm:text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">Archiviert</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-[var(--bm-danger)]">-{totalArchived}</p>
+                <p className="text-[10px] sm:text-xs font-headline font-bold text-[var(--bm-text)]">Archiviert</p>
               </div>
             </div>
           </div>
 
           {/* Wall Photo Status */}
-          <div className="p-3 rounded-none bg-[#121212] border border-[#333333] flex items-center gap-2.5 text-xs font-mono text-[#E8E0D4]">
-            <Camera className="w-4 h-4 text-[#C9A96E]" />
+          <div className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] flex items-center gap-2.5 text-xs font-mono text-[var(--bm-text)]">
+            <Camera className="w-4 h-4 text-[var(--bm-accent)]" />
             <span>
               Wandfoto:{' '}
-              <strong className="text-[#F5F0E8]">
+              <strong className="text-[var(--bm-strong)]">
                 {hasPhotoUpdated ? 'Frisch aktualisiert' : 'Bestehendes Foto beibehalten'}
               </strong>
             </span>
@@ -155,7 +155,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
           {/* Modified Boulders Breakdown */}
           {totalModified > 0 && (
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[#C9A96E] mb-2 flex items-center gap-1.5">
+              <p className="text-xs font-mono font-semibold text-[var(--bm-accent)] mb-2 flex items-center gap-1.5">
                 <Edit3 className="w-3.5 h-3.5" />
                 Geänderte Boulder ({totalModified}):
               </p>
@@ -165,21 +165,21 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                   return (
                     <div
                       key={b.id}
-                      className="p-3 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between text-xs"
+                      className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
-                          className="w-3.5 h-3.5 rounded-none border border-black/40"
-                          style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                          className="w-3.5 h-3.5 rounded-xl border border-black/40"
+                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
                         />
-                        <span className="font-headline font-bold uppercase tracking-wider text-sm text-[#E8E0D4]">
+                        <span className="font-headline font-bold text-sm text-[var(--bm-text)]">
                           {b.name || scale?.colorName || 'Boulder'}
                         </span>
-                        <span className="text-[#A89F91] font-mono text-[11px]">
+                        <span className="text-[var(--bm-text-2)] font-mono text-[11px]">
                           ({scale?.difficultyLabel || 'Hallenfarbe'})
                         </span>
                       </div>
-                      <span className="font-mono text-[11px] text-[#C9A96E] bg-[#2A2A2A] px-2 py-0.5 rounded-none border border-[#333333]">
+                      <span className="font-mono text-[11px] text-[var(--bm-accent)] bg-[var(--bm-elevated)] px-2 py-0.5 rounded-xl border border-[var(--bm-line)]">
                         Geändert
                       </span>
                     </div>
@@ -192,7 +192,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
           {/* New Boulders Breakdown */}
           {totalNew > 0 ? (
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[#A89F91] mb-2">
+              <p className="text-xs font-mono font-semibold text-[var(--bm-text-2)] mb-2">
                 Neue Boulder nach Farbe:
               </p>
               <div className="space-y-2">
@@ -200,17 +200,17 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                   return (
                     <div
                       key={scaleId}
-                      className="p-3 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between text-xs"
+                      className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
-                          className="w-3.5 h-3.5 rounded-none border border-black/40"
-                          style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                          className="w-3.5 h-3.5 rounded-xl border border-black/40"
+                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
                         />
-                        <span className="font-headline font-bold uppercase tracking-wider text-sm text-[#E8E0D4]">{scale?.colorName || 'Unbekannt'}</span>
-                        <span className="text-[#A89F91] font-mono text-[11px]">({scale?.difficultyLabel || 'Hallenfarbe'})</span>
+                        <span className="font-headline font-bold text-sm text-[var(--bm-text)]">{scale?.colorName || 'Unbekannt'}</span>
+                        <span className="text-[var(--bm-text-2)] font-mono text-[11px]">({scale?.difficultyLabel || 'Hallenfarbe'})</span>
                       </div>
-                      <span className="font-bold font-mono text-[#C9A96E] bg-[#2A2A2A] px-2.5 py-0.5 rounded-none border border-[#333333]">
+                      <span className="font-bold font-mono text-[var(--bm-accent)] bg-[var(--bm-elevated)] px-2.5 py-0.5 rounded-xl border border-[var(--bm-line)]">
                         {count}×
                       </span>
                     </div>
@@ -219,13 +219,13 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
               </div>
             </div>
           ) : (
-            <p className="text-xs font-mono text-[#6B6358] italic">Keine neuen Entwürfe vorhanden.</p>
+            <p className="text-xs font-mono text-[var(--bm-text-3)] italic">Keine neuen Entwürfe vorhanden.</p>
           )}
 
           {/* Archived Boulders Breakdown */}
           {totalArchived > 0 && (
             <div>
-              <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[#A89F91] mb-2">
+              <p className="text-xs font-mono font-semibold text-[var(--bm-text-2)] mb-2">
                 Als archiviert (abgeschraubt) markiert:
               </p>
               <div className="space-y-2">
@@ -233,16 +233,16 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
                   return (
                     <div
                       key={scaleId}
-                      className="p-3 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between text-xs"
+                      className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
-                          className="w-3.5 h-3.5 rounded-none opacity-60"
-                          style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                          className="w-3.5 h-3.5 rounded-xl opacity-60"
+                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
                         />
-                        <span className="font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">{scale?.colorName}</span>
+                        <span className="font-headline font-bold text-[var(--bm-text)]">{scale?.colorName}</span>
                       </div>
-                      <span className="text-[#A0522D] font-mono font-semibold">{count}× entfernt</span>
+                      <span className="text-[var(--bm-danger)] font-mono font-semibold">{count}× entfernt</span>
                     </div>
                   );
                 })}
@@ -250,8 +250,8 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
             </div>
           )}
 
-          <div className="p-3.5 rounded-none bg-[#2A2A2A] border border-[#333333] text-xs font-mono text-[#A89F91] leading-relaxed flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-[#4A5D3A] shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-xs font-mono text-[var(--bm-text-2)] leading-relaxed flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-[var(--bm-success)] shrink-0 mt-0.5" />
             <span>
               Erst nach Klick auf den Button unten werden alle Änderungen (neue, geänderte oder archivierte Boulder) final gespeichert und live geschaltet.
             </span>
@@ -259,11 +259,11 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 border-t border-[#333333] flex items-center gap-3">
+        <div className="p-5 border-t border-[var(--bm-line)] flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-[2px] bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] text-xs font-mono border border-[#333333] transition"
+            className="px-4 py-2.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] text-xs font-mono border border-[var(--bm-line)] transition"
           >
             ← Zurück zum Bearbeiten
           </button>
@@ -272,7 +272,7 @@ export const BatchSummaryModal: React.FC<BatchSummaryModalProps> = ({
             type="button"
             onClick={onConfirmPublish}
             disabled={isPublishing || totalChanges === 0}
-            className="flex-1 py-2.5 px-4 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center justify-center gap-2 transition disabled:opacity-40"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-40"
           >
             {totalNew === 0 && totalArchived === 0 ? (
               <Save className="w-4 h-4" />

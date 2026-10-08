@@ -1,6 +1,8 @@
 # SPEC-005: Design System & UI-Richtlinien
 
-## Status: APPROVED
+> **Status: SUPERSEDED durch SPEC-020 (04.10.2026)**
+
+## Status: SUPERSEDED (Ersetzt durch [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md))
 
 ## Summary
 Definiert das visuelle Fundament der BoulderApp: Farbpalette, Typografie, Formensprache, Texturen, Spacing, Ikonografie, Animation und Navigation. Die Ästhetik ist **Dark-Mode First**, roh und ehrlich – inspiriert von Granit, Sandstein, Kreide und Messing. Modern in der Reduktion, Old School im Charakter. Kein generischer Tech-App-Look, keine Glassmorphismus-Bubbles. Kantig, aufgeräumt, haptisch.

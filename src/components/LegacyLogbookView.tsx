@@ -99,9 +99,9 @@ export const LegacyLogbookView: React.FC<LegacyLogbookViewProps> = ({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-base font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+          <h2 className="text-base font-headline text-[var(--bm-text)] flex items-center gap-2">
             <span>Erfasste Routen</span>
-            <span className="px-2.5 py-0.5 rounded-none text-xs font-mono font-semibold bg-[#2A2A2A] border border-[#333333] text-[#A89F91]">
+            <span className="px-2.5 py-0.5 rounded-xl text-xs font-mono font-semibold bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-text-2)]">
               {filteredBoulders.length} von {boulders.length}
             </span>
           </h2>
@@ -112,17 +112,17 @@ export const LegacyLogbookView: React.FC<LegacyLogbookViewProps> = ({
                 setEditingBoulder(null);
                 setIsFormOpen(true);
               }}
-              className="px-2.5 py-1 text-xs font-headline uppercase font-bold tracking-wider bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] rounded-[2px] transition flex items-center gap-1"
+              className="px-2.5 py-1 text-xs font-headline font-bold bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Begehung erfassen</span>
             </button>
             <button
               onClick={() => setIsDataModalOpen(true)}
-              className="px-2.5 py-1 text-xs font-mono text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition flex items-center gap-1.5"
+              className="px-2.5 py-1 text-xs font-mono text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] rounded-xl transition flex items-center gap-1.5"
               title="Datenverwaltung / Backup"
             >
-              <Database className="w-3.5 h-3.5 text-[#C9A96E]" />
+              <Database className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
               <span>Backup</span>
             </button>
           </div>

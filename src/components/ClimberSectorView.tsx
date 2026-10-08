@@ -6,7 +6,7 @@ import {
   BoulderStatsAggregate,
   GymGradeScale,
 } from '../types/boulder';
-import { getWallBoulders } from '../lib/batchBoulderService';
+import { getWallBoulders, isSectorInRebuild, isRecentlyNew } from '../lib/batchBoulderService';
 import {
   getUserAscent,
   getRatings,
@@ -31,7 +31,6 @@ import {
   Sparkles,
   Flame,
   ArrowUpDown,
-  Filter,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -397,6 +396,18 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   }, [boulders, currentUser.id, dataVersion]);
 
   // Filter & Sort Boulders (AC-10 & AC-11)
+  // SPEC-021 AC-10: Einzelne neue Routen bekommen «Neu»; bei einer komplett neuen Wand trägt nur der Sektor das Badge
+  const newBoulderIds = useMemo(() => {
+    const wallRebuiltAt = isRecentlyNew(selectedSector?.rebuiltAt) ? Date.parse(selectedSector!.rebuiltAt!) : null;
+    const ids = new Set<string>();
+    for (const b of boulders) {
+      if (!isRecentlyNew(b.publishedAt)) continue;
+      if (wallRebuiltAt !== null && Math.abs(Date.parse(b.publishedAt!) - wallRebuiltAt) < 60 * 1000) continue;
+      ids.add(b.id);
+    }
+    return ids;
+  }, [boulders, selectedSector?.rebuiltAt]);
+
   const processedBoulders = useMemo(() => {
     let list = [...boulders];
 
@@ -465,33 +476,31 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
       {/* Sector Selection Bar — Compact & Mobile-First */}
-      <div className="bg-[#1E1E1E] border border-[#333333] p-3 sm:p-4 rounded-none space-y-3 max-w-full">
+      <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] p-3 sm:p-4 rounded-xl space-y-3 max-w-full">
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 w-full min-w-0">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#C9A96E] uppercase tracking-wider mb-0.5">
-              <Layers className="w-4 h-4 text-[#C9A96E] shrink-0" />
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--bm-accent)] mb-0.5">
+              <Layers className="w-4 h-4 text-[var(--bm-accent)] shrink-0" />
               <span className="truncate">{gym?.name || 'Boulderhalle'}</span>
-              <span className="text-[#6B6358] shrink-0">•</span>
-              <span className="text-[#A89F91] shrink-0">Sektoren & Wandansicht</span>
             </div>
-            <h2 className="text-base sm:text-xl font-headline font-bold uppercase tracking-wider text-[#E8E0D4] truncate" title={selectedSector?.name || 'Wandansicht'}>
+            <h2 className="text-base sm:text-xl font-headline font-bold text-[var(--bm-text)] truncate" title={selectedSector?.name || 'Wandansicht'}>
               {selectedSector?.name || 'Wandansicht'}
             </h2>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             {gyms.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-[#121212] border border-[#333333] px-2 py-1 rounded-none">
-                <Building2 className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
-                <span className="text-[10px] font-mono text-[#8B8680] uppercase hidden md:inline">Halle:</span>
+              <div className="flex items-center gap-1.5 bg-[var(--bm-bg)] border border-[var(--bm-line)] px-2 py-1 rounded-xl">
+                <Building2 className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
+                <span className="text-[10px] font-mono text-[var(--bm-text-2)] hidden md:inline">Halle:</span>
                 <select
                   value={selectedGymId}
                   onChange={e => handleGymChange(e.target.value)}
-                  className="bg-transparent text-[#E8E0D4] text-xs font-mono rounded-none focus:outline-none max-w-[120px] sm:max-w-[180px] truncate cursor-pointer"
+                  className="bg-transparent text-[var(--bm-text)] text-xs font-mono rounded-xl focus:outline-none max-w-[120px] sm:max-w-[180px] truncate cursor-pointer"
                   title="Halle wählen"
                 >
                   {gyms.map(g => (
-                    <option key={g.id} value={g.id} className="bg-[#1E1E1E] text-[#E8E0D4]">
+                    <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
                       {g.name}
                     </option>
                   ))}
@@ -505,7 +514,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 type="button"
                 onClick={() => setIsSectorFullscreen(true)}
                 data-testid="toggle-fullscreen-btn"
-                className="px-2.5 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] hover:border-[#C9A96E] text-[#C9A96E] hover:text-[#F5F0E8] rounded-[2px] text-xs font-headline uppercase font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                className="px-2.5 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] hover:border-[var(--bm-accent)] text-[var(--bm-accent)] hover:text-[var(--bm-strong)] rounded-xl text-xs font-headline font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0"
                 title="Sektor im Vollbild öffnen"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
@@ -517,13 +526,13 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
         {/* Sector Tabs & Mobile Switcher */}
         {sectors.length > 0 && (
-          <div className="flex items-center gap-1.5 w-full pt-2 border-t border-[#2A2A2A] min-w-0">
+          <div className="flex items-center gap-1.5 w-full pt-2 border-t border-[var(--bm-elevated)] min-w-0">
             {/* Prev sector button */}
             <button
               type="button"
               onClick={goToPreviousSector}
               disabled={!hasPreviousSector}
-              className="p-1.5 rounded-[2px] bg-[#121212] hover:bg-[#2A2A2A] disabled:opacity-25 text-[#A89F91] border border-[#333333] transition cursor-pointer shrink-0"
+              className="p-1.5 rounded-xl bg-[var(--bm-bg)] hover:bg-[var(--bm-elevated)] disabled:opacity-25 text-[var(--bm-text-2)] border border-[var(--bm-line)] transition cursor-pointer shrink-0"
               title="Vorheriger Sektor (oder nach rechts wischen)"
               aria-label="Vorheriger Sektor"
             >
@@ -543,13 +552,18 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                     data-sector-id={sector.id}
                     type="button"
                     onClick={() => setSelectedSectorId(sector.id)}
-                    className={`px-3 py-1.5 rounded-[2px] text-xs font-headline uppercase tracking-wider transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-headline transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-[#F5F0E8] text-[#121212] font-bold shadow-sm'
-                        : 'bg-[#2A2A2A] text-[#A89F91] hover:text-[#E8E0D4] border border-[#333333]'
+                        ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold shadow-sm'
+                        : 'bg-[var(--bm-elevated)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border border-[var(--bm-line)]'
                     }`}
                   >
                     <span>{sector.name}</span>
+                    {isSectorInRebuild(sector) ? (
+                      <span className="text-[9px] font-mono font-bold text-[var(--bm-accent)]">Im Umbau</span>
+                    ) : isRecentlyNew(sector.rebuiltAt) ? (
+                      <span className="px-1 rounded-xl text-[9px] font-mono font-black bg-[var(--bm-accent)] text-[var(--bm-on-accent)]">Neu</span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -560,7 +574,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               type="button"
               onClick={goToNextSector}
               disabled={!hasNextSector}
-              className="p-1.5 rounded-[2px] bg-[#121212] hover:bg-[#2A2A2A] disabled:opacity-25 text-[#A89F91] border border-[#333333] transition cursor-pointer shrink-0"
+              className="p-1.5 rounded-xl bg-[var(--bm-bg)] hover:bg-[var(--bm-elevated)] disabled:opacity-25 text-[var(--bm-text-2)] border border-[var(--bm-line)] transition cursor-pointer shrink-0"
               title="Nächster Sektor (oder nach links wischen)"
               aria-label="Nächster Sektor"
             >
@@ -572,21 +586,20 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
       {/* Mobile Swipe Hint Badge */}
       {sectors.length > 1 && (
-        <div className="flex items-center justify-between text-[11px] font-mono text-[#8B8680] px-2 -mt-3 sm:hidden">
-          <span>Sektor {currentSectorIndex + 1} von {sectors.length}</span>
-          <span className="text-[#C9A96E]">← Wischen für nächsten Sektor →</span>
+        <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bm-text-2)] px-2 -mt-3 sm:hidden">
+          <span>{currentSectorIndex + 1}/{sectors.length}</span>
         </div>
       )}
 
 
       {sectors.length === 0 && (
-        <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-8 text-center max-w-lg mx-auto">
-          <Building2 className="w-12 h-12 text-[#C9A96E] mx-auto mb-3 opacity-80" />
-          <h3 className="text-lg font-headline font-bold uppercase tracking-wider text-[#E8E0D4] mb-2">
+        <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-8 text-center max-w-lg mx-auto">
+          <Building2 className="w-12 h-12 text-[var(--bm-accent)] mx-auto mb-3 opacity-80" />
+          <h3 className="text-lg font-headline font-bold text-[var(--bm-text)] mb-2">
             Keine Sektoren in "{gym?.name || 'dieser Halle'}"
           </h3>
-          <p className="text-sm font-sans text-[#A89F91]">
-            In dieser Boulderhalle wurden noch keine Sektoren mit Wandfotos angelegt. Sobald die Halle Sektoren und Routen erfasst hat, werden sie hier angezeigt.
+          <p className="text-sm font-sans text-[var(--bm-text-2)]">
+            Noch keine Sektoren.
           </p>
         </div>
       )}
@@ -596,19 +609,15 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
           {/* Wall Photo Canvas with Interactive Pins (AC-1) */}
           <div className="space-y-3">
             {/* Quick-Filter Pills (AC-10 & AC-11) */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-[#1E1E1E] border border-[#333333]">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-[var(--bm-surface)] border border-[var(--bm-line)]">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-[11px] font-mono text-[#6B6358] uppercase mr-1 flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span>Filter:</span>
-                </span>
                 <button
                   type="button"
                   onClick={() => setFilterMode('all')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-none transition flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
                     filterMode === 'all'
-                      ? 'bg-[#F5F0E8] text-[#121212] border-[#F5F0E8]'
-                      : 'bg-[#121212] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
+                      ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)]'
+                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
                   }`}
                 >
                   <span>Alle ({boulders.length})</span>
@@ -616,38 +625,38 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setFilterMode('top_rated')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-none transition flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
                     filterMode === 'top_rated'
-                      ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold shadow-sm'
-                      : 'bg-[#121212] text-[#C9A96E] hover:bg-[#2A2A2A] border-[#333333]'
+                      ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
+                      : 'bg-[var(--bm-bg)] text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] border-[var(--bm-line)]'
                   }`}
                 >
                   <Sparkles className="w-3 h-3" />
-                  <span>★ Top-Bewertet (≥ 4.0)</span>
+                  <span>Top</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterMode('popular')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-none transition flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
                     filterMode === 'popular'
-                      ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold shadow-sm'
-                      : 'bg-[#121212] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
+                      ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
+                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
                   }`}
                 >
-                  <Flame className="w-3 h-3 text-[#A0522D]" />
+                  <Flame className="w-3 h-3 text-[var(--bm-danger)]" />
                   <span>Beliebt</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterMode('projects')}
-                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-none transition flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-xl transition flex items-center gap-1.5 ${
                     filterMode === 'projects'
-                      ? 'bg-[#F5F0E8] text-[#121212] border-[#F5F0E8] font-bold'
-                      : 'bg-[#121212] text-[#A89F91] hover:text-[#E8E0D4] border-[#333333]'
+                      ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] border-[var(--bm-strong)] font-bold'
+                      : 'bg-[var(--bm-bg)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
                   }`}
                 >
                   <Clock className="w-3 h-3" />
-                  <span>Meine Projekte</span>
+                  <span>Projekte</span>
                 </button>
               </div>
 
@@ -655,22 +664,26 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setFilterMode('all')}
-                  className="text-[11px] font-mono text-[#A89F91] hover:text-[#C9A96E] underline cursor-pointer"
+                  className="text-[11px] font-mono text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] underline cursor-pointer"
                 >
                   Filter zurücksetzen
                 </button>
               )}
             </div>
 
-            <div className="flex items-center justify-between px-1 text-xs font-mono text-[#A89F91]">
-              <span className="flex items-center gap-1.5 font-medium">
-                <Info className="w-3.5 h-3.5 text-[#C9A96E]" />
-                <span>Tippe auf einen Pin im Foto für Detailansicht, Bewertungen & Logging</span>
-              </span>
-              <span className="font-semibold text-[#E8E0D4]">
-                {filterMode === 'all'
-                  ? `${boulders.length} ${boulders.length === 1 ? 'aktiver Boulder' : 'aktive Boulder'}`
-                  : `${processedBoulders.length} von ${boulders.length} Bouldern`}
+            {/* SPEC-021 AC-5: Wand wird gerade neu geschraubt */}
+            {isSectorInRebuild(selectedSector) && (
+              <div
+                data-testid="climber-rebuild-notice"
+                className="px-1 text-xs font-mono font-bold text-[var(--bm-accent)]"
+              >
+                Im Umbau
+              </div>
+            )}
+
+            <div className="flex items-center justify-between px-1 text-xs font-mono text-[var(--bm-text-2)]">
+              <span className="font-semibold text-[var(--bm-text)]">
+                {filterMode !== 'all' && `${processedBoulders.length}/${boulders.length}`}
               </span>
             </div>
 
@@ -689,6 +702,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 filteredBoulderIds={new Set(processedBoulders.map(p => p.id))}
                 statsMap={statsMap}
                 userAscentMap={userAscentMap}
+                newBoulderIds={newBoulderIds}
                 onPinClick={setSelectedBoulder}
                 isFullscreen={isSectorFullscreen}
                 onToggleFullscreen={() => setIsSectorFullscreen(true)}
@@ -700,21 +714,20 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
           {/* Boulder Route List in this Sector */}
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-              <h3 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
+              <h3 className="text-base font-headline font-bold text-[var(--bm-text)] flex items-center gap-2">
                 <span>Routen in {selectedSector.name}</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-none bg-[#2A2A2A] text-[#A89F91] font-mono font-semibold border border-[#333333]">
+                <span className="text-xs px-2.5 py-0.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-text-2)] font-mono font-semibold border border-[var(--bm-line)]">
                   {processedBoulders.length} {filterMode !== 'all' ? `/ ${boulders.length}` : ''}
                 </span>
               </h3>
 
               {/* Sort selector (AC-11) */}
-              <div className="flex items-center gap-2 text-xs font-mono text-[#A89F91]">
-                <ArrowUpDown className="w-3.5 h-3.5 text-[#C9A96E]" />
-                <span className="text-[11px] uppercase text-[#6B6358]">Sortierung:</span>
+              <div className="flex items-center gap-2 text-xs font-mono text-[var(--bm-text-2)]">
+                <ArrowUpDown className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as 'rating_desc' | 'name_asc')}
-                  className="bg-[#121212] border border-[#333333] text-[#E8E0D4] text-xs font-mono rounded-none px-2.5 py-1 focus:outline-none focus:border-[#C9A96E]"
+                  className="bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] text-xs font-mono rounded-xl px-2.5 py-1 focus:outline-none focus:border-[var(--bm-accent)]"
                 >
                   <option value="rating_desc">Beste Bewertung ↓</option>
                   <option value="name_asc">Name (A–Z)</option>
@@ -723,7 +736,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             </div>
 
             {processedBoulders.length === 0 ? (
-              <div className="p-8 text-center bg-[#1E1E1E] border border-[#333333] text-sm font-mono text-[#A89F91]">
+              <div className="p-8 text-center bg-[var(--bm-surface)] border border-[var(--bm-line)] text-sm font-mono text-[var(--bm-text-2)]">
                 Keine Boulder gefunden für den aktuellen Filter.
               </div>
             ) : (
@@ -748,21 +761,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                     <div
                       key={boulder.id}
                       onClick={() => setSelectedBoulder(boulder)}
-                      className={`p-4 rounded-none bg-[#1E1E1E] transition cursor-pointer flex flex-col justify-between group relative ${
+                      className={`p-4 rounded-xl bg-[var(--bm-surface)] transition cursor-pointer flex flex-col justify-between group relative ${
                         isFiveStar
-                          ? 'border-2 border-[#C9A96E] gold-glow hover:border-[#F5F0E8]'
+                          ? 'border-2 border-[var(--bm-accent)] gold-glow hover:border-[var(--bm-strong)]'
                           : isFavorite
-                          ? 'border border-[#C9A96E]/50 hover:border-[#C9A96E]'
-                          : 'border border-[#333333] hover:border-[#8B8680]'
+                          ? 'border border-[var(--bm-accent)]/50 hover:border-[var(--bm-accent)]'
+                          : 'border border-[var(--bm-line)] hover:border-[var(--bm-text-2)]'
                       }`}
                     >
                       {/* Top Ribbon Badge for 5.0 King Lines (SPEC-003 AC-18) */}
                       {isFiveStar && (
                         <div
                           data-testid="five-star-ribbon"
-                          className="absolute -top-3 left-4 bg-[#C9A96E] text-[#121212] px-2.5 py-0.5 text-[10px] font-headline font-bold uppercase tracking-wider shadow-md flex items-center gap-1 z-10"
+                          className="absolute -top-3 left-4 bg-[var(--bm-accent)] text-[var(--bm-bg)] px-2.5 py-0.5 text-[10px] font-headline font-bold shadow-md flex items-center gap-1 z-10"
                         >
-                          <Star className="w-2.5 h-2.5 fill-[#121212] text-[#121212]" />
+                          <Star className="w-2.5 h-2.5 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
                           <span>5.0 HALLEN-KLASSIKER</span>
                         </div>
                       )}
@@ -772,14 +785,14 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                           <div className="flex items-center gap-2.5 min-w-0">
                             {/* Badge outside wall photo: square 0px */}
                             <div
-                              className="w-5 h-5 rounded-none border border-black/40 shrink-0"
-                              style={{ backgroundColor: scale?.colorHex || '#F5F0E8' }}
+                              className="w-5 h-5 rounded-xl border border-black/40 shrink-0"
+                              style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
                             />
                             <div className="min-w-0">
-                              <h4 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4] group-hover:text-[#F5F0E8] transition truncate">
+                              <h4 className="text-sm font-headline font-bold text-[var(--bm-text)] group-hover:text-[var(--bm-strong)] transition truncate">
                                 {boulder.name || `${scale?.colorName || 'Boulder'} Problem`}
                               </h4>
-                              <span className="text-[11px] font-mono text-[#A89F91]">
+                              <span className="text-[11px] font-mono text-[var(--bm-text-2)]">
                                 {scale?.difficultyLabel} • Fb {scale?.fontRangeMin} - {scale?.fontRangeMax}
                               </span>
                             </div>
@@ -789,20 +802,20 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                           <div className="flex items-center gap-1.5 shrink-0">
                             {/* Ascent Badge */}
                             {userAscent?.type === 'flash' && (
-                              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
-                                <Zap className="w-3 h-3 fill-[#C9A96E]" />
+                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-accent)]/40 flex items-center gap-1">
+                                <Zap className="w-3 h-3 fill-[var(--bm-star)]" />
                                 <span>Flash</span>
                               </span>
                             )}
                             {userAscent?.type === 'top' && (
-                              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#4A5D3A] border border-[#4A5D3A]/50 flex items-center gap-1">
-                                <Trophy className="w-3 h-3 text-[#4A5D3A]" />
+                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-success)] border border-[var(--bm-success)]/50 flex items-center gap-1">
+                                <Trophy className="w-3 h-3 text-[var(--bm-success)]" />
                                 <span>Top</span>
                               </span>
                             )}
                             {userAscent?.type === 'project' && (
-                              <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#2A2A2A] text-[#A89F91] border border-[#333333] flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-[#A89F91]" />
+                              <span className="px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-elevated)] text-[var(--bm-text-2)] border border-[var(--bm-line)] flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-[var(--bm-text-2)]" />
                                 <span>Projekt</span>
                               </span>
                             )}
@@ -811,41 +824,41 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                             {isFiveStar ? (
                               <div
                                 data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[#C9A96E] text-[#121212] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[#F5F0E8]/50 shadow-md"
+                                className="bg-[var(--bm-accent)] text-[var(--bm-bg)] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[var(--bm-strong)]/50 shadow-md"
                                 title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
                               >
                                 <div className="flex items-center gap-1 font-mono font-black text-sm leading-none">
                                   <span>{stats.avgStars.toFixed(1)}</span>
-                                  <Star className="w-3 h-3 fill-[#121212] text-[#121212]" />
+                                  <Star className="w-3 h-3 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
                                 </div>
-                                <span className="text-[9px] font-mono font-bold tracking-tight uppercase mt-0.5">
+                                <span className="text-[9px] font-mono font-bold tracking-tight mt-0.5">
                                   {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
                                 </span>
                               </div>
                             ) : stats.totalRatings > 0 ? (
                               <div
                                 data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[#2A2A2A] text-[#E8E0D4] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[#333333]"
+                                className="bg-[var(--bm-elevated)] text-[var(--bm-text)] px-2.5 py-1 flex flex-col items-center justify-center shrink-0 border border-[var(--bm-line)]"
                                 title={`${stats.avgStars.toFixed(1)} Sterne (${stats.totalRatings} ${stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})`}
                               >
-                                <div className="flex items-center gap-1 font-mono font-bold text-xs leading-none text-[#C9A96E]">
+                                <div className="flex items-center gap-1 font-mono font-bold text-xs leading-none text-[var(--bm-accent)]">
                                   <span>{stats.avgStars.toFixed(1)}</span>
-                                  <Star className="w-2.5 h-2.5 fill-[#C9A96E] text-[#C9A96E]" />
+                                  <Star className="w-2.5 h-2.5 fill-[var(--bm-star)] text-[var(--bm-accent)]" />
                                 </div>
-                                <span className="text-[9px] font-mono text-[#A89F91] mt-0.5">
+                                <span className="text-[9px] font-mono text-[var(--bm-text-2)] mt-0.5">
                                   {stats.totalRatings} {stats.totalRatings === 1 ? 'Vote' : 'Votes'}
                                 </span>
                               </div>
                             ) : (
                               <div
                                 data-testid={`hero-score-${boulder.id}`}
-                                className="bg-[#181818] text-[#A89F91] px-2 py-1 flex flex-col items-center justify-center shrink-0 border border-dashed border-[#333333] group-hover:border-[#C9A96E]/50 transition"
+                                className="bg-[var(--bm-bg)] text-[var(--bm-text-2)] px-2 py-1 flex flex-col items-center justify-center shrink-0 border border-dashed border-[var(--bm-line)] group-hover:border-[var(--bm-accent)]/50 transition"
                                 title="Noch nicht bewertet – sei der Erste!"
                               >
-                                <span className="text-[10px] font-mono font-bold text-[#C9A96E] leading-none">
+                                <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] leading-none">
                                   + Bewerten
                                 </span>
-                                <span className="text-[8px] font-mono text-[#6B6358] mt-0.5 uppercase">
+                                <span className="text-[8px] font-mono text-[var(--bm-text-3)] mt-0.5">
                                   0 Wertung
                                 </span>
                               </div>
@@ -854,40 +867,12 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                         </div>
 
                         {boulder.notes && (
-                          <p className="text-xs font-mono text-[#A89F91] line-clamp-2 my-2 italic">
+                          <p className="text-xs font-mono text-[var(--bm-text-2)] line-clamp-2 my-2 italic">
                             "{boulder.notes}"
                           </p>
                         )}
                       </div>
 
-                      {/* Footer KPI of Route Card */}
-                      <div className="pt-2.5 mt-2 border-t border-[#333333] flex items-center justify-between text-xs font-mono">
-                        {isFiveStar ? (
-                          <div className="flex items-center gap-1.5 text-[#C9A96E]">
-                            <span className="tracking-widest text-sm font-bold">★★★★★</span>
-                            <span className="text-[10px] text-[#E8E0D4] font-bold">
-                              100% Empfehlung ({stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})
-                            </span>
-                          </div>
-                        ) : stats.totalRatings > 0 ? (
-                          <div className="flex items-center gap-1 text-[#C9A96E] font-bold">
-                            <Star className="w-3.5 h-3.5 fill-[#C9A96E]" />
-                            <span>{stats.avgStars.toFixed(1)}</span>
-                            <span className="text-[10px] text-[#6B6358] font-normal">
-                              ({stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'})
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-[#6B6358]">
-                            <span className="text-[11px] italic">Noch keine Wertungen (0 Wertungen)</span>
-                          </div>
-                        )}
-
-                        <span className="text-[11px] text-[#E8E0D4] flex items-center gap-1 group-hover:text-[#F5F0E8] transition font-semibold">
-                          <span>Details & Log</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-[#C9A96E]" />
-                        </span>
-                      </div>
                     </div>
                   );
                 })}
@@ -912,28 +897,31 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             type="button"
             onClick={() => setIsSectorFullscreen(false)}
             data-testid="exit-fullscreen-btn"
-            className="absolute top-3 right-3 z-40 p-2 sm:p-2.5 rounded-[2px] bg-black/60 hover:bg-black/85 text-[#F5F0E8] border border-[#333333] hover:border-[#C9A96E] backdrop-blur-md transition-all shadow-lg active:scale-95 cursor-pointer flex items-center gap-1.5"
+            className="absolute top-3 right-3 z-40 p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/85 text-[var(--bm-strong)] border border-[var(--bm-line)] hover:border-[var(--bm-accent)] backdrop-blur-md transition-all shadow-lg active:scale-95 cursor-pointer flex items-center gap-1.5"
             title="Vollbild beenden"
             aria-label="Vollbild beenden"
           >
-            <Minimize2 className="w-4 h-4 text-[#C9A96E]" />
-            <span className="text-[10px] font-mono font-bold uppercase text-[#E8E0D4] hidden xs:inline">Beenden</span>
+            <Minimize2 className="w-4 h-4 text-[var(--bm-accent)]" />
+            <span className="text-[10px] font-mono font-bold text-[var(--bm-text)] hidden xs:inline">Beenden</span>
           </button>
 
           {/* Minimal Floating Sector HUD (Top-Left, Zero Layout Height) */}
           <div
             data-testid="fullscreen-sector-hud"
-            className="absolute top-3 left-3 z-40 bg-black/60 backdrop-blur-md border border-[#333333] px-2.5 py-1.5 rounded-[2px] flex items-center gap-2 pointer-events-none text-xs font-mono shadow-lg max-w-[calc(100%-90px)]"
+            className="absolute top-3 left-3 z-40 bg-black/60 backdrop-blur-md border border-[var(--bm-line)] px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-none text-xs font-mono shadow-lg max-w-[calc(100%-90px)]"
           >
-            <div className="w-2 h-2 bg-[#C9A96E] shrink-0" />
-            <span className="font-headline font-bold text-[#E8E0D4] uppercase tracking-wider truncate">
+            <div className="w-2 h-2 bg-[var(--bm-accent)] shrink-0" />
+            <span className="font-headline font-bold text-[var(--bm-text)] truncate">
               {selectedSector.name}
             </span>
-            <span className="text-[#8B8680] text-[10px] shrink-0">
+            <span className="text-[var(--bm-text-2)] text-[10px] shrink-0">
               {currentSectorIndex + 1}/{sectors.length}
             </span>
+            {isSectorInRebuild(selectedSector) && (
+              <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] shrink-0">Im Umbau</span>
+            )}
             {boulders.length === 0 && (
-              <span className="text-[10px] font-mono text-[#C9A96E] bg-[#2A2A2A] px-1.5 py-0.5 border border-[#C9A96E]/30 shrink-0">
+              <span className="text-[10px] font-mono text-[var(--bm-accent)] bg-[var(--bm-elevated)] px-1.5 py-0.5 border border-[var(--bm-accent)]/30 shrink-0">
                 0 Routen
               </span>
             )}
@@ -943,9 +931,9 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
           {boulders.length === 0 && (
             <div
               data-testid="fullscreen-empty-notice"
-              className="absolute top-14 left-3 z-40 bg-black/80 backdrop-blur-md border border-[#C9A96E]/40 px-3 py-1.5 rounded-[2px] text-[11px] font-mono text-[#E8E0D4] shadow-lg flex items-center gap-2 pointer-events-none max-w-[calc(100%-24px)] animate-in fade-in duration-200"
+              className="absolute top-14 left-3 z-40 bg-black/80 backdrop-blur-md border border-[var(--bm-accent)]/40 px-3 py-1.5 rounded-xl text-[11px] font-mono text-[var(--bm-text)] shadow-lg flex items-center gap-2 pointer-events-none max-w-[calc(100%-24px)] animate-in fade-in duration-200"
             >
-              <Info className="w-3.5 h-3.5 text-[#C9A96E] shrink-0" />
+              <Info className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" />
               <span>In diesem Sektor wurden noch keine Routen gesetzt (Wische für nächsten Sektor)</span>
             </div>
           )}
@@ -960,11 +948,11 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                   goToPreviousSector();
                 }}
                 data-testid="fullscreen-prev-sector-btn"
-                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-[2px] bg-black/30 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
+                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-xl bg-black/30 hover:bg-black/80 active:scale-95 text-[var(--bm-text)] border border-white/10 hover:border-[var(--bm-accent)] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
                 title="Vorheriger Sektor (oder nach rechts wischen)"
                 aria-label="Vorheriger Sektor"
               >
-                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[#C9A96E]" />
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--bm-accent)]" />
               </button>
 
               <button
@@ -974,11 +962,11 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                   goToNextSector();
                 }}
                 data-testid="fullscreen-next-sector-btn"
-                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-[2px] bg-black/30 hover:bg-black/80 active:scale-95 text-[#E8E0D4] border border-white/10 hover:border-[#C9A96E] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
+                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-xl bg-black/30 hover:bg-black/80 active:scale-95 text-[var(--bm-text)] border border-white/10 hover:border-[var(--bm-accent)] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
                 title="Nächster Sektor (oder nach links wischen)"
                 aria-label="Nächster Sektor"
               >
-                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#C9A96E]" />
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--bm-accent)]" />
               </button>
             </>
           )}
@@ -995,6 +983,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               filteredBoulderIds={new Set(processedBoulders.map(p => p.id))}
               statsMap={statsMap}
               userAscentMap={userAscentMap}
+                newBoulderIds={newBoulderIds}
               onPinClick={setSelectedBoulder}
               isFullscreen={true}
               onToggleFullscreen={() => setIsSectorFullscreen(false)}
@@ -1004,7 +993,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
           {/* Minimal Floating Swipe Hint Badge (Bottom-Center, Zero Layout Height) */}
           {sectors.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-md border border-[#333333] px-3 py-1 rounded-[2px] text-[10px] font-mono text-[#A89F91] pointer-events-none whitespace-nowrap opacity-80 transition-opacity">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-md border border-[var(--bm-line)] px-3 py-1 rounded-xl text-[10px] font-mono text-[var(--bm-text-2)] pointer-events-none whitespace-nowrap opacity-80 transition-opacity">
               ← Wischen für Sektorwechsel →
             </div>
           )}

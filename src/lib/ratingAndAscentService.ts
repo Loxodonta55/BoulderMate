@@ -319,6 +319,26 @@ export function deleteRating(userId: string, boulderId: string): boolean {
   return false;
 }
 
+/**
+ * SPEC-021 AC-8: Setzt die Grad-Einschätzungen (soft/fair/stiff) einer Route zurück,
+ * wenn der Schrauber den Grad ändert. Sterne und Radar bleiben erhalten.
+ */
+export function clearGradeFeels(boulderId: string): number {
+  const now = new Date().toISOString();
+  const changed: BoulderRating[] = [];
+  const all = getRatings().map(r => {
+    if (!r.gradeFeel || !isBoulderMatch(r.boulderId, boulderId)) return r;
+    const cleared: BoulderRating = { ...r, gradeFeel: undefined, updatedAt: now };
+    changed.push(cleared);
+    return cleared;
+  });
+  if (changed.length === 0) return 0;
+  setStorageJson(STORAGE_KEY_RATINGS, all);
+  notifyRatingsChanged(boulderId);
+  changed.forEach(r => syncBridge.syncRating(r));
+  return changed.length;
+}
+
 // ----------------------------------------------------
 // Comments & Route Discussion
 // ----------------------------------------------------

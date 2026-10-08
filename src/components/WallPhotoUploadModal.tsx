@@ -300,27 +300,27 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-150">
       <div
-        className="w-full max-w-xl bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-xl bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl overflow-hidden flex flex-col max-h-[90vh]"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="p-4 border-b border-[#333333] flex items-center justify-between bg-[#121212]">
+        <div className="p-4 border-b border-[var(--bm-line)] flex items-center justify-between bg-[var(--bm-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-none bg-[#2A2A2A] text-[#C9A96E] border border-[#333333]">
+            <div className="p-2 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-line)]">
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+              <h2 className="text-base font-headline font-bold text-[var(--bm-text)]">
                 Wandfoto auswählen oder hochladen
               </h2>
-              <p className="text-xs font-mono text-[#A89F91]">Sektor: {sectorName}</p>
+              <p className="text-xs font-mono text-[var(--bm-text-2)]">Sektor: {sectorName}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="p-1.5 rounded-[2px] text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition"
+            className="p-1.5 rounded-xl text-[var(--bm-text-3)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] transition"
             aria-label="Schließen"
           >
             <X className="w-5 h-5" />
@@ -328,18 +328,18 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="p-2 border-b border-[#333333] bg-[#121212] flex flex-wrap gap-1.5">
+        <div className="p-2 border-b border-[var(--bm-line)] bg-[var(--bm-bg)] flex flex-wrap gap-1.5">
           {/* TAB 1: Live Camera */}
           <button
             type="button"
             onClick={() => { setActiveTab('camera'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 px-2.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition ${
+            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-headline flex items-center justify-center gap-1.5 transition ${
               activeTab === 'camera'
-                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
-                : 'text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A]'
+                ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold'
+                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)]'
             }`}
           >
-            <Camera className="w-3.5 h-3.5 text-[#C9A96E]" />
+            <Camera className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
             <span>Foto machen</span>
           </button>
 
@@ -347,10 +347,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveTab('upload'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 px-2.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition ${
+            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-headline flex items-center justify-center gap-1.5 transition ${
               activeTab === 'upload'
-                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
-                : 'text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A]'
+                ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold'
+                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)]'
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
@@ -361,10 +361,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveTab('presets'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 px-2.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition ${
+            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-headline flex items-center justify-center gap-1.5 transition ${
               activeTab === 'presets'
-                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
-                : 'text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A]'
+                ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold'
+                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)]'
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
@@ -375,10 +375,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveTab('url'); setErrorMessage(null); }}
-            className={`flex-1 py-1.5 px-2.5 rounded-[2px] text-xs font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition ${
+            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-headline flex items-center justify-center gap-1.5 transition ${
               activeTab === 'url'
-                ? 'bg-[#F5F0E8] text-[#121212] font-bold'
-                : 'text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A]'
+                ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold'
+                : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)]'
             }`}
           >
             <LinkIcon className="w-3.5 h-3.5" />
@@ -389,7 +389,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
         {/* Tab Contents */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {errorMessage && (
-            <div className="p-3 rounded-none bg-[#121212] border border-[#A0522D] text-[#A0522D] text-xs font-mono flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-danger)] text-[var(--bm-danger)] text-xs font-mono flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -416,22 +416,22 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
               {isNewCapture && selectedPhoto && !isCameraActive ? (
                 /* Captured Photo Review & Instant Confirmation Card (SPEC-017 AC-4) */
                 <div className="space-y-4">
-                  <div className="relative w-full aspect-video sm:aspect-[16/9] bg-black rounded-none overflow-hidden border border-[#C9A96E]/60 shadow-lg">
+                  <div className="relative w-full aspect-video sm:aspect-[16/9] bg-black rounded-xl overflow-hidden border border-[var(--bm-accent)]/60 shadow-lg">
                     <img
                       src={selectedPhoto}
                       alt="Aufgenommenes Wandfoto"
                       className="w-full h-full object-contain"
                       data-testid="captured-photo-preview"
                     />
-                    <div className="absolute top-2 left-2 px-2.5 py-1 bg-black/80 border border-[#C9A96E] text-[#C9A96E] text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md">
-                      <Check className="w-3.5 h-3.5 text-[#C9A96E]" />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 bg-black/80 border border-[var(--bm-accent)] text-[var(--bm-accent)] text-[10px] font-mono flex items-center gap-1.5 shadow-md">
+                      <Check className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                       <span>{fileName ? `✓ ${fileName}` : '✓ Foto aufgenommen'}</span>
                     </div>
                   </div>
 
                   {/* Instant Confirmation / Retake Action Bar (SPEC-017 AC-4) */}
-                  <div className="p-3 bg-[#121212] border border-[#333333] space-y-2.5">
-                    <p className="text-xs font-mono text-[#A89F91]">
+                  <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-line)] space-y-2.5">
+                    <p className="text-xs font-mono text-[var(--bm-text-2)]">
                       Wandfoto prüfen: Ist die Wand vollständig und scharf abgebildet?
                     </p>
 
@@ -440,10 +440,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                         type="button"
                         onClick={handleConfirm}
                         disabled={isProcessing}
-                        className="flex-1 py-3 px-4 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs rounded-[2px] tracking-wider flex items-center justify-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
+                        className="flex-1 py-3 px-4 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                         data-testid="instant-confirm-photo-btn"
                       >
-                        <Check className="w-4 h-4 text-[#121212]" />
+                        <Check className="w-4 h-4 text-[var(--bm-bg)]" />
                         <span>Dieses Foto verwenden</span>
                       </button>
 
@@ -455,27 +455,27 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                           setFileName(null);
                           startCamera(cameraFacingMode);
                         }}
-                        className="py-2.5 px-4 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] font-mono text-xs border border-[#333333] rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        className="py-2.5 px-4 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] font-mono text-xs border border-[var(--bm-line)] rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                         data-testid="instant-retake-photo-btn"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <RotateCcw className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                         <span>Foto wiederholen</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="py-2.5 px-3 bg-[#2A2A2A] hover:bg-[#333333] text-[#A89F91] hover:text-[#E8E0D4] font-mono text-xs border border-[#333333] rounded-[2px] flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        className="py-2.5 px-3 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] font-mono text-xs border border-[var(--bm-line)] rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                         title="Mit Handy-Kamera neu aufnehmen"
                       >
-                        <Smartphone className="w-3.5 h-3.5 text-[#C9A96E]" />
+                        <Smartphone className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                         <span className="sm:hidden">Handy-Kamera</span>
                       </button>
                     </div>
                   </div>
                 </div>
               ) : isCameraActive ? (
-                <div className="relative w-full h-72 sm:h-80 bg-black rounded-none overflow-hidden border border-[#333333]">
+                <div className="relative w-full h-72 sm:h-80 bg-black rounded-xl overflow-hidden border border-[var(--bm-line)]">
                   <video
                     ref={handleVideoRef}
                     autoPlay
@@ -491,10 +491,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                   )}
 
                   {/* Viewfinder overlay & brackets */}
-                  <div className="absolute inset-0 pointer-events-none border-2 border-[#C9A96E]/30 m-3 flex flex-col justify-between p-2">
+                  <div className="absolute inset-0 pointer-events-none border-2 border-[var(--bm-accent)]/30 m-3 flex flex-col justify-between p-2">
                     <div className="flex items-center justify-between pointer-events-auto">
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/75 border border-[#C9A96E]/50 text-[#C9A96E] text-[10px] font-mono uppercase tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-black/75 border border-[var(--bm-accent)]/50 text-[var(--bm-accent)] text-[10px] font-mono">
+                        <span className="w-2 h-2 rounded-full bg-[var(--bm-danger)] animate-pulse" />
                         Live-Sucher ({cameraFacingMode === 'environment' ? 'Rückkamera' : 'Frontkamera'})
                       </span>
 
@@ -502,30 +502,30 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                         <button
                           type="button"
                           onClick={() => cameraInputRef.current?.click()}
-                          className="p-1.5 rounded-none bg-black/75 hover:bg-black text-[#E8E0D4] border border-[#333333] transition flex items-center gap-1 text-[10px] font-mono cursor-pointer"
+                          className="p-1.5 rounded-xl bg-black/75 hover:bg-black text-[var(--bm-text)] border border-[var(--bm-line)] transition flex items-center gap-1 text-[10px] font-mono cursor-pointer"
                           title="Native Handy-Kamera öffnen"
                         >
-                          <Smartphone className="w-3.5 h-3.5 text-[#C9A96E]" />
+                          <Smartphone className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                           <span className="hidden sm:inline">Handy-Kamera</span>
                         </button>
                         <button
                           type="button"
                           onClick={handleToggleFacingMode}
-                          className="p-1.5 rounded-none bg-black/75 hover:bg-black text-[#E8E0D4] border border-[#333333] transition cursor-pointer"
+                          className="p-1.5 rounded-xl bg-black/75 hover:bg-black text-[var(--bm-text)] border border-[var(--bm-line)] transition cursor-pointer"
                           title="Kamera wechseln"
                           data-testid="toggle-camera-facing-btn"
                         >
-                          <SwitchCamera className="w-4 h-4 text-[#C9A96E]" />
+                          <SwitchCamera className="w-4 h-4 text-[var(--bm-accent)]" />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-center">
-                      <Crosshair className="w-8 h-8 text-[#C9A96E]/40 stroke-[1]" />
+                      <Crosshair className="w-8 h-8 text-[var(--bm-accent)]/40 stroke-[1]" />
                     </div>
 
                     <div className="text-center">
-                      <span className="text-[10px] text-[#E8E0D4] bg-black/75 px-2.5 py-1 border border-black/50">
+                      <span className="text-[10px] text-[var(--bm-text)] bg-black/75 px-2.5 py-1 border border-black/50">
                         Wand im Sucher ausrichten & Auslöser drücken
                       </span>
                     </div>
@@ -536,32 +536,32 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                     <button
                       type="button"
                       onClick={handleCapturePhoto}
-                      className="group flex items-center gap-2 px-6 py-3 rounded-none bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs shadow-lg transition border border-[#121212] cursor-pointer"
+                      className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--bm-accent)] hover:bg-[var(--bm-strong)] text-[var(--bm-bg)] font-headline font-bold text-xs shadow-lg transition border border-[var(--bm-bg)] cursor-pointer"
                       data-testid="capture-photo-button"
                     >
-                      <Camera className="w-4 h-4 text-[#121212] group-hover:scale-110 transition-transform" />
+                      <Camera className="w-4 h-4 text-[var(--bm-bg)] group-hover:scale-110 transition-transform" />
                       <span>Foto schießen</span>
                     </button>
                   </div>
                 </div>
               ) : (
                 /* Camera not active / start screen */
-                <div className="border border-[#333333] bg-[#121212] p-6 text-center space-y-4">
-                  <div className="w-14 h-14 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] mx-auto">
+                <div className="border border-[var(--bm-line)] bg-[var(--bm-bg)] p-6 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center text-[var(--bm-accent)] mx-auto">
                     <Camera className="w-7 h-7" />
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+                    <h3 className="text-sm font-headline font-bold text-[var(--bm-text)]">
                       Direkt aus der App fotografieren
                     </h3>
-                    <p className="text-xs font-sans text-[#A89F91] mt-1 max-w-sm mx-auto">
+                    <p className="text-xs font-sans text-[var(--bm-text-2)] mt-1 max-w-sm mx-auto">
                       Nimm ein frisches Wandfoto der Boulderwand direkt mit deiner Kamera auf.
                     </p>
                   </div>
 
                   {cameraError && (
-                    <div className="p-3 rounded-none bg-[#1E1E1E] border border-[#A0522D] text-[#A0522D] text-xs font-mono text-left flex items-start gap-2 max-w-md mx-auto">
+                    <div className="p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-danger)] text-[var(--bm-danger)] text-xs font-mono text-left flex items-start gap-2 max-w-md mx-auto">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>{cameraError}</span>
                     </div>
@@ -572,7 +572,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                       type="button"
                       onClick={() => startCamera(cameraFacingMode)}
                       disabled={isStartingCamera}
-                      className="w-full sm:w-auto px-5 py-3 bg-[#C9A96E] hover:bg-[#F5F0E8] text-[#121212] rounded-none font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-md"
+                      className="w-full sm:w-auto px-5 py-3 bg-[var(--bm-accent)] hover:bg-[var(--bm-strong)] text-[var(--bm-bg)] rounded-xl font-headline font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-md"
                       data-testid="start-camera-button"
                     >
                       <Camera className="w-4 h-4" />
@@ -582,10 +582,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                     <button
                       type="button"
                       onClick={() => cameraInputRef.current?.click()}
-                      className="w-full sm:w-auto px-5 py-3 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#C9A96E]/40 rounded-none font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
+                      className="w-full sm:w-auto px-5 py-3 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-accent)]/40 rounded-xl font-headline font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                       data-testid="open-system-camera-button"
                     >
-                      <Smartphone className="w-4 h-4 text-[#C9A96E]" />
+                      <Smartphone className="w-4 h-4 text-[var(--bm-accent)]" />
                       <span>System-Kamera öffnen</span>
                     </button>
                   </div>
@@ -614,25 +614,25 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-none p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
                   isDragging
-                    ? 'border-[#F5F0E8] bg-[#2A2A2A]'
-                    : 'border-[#333333] hover:border-[#8B8680] bg-[#121212] hover:bg-[#1E1E1E]'
+                    ? 'border-[var(--bm-strong)] bg-[var(--bm-elevated)]'
+                    : 'border-[var(--bm-line)] hover:border-[var(--bm-text-2)] bg-[var(--bm-bg)] hover:bg-[var(--bm-surface)]'
                 }`}
               >
-                <div className="w-12 h-12 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E]">
+                <div className="w-12 h-12 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center text-[var(--bm-accent)]">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+                  <p className="text-sm font-headline font-bold text-[var(--bm-text)]">
                     Wandfoto vom Laptop auswählen
                   </p>
-                  <p className="text-xs font-sans text-[#A89F91] mt-1">
+                  <p className="text-xs font-sans text-[var(--bm-text-2)] mt-1">
                     Klicken zum Durchsuchen oder Bild hierher ziehen (JPG, PNG, WebP)
                   </p>
                 </div>
                 {fileName && (
-                  <span className="text-xs font-mono text-[#C9A96E] bg-[#2A2A2A] border border-[#333333] px-3 py-1 rounded-none">
+                  <span className="text-xs font-mono text-[var(--bm-accent)] bg-[var(--bm-elevated)] border border-[var(--bm-line)] px-3 py-1 rounded-xl">
                     ✓ {fileName}
                   </span>
                 )}
@@ -643,7 +643,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           {/* TAB 2: Wall Presets */}
           {activeTab === 'presets' && (
             <div className="space-y-3">
-              <p className="text-xs font-mono text-[#A89F91]">
+              <p className="text-xs font-mono text-[var(--bm-text-2)]">
                 Wähle eine der realistischen Boulderhallen-Wände aus:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -658,10 +658,10 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                         setFileName(null);
                         setErrorMessage(null);
                       }}
-                      className={`group relative rounded-none overflow-hidden border text-left transition-all flex flex-col ${
+                      className={`group relative rounded-xl overflow-hidden border text-left transition-all flex flex-col ${
                         isSelected
-                          ? 'border-[#F5F0E8]'
-                          : 'border-[#333333] hover:border-[#8B8680] opacity-80 hover:opacity-100'
+                          ? 'border-[var(--bm-strong)]'
+                          : 'border-[var(--bm-line)] hover:border-[var(--bm-text-2)] opacity-80 hover:opacity-100'
                       }`}
                     >
                       <div className="h-28 w-full overflow-hidden bg-black">
@@ -671,12 +671,12 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
                       </div>
-                      <div className="p-2.5 bg-[#1E1E1E] flex-1 flex flex-col justify-between">
-                        <p className="text-xs font-headline font-bold uppercase tracking-wide text-[#E8E0D4] leading-snug">{preset.name}</p>
-                        <p className="text-[10px] font-mono text-[#6B6358] mt-0.5 line-clamp-2">{preset.description}</p>
+                      <div className="p-2.5 bg-[var(--bm-surface)] flex-1 flex flex-col justify-between">
+                        <p className="text-xs font-headline font-bold text-[var(--bm-text)] leading-snug">{preset.name}</p>
+                        <p className="text-[10px] font-mono text-[var(--bm-text-3)] mt-0.5 line-clamp-2">{preset.description}</p>
                       </div>
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-none bg-[#F5F0E8] text-[#121212] flex items-center justify-center font-bold text-xs">
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-xl bg-[var(--bm-strong)] text-[var(--bm-bg)] flex items-center justify-center font-bold text-xs">
                           ✓
                         </div>
                       )}
@@ -690,7 +690,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           {/* TAB 3: Web-URL */}
           {activeTab === 'url' && (
             <div className="space-y-3">
-              <label className="block text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4]">
+              <label className="block text-xs font-headline font-bold text-[var(--bm-text)]">
                 Öffentliche Bild-URL eingeben:
               </label>
               <div className="flex gap-2">
@@ -699,12 +699,12 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                   value={urlInput}
                   onChange={e => setUrlInput(e.target.value)}
                   placeholder="https://..."
-                  className="flex-1 px-3 py-2 bg-[#121212] border border-[#333333] rounded-none text-[#E8E0D4] text-xs font-mono placeholder:text-[#6B6358] focus:outline-none focus:border-[#C9A96E]"
+                  className="flex-1 px-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl text-[var(--bm-text)] text-xs font-mono placeholder:text-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)]"
                 />
                 <button
                   type="button"
                   onClick={handleApplyUrl}
-                  className="px-4 py-2 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] rounded-[2px] text-xs font-mono border border-[#333333]"
+                  className="px-4 py-2 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] rounded-xl text-xs font-mono border border-[var(--bm-line)]"
                 >
                   Vorschau
                 </button>
@@ -716,14 +716,14 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
           {selectedPhoto && activeTab !== 'camera' && (
             <div className="pt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-headline font-bold uppercase tracking-wider text-[#A89F91]">
+                <span className="text-[11px] font-headline font-bold text-[var(--bm-text-2)]">
                   Aktuelle Bildvorschau:
                 </span>
-                <span className="text-[10px] font-mono text-[#4A5D3A] flex items-center gap-1">
+                <span className="text-[10px] font-mono text-[var(--bm-success)] flex items-center gap-1">
                   <Check className="w-3 h-3" /> Ausgewählt
                 </span>
               </div>
-              <div className="relative rounded-none overflow-hidden border border-[#333333] bg-black max-h-48">
+              <div className="relative rounded-xl overflow-hidden border border-[var(--bm-line)] bg-black max-h-48">
                 <img
                   src={selectedPhoto}
                   alt="Wandvorschau"
@@ -735,11 +735,11 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#333333] flex items-center justify-end gap-2.5">
+        <div className="p-4 border-t border-[var(--bm-line)] flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-[2px] bg-[#2A2A2A] text-[#E8E0D4] text-xs font-headline uppercase tracking-wider hover:bg-[#333333] transition border border-[#333333]"
+            className="px-4 py-2 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-text)] text-xs font-headline hover:bg-[var(--bm-line)] transition border border-[var(--bm-line)]"
           >
             Abbrechen
           </button>
@@ -747,7 +747,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
             type="button"
             onClick={handleConfirm}
             disabled={!selectedPhoto || isProcessing}
-            className="px-5 py-2 rounded-[2px] bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs flex items-center gap-1.5 transition disabled:opacity-40"
+            className="px-5 py-2 rounded-xl bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-40"
           >
             <Check className="w-4 h-4" />
             <span>Wandfoto übernehmen</span>

@@ -27,6 +27,7 @@ import {
   isBoulderMatch
 } from '../lib/ratingAndAscentService';
 import { syncBridge } from '../lib/syncBridge';
+import { getProfiles } from '../lib/profileService';
 import { useBackHandler } from '../hooks/useBackHandler';
 import {
   X,
@@ -204,55 +205,55 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-        <div className="w-full max-w-2xl bg-[#1E1E1E] border border-[#333333] rounded-none overflow-hidden my-4 flex flex-col max-h-[92vh]">
+        <div className="w-full max-w-2xl bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl overflow-hidden my-4 flex flex-col max-h-[92vh]">
           {/* Header Banner */}
-          <div className="p-5 sm:p-6 border-b border-[#333333] bg-[#121212] flex items-start justify-between relative">
+          <div className="p-5 sm:p-6 border-b border-[var(--bm-line)] bg-[var(--bm-bg)] flex items-start justify-between relative">
             <div className="flex items-start gap-4">
               {/* Large Color Badge (Square block) */}
               <div
-                className="w-12 h-12 rounded-none flex items-center justify-center border border-black/40 shrink-0"
-                style={{ backgroundColor: gradeScale?.colorHex || '#C9A96E' }}
+                className="w-12 h-12 rounded-xl flex items-center justify-center border border-black/40 shrink-0"
+                style={{ backgroundColor: gradeScale?.colorHex || 'var(--bm-text-3)' }}
               >
-                <span className="text-xl font-headline uppercase font-bold text-[#121212]">
+                <span className="text-xl font-headline font-bold text-[var(--bm-bg)]">
                   {gradeScale?.colorName?.[0] || 'B'}
                 </span>
               </div>
 
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h1 className="text-xl sm:text-2xl font-headline uppercase tracking-wider text-[#E8E0D4]">
+                  <h1 className="text-xl sm:text-2xl font-headline text-[var(--bm-text)]">
                     {boulder.name || `${gradeScale?.colorName || 'Boulder'} #${boulder.id.slice(-4)}`}
                   </h1>
                   <span
-                    className="px-2.5 py-0.5 rounded-none text-xs font-mono font-bold border border-[#333333] bg-[#2A2A2A]"
+                    className="px-2.5 py-0.5 rounded-xl text-xs font-mono font-bold border border-[var(--bm-line)] bg-[var(--bm-elevated)]"
                     style={{
-                      color: gradeScale?.colorHex || '#C9A96E',
+                      color: gradeScale?.colorHex || 'var(--bm-text-3)',
                     }}
                   >
                     {gradeScale?.difficultyLabel || 'Schwierigkeit'}
                   </span>
                   {gradeScale?.fontRangeMin && (
-                    <span className="text-xs font-mono font-bold text-[#A89F91] bg-[#2A2A2A] px-2 py-0.5 rounded-none border border-[#333333]">
+                    <span className="text-xs font-mono font-bold text-[var(--bm-text-2)] bg-[var(--bm-elevated)] px-2 py-0.5 rounded-xl border border-[var(--bm-line)]">
                       Fb {gradeScale.fontRangeMin} - {gradeScale.fontRangeMax}
                     </span>
                   )}
                   {stats.avgStars >= 4.2 && stats.totalRatings >= 1 && (
-                    <span className="px-2 py-0.5 rounded-none text-xs font-mono font-bold bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/50 flex items-center gap-1 shadow-sm">
-                      <Sparkles className="w-3 h-3 text-[#C9A96E]" />
+                    <span className="px-2 py-0.5 rounded-xl text-xs font-mono font-bold bg-[var(--bm-accent)]/20 text-[var(--bm-accent)] border border-[var(--bm-accent)]/50 flex items-center gap-1 shadow-sm">
+                      <Sparkles className="w-3 h-3 text-[var(--bm-accent)]" />
                       <span>Community-Favorit</span>
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs font-mono text-[#A89F91]">
+                <div className="flex items-center gap-3 text-xs font-mono text-[var(--bm-text-2)]">
                   {sector && (
-                    <span className="flex items-center gap-1 text-[#E8E0D4]">
-                      <Layers className="w-3.5 h-3.5 text-[#C9A96E]" />
+                    <span className="flex items-center gap-1 text-[var(--bm-text)]">
+                      <Layers className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                       <span>{sector.name}</span>
                     </span>
                   )}
                   <span>•</span>
-                  <span>Schrauber: {boulder.setterId}</span>
+                  <span>{getProfiles().find(p => p.id === boulder.setterId)?.nickname || 'Hallenteam'}</span>
                 </div>
               </div>
             </div>
@@ -260,7 +261,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-[2px] text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] transition cursor-pointer"
+                className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
                 aria-label="Schließen"
               >
                 <X className="w-5 h-5" />
@@ -271,11 +272,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* Scrollable Modal Content */}
           <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
             {/* 1. Action Bar: Ascent Logging (AC-3) & Review Button (AC-5) - GANZ OBEN IM FRAME */}
-            <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] space-y-3" data-testid="ascent-logging-card">
+            <div className="p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] space-y-3" data-testid="ascent-logging-card">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
-                  <Trophy className="w-3.5 h-3.5 text-[#C9A96E]" />
-                  <span>Deine Begehung ({currentUser.nickname})</span>
+                <span className="text-xs font-headline text-[var(--bm-text)] flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+                  <span>Deine Begehung</span>
                 </span>
 
                 {/* AC-5: Manual Review Button */}
@@ -285,9 +286,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     setRatingTriggeredByAscent(false);
                     setIsRatingModalOpen(true);
                   }}
-                  className="text-xs font-mono font-bold text-[#E8E0D4] hover:text-[#F5F0E8] bg-[#1E1E1E] hover:bg-[#333333] border border-[#333333] hover:border-[#F5F0E8] px-3 py-1.5 rounded-[2px] transition flex items-center gap-1.5 cursor-pointer"
+                  className="text-xs font-mono font-bold text-[var(--bm-text)] hover:text-[var(--bm-strong)] bg-[var(--bm-surface)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] hover:border-[var(--bm-strong)] px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Star className="w-3.5 h-3.5 fill-[#C9A96E] text-[#C9A96E]" />
+                  <Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-accent)]" />
                   <span>{currentUserRating ? 'Bewertung anpassen' : 'Jetzt bewerten'}</span>
                 </button>
               </div>
@@ -297,10 +298,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAscentClick('flash')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2 rounded-xl text-xs font-headline border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     currentUserAscent?.type === 'flash'
-                      ? 'bg-[#C9A96E] text-[#121212] border-[#C9A96E] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                      ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold'
+                      : 'bg-[var(--bm-surface)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:border-[var(--bm-strong)] hover:text-[var(--bm-text)]'
                   }`}
                 >
                   <Zap className="w-4 h-4 stroke-[2]" />
@@ -311,10 +312,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAscentClick('top')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2 rounded-xl text-xs font-headline border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     currentUserAscent?.type === 'top'
-                      ? 'bg-[#4A5D3A] text-[#F5F0E8] border-[#4A5D3A] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                      ? 'bg-[var(--bm-success)] text-[var(--bm-on-accent)] border-[var(--bm-success)] font-bold'
+                      : 'bg-[var(--bm-surface)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:border-[var(--bm-strong)] hover:text-[var(--bm-text)]'
                   }`}
                 >
                   <Trophy className="w-4 h-4 stroke-[2]" />
@@ -325,10 +326,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAscentClick('project')}
-                  className={`py-2 px-2 rounded-[2px] text-xs font-headline uppercase tracking-wider border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2 rounded-xl text-xs font-headline border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     currentUserAscent?.type === 'project'
-                      ? 'bg-[#8B8680] text-[#121212] border-[#8B8680] font-bold'
-                      : 'bg-[#1E1E1E] border-[#333333] text-[#A89F91] hover:border-[#F5F0E8] hover:text-[#E8E0D4]'
+                      ? 'bg-[var(--bm-text-2)] text-[var(--bm-bg)] border-[var(--bm-text-2)] font-bold'
+                      : 'bg-[var(--bm-surface)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:border-[var(--bm-strong)] hover:text-[var(--bm-text)]'
                   }`}
                 >
                   <Clock className="w-4 h-4 stroke-[2]" />
@@ -338,9 +339,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
 
               {currentUserAscent && (
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bm-text-2)] pt-1">
                   <span>
-                    Geloggt als <strong className="text-[#E8E0D4] uppercase">{currentUserAscent.type}</strong>
+                    Geloggt als <strong className="text-[var(--bm-text)]">{currentUserAscent.type}</strong>
                   </span>
                   <button
                     type="button"
@@ -349,7 +350,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                       setDataVersion(v => v + 1);
                       onDataChanged?.();
                     }}
-                    className="text-[#6B6358] hover:text-[#A0522D] underline transition text-[10px] cursor-pointer"
+                    className="text-[var(--bm-text-3)] hover:text-[var(--bm-danger)] underline transition text-[10px] cursor-pointer"
                   >
                     Logbucheintrag löschen
                   </button>
@@ -357,21 +358,21 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               )}
 
               {currentUserRating && (
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#A89F91] pt-1.5 border-t border-[#333333]/60">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bm-text-2)] pt-1.5 border-t border-[var(--bm-line)]/60">
                   <span className="flex items-center gap-1.5">
                     <span>Deine Bewertung:</span>
-                    <strong className="text-[#C9A96E] flex items-center gap-0.5">
-                      {currentUserRating.qualityStars} <Star className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
+                    <strong className="text-[var(--bm-accent)] flex items-center gap-0.5">
+                      {currentUserRating.qualityStars} <Star className="w-3 h-3 fill-[var(--bm-star)] text-[var(--bm-accent)]" />
                     </strong>
                     {currentUserRating.gradeFeel && (
-                      <span className="text-[#E8E0D4] capitalize">({currentUserRating.gradeFeel})</span>
+                      <span className="text-[var(--bm-text)] capitalize">({currentUserRating.gradeFeel})</span>
                     )}
                   </span>
                   <button
                     type="button"
                     data-testid="delete-rating-btn"
                     onClick={handleDeleteRating}
-                    className="text-rose-400 hover:text-rose-300 hover:underline transition text-[10px] flex items-center gap-1 cursor-pointer"
+                    className="text-[var(--bm-danger)] hover:text-[var(--bm-danger)] hover:underline transition text-[10px] flex items-center gap-1 cursor-pointer"
                     title="Eigene Bewertung löschen"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -384,13 +385,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             {/* 2. Quick Metrics Bar (AC-8) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Star Rating Card */}
-              <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#A89F91] block">
+                  <span className="text-[10px] font-mono font-bold text-[var(--bm-text-2)] block">
                     Community-Bewertung
                   </span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-2xl font-mono font-bold text-[#C9A96E]">
+                    <span className="text-2xl font-mono font-bold text-[var(--bm-accent)]">
                       {stats.avgStars > 0 ? stats.avgStars.toFixed(1) : '–'}
                     </span>
                     <div className="flex items-center gap-0.5">
@@ -399,8 +400,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                           key={`avg-star-${s}`}
                           className={`w-3.5 h-3.5 ${
                             stats.avgStars >= s
-                              ? 'fill-[#C9A96E] text-[#C9A96E]'
-                              : 'text-[#333333]'
+                              ? 'fill-[var(--bm-star)] text-[var(--bm-accent)]'
+                              : 'text-[var(--bm-line)]'
                           }`}
                         />
                       ))}
@@ -408,12 +409,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs font-mono text-[#A89F91]">
+                  <span className="text-xs font-mono text-[var(--bm-text-2)]">
                     {stats.totalRatings} {stats.totalRatings === 1 ? 'Wertung' : 'Wertungen'}
                   </span>
                   {stats.avgStars >= 4.2 && stats.totalRatings >= 1 && (
-                    <span className="px-1.5 py-0.5 rounded-none text-[10px] font-mono font-bold bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5 text-[#C9A96E]" />
+                    <span className="px-1.5 py-0.5 rounded-xl text-[10px] font-mono font-bold bg-[var(--bm-accent)]/20 text-[var(--bm-accent)] border border-[var(--bm-accent)]/40 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-[var(--bm-accent)]" />
                       <span>Favorit</span>
                     </span>
                   )}
@@ -421,55 +422,52 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
 
               {/* Soft / Fair / Stiff Barometer Card */}
-              <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] flex flex-col justify-between">
+              <div className="p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#A89F91]">
+                  <span className="text-[10px] font-mono font-bold text-[var(--bm-text-2)]">
                     Grad-Barometer
                   </span>
-                  <span className="text-xs font-mono font-bold text-[#E8E0D4]">
+                  <span className="text-xs font-mono font-bold text-[var(--bm-text)]">
                     {getDominantFeelText()}
                   </span>
                 </div>
 
                 {/* 3-segment progress bar (0px radius) */}
-                <div className="w-full h-2 rounded-none bg-[#121212] border border-[#333333] overflow-hidden flex">
+                <div className="w-full h-2 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] overflow-hidden flex">
                   <div
-                    className="bg-[#4A5D3A] transition-all duration-200"
+                    className="bg-[var(--bm-success)] transition-all duration-200"
                     style={{ width: `${stats.gradeFeelPercentages.soft}%` }}
                     title={`Soft: ${stats.gradeFeelPercentages.soft}%`}
                   />
                   <div
-                    className="bg-[#C9A96E] transition-all duration-200"
+                    className="bg-[var(--bm-accent)] transition-all duration-200"
                     style={{ width: `${stats.gradeFeelPercentages.fair}%` }}
                     title={`Fair: ${stats.gradeFeelPercentages.fair}%`}
                   />
                   <div
-                    className="bg-[#A0522D] transition-all duration-200"
+                    className="bg-[var(--bm-danger)] transition-all duration-200"
                     style={{ width: `${stats.gradeFeelPercentages.stiff}%` }}
                     title={`Stiff: ${stats.gradeFeelPercentages.stiff}%`}
                   />
                 </div>
 
-                <div className="flex justify-between text-[10px] font-mono text-[#A89F91] mt-1.5">
-                  <span className="text-[#86A369]">🟢 {stats.gradeFeelCounts.soft} Soft</span>
-                  <span className="text-[#C9A96E]">🟡 {stats.gradeFeelCounts.fair} Fair</span>
-                  <span className="text-[#D97D5B]">🔴 {stats.gradeFeelCounts.stiff} Stiff</span>
+                <div className="flex justify-between text-[10px] font-mono text-[var(--bm-text-2)] mt-1.5">
+                  <span className="text-[var(--bm-success)]">{stats.gradeFeelCounts.soft} Soft</span>
+                  <span className="text-[var(--bm-accent)]">{stats.gradeFeelCounts.fair} Fair</span>
+                  <span className="text-[var(--bm-danger)]">{stats.gradeFeelCounts.stiff} Stiff</span>
                 </div>
               </div>
             </div>
 
             {/* Radar Chart (AC-2) */}
-            <div className="p-4 sm:p-5 rounded-none bg-[#2A2A2A] border border-[#333333] flex flex-col items-center">
+            <div className="p-4 sm:p-5 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex flex-col items-center">
               <div className="w-full flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-[#C9A96E]" />
-                  <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4]">
-                    Klettercharakter (5-Achsen Radar)
+                  <TrendingUp className="w-4 h-4 text-[var(--bm-accent)]" />
+                  <h3 className="text-sm font-headline text-[var(--bm-text)]">
+                    Charakter
                   </h3>
                 </div>
-                <span className="text-[11px] font-mono text-[#A89F91]">
-                  Aggregiert aus {stats.totalRatings} Bewertungen
-                </span>
               </div>
 
               <div className="my-2">
@@ -477,15 +475,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   data={stats.radarAggregate}
                   referenceData={boulder.radar}
                   size={260}
-                  accentColor="#C9A96E"
+                  accentColor="var(--bm-star)"
                 />
               </div>
 
               {boulder.notes && (
-                <div className="w-full mt-3 p-3 rounded-none bg-[#1E1E1E] border border-[#333333] text-xs font-mono text-[#A89F91] flex items-start gap-2">
-                  <Info className="w-4 h-4 text-[#C9A96E] shrink-0 mt-0.5" />
+                <div className="w-full mt-3 p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-line)] text-xs font-mono text-[var(--bm-text-2)] flex items-start gap-2">
+                  <Info className="w-4 h-4 text-[var(--bm-accent)] shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-[#E8E0D4] block font-headline uppercase">Schrauber-Notiz:</span>
+                    <span className="font-bold text-[var(--bm-text)] block font-headline">Schrauber-Notiz:</span>
                     <span>{boulder.notes}</span>
                   </div>
                 </div>
@@ -495,23 +493,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             {/* Ascent Feed / Begehungsliste (AC-9) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#C9A96E]" />
+                <h3 className="text-sm font-headline text-[var(--bm-text)] flex items-center gap-2">
+                  <User className="w-4 h-4 text-[var(--bm-accent)]" />
                   <span>Begehungen ({stats.ascents.length})</span>
                 </h3>
-                <div className="flex items-center gap-3 text-xs font-mono text-[#A89F91]">
-                  <span className="text-[#C9A96E] font-bold">{stats.totalFlashes} Flashes</span>
+                <div className="flex items-center gap-3 text-xs font-mono text-[var(--bm-text-2)]">
+                  <span className="text-[var(--bm-accent)] font-bold">{stats.totalFlashes} Flashes</span>
                   <span>•</span>
-                  <span className="text-[#86A369] font-bold">{stats.totalTops} Tops</span>
+                  <span className="text-[var(--bm-success)] font-bold">{stats.totalTops} Tops</span>
                 </div>
               </div>
 
               {stats.ascents.length === 0 ? (
-                <div className="p-6 rounded-none bg-[#2A2A2A] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+                <div className="p-6 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-center text-xs font-mono text-[var(--bm-text-3)]">
                   Noch keine Begehungen eingetragen. Sei der Erste, der diesen Boulder toppt!
                 </div>
               ) : (
-                <div className="divide-y divide-[#333333] rounded-none bg-[#2A2A2A] border border-[#333333] overflow-hidden">
+                <div className="divide-y divide-[var(--bm-line)] rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] overflow-hidden">
                   {stats.ascents.map(ascent => {
                     const isFlash = ascent.type === 'flash';
                     const isTop = ascent.type === 'top';
@@ -524,7 +522,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     return (
                       <div
                         key={ascent.id}
-                        className="p-3 sm:px-4 flex items-center justify-between hover:bg-[#1E1E1E] transition"
+                        className="p-3 sm:px-4 flex items-center justify-between hover:bg-[var(--bm-surface)] transition"
                       >
                         <button
                           type="button"
@@ -533,14 +531,14 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                           title={`${ascent.userNickname}s öffentliches Profil ansehen`}
                           data-testid={`btn-user-profile-${ascent.userId}`}
                         >
-                          <div className="w-8 h-8 rounded-none bg-[#1E1E1E] group-hover/user:border-[#F5F0E8] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4] border border-[#333333] transition">
+                          <div className="w-8 h-8 rounded-xl bg-[var(--bm-surface)] group-hover/user:border-[var(--bm-strong)] flex items-center justify-center text-xs font-mono font-bold text-[var(--bm-text)] border border-[var(--bm-line)] transition">
                             {ascent.userNickname.charAt(0)}
                           </div>
                           <div>
-                            <span className="text-xs font-mono font-bold text-[#E8E0D4] group-hover/user:text-[#F5F0E8] transition block">
+                            <span className="text-xs font-mono font-bold text-[var(--bm-text)] group-hover/user:text-[var(--bm-strong)] transition block">
                               {ascent.userNickname}
                             </span>
-                            <span className="text-[10px] font-mono text-[#6B6358] flex items-center gap-1">
+                            <span className="text-[10px] font-mono text-[var(--bm-text-3)] flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               <span>{dateFormatted}</span>
                             </span>
@@ -549,20 +547,20 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
                         <div>
                           {isFlash && (
-                            <span className="px-2.5 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#1E1E1E] text-[#C9A96E] border border-[#C9A96E]/40 flex items-center gap-1">
-                              <Zap className="w-3 h-3 fill-[#C9A96E] text-[#C9A96E]" />
+                            <span className="px-2.5 py-0.5 rounded-xl text-[11px] font-mono font-bold bg-[var(--bm-surface)] text-[var(--bm-accent)] border border-[var(--bm-accent)]/40 flex items-center gap-1">
+                              <Zap className="w-3 h-3 fill-[var(--bm-star)] text-[var(--bm-accent)]" />
                               <span>Flash</span>
                             </span>
                           )}
                           {isTop && (
-                            <span className="px-2.5 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#1E1E1E] text-[#86A369] border border-[#4A5D3A]/50 flex items-center gap-1">
-                              <Trophy className="w-3 h-3 text-[#86A369]" />
+                            <span className="px-2.5 py-0.5 rounded-xl text-[11px] font-mono font-bold bg-[var(--bm-surface)] text-[var(--bm-success)] border border-[var(--bm-success)]/50 flex items-center gap-1">
+                              <Trophy className="w-3 h-3 text-[var(--bm-success)]" />
                               <span>Top</span>
                             </span>
                           )}
                           {ascent.type === 'project' && (
-                            <span className="px-2.5 py-0.5 rounded-none text-[11px] font-mono font-bold bg-[#1E1E1E] text-[#A89F91] border border-[#333333] flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-[#A89F91]" />
+                            <span className="px-2.5 py-0.5 rounded-xl text-[11px] font-mono font-bold bg-[var(--bm-surface)] text-[var(--bm-text-2)] border border-[var(--bm-line)] flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-[var(--bm-text-2)]" />
                               <span>Projekt</span>
                             </span>
                           )}
@@ -575,23 +573,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </div>
 
             {/* Community Ratings & Reviews List (AC-16: Was haben Freunde bewertet?) */}
-            <div className="space-y-3 pt-2 border-t border-[#333333]" data-testid="community-ratings-section">
+            <div className="space-y-3 pt-2 border-t border-[var(--bm-line)]" data-testid="community-ratings-section">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-                  <Star className="w-4 h-4 text-[#C9A96E]" />
+                <h3 className="text-sm font-headline text-[var(--bm-text)] flex items-center gap-2">
+                  <Star className="w-4 h-4 text-[var(--bm-accent)]" />
                   <span>Community-Wertungen & Reviews ({stats.ratings?.length || 0})</span>
                 </h3>
-                <span className="text-xs font-mono text-[#A89F91]">
+                <span className="text-xs font-mono text-[var(--bm-text-2)]">
                   {stats.avgStars > 0 ? `Schnitt: ${stats.avgStars.toFixed(1)} ★` : 'Noch unbewertet'}
                 </span>
               </div>
 
               {(!stats.ratings || stats.ratings.length === 0) ? (
-                <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+                <div className="p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-center text-xs font-mono text-[var(--bm-text-3)]">
                   Noch keine detaillierten Bewertungen vorhanden. Teste den Boulder und bewerte als Erster!
                 </div>
               ) : (
-                <div className="divide-y divide-[#333333] rounded-none bg-[#2A2A2A] border border-[#333333] overflow-hidden">
+                <div className="divide-y divide-[var(--bm-line)] rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] overflow-hidden">
                   {stats.ratings.map(rating => {
                     const userAscent = stats.ascents.find(a => isUserMatch(a.userId, rating.userId));
                     const dateFormatted = rating.createdAt
@@ -605,36 +603,36 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     return (
                       <div
                         key={rating.id}
-                        className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#1E1E1E] transition"
+                        className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[var(--bm-surface)] transition"
                         data-testid={`community-rating-row-${rating.userId}`}
                       >
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
                             onClick={() => setViewingPublicUserId(rating.userId)}
-                            className="w-8 h-8 rounded-none bg-[#1E1E1E] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] shrink-0 transition cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-[var(--bm-surface)] flex items-center justify-center text-xs font-mono font-bold text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-strong)] shrink-0 transition cursor-pointer"
                             title={`${rating.userNickname}s Profil ansehen`}
                           >
                             {rating.userNickname?.charAt(0) || 'K'}
                           </button>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-[#E8E0D4]">
+                              <span className="text-xs font-mono font-bold text-[var(--bm-text)]">
                                 {rating.userNickname}
                               </span>
                               {userAscent && (
-                                <span className={`px-1.5 py-0.5 rounded-none text-[9px] font-mono font-bold uppercase ${
+                                <span className={`px-1.5 py-0.5 rounded-xl text-[9px] font-mono font-bold ${
                                   userAscent.type === 'flash'
-                                    ? 'bg-[#C9A96E]/20 text-[#C9A96E] border border-[#C9A96E]/40'
+                                    ? 'bg-[var(--bm-accent)]/20 text-[var(--bm-accent)] border border-[var(--bm-accent)]/40'
                                     : userAscent.type === 'top'
-                                    ? 'bg-[#4A5D3A]/20 text-[#86A369] border border-[#4A5D3A]/40'
-                                    : 'bg-[#2A2A2A] text-[#A89F91] border border-[#333333]'
+                                    ? 'bg-[var(--bm-success)]/20 text-[var(--bm-success)] border border-[var(--bm-success)]/40'
+                                    : 'bg-[var(--bm-elevated)] text-[var(--bm-text-2)] border border-[var(--bm-line)]'
                                 }`}>
                                   {userAscent.type}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] font-mono text-[#6B6358] flex items-center gap-1">
+                            <span className="text-[10px] font-mono text-[var(--bm-text-3)] flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               <span>{dateFormatted}</span>
                             </span>
@@ -645,7 +643,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         <div className="flex items-center gap-3 self-end sm:self-auto">
                           {rating.qualityStars !== undefined && (
                             <div className="flex items-center gap-1">
-                              <span className="text-xs font-mono font-bold text-[#C9A96E]">
+                              <span className="text-xs font-mono font-bold text-[var(--bm-accent)]">
                                 {rating.qualityStars}
                               </span>
                               <div className="flex items-center gap-0.5">
@@ -654,8 +652,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                                     key={`card-star-${rating.id}-${s}`}
                                     className={`w-3.5 h-3.5 ${
                                       (rating.qualityStars || 0) >= s
-                                        ? 'fill-[#C9A96E] text-[#C9A96E]'
-                                        : 'text-[#333333]'
+                                        ? 'fill-[var(--bm-star)] text-[var(--bm-accent)]'
+                                        : 'text-[var(--bm-line)]'
                                     }`}
                                   />
                                 ))}
@@ -664,16 +662,16 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                           )}
 
                           {rating.gradeFeel && (
-                            <span className={`px-2 py-0.5 rounded-none text-[10px] font-mono font-bold uppercase border ${
+                            <span className={`px-2 py-0.5 rounded-xl text-[10px] font-mono font-bold border ${
                               rating.gradeFeel === 'soft'
-                                ? 'bg-[#4A5D3A]/20 text-[#86A369] border-[#4A5D3A]/50'
+                                ? 'bg-[var(--bm-success)]/20 text-[var(--bm-success)] border-[var(--bm-success)]/50'
                                 : rating.gradeFeel === 'fair'
-                                ? 'bg-[#C9A96E]/20 text-[#C9A96E] border-[#C9A96E]/50'
-                                : 'bg-[#A0522D]/20 text-[#D97D5B] border-[#A0522D]/50'
+                                ? 'bg-[var(--bm-accent)]/20 text-[var(--bm-accent)] border-[var(--bm-accent)]/50'
+                                : 'bg-[var(--bm-danger)]/20 text-[var(--bm-danger)] border-[var(--bm-danger)]/50'
                             }`}>
-                              {rating.gradeFeel === 'soft' && '🟢 Soft'}
-                              {rating.gradeFeel === 'fair' && '🟡 Fair'}
-                              {rating.gradeFeel === 'stiff' && '🔴 Stiff'}
+                              {rating.gradeFeel === 'soft' && 'Soft'}
+                              {rating.gradeFeel === 'fair' && 'Fair'}
+                              {rating.gradeFeel === 'stiff' && 'Stiff'}
                             </span>
                           )}
                         </div>
@@ -685,13 +683,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </div>
 
             {/* Route Discussion & Beta Community Feed */}
-            <div className="space-y-3 pt-2 border-t border-[#333333]">
+            <div className="space-y-3 pt-2 border-t border-[var(--bm-line)]">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-headline uppercase tracking-wider text-[#E8E0D4] flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[#C9A96E]" />
+                <h3 className="text-sm font-headline text-[var(--bm-text)] flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[var(--bm-accent)]" />
                   <span>Routen-Diskussion & Beta ({stats.comments.length})</span>
                 </h3>
-                <span className="text-xs font-mono text-[#A89F91]">
+                <span className="text-xs font-mono text-[var(--bm-text-2)]">
                   Tipps, Tricks & Beta austauschen
                 </span>
               </div>
@@ -703,13 +701,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
                   placeholder="Diskussion starten: Beta-Tipp, Crux-Erfahrung, Tritt-Empfehlung..."
-                  className="flex-1 px-3 py-2 bg-[#121212] border border-[#333333] focus:border-[#F5F0E8] rounded-none text-xs font-mono text-[#E8E0D4] placeholder:text-[#6B6358] focus:outline-none"
+                  className="flex-1 px-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] focus:border-[var(--bm-strong)] rounded-xl text-xs font-mono text-[var(--bm-text)] placeholder:text-[var(--bm-text-3)] focus:outline-none"
                   data-testid="boulder-comment-input"
                 />
                 <button
                   type="submit"
                   disabled={!commentText.trim()}
-                  className="px-3 py-2 bg-[#F5F0E8] hover:bg-[#E8E0D4] disabled:opacity-40 disabled:cursor-not-allowed text-[#121212] font-headline uppercase font-bold text-xs tracking-wider rounded-[2px] transition flex items-center gap-1.5 shrink-0"
+                  className="px-3 py-2 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] disabled:opacity-40 disabled:cursor-not-allowed text-[var(--bm-bg)] font-headline font-bold text-xs rounded-xl transition flex items-center gap-1.5 shrink-0"
                   data-testid="boulder-comment-submit"
                 >
                   <Send className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -719,11 +717,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Comments List */}
               {stats.comments.length === 0 ? (
-                <div className="p-4 rounded-none bg-[#2A2A2A] border border-[#333333] text-center text-xs font-mono text-[#6B6358]">
+                <div className="p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-center text-xs font-mono text-[var(--bm-text-3)]">
                   Noch keine Diskussionsbeiträge. Starte als Erster die Diskussion zu diesem Boulder!
                 </div>
               ) : (
-                <div className="divide-y divide-[#333333] rounded-none bg-[#2A2A2A] border border-[#333333] overflow-hidden">
+                <div className="divide-y divide-[var(--bm-line)] rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] overflow-hidden">
                   {stats.comments.map(comment => {
                     const isAuthor = comment.userId === currentUser.id;
                     const canDelete = isAuthor || currentUser.isPlatformAdmin;
@@ -736,33 +734,33 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     return (
                       <div
                         key={comment.id}
-                        className="p-3 sm:px-4 flex items-start justify-between gap-3 hover:bg-[#1E1E1E] transition"
+                        className="p-3 sm:px-4 flex items-start justify-between gap-3 hover:bg-[var(--bm-surface)] transition"
                         data-testid={`comment-${comment.id}`}
                       >
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <button
                             type="button"
                             onClick={() => setViewingPublicUserId(comment.userId)}
-                            className="w-7 h-7 rounded-none bg-[#1E1E1E] hover:border-[#F5F0E8] flex items-center justify-center text-xs font-mono font-bold text-[#E8E0D4] border border-[#333333] shrink-0 transition"
+                            className="w-7 h-7 rounded-xl bg-[var(--bm-surface)] hover:border-[var(--bm-strong)] flex items-center justify-center text-xs font-mono font-bold text-[var(--bm-text)] border border-[var(--bm-line)] shrink-0 transition"
                             title={`${comment.userNickname}s Profil ansehen`}
                           >
                             {comment.userNickname.charAt(0)}
                           </button>
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-[#E8E0D4]">
+                              <span className="text-xs font-mono font-bold text-[var(--bm-text)]">
                                 {comment.userNickname}
                               </span>
                               {isAuthor && (
-                                <span className="text-[9px] font-mono px-1 py-0.2 bg-[#121212] text-[#C9A96E] border border-[#333333]">
+                                <span className="text-[9px] font-mono px-1 py-0.2 bg-[var(--bm-bg)] text-[var(--bm-accent)] border border-[var(--bm-line)]">
                                   Du
                                 </span>
                               )}
-                              <span className="text-[10px] font-mono text-[#6B6358]">
+                              <span className="text-[10px] font-mono text-[var(--bm-text-3)]">
                                 {dateFormatted}
                               </span>
                             </div>
-                            <p className="text-xs font-sans text-[#E8E0D4] leading-relaxed break-words">
+                            <p className="text-xs font-sans text-[var(--bm-text)] leading-relaxed break-words">
                               {comment.text}
                             </p>
                           </div>
@@ -772,7 +770,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleDeleteComment(comment.id)}
-                            className="p-1 text-[#6B6358] hover:text-[#A0522D] transition shrink-0"
+                            className="p-1 text-[var(--bm-text-3)] hover:text-[var(--bm-danger)] transition shrink-0"
                             title="Kommentar löschen"
                             data-testid={`delete-comment-${comment.id}`}
                           >

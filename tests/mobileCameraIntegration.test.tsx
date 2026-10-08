@@ -45,7 +45,7 @@ describe('SPEC-017: Mobile Schrauber-Kamera-Integration & Wandfoto-Erfassung', (
     );
 
     const cameraTab = screen.getByRole('button', { name: /Foto machen/i });
-    expect(cameraTab.className).toContain('bg-[#F5F0E8]');
+    expect(cameraTab.className).toContain('bg-[var(--bm-strong)]');
   });
 
   it('AC-2: guarantees MediaStream binding to video element and starts playback without black screen', async () => {

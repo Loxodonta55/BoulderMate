@@ -9,14 +9,14 @@
 | [SPEC-002](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-002-batch-photo-boulder-creation.md) | Batch-Foto-Boulder-Erfassung | DONE | Boris | 2026-09-04 |
 | [SPEC-003](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-003-boulder-detail-and-ratings.md) | Boulder-Detailansicht, Bewertungen & Logging | DONE | Boris | 2026-09-04 |
 | [SPEC-004](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-004-profile-statistics-logbook.md) | Persönlicher Bereich & Statistiken (Overall Statistik & Deep Dive) | DONE | Boris | 2026-09-05 |
-| [SPEC-005](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-005-design-system.md) | Design System & UI-Richtlinien | APPROVED | Boris | 2026-09-05 |
+| [SPEC-005](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-005-design-system.md) | Design System & UI-Richtlinien | SUPERSEDED | Boris | 2026-09-05 |
 | [SPEC-006](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-006-role-based-app-modes.md) | Rollenbasierte App-Trennung & Role Gateway | DONE | Boris | 2026-09-05 |
 | [SPEC-007](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-007-sector-photo-upload.md) | Sektor-Wandfoto Datei-Upload (Laptop & Lokale Bilder) | DONE | Boris | 2026-09-05 |
 | [SPEC-008](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-008-climber-performance-attributes-statistics.md) | Persönliche Kletterer-Performance & Stärken/Schwächen-Statistik | APPROVED | Boris | 2026-09-05 |
 | [SPEC-009](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-009-user-flow-and-journey.md) | End-to-End User Flow & Journey (Registrierung bis Kletterer-Herzstück) | APPROVED | Boris | 2026-09-06 |
-| [SPEC-010](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-010-spatial-2.5d-gyro-parallax-wall-depth.md) | Spatial 2.5D Gyro-Parallax & Multi-Facet Wall Depth Engine | APPROVED | Boris | 2026-09-06 |
+| [SPEC-010](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-010-spatial-2.5d-gyro-parallax-wall-depth.md) | Spatial 2.5D Gyro-Parallax & Multi-Facet Wall Depth Engine | ON HOLD | Boris | 2026-09-06 |
 | [SPEC-011](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-011-landing-page-and-unauthenticated-experience.md) | Standalone Landing Page & Unangemeldete Besucher-Experience | APPROVED | Boris | 2026-09-06 |
-| [SPEC-012](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-012-tournament-events.md) | Turnier & Boulder Jam Events (Live-Scoring & Leaderboard) | APPROVED | Boris | 2026-09-08 |
+| [SPEC-012](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-012-tournament-events.md) | Turnier & Boulder Jam Events (Live-Scoring & Leaderboard) | ON HOLD | Boris | 2026-09-08 |
 | [SPEC-013](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-013-sauberer-datenhaushalt-und-produktions-integritaet.md) | Sauberer Datenhaushalt, Produktions-Integrität & Environment-Isolation | APPROVED | Boris | 2026-09-11 |
 | [SPEC-014](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-014-real-user-auth-and-systemic-integration.md) | Echte Benutzer-Authentifizierung, Identität & Systemische Ökosystem-Integration | APPROVED | Boris | 2026-09-13 |
 | [SPEC-015](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-015-mobile-first-navigation-and-android-back-button.md) | Mobile-First Hierarchische Navigation & Android Hardware Back-Button Handling | APPROVED | Boris | 2026-09-13 |
@@ -24,4 +24,5 @@
 | [SPEC-017](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-017-mobile-schrauber-kamera-integration.md) | Mobile Schrauber-Kamera-Integration & Wandfoto-Erfassung | DONE | Boris | 2026-09-17 |
 | [SPEC-018](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-018-multi-sector-batch-creation.md) | Multi-Sektor-Batch-Erstellung & Multi-Foto-Upload (Hallen-Setup) | DONE | Boris | 2026-09-17 |
 | [SPEC-019](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-019-cross-device-sector-and-gym-realtime-sync.md) | Geräteübergreifende Echtzeit-Synchronisation für Sektoren, Hallen & Routen (Mobile <-> Desktop) | DONE | Boris | 2026-09-17 |
+| [SPEC-020](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-020-ux-overhaul-design-system-v2.md) | UX-Overhaul & Design System v2 («Chalk») | APPROVED | Boris | 2026-10-04 |
 

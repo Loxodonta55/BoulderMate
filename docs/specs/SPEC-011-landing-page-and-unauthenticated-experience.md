@@ -1,6 +1,10 @@
 # SPEC-011: Standalone Landing Page & Unangemeldete Besucher-Experience
 
-## Status: APPROVED
+> **Hinweis (04.10.2026):** Gemäß [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md) wurde das strikte Informations-Gate gelockert: Unangemeldete Gäste dürfen die Wandansicht und Sektoren im **Read-only-Modus** frei erkunden («Ohne Konto umsehen»). Aktionen wie Begehungs-Logging oder Bewerten fordern zur Anmeldung auf. Zudem entfällt das Pflicht-Role-Gateway beim Login.
+
+> **Update (06.10.2026, Text-Diät, SPEC-020 AC-9):** Die Landing Page passt auf einen Screen: Logo mit «Anmelden», Claim «Erkennen, welche Boulder cool sind.», drei Punkte («Perlen finden», «Passt zu dir», «2 Taps loggen») und zwei Buttons («Konto erstellen», «Als Kletterer testen»). Höchstens 40 Wörter. Rollen-Schalter, Mockup-Karten und Schrauber-Showcase entfallen. Test-Personas erscheinen nur im Dev-Build (`import.meta.env.DEV`), auf der Landing Page wie im Login-Modal. Ein Standardpasswort gibt es nicht mehr: Registrierung verlangt mindestens 6 Zeichen. Technische Footer-Texte («Supabase Authentication», «Aktuell nicht angemeldet (Gast)») sind entfernt. Farben: Palette «Kreide» aus SPEC-020 §2.3. Tests: `tests/landingPage.test.tsx`, `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`.
+
+## Status: APPROVED (Aktualisiert durch SPEC-020)
 
 ## Summary
 Definiert die Landing Page für unangemeldete Besucher von BoulderMate:
@@ -36,17 +40,17 @@ Definiert die Landing Page für unangemeldete Besucher von BoulderMate:
 - [x] **AC-1**: **Ausschließliche Landing Page für unangemeldete Besucher**:
   - Solange keine gültige Session existiert (`!authSession`), wird ausnahmslos die Landing Page gerendert.
   - Keine Wandansichten, Filterbars, Sektor-Wechsler oder Profil-Tabs sind ohne Anmeldung zugänglich.
-- [x] **AC-2**: **SPEC-005 Design System**:
-  - Farbpalette: Schweizer Alpen / Granit `#121212`, `#1E1E1E`, `#2A2A2A`, `#333333`, Chalk-Akzente `#F5F0E8` und Sandstein `#C9A96E`.
+- [x] **AC-2**: **Design System** (ersetzt 06.10.2026):
+  - Farbpalette «Kreide» laut SPEC-020 §2.3, hell und dunkel automatisch; keine fest codierten Farben.
   - Typografie: Space Grotesk (Headlines) und Space Mono (Metadaten/Badges).
-- [x] **AC-3**: **Rollen-Schalter mit Kletterer-Fokus**:
+- [x] **AC-3** *(entfällt seit 06.10.2026, ersetzt durch SPEC-020 AC-9.1)*: **Rollen-Schalter mit Kletterer-Fokus**:
   - Segment-Schalter zwischen „Für Kletterer“ (Default, Tag: „Fokus“) und „Für Schrauber & Routenbau“.
   - Kletterer-Showcase umfasst: Interaktive Wand, Chalk-Proof 2-Tap Logging, Performance-Radar, Community Barometer.
   - Schrauber-Showcase umfasst: Batch-Umschrauben, Feedback-Loop.
-- [x] **AC-4**: **Interaktive Screenshot- & Mockup-Vorschau**:
+- [x] **AC-4** *(entfällt seit 06.10.2026, ersetzt durch SPEC-020 AC-9.1)*: **Interaktive Screenshot- & Mockup-Vorschau**:
   - Jedes Feature verfügt über eine visuelle Mockup-Karte basierend auf realen Wandfotos (`six-a-comp.jpg`, `overhang.jpg`, `roof.jpg`, `six-a-slab.jpg`).
 - [x] **AC-5**: **Schnell-Registrierung & Login**:
-  - Login-Modal bietet Schnell-Registrierung (Kletter-Name + E-Mail), Google-Login und 1-Klick Demo-Personas.
+  - Login-Modal bietet Schnell-Registrierung (Kletter-Name + E-Mail + Passwort mit mindestens 6 Zeichen) und Google-Login. 1-Klick Demo-Personas nur im Dev-Build.
 - [x] **AC-6**: **Role Gateway Abbruch ('X')**:
   - Erscheint nach dem Login das Role Gateway („Arbeitsbereich wählen“), besitzt es immer einen Schließen-Button (`data-testid="role-gateway-close-btn"`).
   - Ein Klick auf das 'X' bricht die Anmeldung ab (`signOut()`), schließt das Fenster und versetzt den Nutzer zurück auf die Landing Page als unangemeldeter User (`Gast`).

@@ -1,33 +1,61 @@
 @import "tailwindcss";
 @source "../src";
 
+/* ==========================================================================
+   SPEC-020 · Design System v2 «Chalk» · Palette «Kreide» (06.10.2026)
+   Warmes Kreideweiß + Graphit, Messing nur für Sterne/Klassiker. Auto Light/Dark, Inter / SF, gerundete Formen, Sentence case.
+   Hallenfarben sind die einzigen bunten Elemente.
+   ========================================================================== */
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+}
+
 @layer base {
   :root {
-    --font-headline: 'Space Grotesk', -apple-system, sans-serif;
-    --font-sans: 'Inter', -apple-system, sans-serif;
-    --font-mono: 'Space Mono', monospace;
-    
-    /* SPEC-005 Design Tokens */
-    --bg-primary: #121212;
-    --bg-surface: #1E1E1E;
-    --bg-surface-elevated: #2A2A2A;
-    --bg-subtle: #333333;
+    color-scheme: light dark;
 
-    --text-primary: #E8E0D4;
-    --text-secondary: #A89F91;
-    --text-muted: #6B6358;
+    /* Light (default) */
+    --bm-bg: #F4F2EE;
+    --bm-surface: #FFFFFF;
+    --bm-elevated: #ECE9E3;
+    --bm-line: #DDD8D0;
+    --bm-text: #1A1918;
+    --bm-strong: #1A1918;
+    --bm-text-2: #6B6762;
+    --bm-text-3: #8A857D;
+    --bm-accent: #1A1918;
+    --bm-on-accent: #FFFFFF;
+    --bm-star: #8C6A2A;
+    --bm-success: #3F6B45;
+    --bm-warning: #9A5B1E;
+    --bm-danger: #B23A26;
+    --bm-overlay: rgba(255, 255, 255, 0.78);
+    --bm-scrim: rgba(26, 25, 24, 0.35);
 
-    --accent-chalk: #F5F0E8;
-    --accent-sandstone: #C9A96E;
-    --accent-brass: #B8860B;
-    --accent-granite: #8B8680;
-    --accent-moss: #4A5D3A;
-    --accent-clay: #A0522D;
+    --font-headline: var(--font-sans);
+  }
 
-    --status-success: #4A5D3A;
-    --status-warning: #C9A96E;
-    --status-error: #A0522D;
-    --status-info: #8B8680;
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bm-bg: #121110;
+      --bm-surface: #1D1C1A;
+      --bm-elevated: #2A2826;
+      --bm-line: #3A3734;
+      --bm-text: #F4F2EE;
+      --bm-strong: #F4F2EE;
+      --bm-text-2: #A39E96;
+      --bm-text-3: #78736C;
+      --bm-accent: #F4F2EE;
+      --bm-on-accent: #121110;
+      --bm-star: #D4B06A;
+      --bm-success: #8DBF95;
+      --bm-warning: #E0A86A;
+      --bm-danger: #FF7A66;
+      --bm-overlay: rgba(29, 28, 26, 0.74);
+      --bm-scrim: rgba(0, 0, 0, 0.55);
+    }
   }
 
   html, body {
@@ -45,165 +73,91 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    line-height: 1.5;
-    /* Subtiles Granit-Noise (2-3% Opacity) */
-    background-image: 
-      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
-    background-size: 16px 16px;
+    background-color: var(--bm-bg);
+    color: var(--bm-text);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "cv11" 1, "ss01" 1;
   }
 
   h1, h2, h3, h4, .font-headline {
-    font-family: var(--font-headline);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    text-transform: none;
   }
 
-  code, pre, .font-mono {
-    font-family: var(--font-mono);
-    font-feature-settings: "tnum" 1;
+  .font-mono, code, pre {
+    font-variant-numeric: tabular-nums;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
 /* Mobile & iOS Safe Area Helpers */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-.mb-safe {
-  margin-bottom: env(safe-area-inset-bottom, 0px);
-}
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
 
-
-/* SPEC-005: Formensprache & Komponenten */
-
-/* Kantige Felsblock-Karten: 0px Radius, 1px Border, keine Drop-Shadows */
-.topo-card {
-  background-color: #1E1E1E;
-  border: 1px solid #333333;
-  border-radius: 0px;
+/* Legacy-Klassen (SPEC-005) auf v2-Tokens gemappt */
+.topo-card, .modal-slab {
+  background-color: var(--bm-surface);
+  border-radius: 16px;
 }
-
 .topo-card-elevated {
-  background-color: #2A2A2A;
-  border: 1px solid #333333;
-  border-radius: 0px;
+  background-color: var(--bm-elevated);
+  border-radius: 16px;
 }
-
-/* Buttons: Minimaler 2px Radius, keine Bounces */
 .btn-primary {
-  background-color: #F5F0E8;
-  color: #121212;
-  border-radius: 2px;
-  font-family: var(--font-headline);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  transition: opacity 100ms ease-out;
-}
-.btn-primary:hover {
-  opacity: 0.9;
-}
-.btn-primary:active {
-  opacity: 0.7;
-}
-
-.btn-secondary {
-  background-color: transparent;
-  color: #E8E0D4;
-  border: 1px solid #8B8680;
-  border-radius: 2px;
-  font-family: var(--font-headline);
-  text-transform: uppercase;
+  background-color: var(--bm-accent);
+  color: var(--bm-on-accent);
+  border-radius: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  transition: opacity 100ms ease-out, border-color 100ms ease-out;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
 }
-.btn-secondary:hover {
-  border-color: #F5F0E8;
-  color: #F5F0E8;
+.btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+.btn-secondary {
+  background-color: var(--bm-elevated);
+  color: var(--bm-text);
+  border-radius: 12px;
+  font-weight: 600;
 }
-.btn-secondary:active {
-  opacity: 0.7;
-}
-
 .btn-destructive {
-  background-color: #A0522D;
-  color: #F5F0E8;
-  border-radius: 2px;
-  font-family: var(--font-headline);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  transition: opacity 100ms ease-out;
+  background-color: var(--bm-danger);
+  color: #fff;
+  border-radius: 12px;
+  font-weight: 600;
 }
-.btn-destructive:hover {
-  opacity: 0.9;
+.boulder-pin { border-radius: 50%; transition: transform 150ms ease-out; }
+
+/* Material (Blur) – nur für schwebende Overlays über Fotos */
+.bm-material {
+  background-color: var(--bm-overlay);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }
 
-/* Kreide-Akzente auf aktiven Tabs */
-.tab-active-chalk {
-  color: #F5F0E8;
-  border-bottom: 2px solid #F5F0E8;
-  text-shadow: 0 0 1px rgba(245, 240, 232, 0.4);
+/* Sheet & Toast Motion */
+@keyframes bm-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes bm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bm-toast-in { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.bm-sheet-in { animation: bm-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.bm-fade-in { animation: bm-fade-in 200ms ease-out; }
+.bm-toast-in { animation: bm-toast-in 240ms cubic-bezier(0.32, 0.72, 0, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-sheet-in, .bm-fade-in, .bm-toast-in { animation: none; }
 }
 
-/* Boulder-Pins: 50% Radius (einziges rundes Element) */
-.boulder-pin {
-  border-radius: 50%;
-  transition: transform 150ms ease-out;
-}
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bm-line); border-radius: 3px; }
 
-/* Kantige Inputs */
-input, select, textarea {
-  border-radius: 0px;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Modals & Sheets: 0px Radius */
-.modal-slab {
-  background-color: #1E1E1E;
-  border: 1px solid #333333;
-  border-radius: 0px;
-}
-
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: #121212;
-}
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 0px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #8B8680;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* SPEC-003 AC-18: 5-Sterne King-Line Gold Glow */
-@keyframes goldPulse {
-  0%, 100% {
-    box-shadow: 0 0 0px rgba(201, 169, 110, 0);
-  }
-  50% {
-    box-shadow: 0 0 16px rgba(201, 169, 110, 0.35);
-  }
-}
-
-.gold-glow {
-  animation: goldPulse 3s infinite ease-in-out;
-}
-
+/* Legacy: dezenter Glow (nicht mehr pulsierend) */
+.gold-glow { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bm-star) 40%, transparent); }

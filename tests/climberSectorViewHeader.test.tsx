@@ -43,8 +43,8 @@ describe('ClimberSectorView Header Layout & Typography (Bugfix Verification)', (
       />
     );
 
-    // 1. Breadcrumbs: Must contain "Sektoren & Wandansicht"
-    expect(screen.getByText('Sektoren & Wandansicht')).toBeInTheDocument();
+    // 1. Kein Erklär-Label mehr im Header (Text-Diät)
+    expect(screen.queryByText('Sektoren & Wandansicht')).not.toBeInTheDocument();
 
     // 2. Sector heading: Must display full "Überhang vorne" as an uppercase headline and NOT be truncated into "Ü..."
     const headings = screen.getAllByText(/Überhang vorne/i);

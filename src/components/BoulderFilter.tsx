@@ -29,22 +29,22 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
   };
 
   return (
-    <div className="bg-[#1E1E1E] border border-[#333333] rounded-none p-4 space-y-3.5">
+    <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-4 space-y-3.5">
       <div className="flex flex-col md:flex-row gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6358]" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--bm-text-3)]" />
           <input
             type="text"
             placeholder="Topo durchsuchen (Name, Halle, Sektor, Crux, Beta, Tags)..."
             value={filters.searchQuery || ''}
             onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
-            className="w-full pl-10 pr-9 py-2 bg-[#121212] border border-[#333333] rounded-none text-xs md:text-sm text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E] transition-colors"
+            className="w-full pl-10 pr-9 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl text-xs md:text-sm text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)] transition-colors"
           />
           {filters.searchQuery && (
             <button
               onClick={() => onChange({ ...filters, searchQuery: '' })}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6358] hover:text-[#E8E0D4]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bm-text-3)] hover:text-[var(--bm-text)]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -57,7 +57,7 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
             <select
               value={filters.sortBy || 'date_desc'}
               onChange={(e) => onChange({ ...filters, sortBy: e.target.value as any })}
-              className="appearance-none bg-[#121212] border border-[#333333] rounded-none pl-9 pr-8 py-2 text-xs md:text-sm text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-mono cursor-pointer"
+              className="appearance-none bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl pl-9 pr-8 py-2 text-xs md:text-sm text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-mono cursor-pointer"
             >
               <option value="date_desc">Neueste zuerst</option>
               <option value="date_asc">Älteste zuerst</option>
@@ -65,13 +65,13 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
               <option value="grade_asc">Leichteste zuerst</option>
               <option value="rating_desc">Beste Bewertung</option>
             </select>
-            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B6358] pointer-events-none" />
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--bm-text-3)] pointer-events-none" />
           </div>
 
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="px-3 py-2 text-xs font-semibold text-[#A89F91] hover:text-[#E8E0D4] bg-[#2A2A2A] hover:bg-[#333333] border border-[#333333] rounded-[2px] transition-colors flex items-center gap-1 font-headline uppercase"
+              className="px-3 py-2 text-xs font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] rounded-xl transition-colors flex items-center gap-1 font-headline"
               title="Filter zurücksetzen"
             >
               <X className="w-3.5 h-3.5" />
@@ -83,15 +83,15 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
 
       {/* Style Chips Bar */}
       <div className="flex flex-wrap items-center gap-1.5 pt-1">
-        <span className="text-[11px] font-bold text-[#A89F91] font-headline uppercase tracking-wider mr-1 flex items-center gap-1">
-          <SlidersHorizontal className="w-3 h-3 text-[#C9A96E]" /> Begehungsstil:
+        <span className="text-[11px] font-bold text-[var(--bm-text-2)] font-headline mr-1 flex items-center gap-1">
+          <SlidersHorizontal className="w-3 h-3 text-[var(--bm-accent)]" /> Begehungsstil:
         </span>
         <button
           onClick={() => onChange({ ...filters, ascentStyle: 'all' })}
-          className={`px-3 py-1 rounded-[2px] text-xs font-headline uppercase tracking-wider transition-all border ${
+          className={`px-3 py-1 rounded-xl text-xs font-headline transition-all border ${
             !filters.ascentStyle || filters.ascentStyle === 'all'
-              ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#121212] font-black'
-              : 'bg-[#121212] border-[#333333] text-[#A89F91] hover:border-[#6B6358]'
+              ? 'bg-[var(--bm-strong)] border-[var(--bm-strong)] text-[var(--bm-bg)] font-black'
+              : 'bg-[var(--bm-bg)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:border-[var(--bm-text-3)]'
           }`}
         >
           Alle
@@ -100,10 +100,10 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
           <button
             key={style.value}
             onClick={() => onChange({ ...filters, ascentStyle: style.value })}
-            className={`px-3 py-1 rounded-[2px] text-xs font-headline uppercase tracking-wider transition-all border ${
+            className={`px-3 py-1 rounded-xl text-xs font-headline transition-all border ${
               filters.ascentStyle === style.value
-                ? 'bg-[#F5F0E8] border-[#F5F0E8] text-[#121212] font-black'
-                : 'bg-[#121212] border-[#333333] text-[#A89F91] hover:border-[#6B6358]'
+                ? 'bg-[var(--bm-strong)] border-[var(--bm-strong)] text-[var(--bm-bg)] font-black'
+                : 'bg-[var(--bm-bg)] border-[var(--bm-line)] text-[var(--bm-text-2)] hover:border-[var(--bm-text-3)]'
             }`}
           >
             {style.label}
@@ -112,16 +112,16 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
       </div>
 
       {/* Additional Dropdowns (Wandneigung, Griffe, Ort) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[#333333] text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[var(--bm-line)] text-xs">
         {/* Wandneigung */}
         <div>
-          <label className="block text-[10px] uppercase font-bold text-[#A89F91] font-headline mb-1">
+          <label className="block text-[10px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Wandneigung
           </label>
           <select
             value={filters.wallAngle || 'all'}
             onChange={(e) => onChange({ ...filters, wallAngle: e.target.value as WallAngle | 'all' })}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-2.5 py-1.5 text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-2.5 py-1.5 text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           >
             <option value="all">Alle Wandneigungen</option>
             {WALL_ANGLES.map(w => (
@@ -132,13 +132,13 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
 
         {/* Griffform */}
         <div>
-          <label className="block text-[10px] uppercase font-bold text-[#A89F91] font-headline mb-1">
+          <label className="block text-[10px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Griffformen
           </label>
           <select
             value={filters.holdType || 'all'}
             onChange={(e) => onChange({ ...filters, holdType: e.target.value as HoldType | 'all' })}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-2.5 py-1.5 text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-2.5 py-1.5 text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           >
             <option value="all">Alle Griffformen</option>
             {HOLD_TYPES.map(h => (
@@ -149,13 +149,13 @@ export const BoulderFilter: React.FC<Props> = ({ filters, onChange, availableLoc
 
         {/* Location Filter */}
         <div>
-          <label className="block text-[10px] uppercase font-bold text-[#A89F91] font-headline mb-1">
+          <label className="block text-[10px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
             Gebiet / Halle
           </label>
           <select
             value={filters.location || ''}
             onChange={(e) => onChange({ ...filters, location: e.target.value })}
-            className="w-full bg-[#121212] border border-[#333333] rounded-none px-2.5 py-1.5 text-[#E8E0D4] focus:outline-none focus:border-[#C9A96E] font-sans"
+            className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl px-2.5 py-1.5 text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
           >
             <option value="">Alle Gebiete & Hallen</option>
             {availableLocations.map(loc => (

@@ -1,6 +1,8 @@
-﻿# SPEC-012: Turnier & Boulder Jam Events (Hallen-Wettkämpfe, Live-Scoring & Leaderboard)
+# SPEC-012: Turnier & Boulder Jam Events (Hallen-Wettkämpfe, Live-Scoring & Leaderboard)
 
-## Status: APPROVED / READY FOR BACKLOG
+> **Status: ON HOLD (04.10.2026) – zurückgestellt bis UX-Kern (SPEC-020) stabil ist**
+
+## Status: ON HOLD / READY FOR BACKLOG
 **Created**: 2026-09-08  
 **Author / Lead**: Boris & Antigravity  
 **Domain**: Gym Event Management, Live Competition Scoring & Realtime Leaderboards  

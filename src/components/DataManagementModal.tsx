@@ -77,21 +77,21 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-[#1E1E1E] border border-[#333333] rounded-none w-full max-w-xl overflow-hidden space-y-4">
+      <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl w-full max-w-xl overflow-hidden space-y-4">
         {/* Header */}
-        <div className="p-5 border-b border-[#333333] flex items-center justify-between">
+        <div className="p-5 border-b border-[var(--bm-line)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#2A2A2A] text-[#C9A96E] border border-[#333333] rounded-none">
+            <div className="p-2.5 bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-line)] rounded-xl">
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl font-headline uppercase tracking-wider text-[#E8E0D4]">Datenverwaltung & Backup</h3>
-              <p className="text-xs font-mono text-[#A89F91]">JSON Export und Import zur vollständigen Datenkontrolle</p>
+              <h3 className="text-xl font-headline text-[var(--bm-text)]">Datenverwaltung & Backup</h3>
+              <p className="text-xs font-mono text-[var(--bm-text-2)]">JSON Export und Import zur vollständigen Datenkontrolle</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#6B6358] hover:text-[#E8E0D4] hover:bg-[#2A2A2A] rounded-[2px] transition-colors"
+            className="p-2 text-[var(--bm-text-3)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -99,14 +99,14 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
 
         {/* Tabs */}
         <div className="px-5">
-          <div className="flex bg-[#121212] p-1 rounded-none border border-[#333333] text-xs">
+          <div className="flex bg-[var(--bm-bg)] p-1 rounded-xl border border-[var(--bm-line)] text-xs">
             <button
               onClick={() => {
                 setActiveTab('export');
                 setImportStatus(null);
               }}
-              className={`flex-1 py-2 rounded-[2px] font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === 'export' ? 'bg-[#F5F0E8] text-[#121212] font-bold' : 'text-[#A89F91] hover:text-[#E8E0D4]'
+              className={`flex-1 py-2 rounded-xl font-headline flex items-center justify-center gap-1.5 transition-all ${
+                activeTab === 'export' ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
               }`}
             >
               <Download className="w-3.5 h-3.5" /> Exportieren ({boulders.length})
@@ -116,8 +116,8 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
                 setActiveTab('import');
                 setImportStatus(null);
               }}
-              className={`flex-1 py-2 rounded-[2px] font-headline uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === 'import' ? 'bg-[#F5F0E8] text-[#121212] font-bold' : 'text-[#A89F91] hover:text-[#E8E0D4]'
+              className={`flex-1 py-2 rounded-xl font-headline flex items-center justify-center gap-1.5 transition-all ${
+                activeTab === 'import' ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)] font-bold' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
               }`}
             >
               <Upload className="w-3.5 h-3.5" /> Importieren
@@ -129,7 +129,7 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
         <div className="p-5 space-y-4">
           {activeTab === 'export' ? (
             <div className="space-y-4">
-              <div className="text-xs text-[#A89F91] font-mono">
+              <div className="text-xs text-[var(--bm-text-2)] font-mono">
                 Sichere alle deine erfassten Boulder ({boulders.length} Einträge) als standardisierte JSON-Datei:
               </div>
 
@@ -138,53 +138,53 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
                   readOnly
                   rows={8}
                   value={jsonString}
-                  className="w-full bg-[#121212] border border-[#333333] rounded-none p-3 text-xs font-mono text-[#A89F91] select-all focus:outline-none focus:border-[#C9A96E]"
+                  className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl p-3 text-xs font-mono text-[var(--bm-text-2)] select-all focus:outline-none focus:border-[var(--bm-accent)]"
                 />
               </div>
 
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDownload}
-                  className="flex-1 py-2.5 px-4 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] flex items-center justify-center gap-2 transition-all"
+                  className="flex-1 py-2.5 px-4 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
                 >
                   <Download className="w-4 h-4" /> Datei herunterladen (.json)
                 </button>
                 <button
                   onClick={handleCopy}
-                  className="py-2.5 px-4 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#F5F0E8] font-mono text-xs rounded-[2px] flex items-center gap-2 transition-colors"
+                  className="py-2.5 px-4 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-strong)] font-mono text-xs rounded-xl flex items-center gap-2 transition-colors"
                 >
-                  {copied ? <Check className="w-4 h-4 text-[#C9A96E]" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-[var(--bm-accent)]" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Kopiert!' : 'Kopieren'}
                 </button>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="text-xs text-[#A89F91] font-mono">
+              <div className="text-xs text-[var(--bm-text-2)] font-mono">
                 Lade eine JSON-Sicherungsdatei hoch oder füge den JSON-Code direkt ein:
               </div>
 
               {/* Mode Select */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs font-mono">
-                <label className="flex items-center gap-2 cursor-pointer text-[#A89F91] hover:text-[#E8E0D4]">
+                <label className="flex items-center gap-2 cursor-pointer text-[var(--bm-text-2)] hover:text-[var(--bm-text)]">
                   <input
                     type="radio"
                     name="importMode"
                     value="merge"
                     checked={importMode === 'merge'}
                     onChange={() => setImportMode('merge')}
-                    className="accent-[#C9A96E]"
+                    className="accent-[var(--bm-accent)]"
                   />
                   <span>Zusammenführen (Merge - bestehende behalten)</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer text-[#A89F91] hover:text-[#E8E0D4]">
+                <label className="flex items-center gap-2 cursor-pointer text-[var(--bm-text-2)] hover:text-[var(--bm-text)]">
                   <input
                     type="radio"
                     name="importMode"
                     value="replace"
                     checked={importMode === 'replace'}
                     onChange={() => setImportMode('replace')}
-                    className="accent-[#C9A96E]"
+                    className="accent-[var(--bm-accent)]"
                   />
                   <span>Ersetzen (Replace - alles überschreiben)</span>
                 </label>
@@ -196,7 +196,7 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
                   type="file"
                   accept=".json,application/json"
                   onChange={handleFileUpload}
-                  className="block w-full text-xs text-[#A89F91] font-mono file:mr-3 file:py-2 file:px-4 file:rounded-[2px] file:border-0 file:text-xs file:font-semibold file:bg-[#2A2A2A] file:text-[#E8E0D4] hover:file:bg-[#333333] cursor-pointer"
+                  className="block w-full text-xs text-[var(--bm-text-2)] font-mono file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[var(--bm-elevated)] file:text-[var(--bm-text)] hover:file:bg-[var(--bm-line)] cursor-pointer"
                 />
               </div>
 
@@ -205,15 +205,15 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
                 placeholder="Oder füge hier das JSON ein..."
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                className="w-full bg-[#121212] border border-[#333333] rounded-none p-3 text-xs font-mono text-[#E8E0D4] placeholder-[#6B6358] focus:outline-none focus:border-[#C9A96E]"
+                className="w-full bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl p-3 text-xs font-mono text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:border-[var(--bm-accent)]"
               />
 
               {importStatus && (
                 <div
-                  className={`p-3 rounded-none border text-xs font-mono flex items-center gap-2 ${
+                  className={`p-3 rounded-xl border text-xs font-mono flex items-center gap-2 ${
                     importStatus.success
-                      ? 'bg-[#121212] border-[#4A5D3A] text-[#4A5D3A]'
-                      : 'bg-[#121212] border-[#A0522D] text-[#A0522D]'
+                      ? 'bg-[var(--bm-bg)] border-[var(--bm-success)] text-[var(--bm-success)]'
+                      : 'bg-[var(--bm-bg)] border-[var(--bm-danger)] text-[var(--bm-danger)]'
                   }`}
                 >
                   {importStatus.success ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -223,7 +223,7 @@ export const DataManagementModal: React.FC<Props> = ({ boulders, onImportComplet
 
               <button
                 onClick={handleImportSubmit}
-                className="w-full py-2.5 px-4 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold tracking-wider text-xs rounded-[2px] flex items-center justify-center gap-2 transition-all"
+                className="w-full py-2.5 px-4 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
               >
                 <Upload className="w-4 h-4" /> Import jetzt ausführen
               </button>

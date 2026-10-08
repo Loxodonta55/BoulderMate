@@ -172,6 +172,10 @@ export interface Sector {
   wallPhotoUrl: string;
   sortOrder: number;
   createdAt: string;
+  // SPEC-021: Umbau (Wand neu schrauben)
+  draftPhotoUrl?: string; // Entwurfsfoto während eines laufenden Umbaus
+  rebuildStartedAt?: string; // gesetzt = Umbau läuft
+  rebuiltAt?: string; // Zeitpunkt von «Wand fertig» (für «Neu»-Badge)
 }
 
 export interface RadarAttributes {
@@ -238,6 +242,7 @@ export interface WallBoulder {
   createdAt: string;
   publishedAt?: string;
   archivedAt?: string;
+  wallPhotoUrl?: string; // SPEC-021: Wandfoto zum Zeitpunkt des Abschraubens
 }
 
 export interface DraftBoulderInput {

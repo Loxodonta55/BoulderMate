@@ -1,6 +1,8 @@
 # SPEC-006: Rollenbasierte App-Trennung & Role Gateway
 
-## Status: APPROVED
+> **Hinweis (04.10.2026):** Das obligatorische Role Gateway nach dem Login wurde durch die Arbeitsbereich-Einstellung unter «Ich → Einstellungen → Arbeitsbereich» abgelöst (siehe [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md)). Die App merkt sich den zuletzt aktiven Bereich; Schrauber-Studio und Admin-Konsole besitzen eine eigene Shell und werden über «Fertig» verlassen.
+
+## Status: APPROVED (Teilweise abgelöst durch SPEC-020)
 
 ## Summary
 Trennt die App-Erfahrung strikt in drei dedizierte, unabhängige Arbeitsbereiche ("Apps"):

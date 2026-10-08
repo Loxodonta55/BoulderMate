@@ -69,37 +69,30 @@ Every feature starts as a specification that aligns user requirements before imp
 | `product-owner` | Product | Requirements, backlog |
 | `product-manager` | Product | PRDs, user stories |
 
-## Design Principles & UI Guidelines
+## Design Principles & UI Guidelines (Design System v2 «Chalk»)
 
-> Vollständiges Design-System: siehe [SPEC-005](docs/specs/SPEC-005-design-system.md)
+> Vollständige Spezifikation: siehe [SPEC-020](docs/specs/SPEC-020-ux-overhaul-design-system-v2.md) (Design System v2 «Chalk»).
 
-**Zielgruppe**: 20–50 Jahre, alternativ, naturverbunden, problemlösungsorientiert.
-
-1. **Schlank & Aufgeräumt**: Wenige Elemente pro Screen, grosszügiger Schwarzraum, klare Hierarchien. Kein visual clutter.
-2. **Dark-Mode First**: Granit-Hintergrund, Sandstein-/Kreide-/Messing-Akzente. Hallenfarben sind die einzigen kräftigen Farben.
-3. **Kantig & Geometrisch**: Border-Radius 0–2px, keine Glassmorphismus-Bubbles, keine Pill-Shapes. Felsblock-Ästhetik.
-4. **Old School Kletterer Charakter**: Markante Typografie (Uppercase Headlines), subtile Granit-Texturen, Kreide-Patina. Patagonia-Katalog trifft Bergführer-Handbuch.
-5. **Schrauber unprominent**: Kletterer sehen 2 Tabs (Halle + Profil), Setter/Admins sehen 3 (+Schrauben). Admin-Tools drängen sich nicht auf.
-6. **Nur funktionale Animationen**: Mikro-Transitions (250ms max). Kein Bounce, kein Confetti, kein Parallax.
-7. **Mobile-First als Grundgesetz**: Die App wird konsequent für Smartphone-Einhandbedienung an der Wand gebaut.
-   - Sektor-Wandansicht vollflächig & optionaler Vollbild-Fokus
-   - Touch-optimierte Schrauber-Bottom-Sheets mit großen Touch-Zielen (≥ 44px) und sticky Actions
-   - Schlanke Menüführung mit Mobile Bottom Navigation Bar (Wand, Logbuch, Profil)
-   - Wischgesten (Horizontal Swipe) für flüssiges Wechseln zwischen Sektoren
-   - Vollwertiges mobiles Sektor-Umordnen (Große Rauf-/Runter-Buttons & Touch-Reorder)
-
+1. **Apple-like & Fokussiert**: Geordnet, leicht bedienbar, in 3 Sekunden verständlich (orientiert an Apple HIG / iOS-Fitness-App). Chrome schwebt als dezentes Overlay über dem Wandfoto.
+2. **Auto Light / Dark**: Automatische Umschaltung nach Systempräferenz (`prefers-color-scheme`). Neutrale Graustufen; Hallenfarben sind die einzigen bunten Elemente.
+3. **Ruhige Typografie**: Schriftfamilie **Inter** / Apple System Font, konsequentes **Sentence case** (kein generisches Uppercase), 4 feste Schriftgrößen (28/20/16/13), Zahlen in `tabular-nums`.
+4. **Moderne Rundungen**: Abgerundete Formen (Karten 16px, Buttons 12px, Sheets 20px, Pins rund) statt harter Ecken; visuelle Trennung durch Flächen und Abstände.
+5. **Navigation (2 Tabs)**: Kletterer navigieren über exakt 2 Tabs: **«Wand»** (Edge-to-Edge Wandfoto $\ge 70\,\%$ Viewport-Höhe, Sektorwahl per Swipe & Sektor-Pill) und **«Ich»** (Statistik, Pyramide, Verlauf).
+6. **Bereichswechsel in Einstellungen**: Wechsel in Schrauber-Studio und Admin-Konsole ausschließlich über `Ich → Einstellungen → Arbeitsbereich`. Kein Pflicht-Role-Gateway; Verlassen über `«Fertig»` (oben links).
+7. **2-Tap Chalk-Proof Logging**: 1 Tap auf Pin $\rightarrow$ 1 Tap auf Flash/Top $\rightarrow$ sofortiges Schließen des Sheets mit nicht-blockierendem Undo-Toast.
+8. **Gast-Modus (Read-Only)**: Unangemeldete Besucher können die Wandansicht frei erkunden; erst Aktionen wie Loggen/Bewerten fordern zum Login auf.
 
 ## Code Quality & Deployment Pipeline
 
 - Run `lint` and `type-check` (`npm run build`) before committing
-- All code changes require tests (`npm test -- --run`)
+- All code changes require tests: **Unit-Tests (Vitest) UND Playwright-E2E-Tests** für jedes Feature und jede sichtbare UI-Änderung, auch reine Design-/Text-Änderungen (CONSTITUTION §13). Fertig erst bei grünem `npm run test:all`; die Spec nennt die Testdateien.
 - Follow clean-code principles
 - Use the spec as acceptance criteria
 - **Niemals unaufgefordert mocken/faken**: Echte Services und Protokolle implementieren; keine Fake-Logins oder Mocks ohne expliziten User-Befehl.
 
 ### 🚀 End-to-End Deployment Pipeline (Code-Only: Git ──► Vercel)
 Jedes Deployment MUSS vollständig und geschlossen über diese Schritte laufen:
-1. **Pre-Flight (Lokal)**: `npm run build` und `npm test -- --run` müssen fehlerfrei grün sein.
+1. **Pre-Flight (Lokal)**: `npm run build` und `npm run test:all` (Unit + Playwright) müssen fehlerfrei grün sein.
 2. **Git & GitHub**: Saubere Semantic Commits auf `main` und `git push origin main`.
 3. **STRIKTE REGEL (KEINE DATENÜBERTRAGUNG BEIM DEPLOYMENT)**:
    - Beim Deployment werden **KEINERLEI Daten** (Farbskalen, Boulder, Sektoren, Fotos) übertragen oder synchronisiert.
@@ -110,9 +103,9 @@ Jedes Deployment MUSS vollständig und geschlossen über diese Schritte laufen:
 
 ## Tech Stack
 
-- **Frontend**: React Native / Web (Cross-Platform: iOS + Android + Web via Vite)
+- **Frontend**: React 19 + Vite PWA (mobile-first; nativer Wrapper optional)
 - **Backend**: Supabase (PostgreSQL + Auth + Storage + Realtime)
 - **Deployment**: Vercel (Production Domain: bouldermate.ch)
 - **Auth**: Social Login (Google / Apple) + E-Mail
-- **Styling**: Dark-Mode First, kantige Formensprache (siehe SPEC-005)
+- **Styling**: Design System v2 «Chalk» (Apple-like, Auto Dark/Light, Inter, Tailwind CSS, siehe [SPEC-020](docs/specs/SPEC-020-ux-overhaul-design-system-v2.md))
 - **Testing**: Vitest & React Testing Library

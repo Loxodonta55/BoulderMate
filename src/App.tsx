@@ -21,7 +21,6 @@ import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { AppHeader } from './components/AppHeader';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { useBackHandler } from './hooks/useBackHandler';
-import { Mountain } from 'lucide-react';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
@@ -237,7 +236,7 @@ export const App: React.FC = () => {
   // Dedicated Standalone Landing Page for unauthenticated visitors
   if (!authSession) {
     return (
-      <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans">
+      <div className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] flex flex-col font-sans">
         <LandingPage
           onOpenLogin={() => setIsLoginModalOpen(true)}
           onQuickLogin={(user) => {
@@ -278,7 +277,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#E8E0D4] flex flex-col font-sans overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] flex flex-col font-sans overflow-x-hidden w-full max-w-full">
       {/* Application Navigation Header */}
       <AppHeader
         appMode={appMode}
@@ -375,14 +374,6 @@ export const App: React.FC = () => {
           />
         )}
       </main>
-
-      {/* Clean, quiet Footer (SPEC-005) */}
-      <footer className="border-t border-[#333333] bg-[#121212] py-5 text-center text-xs text-[#6B6358] font-mono mb-14 md:mb-0">
-        <div className="flex items-center justify-center gap-1.5">
-          <Mountain className="w-3.5 h-3.5 text-[#C9A96E]" />
-          <span>BOULDERMATE // SPEC-005 DESIGN SYSTEM AKTIV</span>
-        </div>
-      </footer>
 
       {/* Mobile Bottom Navigation Bar (SPEC-005 & Mobile-First Daumen-Ergonomie) */}
       {appMode === 'climber' && (

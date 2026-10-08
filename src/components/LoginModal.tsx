@@ -129,8 +129,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
     
-    // Falls kein Passwort eingegeben wurde, sicheres Standardpasswort nutzen
-    const passwordToUse = registerPassword.trim() || 'bouldermate2026';
+    const passwordToUse = registerPassword.trim();
+    if (passwordToUse.length < 6) {
+      setErrorMsg('Passwort braucht mindestens 6 Zeichen.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMsg(null);
@@ -192,10 +195,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const getRoleIcon = (u: AuthUser) => {
-    if (u.isPlatformAdmin) return <Crown className="w-4 h-4 text-[#C9A96E]" />;
-    if (u.id.includes('admin') || u.roleDescription?.includes('Admin')) return <Building2 className="w-4 h-4 text-[#C9A96E]" />;
-    if (u.id.includes('schrauber') || u.roleDescription?.includes('Schrauber')) return <Wrench className="w-4 h-4 text-[#A89F91]" />;
-    return <Mountain className="w-4 h-4 text-[#8B8680]" />;
+    if (u.isPlatformAdmin) return <Crown className="w-4 h-4 text-[var(--bm-accent)]" />;
+    if (u.id.includes('admin') || u.roleDescription?.includes('Admin')) return <Building2 className="w-4 h-4 text-[var(--bm-accent)]" />;
+    if (u.id.includes('schrauber') || u.roleDescription?.includes('Schrauber')) return <Wrench className="w-4 h-4 text-[var(--bm-text-2)]" />;
+    return <Mountain className="w-4 h-4 text-[var(--bm-text-2)]" />;
   };
 
   const getGymScopeBadge = (u: AuthUser) => {
@@ -215,62 +218,62 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }}
     >
       <div
-        className="bg-[#1E1E1E] border border-[#333333] rounded-none w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl my-auto"
+        className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-[#333333] flex items-center justify-between bg-[#1A1A1A]">
+        <div className="p-4 sm:p-5 border-b border-[var(--bm-line)] flex items-center justify-between bg-[var(--bm-surface)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center text-[#C9A96E] shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center text-[var(--bm-accent)] shrink-0">
               <Shield className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
-              <h3 className="font-headline uppercase tracking-wider font-bold text-base text-[#E8E0D4]">
+              <h3 className="font-headline font-bold text-base text-[var(--bm-text)]">
                 Anmeldung & Konto
               </h3>
-              <p className="text-xs text-[#A89F91]">
+              <p className="text-xs text-[var(--bm-text-2)]">
                 Mit echtem Benutzerkonto anmelden oder neu registrieren
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#A89F91] hover:text-[#E8E0D4] min-w-[44px] min-h-[44px] p-2 rounded-[2px] bg-[#2A2A2A]/80 sm:bg-transparent hover:bg-[#2A2A2A] transition flex items-center justify-center shrink-0 border border-[#333333] sm:border-transparent"
+            className="text-[var(--bm-text-2)] hover:text-[var(--bm-text)] min-w-[44px] min-h-[44px] p-2 rounded-xl bg-[var(--bm-elevated)]/80 sm:bg-transparent hover:bg-[var(--bm-elevated)] transition flex items-center justify-center shrink-0 border border-[var(--bm-line)] sm:border-transparent"
             title="Schließen"
             aria-label="Schließen"
             data-testid="login-modal-close-btn"
           >
-            <X className="w-5 h-5 text-[#E8E0D4] sm:text-[#6B6358] sm:hover:text-[#E8E0D4]" />
+            <X className="w-5 h-5 text-[var(--bm-text)] sm:text-[var(--bm-text-3)] sm:hover:text-[var(--bm-text)]" />
           </button>
         </div>
 
         {/* Tab Navigation between Register & Login */}
-        <div className="flex border-b border-[#333333] bg-[#141414]">
+        <div className="flex border-b border-[var(--bm-line)] bg-[var(--bm-bg)]">
           <button
             type="button"
             onClick={() => { setActiveTab('register'); setErrorMsg(null); }}
-            className={`flex-1 py-3 px-3 sm:px-4 text-xs font-headline uppercase tracking-wider font-bold border-b-2 flex items-center justify-center gap-2 transition ${
+            className={`flex-1 py-3 px-3 sm:px-4 text-xs font-headline font-bold border-b-2 flex items-center justify-center gap-2 transition ${
               activeTab === 'register'
-                ? 'border-[#C9A96E] text-[#E8E0D4] bg-[#1E1E1E]'
-                : 'border-transparent text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#1A1A1A]'
+                ? 'border-[var(--bm-accent)] text-[var(--bm-text)] bg-[var(--bm-surface)]'
+                : 'border-transparent text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-surface)]'
             }`}
             data-testid="tab-register"
           >
-            <UserPlus className="w-4 h-4 text-[#C9A96E]" />
+            <UserPlus className="w-4 h-4 text-[var(--bm-accent)]" />
             <span>Konto erstellen</span>
           </button>
 
           <button
             type="button"
             onClick={() => { setActiveTab('login'); setErrorMsg(null); }}
-            className={`flex-1 py-3 px-3 sm:px-4 text-xs font-headline uppercase tracking-wider font-bold border-b-2 flex items-center justify-center gap-2 transition ${
+            className={`flex-1 py-3 px-3 sm:px-4 text-xs font-headline font-bold border-b-2 flex items-center justify-center gap-2 transition ${
               activeTab === 'login'
-                ? 'border-[#C9A96E] text-[#E8E0D4] bg-[#1E1E1E]'
-                : 'border-transparent text-[#A89F91] hover:text-[#E8E0D4] hover:bg-[#1A1A1A]'
+                ? 'border-[var(--bm-accent)] text-[var(--bm-text)] bg-[var(--bm-surface)]'
+                : 'border-transparent text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-surface)]'
             }`}
             data-testid="tab-login"
           >
-            <LogIn className="w-4 h-4 text-[#C9A96E]" />
+            <LogIn className="w-4 h-4 text-[var(--bm-accent)]" />
             <span>Anmelden</span>
           </button>
         </div>
@@ -278,15 +281,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Body */}
         <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
           {message && (
-            <div className="p-3 rounded-none bg-[#121212] border border-[#4A5D3A] text-[#86efac] text-xs flex items-center gap-2 font-mono">
-              <Check className="w-4 h-4 shrink-0 text-[#86efac]" />
+            <div className="p-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-success)] text-[var(--bm-success)] text-xs flex items-center gap-2 font-mono">
+              <Check className="w-4 h-4 shrink-0 text-[var(--bm-success)]" />
               <span>{message}</span>
             </div>
           )}
 
           {errorMsg && (
             <div 
-              className="p-3 rounded-none bg-[#1F1212] border border-[#ef4444]/40 text-[#ef4444] text-xs flex items-center gap-2 font-mono"
+              className="p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-danger)]/40 text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono"
               data-testid="register-error-msg"
             >
               <span>{errorMsg}</span>
@@ -295,27 +298,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           {/* Current Active User Status */}
           {currentUser ? (
-            <div className="p-3.5 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {currentUser.avatarUrl ? (
                   <img
                     src={currentUser.avatarUrl}
                     alt=""
-                    className="w-10 h-10 rounded-none object-cover border border-[#333333]"
+                    className="w-10 h-10 rounded-xl object-cover border border-[var(--bm-line)]"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center font-bold text-[#E8E0D4]">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center font-bold text-[var(--bm-text)]">
                     {currentUser.nickname.charAt(0)}
                   </div>
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-[#E8E0D4]">{currentUser.nickname}</span>
-                    <span className="px-2 py-0.5 rounded-none text-[9px] font-bold bg-[#2A2A2A] text-[#C9A96E] border border-[#C9A96E]/40 uppercase font-mono">
+                    <span className="font-bold text-sm text-[var(--bm-text)]">{currentUser.nickname}</span>
+                    <span className="px-2 py-0.5 rounded-xl text-[9px] font-bold bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-accent)]/40 font-mono">
                       {currentUser.roleDescription || (currentUser.isPlatformAdmin ? 'OverAdmin' : 'Kletterer')}
                     </span>
                   </div>
-                  <div className="text-[11px] text-[#A89F91] font-mono mt-0.5">
+                  <div className="text-[11px] text-[var(--bm-text-2)] font-mono mt-0.5">
                     Aktiv angemeldet • {currentUser.email}
                   </div>
                 </div>
@@ -323,45 +326,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] text-xs text-[#A89F91] hover:text-[#ef4444] border border-[#333333] font-mono transition"
+                className="px-3 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-xs text-[var(--bm-text-2)] hover:text-[var(--bm-danger)] border border-[var(--bm-line)] font-mono transition"
               >
                 Abmelden
               </button>
             </div>
-          ) : (
-            <div className="p-3.5 rounded-none bg-[#121212] border border-[#333333] flex items-center justify-between text-xs text-[#A89F91]">
-              <span>Aktuell nicht angemeldet (Gast)</span>
-            </div>
-          )}
+          ) : null}
 
           {/* TAB 1: REGISTRIERUNG */}
           {activeTab === 'register' && (
-            <div className="p-4 bg-[#161616] border border-[#333333] rounded-none space-y-3">
+            <div className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
-                  <UserPlus className="w-4 h-4 text-[#C9A96E]" />
+                <span className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-[var(--bm-accent)]" />
                   <span>Neues Kletterer-Konto erstellen</span>
                 </span>
-                <span className="text-[10px] font-mono text-[#86efac] bg-[#4A5D3A]/30 border border-[#86efac]/30 px-1.5 py-0.5">
+                <span className="text-[10px] font-mono text-[var(--bm-success)] bg-[var(--bm-success)]/30 border border-[var(--bm-success)]/30 px-1.5 py-0.5">
                   Kostenlos & sofort startklar
                 </span>
               </div>
 
               <form onSubmit={handleRegister} noValidate className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[#A89F91] uppercase tracking-wider">Kletter-Name (Nickname)</label>
+                  <label className="text-[11px] font-mono text-[var(--bm-text-2)]">Kletter-Name (Nickname)</label>
                   <input
                     type="text"
                     placeholder="z.B. Alex oder Boulderer99"
                     value={registerNickname}
                     onChange={e => setRegisterNickname(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                    className="w-full px-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                     data-testid="input-register-nickname"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[#A89F91] uppercase tracking-wider">E-Mail-Adresse</label>
+                  <label className="text-[11px] font-mono text-[var(--bm-text-2)]">E-Mail-Adresse</label>
                   <div className="relative">
                     <input
                       type="email"
@@ -369,25 +368,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={registerEmail}
                       onChange={e => setRegisterEmail(e.target.value)}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-register-email"
                     />
-                    <Mail className="w-4 h-4 text-[#6B6358] absolute left-2.5 top-2.5" />
+                    <Mail className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[#A89F91] uppercase tracking-wider">Passwort (mind. 6 Zeichen)</label>
+                  <label className="text-[11px] font-mono text-[var(--bm-text-2)]">Passwort (mind. 6 Zeichen)</label>
                   <div className="relative">
                     <input
                       type="password"
                       placeholder="••••••••"
                       value={registerPassword}
                       onChange={e => setRegisterPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-register-password"
                     />
-                    <Lock className="w-4 h-4 text-[#6B6358] absolute left-2.5 top-2.5" />
+                    <Lock className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
                   </div>
                 </div>
 
@@ -395,7 +394,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full sm:flex-1 px-4 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs tracking-wider transition rounded-[2px] disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                    className="w-full sm:flex-1 px-4 py-2.5 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
                     data-testid="btn-register-submit"
                   >
                     {isSubmitting ? (
@@ -415,11 +414,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     type="button"
                     onClick={handleGoogleAuth}
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#8B8680] font-mono text-xs transition rounded-[2px] disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-text-2)] font-mono text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
                     title="Mit Google anmelden"
                     data-testid="btn-google-login"
                   >
-                    <Globe className="w-4 h-4 text-[#C9A96E]" />
+                    <Globe className="w-4 h-4 text-[var(--bm-accent)]" />
                     <span>Mit Google</span>
                   </button>
                 </div>
@@ -429,20 +428,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           {/* TAB 2: ANMELDUNG (LOGIN) */}
           {activeTab === 'login' && (
-            <div className="p-4 bg-[#161616] border border-[#333333] rounded-none space-y-3">
+            <div className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-headline font-bold uppercase tracking-wider text-[#E8E0D4] flex items-center gap-1.5">
-                  <LogIn className="w-4 h-4 text-[#C9A96E]" />
+                <span className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-1.5">
+                  <LogIn className="w-4 h-4 text-[var(--bm-accent)]" />
                   <span>Mit bestehendem Konto anmelden</span>
                 </span>
-                <span className="text-[10px] font-mono text-[#C9A96E] bg-[#C9A96E]/10 border border-[#C9A96E]/30 px-1.5 py-0.5">
+                <span className="text-[10px] font-mono text-[var(--bm-accent)] bg-[var(--bm-accent)]/10 border border-[var(--bm-accent)]/30 px-1.5 py-0.5">
                   Supabase Auth
                 </span>
               </div>
 
               <form onSubmit={handleLogin} noValidate className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[#A89F91] uppercase tracking-wider">E-Mail-Adresse</label>
+                  <label className="text-[11px] font-mono text-[var(--bm-text-2)]">E-Mail-Adresse</label>
                   <div className="relative">
                     <input
                       type="email"
@@ -450,20 +449,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={loginEmail}
                       onChange={e => setLoginEmail(e.target.value)}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-login-email"
                     />
-                    <Mail className="w-4 h-4 text-[#6B6358] absolute left-2.5 top-2.5" />
+                    <Mail className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-mono text-[#A89F91] uppercase tracking-wider">Passwort</label>
+                    <label className="text-[11px] font-mono text-[var(--bm-text-2)]">Passwort</label>
                     <button
                       type="button"
                       onClick={() => setShowMagicLinkInput(!showMagicLinkInput)}
-                      className="text-[10px] font-mono text-[#C9A96E] hover:underline"
+                      className="text-[10px] font-mono text-[var(--bm-accent)] hover:underline"
                     >
                       Passwort vergessen? / Magic Link
                     </button>
@@ -474,25 +473,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       placeholder="••••••••"
                       value={loginPassword}
                       onChange={e => setLoginPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-[#333333] text-[#E8E0D4] placeholder-[#6B6358] text-xs font-mono focus:outline-none focus:border-[#C9A96E]"
+                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-login-password"
                     />
-                    <Lock className="w-4 h-4 text-[#6B6358] absolute left-2.5 top-2.5" />
+                    <Lock className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
                   </div>
                 </div>
 
                 {showMagicLinkInput && (
-                  <div className="p-3 bg-[#1A1A1A] border border-[#C9A96E]/30 rounded-none space-y-2">
-                    <div className="text-[11px] font-mono text-[#E8E0D4] flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-[#C9A96E]" />
+                  <div className="p-3 bg-[var(--bm-surface)] border border-[var(--bm-accent)]/30 rounded-xl space-y-2">
+                    <div className="text-[11px] font-mono text-[var(--bm-text)] flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
                       <span>Passwortloser Login via Magic Link:</span>
                     </div>
-                    <p className="text-[10px] text-[#A89F91]">
+                    <p className="text-[10px] text-[var(--bm-text-2)]">
                       Wir senden einen sofortigen Einlogg-Link an deine E-Mail-Adresse.
                     </p>
                     {magicLinkSent ? (
-                      <div className="p-2 bg-[#4A5D3A]/20 border border-[#86efac]/40 text-[#86efac] text-xs font-mono flex items-center gap-1.5">
-                        <Check className="w-3.5 h-3.5 text-[#86efac]" />
+                      <div className="p-2 bg-[var(--bm-success)]/20 border border-[var(--bm-success)]/40 text-[var(--bm-success)] text-xs font-mono flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-[var(--bm-success)]" />
                         <span>Link wurde verschickt! Bitte Postfach prüfen.</span>
                       </div>
                     ) : (
@@ -500,7 +499,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         type="button"
                         onClick={handleSendMagicLink}
                         disabled={isSubmitting || !loginEmail}
-                        className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333333] text-xs font-mono text-[#C9A96E] border border-[#333333] flex items-center gap-1.5 transition disabled:opacity-50"
+                        className="px-3 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-xs font-mono text-[var(--bm-accent)] border border-[var(--bm-line)] flex items-center gap-1.5 transition disabled:opacity-50"
                       >
                         <Send className="w-3 h-3" />
                         <span>Magic Link jetzt senden</span>
@@ -513,7 +512,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full sm:flex-1 px-4 py-2.5 bg-[#F5F0E8] hover:bg-[#E8E0D4] text-[#121212] font-headline uppercase font-bold text-xs tracking-wider transition rounded-[2px] disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                    className="w-full sm:flex-1 px-4 py-2.5 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-headline font-bold text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
                     data-testid="btn-login-submit"
                   >
                     {isSubmitting ? (
@@ -533,11 +532,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     type="button"
                     onClick={handleGoogleAuth}
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[#2A2A2A] hover:bg-[#333333] text-[#E8E0D4] border border-[#333333] hover:border-[#8B8680] font-mono text-xs transition rounded-[2px] disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-text-2)] font-mono text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
                     title="Mit Google anmelden"
                     data-testid="btn-google-login"
                   >
-                    <Globe className="w-4 h-4 text-[#C9A96E]" />
+                    <Globe className="w-4 h-4 text-[var(--bm-accent)]" />
                     <span>Mit Google</span>
                   </button>
                 </div>
@@ -545,11 +544,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {/* 6 PROFILE CARDS GRID (TEST PERSONAS IMMER ZUGÄNGLICH) */}
+          {/* Test-Personas nur im Dev-Build (SPEC-020 AC-9.4) */}
+          {import.meta.env.DEV && (
           <div className="pt-2">
-            <div className="text-[11px] text-[#A89F91] uppercase font-headline tracking-wider font-bold mb-3 flex items-center justify-between">
+            <div className="text-[11px] text-[var(--bm-text-2)] font-headline font-bold mb-3 flex items-center justify-between">
               <span>Oder mit bestehendem Test-Profil einloggen ({testUsers.length})</span>
-              <span className="text-[10px] font-mono text-[#6B6358]">Passwort: bouldermate2026</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -560,10 +559,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     key={u.id}
                     data-testid={`persona-login-${u.id}`}
                     onClick={() => handleSelectPersona(u)}
-                    className={`p-4 rounded-none border text-left transition-all flex flex-col justify-between group ${
+                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between group ${
                       isActive
-                        ? 'bg-[#2A2A2A] border-[#C9A96E] ring-1 ring-[#C9A96E]'
-                        : 'bg-[#141414] border-[#333333] hover:border-[#8B8680] hover:bg-[#1E1E1E]'
+                        ? 'bg-[var(--bm-elevated)] border-[var(--bm-accent)] ring-1 ring-[var(--bm-accent)]'
+                        : 'bg-[var(--bm-bg)] border-[var(--bm-line)] hover:border-[var(--bm-text-2)] hover:bg-[var(--bm-surface)]'
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -573,14 +572,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           <img
                             src={u.avatarUrl}
                             alt=""
-                            className="w-11 h-11 rounded-none object-cover border border-[#333333] group-hover:border-[#C9A96E] transition"
+                            className="w-11 h-11 rounded-xl object-cover border border-[var(--bm-line)] group-hover:border-[var(--bm-accent)] transition"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-none bg-[#2A2A2A] border border-[#333333] flex items-center justify-center font-bold text-sm text-[#E8E0D4]">
+                          <div className="w-11 h-11 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center font-bold text-sm text-[var(--bm-text)]">
                             {u.nickname.charAt(0)}
                           </div>
                         )}
-                        <div className="absolute -bottom-1 -right-1 bg-[#1E1E1E] border border-[#333333] p-0.5 rounded-none">
+                        <div className="absolute -bottom-1 -right-1 bg-[var(--bm-surface)] border border-[var(--bm-line)] p-0.5 rounded-xl">
                           {getRoleIcon(u)}
                         </div>
                       </div>
@@ -588,29 +587,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       {/* Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-sm text-[#E8E0D4] truncate font-headline uppercase tracking-wide">
+                          <span className="font-bold text-sm text-[var(--bm-text)] truncate font-headline">
                             {u.nickname}
                           </span>
                           {isActive && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-[#C9A96E] font-mono font-bold">
+                            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--bm-accent)] font-mono font-bold">
                               <Check className="w-3 h-3" /> Aktiv
                             </span>
                           )}
                         </div>
 
-                        <div className="text-[11px] font-bold text-[#C9A96E] font-mono mt-0.5">
+                        <div className="text-[11px] font-bold text-[var(--bm-accent)] font-mono mt-0.5">
                           {u.roleDescription}
                         </div>
 
-                        <div className="text-[10px] text-[#8B8680] font-mono mt-1 leading-snug">
+                        <div className="text-[10px] text-[var(--bm-text-2)] font-mono mt-1 leading-snug">
                           {getGymScopeBadge(u)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-[#262626] flex items-center justify-between text-[10px] font-mono text-[#6B6358]">
+                    <div className="mt-3 pt-2.5 border-t border-[var(--bm-elevated)] flex items-center justify-between text-[10px] font-mono text-[var(--bm-text-3)]">
                       <span>{u.email}</span>
-                      <span className="text-[#A89F91] group-hover:text-[#E8E0D4] transition">
+                      <span className="text-[var(--bm-text-2)] group-hover:text-[var(--bm-text)] transition">
                         {isActive ? 'Ausgewählt' : 'Einloggen →'}
                       </span>
                     </div>
@@ -619,15 +618,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               })}
             </div>
           </div>
+          )}
         </div>
 
         {/* Footer for Mobile / Quick Dismiss */}
-        <div className="p-3.5 sm:p-4 border-t border-[#333333] bg-[#1A1A1A] flex items-center justify-between">
-          <span className="text-[11px] font-mono text-[#6B6358]">BoulderMate Supabase Authentication</span>
+        <div className="p-3.5 sm:p-4 border-t border-[var(--bm-line)] bg-[var(--bm-surface)] flex items-center justify-between">
+          <span />
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#E8E0D4] bg-[#2A2A2A] border border-[#333333] hover:bg-[#333333] transition"
+            className="px-4 py-2 text-xs font-mono font-bold text-[var(--bm-text)] bg-[var(--bm-elevated)] border border-[var(--bm-line)] hover:bg-[var(--bm-line)] transition"
             data-testid="login-modal-cancel-btn"
           >
             Schließen

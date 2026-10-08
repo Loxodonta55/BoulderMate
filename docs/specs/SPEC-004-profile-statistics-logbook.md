@@ -1,6 +1,10 @@
 # SPEC-004: Persönlicher Bereich & Statistiken (Overall Statistik & Deep Dive)
 
-## Status: APPROVED (Konsolidierung: 2-Pfeiler-Navigation mit Sub-Bereichen Overall & Deep Dive)
+> **Hinweis (04.10.2026):** Gemäß [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md) wurden die separaten Sub-Tabs «Overall Statistik» und «Deep Dive» durch eine einzige, aufgeräumte und scrollbare «Ich»-Seite ersetzt. Komplexe Filter (Grifftyp, Neigung) und Daten-Backups wurden in die Einstellungen verlagert.
+
+> **Update (06.10.2026, Text-Diät, SPEC-020):** Der Tab heißt «Ich» statt «Statistiken». Die KPI-Kacheln zeigen nur Zahl und Label, ohne Erklär-Untertitel («inkl. aller Flashes», «im 1. Versuch», «Fontainebleau-Maximum»). Die Gradverteilung zeigt nur Grade, die tatsächlich geklettert wurden. Der Hallenfilter heißt nur «Halle». Noch offen (SPEC-020 AC-7): verschachtelte Sub-Tabs durch die einzelne `MeView` ersetzen. Tests: `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`.
+
+## Status: APPROVED (Konsolidiert durch SPEC-020)
 
 ## Summary
 Konsolidiert den persönlichen Kletterer-Bereich in eine klare 2-Pfeiler-Architektur: In der Hauptnavigation für Kletterer gibt es exklusiv die zwei Kernbereiche **Wand & Sektoren** (Routen bewerten & Hallen-Topo) und **Meine Statistiken** (Persönlicher Bereich). Die bisherigen separaten Menüpunkte „Mein Profil“ und „Kletterlogbuch“ entfallen als getrennte Top-Level-Tabs und sind nun nahtlos im persönlichen Statistikbereich gebündelt.
@@ -148,6 +152,9 @@ LIMIT 50;
 - Statistik-Daten werden über Supabase RPC-Funktionen oder Views bereitgestellt (kein direkter Tabellenzugriff für fremde Logbücher).
 
 ### UI / UX (Design System SPEC-005 Konform)
+
+> Farbwerte und Tab-Namen in diesem Abschnitt sind historisch. Gültig sind die Palette «Kreide» ([SPEC-020 §2.3](SPEC-020-ux-overhaul-design-system-v2.md)) und die Tabs «Wand» und «Ich».
+
 - **Visuelle Ästhetik**: Dark-Mode First (`--bg-primary: #121212`, `--bg-surface: #1E1E1E`, `--bg-subtle: #333333`), keine abgerundeten Ecken (`0px` Radius für Kacheln, Karten, Avatare).
 - **Typografie**: Space Grotesk Bold Uppercase für Headlines, Space Mono für KPIs und Zahlen, Inter für Fließtext.
 - **Avatar**: Quadratisch (`0px` Radius), bewusst gegen den Kreis-Standard.

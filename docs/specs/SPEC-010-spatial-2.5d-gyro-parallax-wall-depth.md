@@ -1,6 +1,8 @@
-﻿# SPEC-010: Spatial 2.5D Gyro-Parallax & Multi-Facet Wall Depth Engine
+# SPEC-010: Spatial 2.5D Gyro-Parallax & Multi-Facet Wall Depth Engine
 
-## Status: APPROVED
+> **Status: ON HOLD (04.10.2026) – zurückgestellt bis UX-Kern (SPEC-020) stabil ist**
+
+## Status: ON HOLD
 **Owner:** Boris  
 **Created:** 2026-09-06  
 **Zielgruppe:** Kletterer (Wow-Effekt & Beta-Lesen) & Schrauber (0 Sekunden Mehraufwand)

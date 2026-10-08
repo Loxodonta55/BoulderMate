@@ -1,8 +1,12 @@
 # 🧗 BoulderMate — Constitution
 
 > **Projektname**: BoulderMate
-> **Version**: 1.0 — Erstellt am 04.09.2026
-> **Status**: Genehmigt durch Grill-Me Interview
+> **Version**: 2.0 — Aktualisiert am 04.10.2026
+> **Status**: Genehmigt (UX-Overhaul v2)
+
+### Changelog
+- **v2.0 (04.10.2026)**: UX-Komplettüberarbeitung (SPEC-020 «Chalk»). 2 Tabs («Wand» & «Ich»), PWA (React 19 + Vite), Entfall Pflicht-Role-Gateway zugunsten von Arbeitsbereich in Einstellungen («Fertig»-Button zum Verlassen), Gast-Modus read-only, 5-Achsen-Radar beibehalten, Schrauber-Schnellerfassung (nur Farbe Pflicht, Details eingeklappt, Auswählen-Modus statt Rechteck), Edge-to-Edge Wandfoto (≥ 70 % Viewport-Höhe), sofortiges Schließen mit Undo-Toast nach Logging, Ersetzung der kantigen Design-Prinzipien durch die 8 Leitprinzipien.
+- **v1.0 (04.09.2026)**: Initiale Genehmigung nach Grill-Me Interview.
 
 ---
 
@@ -37,7 +41,7 @@ BoulderMate ist keine Verwaltungssoftware und kein bürokratisches Topo, sondern
 
 | Entscheidung      | Wahl                                                    |
 | ----------------- | ------------------------------------------------------- |
-| **Frontend**      | React Native (Cross-Platform: iOS + Android)            |
+| **Frontend**      | React 19 + Vite PWA (Web, mobile-first; nativer Wrapper optional später) |
 | **Backend**       | Supabase (PostgreSQL + Auth + Storage + Realtime)       |
 | **Auth**          | Social Login (Google / Apple) + optionale E-Mail        |
 | **Bild-Storage**  | Supabase Storage (Wandfotos, Profilbilder)              |
@@ -53,27 +57,34 @@ Die App ist strikt in drei autarke, voneinander getrennte Bereiche unterteilt.
 > Die 3 Bereiche der App sind **völlig voneinander getrennt**. **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jedes Feature, jede Aktion und jeder Dialog gehört exklusiv zu genau einem Bereich. Es gibt keine geteilten oder bereichsübergreifenden Feature-Aufrufe.
 
 ### 3.1 Kletterer-Bereich (Standard-User / Kletterer-App)
-- **Hauptnavigation (2 Säulen)**:
-  - **Wand & Sektoren**: Interaktive Wand- & Sektoransicht mit markierten Bouldern, Bouldernavigation, Filter & Sortierung, Begehungen erfassen (Flash/Top/Projekt), Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, Sterne-Qualität, Radar-Chart).
-  - **Meine Statistiken (Persönlicher Bereich)**:
-    - *Sub-Bereich Overall Statistik*: Profil-Header, Fontainebleau-KPIs, Grad-Verteilung, Stil- & Athleten-Radar (SPEC-008), kompakte Begehungshistorie, Account-Einstellungen.
-    - *Sub-Bereich Deep Dive*: Umfassendes Kletterlogbuch, erweiterte Filter nach Wandneigung/Grifftypen/Stil, detaillierte Kennzahlen-Bar, Routen-Erfassung & Daten-Backup.
-- **Strikte Isolation**: Keine Schrauber-Werkzeuge, kein Erstellen/Archivieren von Bouldern, keine Sektor- oder Hallenverwaltung.
+- **Hauptnavigation (2 Tabs)**:
+  - **Wand**: Interaktive Wand- & Sektoransicht mit markierten Bouldern, Bouldernavigation, Filter & Sortierung, Begehungen erfassen (Flash/Top/Projekt), Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, Sterne-Qualität, Radar-Chart).
+  - **Ich**: Persönlicher Bereich bündelt Statistiken (Tops, Flash-Quote, Bester Grad, Fontainebleau-Gradpyramide, 5-Achsen-Stilprofil), Session-Verlauf und Einstellungen (Zahnrad).
+- **Bereichswechsel & Berechtigungen**:
+  - Der Wechsel in das Schrauber-Studio oder die Hallen-Admin-Konsole erfolgt **ausschließlich über `Ich → Einstellungen → Arbeitsbereich`** (nur sichtbar bei entsprechenden Rechten).
+  - **Kein Pflicht-Gateway nach Login**: Nach der Anmeldung startet der Nutzer direkt in seinem zuletzt genutzten Bereich; die App merkt sich diesen Zustand.
+  - Das Schrauber-Studio und die Hallen-Admin-Konsole besitzen eine eigene Shell und werden über die Aktion **«Fertig»** (oben links) verlassen, um zur Kletterer-App zurückzukehren.
+- **Gast-Modus (nicht angemeldet)**:
+  - Unangemeldete Gäste dürfen die Wand und Sektoren im **Read-only-Modus** ansehen (niedrige Einstiegshürde).
+  - Interaktionen wie Loggen (`Flash`/`Top`/`Projekt`) oder Bewerten fordern zur Anmeldung auf.
+- **Strikte Isolation**: Keine Schrauber-Werkzeuge, kein Erstellen/Archivieren/Löschen von Bouldern, keine Sektor- oder Hallenverwaltung im Kletterer-Bereich.
 
 ### 3.2 Schrauber-Bereich (Schrauber-Studio / Route Setter)
 - **Exklusive Schrauber-Features**:
-  - Batch-Foto-Workflow zur visuellen Neuerfassung von Bouldern auf Wandfotos
-  - Setzen initialer Parameter (Grifffarbe, Hallengrad, 5-Achsen-Radar)
-  - Bearbeiten und Archivieren eigener/aktiver Boulder
-  - Schrauber-spezifische Feedback-Übersicht (Community-Resonanz auf eigene Routen)
+  - Eigene Shell mit «Fertig»-Schaltfläche (oben links) zum Verlassen zurück zur Kletterer-App.
+  - Sektorauswahl als übersichtliche Liste/Sheet mit Thumbnails.
+  - Schnellerfassung auf Wandfotos (nur Farbe als Pflichtfeld, Details eingeklappt, Ziel: < 3 Min pro Wand).
+  - Bearbeiten, Mehrfach-Archivieren und Löschen von Bouldern über den «Auswählen»-Modus.
+  - Schrauber-spezifische Feedback-Übersicht (Community-Resonanz auf eigene Routen).
 - **Strikte Isolation**: Kein persönliches Logbuch, keine Begehungs-Einträge, keine Hallen-Stammdaten-/Rechteverwaltung.
 
 ### 3.3 Hallen-Admin-Bereich (Admin-Konsole)
 - **Exklusive Admin-Features**:
-  - Verwaltung der Hallenstammdaten (Name, Anschrift, Basisdaten)
-  - Sektoren- und Wand-Management (Sektoren anlegen, sortieren, Sektorfotos hochladen/aktualisieren)
-  - Farbsystem- und Grading-Konfiguration (Hallenskalen, Farbwerte, Font-Mapping)
-  - Team- & Rechteverwaltung (Schrauber ernennen/entziehen, Hallen-Admins verwalten)
+  - Eigene Shell mit «Fertig»-Schaltfläche (oben links) zum Verlassen zurück zur Kletterer-App.
+  - Verwaltung der Hallenstammdaten (Name, Anschrift, Basisdaten) im Listenstil.
+  - Sektoren- und Wand-Management (Sektoren anlegen, per Drag-Handles sortieren, Sektorfotos hochladen/aktualisieren).
+  - Farbsystem- und Grading-Konfiguration (Hallenskalen, Farbwerte, Font-Mapping).
+  - Team- & Rechteverwaltung (Schrauber ernennen/entziehen, Hallen-Admins verwalten).
 - **Strikte Isolation**: Kein Routenbau-/Batch-Editor, kein Loggen von Begehungen oder Kletterer-Funktionen.
 
 ---
@@ -108,7 +119,7 @@ Multi-Gym Architektur
 | **Farbe/Grad**      | Hallenspezifische Skala  | Farbe der Griffe / Hallen-Schwierigkeitsband   |
 | **Sektor**          | Referenz                 | In welchem Sektor/an welcher Wand              |
 | **Position**        | Koordinaten auf Wandfoto | Markierung auf dem Sektor-Foto (relativ 0..1)  |
-| **Radar-Chart**     | 5× Wert (1-5)           | Kraft, Technik, Balance, Koordination, Flexibilität |
+| **Radar-Chart**     | 5× Wert (1-5)           | Kraft, Technik, Balance, Koordination, Flexibilität (5 Achsen, Kraft nicht gesplittet) |
 | **Schrauber**       | Referenz                 | Wer hat den Boulder geschraubt                 |
 | **Erstelldatum**    | Timestamp                | Wann wurde der Boulder erstellt                |
 
@@ -132,33 +143,21 @@ Multi-Gym Architektur
 
 ---
 
-## 6. Schrauber-Workflow: Batch-Foto-Erfassung
+## 6. Schrauber-Workflow: Schnellerfassung
 
 > **Ziel**: Nach dem Schraubtag soll eine Wand mit ~8 Bouldern in **unter 3 Minuten** komplett erfasst sein.
 
 ### Ablauf:
 
-```
-1. Schrauber öffnet App → wählt Sektor
-2. Fotografiert die fertige Wand (oder nutzt bestehendes Foto)
-3. Tippt auf die Position jedes neuen Boulders im Foto
-4. Pro Boulder erscheint ein Schnell-Formular:
-   ┌─────────────────────────────────┐
-   │  Farbe:   [🔴 Rot]  ▼ (Pflicht) │
-   │                                 │
-   │  Radar-Chart (optional, 1-5):  │
-   │  Kraft:         ●●●○○  (3/5)   │
-   │  Technik:       ●●●●○  (4/5)   │
-   │  Balance:       ●●○○○  (2/5)   │
-   │  Koordination:  ●●●○○  (3/5)   │
-   │  Flexibilität:  ●○○○○  (1/5)   │
-   │                                 │
-   │  Name / Notizen (optional)      │
-   │                                 │
-   │  [Speichern]                    │
-   └─────────────────────────────────┘
-5. Nach dem letzten Boulder: "Zusammenfassung & Veröffentlichen ✓"
-```
+1. Schrauber öffnet App → wählt Sektor (Liste/Sheet mit Thumbnails).
+2. Fotografiert die fertige Wand (Foto aufnehmen oder aus Mediathek).
+3. Tippt auf die Position jedes neuen Boulders im Foto.
+4. Pro Boulder erscheint das kompakte Schnellerfassungs-Sheet:
+   - **Farbe**: [🔴 Rot] ▼ (**einziges Pflichtfeld**)
+   - Button: «Weiter zum nächsten»
+   - Bereich **«Details (optional)»**: Initial eingeklappt; enthält Name/Notizen und die 5 Radar-Slider (Kraft, Technik, Balance, Koordination, Flexibilität).
+5. **Mehrfachauswahl**: Über den **«Auswählen»-Modus** (iOS-Fotos-Muster) können mehrere Pins direkt angetippt und gemeinsam archiviert oder gelöscht werden (kein Desktop-Marquee-Rechteck).
+6. Nach dem letzten Boulder: Veröffentlichen-Leiste («X Änderungen · Veröffentlichen»).
 
 ---
 
@@ -175,7 +174,8 @@ Multi-Gym Architektur
 ### 7.2 Qualitäts-Bewertung: 5 Sterne ⭐
 Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 
-### 7.3 Radar-Chart: 5 Achsen
+### 7.3 Radar-Chart: 5 Achsen (Konsequent 5 Dimensionen)
+Das Radar-Chart verwendet einheitlich **5 Achsen** (kein Aufsplitten von Kraft in Maximalkraft und Kraft-Ausdauer — weniger ist mehr):
 - **Kraft**: Fingerkraft, Blockierkraft, Zugkraft
 - **Technik**: Fußarbeit, Präzision, Körperspannung
 - **Balance**: Gleichgewicht, Stabilität
@@ -198,31 +198,18 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 
 ---
 
-## 10. Design-Prinzipien & UI-Architektur
+## 10. Design-Prinzipien & UI-Architektur (Design System v2 «Chalk»)
 
-1. **Stets sehr aufgeräumtes, reduziertes Design (Klarheit vor Masse)**:
-   - Wenige, dafür klar erkennbare und strikt getrennte Features.
-   - Ruhiges, aufgeräumtes Layout mit großzügigem Weißraum / Stone-Spacing, klaren visuellen Hierarchien und Verzicht auf visuelle Überladung (*Visual Clutter*).
-   - Jede Ansicht erfüllt genau einen Hauptzweck (Fokus-Design).
+> Vollständige Spezifikation und Design-Tokens siehe [SPEC-020](docs/specs/SPEC-020-ux-overhaul-design-system-v2.md) (Design System v2 «Chalk»).
 
-2. **Schrauber- & Admin-Bereich unprominent halten**:
-   - Die App wird zu über 95% von Kletterern im Hallenalltag genutzt.
-   - Schrauber- und Hallenverwaltungs-Funktionen dürfen das Kletterer-Erlebnis niemals dominieren oder die primäre Navigation überfrachten.
-   - Routenbau- und Admin-Werkzeuge sind dezent platziert (sekundäres Einstellungsmenü / dezenter Schrauber-Schalter) und treten nur bei gezielter Nutzung in den Vordergrund.
-
-3. **Visuell > Text & Blitzschnelle Bedienung**:
-   - Wandfotos, interaktive Marker, klare Grad-Badges und Radar-Charts statt langer Textpassagen.
-   - Loggen einer Route in unter 2 Klicks.
-
-4. **Keine Datenverluste, saubere Datenhaltung & Zero Dummy-Daten**:
-   - Archivierung statt Löschung – jeder Send bleibt im persönlichen Profil erhalten.
-   - Strikte Trennung zwischen Hallen-Ebene, Wand-Ebene und persönlichem Logbuch.
-   - **Strikte Zero-Dummy-Policy (Abschnitt 12)**: Unter keinen Umständen dürfen fingierte Mock-, Seed- oder Testdaten in Caches oder Speicher geschrieben werden.
-
-5. **Vollständige Trennung der 3 Bereiche & absolute Feature-Isolation**:
-   - **Völlige Isolation**: Die drei Bereiche (**Kletterer-App**, **Schrauber-Studio**, **Hallen-Admin-Konsole**) sind streng voneinander abgegrenzt.
-   - **Kein Feature-Leak**: **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jede Funktionalität (z.B. Routenerfassung, Sektorverwaltung, Bewertungsabgabe, Rollenverwaltung) existiert exklusiv in genau einem der drei Bereiche.
-   - Es gibt keine bereichsübergreifenden Aktionen, Misch-Masken oder Querverweise. Berechtigte Nutzer wechseln explizit über das Rollen-/Modus-Gateway zwischen den Bereichen.
+1. **Ein Screen, eine Frage**: Wand: «Was klettere ich jetzt?» · Ich: «Wie komme ich voran?» Alles andere ist Sheet oder Einstellung.
+2. **Inhalt ist das Interface**: Das Wandfoto ist die App. Chrome schwebt (Overlay) statt zu stapeln.
+3. **Progressive Disclosure**: Kompakt → Sheet halb → Sheet voll. Details nur auf Wunsch.
+4. **Ein Ort pro Funktion**: Hallenwahl, Rollenwechsel, Login — jeweils exakt eine Stelle.
+5. **Keine Erklärtexte**: Wenn ein UI-Element erklärt werden muss, ist es falsch. Einmaliges Onboarding-Coachmark statt Dauerhinweise.
+6. **Daumenzone first**: Alle primären Aktionen im unteren Drittel, ≥ 44 pt, eingekreidet bedienbar.
+7. **Destruktiv = versteckt + rückgängig**: Löschen nur via Swipe/«…»-Menü, immer mit Undo-Toast statt Bestätigungsdialog. Kein Routen-Löschen im Kletterer-Bereich.
+8. **Ruhige Typografie**: Sentence case, eine Schriftfamilie (Inter / System Font), max. 3 Schriftgrößen pro Screen, Zahlen in `tabular-nums`.
 
 ---
 
@@ -231,26 +218,26 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 > **Verbindliche Direktive**: Die gesamte App wird **Mobile-First** konzipiert, gestaltet und entwickelt. Desktop ist die Erweiterung, niemals der Ausgangspunkt. An der Bouldermatte wird die App einhändig und oft mit eingekreideten Fingern bedient.
 
 ### 11.1 Die 5 Mobile-First Säulen
-1. **Sektor muss Vollbild (Immersive Wandansicht)**:
+1. **Sektor-Vollbild (Edge-to-Edge Wandfoto)**:
    - Sektoren und Wandfotos dürfen auf Smartphones nicht durch riesige Header, Ränder oder verschachtelte Boxen zusammengestaucht werden.
-   - Die Wandansicht nutzt auf Mobilgeräten die maximale Displaybreite (Edge-to-Edge) und bietet einen dedizierten **Vollbild-/Fokus-Modus**, in dem das Wandfoto den gesamten Screen füllt.
+   - Das Wandfoto wird Edge-to-Edge dargestellt und nimmt **mindestens 70 % der Viewport-Höhe** ein. Chrome schwebt dezent als Blur-Overlay.
 2. **Aufpop-Menü beim Schrauber übersichtlich & handy-optimiert**:
    - Beim Erfassen von Bouldern im Schrauber-Studio öffnen sich touch-optimierte Bottom-Sheets, die am unteren Bildschirmrand verankert sind.
-   - Große, kreide- und daumentaugliche Touch-Targets (mindestens 44×44px für Farbchips und Radar-Einstufungen).
-   - Sticky Speichern-Button: Schrauber müssen nicht scrollen, um den neuen Boulder zu bestätigen und zum nächsten Pin überzugehen.
-3. **Schlanke, übersichtliche Menüführung (Kein Visual Overload)**:
-   - Auf Smartphones keine horizontal überfrachteten Desktop-Headerzeilen mit Tabs, Dropdowns und Buttons nebeneinander.
-   - Mobile Bottom Navigation Bar mit den Kernbereichen (Wand, Logbuch, Profil) für ergonomische Daumenerreichbarkeit.
-   - Aufgeräumter, kompakter Top-Header beschränkt auf Hallenwechsel und Profil-/Login-Status.
-4. **Swipen zwischen den Sektoren**:
-   - Schneller, nativer Wechsel zwischen Sektoren und Wänden per horizontaler Wischgeste (Touch-Swipe links/rechts).
-   - Visuelle Orientierungshilfe (Sektor-Zähler, Dot-Indikatoren, Vor/Zurück-Indikatoren).
+   - Große, kreide- und daumentaugliche Touch-Targets (mindestens 44×44px für Farbchips und Aktionen).
+   - Sticky Speichern-Button: Schrauber müssen nicht scrollen, um den neuen Boulder zu bestätigen und zum nächsten Pin überzugehen. Nur Farbe ist Pflicht.
+3. **Schlanke Menüführung (2 Tabs: Wand + Ich)**:
+   - Keine horizontal überfrachteten Desktop-Headerzeilen mit Tabs, Dropdowns und Buttons nebeneinander.
+   - Mobile Bottom Navigation Bar mit exakt 2 Tabs: **Wand** und **Ich** für ergonomische Daumenerreichbarkeit. Kein Login/Nickname in der Tab-Bar.
+   - Aufgeräumter, schwebender Top-Header auf Wandansicht beschränkt auf Hallenwahl (`Halle ▾`) sowie Sektor-Information.
+4. **Sektorwahl per Swipe + Sektor-Pill/Sheet**:
+   - Schneller, nativer Wechsel zwischen Sektoren per horizontaler Wischgeste (Touch-Swipe links/rechts) auf dem Foto.
+   - Ergänzende Sektor-Pill am unteren Rand des Fotos mit Sektorname und Zähler (`‹ Sektor 1/17 ›`). Ein Tap auf die Pill öffnet ein Sheet mit Sektor-Thumbnails (die alte 17-Chip-Leiste entfällt).
 5. **Mobiles Umordnen der Sektoren (Touch-Reordering)**:
-   - Die Anordnung von Sektoren im Hallen-Admin-Bereich darf nicht auf Desktop-Maus-Drag-and-Drop beschränkt sein.
-   - Große, fingerbedienbare Rauf-/Runter-Tasten (Move Up / Move Down) und ein touch-optimierter Sortier-Modus ermöglichen müheloses Umordnen direkt am Smartphone.
+   - Die Anordnung von Sektoren im Hallen-Admin-Bereich erfolgt per touch-optimiertem Modus mit Drag-Handles (iOS-Listenstil) statt Desktop-CAD.
 
-### 11.2 Blitzschnelle Interaktion: Unmittelbares Schließen nach Bewertung
-- **Fokus Kletterflow**: Nach dem Speichern (oder Überspringen) einer Bewertung schließt sich das Bewertungs- und Detailfenster im Kletterbereich augenblicklich. Der Kletterer landet sofort wieder auf der interaktiven Wandansicht, ohne zusätzliche Schließen-Klicks durchführen zu müssen.
+### 11.2 Blitzschnelle Interaktion: Unmittelbares Schließen nach Loggen mit Undo-Toast
+- **Fokus Kletterflow**: Nach dem Antippen von `⚡ Flash`, `✓ Top` oder `◎ Projekt` im Boulder-Sheet schließt sich das Sheet augenblicklich (1 Tap). Der Kletterer landet sofort wieder auf der interaktiven Wandansicht.
+- **Rückgängig-Sicherheit**: Ein nicht-blockierender Toast («Top geloggt · Rückgängig») bestätigt den Erfolg und erlaubt sofortiges Widerrufen oder optionales 1-Tap-Sterne-Rating.
 
 ---
 
@@ -274,6 +261,8 @@ Unabhängig vom Grad – bewertet Spaßfaktor und Routenbau-Qualität.
 ---
 
 ## 13. Testkonzept & Automatisierte Qualitätssicherung (Playwright E2E & Mobile Data Sync Testing)
+
+> **Testpflicht für jedes Feature (seit 06.10.2026)**: Jedes Feature und jede sichtbare UI-Änderung braucht **beides**: Unit-/Komponenten-Tests (Vitest + Testing Library, `tests/*.test.ts(x)`) **und** Playwright-E2E-Tests (`tests/e2e/*.spec.ts`, Desktop Chrome, Pixel 7, iPhone 15). Das gilt auch für reine Design- und Text-Änderungen: Sie werden gegen die Akzeptanzkriterien der Spec getestet (z. B. Tokens, Kontraste, entfernte Texte, Layout ohne Scrollen). Ein Feature gilt erst als fertig, wenn `npm run test:all` grün ist und die Spec die zugehörigen Testdateien nennt.
 
 > **Verbindliche Direktive**: Jedes Feature, das Daten schreibt, verändert oder synchronisiert, **MUSS zwingend durch automatisierte Playwright-E2E-Tests abgedeckt sein**. Reine Unit-Tests in JSDOM reichen für Datenübertragung, WebSockets und mobile Gerätelimitationen nicht aus.
 
