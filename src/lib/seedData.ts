@@ -634,8 +634,6 @@ export const SEED_ASCENTS: Ascent[] = [
   { id: 'ascent-2', userId: 'admin-minimum', userNickname: 'AdminMinimum', boulderId: 'boulder-existing-1', type: 'top', createdAt: '2026-09-03T11:15:00Z' },
   { id: 'ascent-3', userId: 'admin-6aplus', userNickname: 'Admin6APlus', boulderId: 'boulder-existing-1', type: 'top', createdAt: '2026-09-03T18:45:00Z' },
   { id: 'ascent-4', userId: 'schrauber-6aplus', userNickname: 'Schrauber6aPlus', boulderId: 'boulder-existing-1', type: 'project', createdAt: '2026-09-04T10:00:00Z' },
-  { id: 'ascent-hans-1', userId: 'hans-kletterer', userNickname: 'HansDereinfacheKletterer', boulderId: 'boulder-existing-1', type: 'top', createdAt: '2026-09-04T10:10:00Z' },
-  { id: 'ascent-admin-min-1', userId: 'admin-minimum', userNickname: 'AdminMinimum', boulderId: 'boulder-existing-1', type: 'flash', createdAt: '2026-09-04T10:15:00Z' },
   { id: 'ascent-5', userId: 'schrauber-minimum', userNickname: 'Schrauber Minimum', boulderId: 'boulder-existing-2', type: 'top', createdAt: '2026-09-02T19:00:00Z' },
   { id: 'ascent-6', userId: 'hans-kletterer', userNickname: 'HansDereinfacheKletterer', boulderId: 'boulder-existing-2', type: 'flash', createdAt: '2026-09-04T14:20:00Z' },
 

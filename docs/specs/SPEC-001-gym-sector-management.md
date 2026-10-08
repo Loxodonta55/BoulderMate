@@ -30,6 +30,7 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
     - Auf der Wandtafel (`WallPhotoCanvas`) und im Klettererbereich (`ClimberSectorView`) löst `resolveScale` bzw. `resolveBoulderScale` Farbskalen mehrstufig auf (ID -> normalisierter Farbname -> Font-Grad). Es erfolgt niemals ein stummer Fallback auf Blau (`#3b82f6`).
 - [x] **AC-3**: Sektoren erfordern `name` und ein valides `wall_photo_url`.
 - [x] **AC-4**: **Drag & Drop Sektor-Sortierung & Reihenfolgeverwaltung**:
+  - *(08.10.2026, SPEC-023 F3: Griffe und Pfeile erscheinen erst nach «Sortieren».)*
   - **AC-4.1 (Drag & Drop Interaktion)**: Jede Sektor-Karte im `SectorManager` verfügt über einen deutlichen Drag-Handle (`GripVertical`-Icon) und ist für Hallen-Admins per HTML5 Drag & Drop greifbar (`draggable={isAdmin}`).
   - **AC-4.2 (Visuelles Feedback)**: Während des Ziehens wird das gezogene Element mit reduzierter Deckkraft (`opacity-40`) und Akzent-Rahmen markiert; das Ziel-Element (`dragOver`) erhält eine prominente Hervorhebung (z. B. `#C9A96E` Border / Ring), um die Einfügestelle eindeutig anzuzeigen.
   - **AC-4.3 (Persistenz)**: Beim Loslassen (`onDrop`) wird die neue Reihenfolge unmittelbar in `sort_order` (1..n) für alle Sektoren der Halle überführt und im LocalStorage persistiert (`reorderSectors`).
@@ -43,7 +44,8 @@ Ermöglicht Hallen-Betreibern und Admins das Abbilden ihrer Boulderhalle in der 
   - **AC-4.7 (Berechtigung)**: Nur Hallen-Admins und Plattform-Admins sind berechtigt, Sektoren neu zu sortieren; für Nicht-Admins ist das Drag-Handle inaktiv oder ausgeblendet.
   - **AC-4.8 (Cloud-Persistenz & Release-Stabilität)**: Bei jeder Umsortierung (per Drag & Drop oder Pfeil-Buttons) wird die neue Reihenfolge (`sort_order: 1..n`) unmittelbar aufwärts nach Supabase in die Tabelle `sectors` synchronisiert (`syncSectorOrderToSupabase`). Bei Reconnects, Cache-Clears oder neuen Software-Deployments bleibt die vom Admin gewählte Reihenfolge als Single Source of Truth erhalten und wird niemals durch Initial-Seeds oder alte Defaults überschrieben.
 - [x] **AC-5**: Bei Aktualisierung des Sektor-Wandfotos bleiben bestehende relative Boulder-Koordinaten (`position_x`, `position_y` als 0.0–1.0) unverändert erhalten.
-- [x] **AC-6**: Sektoren mit aktiven Bouldern können nicht versehentlich gelöscht werden (Sicherheitsabfrage / Validierung).
+- [x] **AC-6**: Sektoren mit aktiven Bouldern können nicht versehentlich gelöscht werden (Sicherheitsabfrage / Validierung). *(08.10.2026, SPEC-023: Löschen von Sektor, Farbe und Team-Rolle immer über `ConfirmDialog`; bei aktiven Bouldern nennt der Dialog die Anzahl und bietet kein Löschen an.)*
+- [x] **AC-6.1** *(SPEC-023)*: Sektoren lassen sich umbenennen (`renameSector`: nur Admins, Name nicht leer, kein Doppelname in der Halle).
 - [x] **AC-7**: Kletterer können Hallen suchen und eine Übersicht aller Sektoren mit Wandfoto und aktiver Boulder-Anzahl in der definierten `sort_order` einsehen.
 
 ## Technical Design

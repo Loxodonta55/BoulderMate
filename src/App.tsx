@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Boulder, GymMemberRole, Gym } from './types/boulder';
 import {
   getStoredBoulders,
@@ -17,12 +18,14 @@ import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
-import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser } from './lib/authService';
+import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED } from './lib/authService';
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { startFeedbackQueueSync } from './lib/feedbackService';
 import { AppHeader } from './components/AppHeader';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { useBackHandler } from './hooks/useBackHandler';
+import { GymFinderSheet } from './components/GymFinderSheet';
+import { getGymFinderEntries } from './lib/gymFinder';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
@@ -38,7 +41,11 @@ export const App: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  // SPEC-011 AC-8: Landing Page auch angemeldet über das Logo erreichbar
+  const [isLandingOpen, setIsLandingOpen] = useState<boolean>(false);
   const [hasChosenModeForUser, setHasChosenModeForUser] = useState<Record<string, boolean>>({});
+  // SPEC-025: «Halle wählen» mit Karte
+  const [isGymFinderOpen, setIsGymFinderOpen] = useState<boolean>(false);
 
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [activeGymId, setActiveGymId] = useState<string>('gym-6a-plus');
@@ -48,6 +55,29 @@ export const App: React.FC = () => {
 
   const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
   const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
+
+  // SPEC-024 AC-2.4 / AC-5.1: Rückkehr von Google (?code= oder ?error=) beim Start auswerten
+  const [oauthReturn] = useState(() => readOAuthReturnFromUrl());
+  const [isFinishingOAuth, setIsFinishingOAuth] = useState(oauthReturn.status === 'pending');
+  const [authNotice, setAuthNotice] = useState<string | null>(oauthReturn.status === 'error' ? oauthReturn.message : null);
+
+  useEffect(() => {
+    if (oauthReturn.status !== 'pending') return;
+    let active = true;
+    finishOAuthRedirect().then(user => {
+      if (!active) return;
+      if (user) {
+        setAuthSession(user);
+        setClimberId(user.id);
+      } else {
+        setAuthNotice(OAUTH_ERROR_FAILED);
+      }
+      setIsFinishingOAuth(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [oauthReturn]);
 
   const selectableClimbers = useMemo(() => {
     const list = [...AVAILABLE_CLIMBERS];
@@ -174,6 +204,12 @@ export const App: React.FC = () => {
   });
 
   useBackHandler({
+    id: 'landing-page',
+    isOpen: isLandingOpen && Boolean(authSession),
+    onBack: () => setIsLandingOpen(false),
+  });
+
+  useBackHandler({
     id: 'mode-privileged',
     isOpen: appMode !== 'climber',
     onBack: () => setAppMode('climber'),
@@ -184,6 +220,11 @@ export const App: React.FC = () => {
     isOpen: activeTab === 'stats' && appMode === 'climber',
     onBack: () => setActiveTab('wall'),
   });
+
+  const gymFinderEntries = useMemo(
+    () => (isGymFinderOpen ? getGymFinderEntries(gyms) : []),
+    [isGymFinderOpen, gyms]
+  );
 
   const refreshGyms = () => {
     const all = getGyms();
@@ -235,13 +276,30 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  if (isFinishingOAuth && !authSession) {
+    return (
+      <div
+        className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] flex flex-col items-center justify-center gap-4 font-sans"
+        role="status"
+        data-testid="oauth-finishing"
+      >
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <p className="text-[18px] font-semibold">Anmeldung läuft …</p>
+      </div>
+    );
+  }
+
   // Dedicated Standalone Landing Page for unauthenticated visitors
-  if (!authSession) {
+  if (!authSession || isLandingOpen) {
     return (
       <div className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] flex flex-col font-sans">
         <LandingPage
           onOpenLogin={() => setIsLoginModalOpen(true)}
+          onShowGyms={() => setIsGymFinderOpen(true)}
+          notice={authNotice}
+          onContinue={authSession ? () => setIsLandingOpen(false) : undefined}
           onQuickLogin={(user) => {
+            setIsLandingOpen(false);
             const updated = setSessionUser(user);
             setAuthSession(updated);
             setClimberId(updated.id);
@@ -253,12 +311,31 @@ export const App: React.FC = () => {
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
           onUserChanged={(user) => {
+            setIsLandingOpen(false);
             if (user) {
               setAuthSession(user);
               setClimberId(user.id);
             } else {
               setAuthSession(null);
               setClimberId(null);
+            }
+          }}
+        />
+
+        {/* SPEC-025 F5: Gäste sehen die Hallen-Karte; «Zur Wand» merkt die Halle und führt zur Anmeldung (angemeldet: direkt zur Wand) */}
+        <GymFinderSheet
+          open={isGymFinderOpen}
+          onClose={() => setIsGymFinderOpen(false)}
+          entries={gymFinderEntries}
+          activeGymId={activeGymId}
+          onSelectGym={(id) => {
+            setActiveGymId(id);
+            if (authSession) {
+              // Über das Logo geöffnet: direkt zur Wand der gewählten Halle
+              setIsLandingOpen(false);
+              setActiveTab('wall');
+            } else {
+              setIsLoginModalOpen(true);
             }
           }}
         />
@@ -303,6 +380,12 @@ export const App: React.FC = () => {
         onOpenRoleGateway={() => setIsRoleGatewayOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onSwitchToClimber={() => setAppMode('climber')}
+        onGymsChanged={refreshGyms}
+        onOpenGymFinder={() => {
+          refreshGyms();
+          setIsGymFinderOpen(true);
+        }}
+        onOpenLanding={() => setIsLandingOpen(true)}
       />
 
       {/* Main Content Area — Mobile-First paddings with room for bottom navigation */}
@@ -408,6 +491,19 @@ export const App: React.FC = () => {
             setAuthSession(null);
             setClimberId(null);
           }
+        }}
+      />
+
+      {/* SPEC-025: Halle wählen (Karte + Liste) */}
+      <GymFinderSheet
+        open={isGymFinderOpen && appMode === 'climber'}
+        onClose={() => setIsGymFinderOpen(false)}
+        entries={gymFinderEntries}
+        activeGymId={activeGymId}
+        onSelectGym={(id) => {
+          setActiveGymId(id);
+          setActiveTab('wall');
+          refreshGyms();
         }}
       />
 

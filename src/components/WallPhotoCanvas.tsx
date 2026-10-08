@@ -8,7 +8,6 @@ import {
   Archive,
   Sparkles,
   Camera,
-  Info,
   Zap,
   Trophy,
   Clock,
@@ -567,25 +566,16 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           : 'relative w-full rounded-xl overflow-hidden border border-[var(--bm-line)] bg-black select-none'
       }
     >
-      {/* Top-Left Mode & Instruction Badge (Hidden in Fullscreen mode for zero header clutter) */}
-      {!isFullscreen && (
+      {/* Top-Left Instruction Badge: nur Schrauber. SPEC-022 F21: Kletterer sehen keinen «Pin antippen»-Hinweis mehr. */}
+      {!isFullscreen && mode === 'setter' && (
         <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[var(--bm-surface)] px-3 py-1.5 rounded-xl border border-[var(--bm-line)] text-xs font-mono text-[var(--bm-text)] shadow-md pointer-events-none">
-          {mode === 'setter' ? (
-            <>
-              <Crosshair className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-              <span>Klick = Pin</span>
-              <span className="text-[var(--bm-text-3)]">|</span>
-              <span>Drag = Verschieben</span>
-              <span className="text-[var(--bm-text-3)]">|</span>
-              <BoxSelect className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-              <span className="text-[var(--bm-accent)] font-semibold">Ziehen = Quadrat-Auswahl</span>
-            </>
-          ) : (
-            <>
-              <Info className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-              <span>Pin antippen</span>
-            </>
-          )}
+          <Crosshair className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+          <span>Klick = Pin</span>
+          <span className="text-[var(--bm-text-3)]">|</span>
+          <span>Drag = Verschieben</span>
+          <span className="text-[var(--bm-text-3)]">|</span>
+          <BoxSelect className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
+          <span className="text-[var(--bm-accent)] font-semibold">Ziehen = Quadrat-Auswahl</span>
         </div>
       )}
 
@@ -832,23 +822,33 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                         }`}
                         style={{ backgroundColor: colorHex }}
                       >
-                        {/* 5-Star Floating Mini-Badge (AC-18) */}
-                        {isFiveStar ? (
+                        {/* SPEC-022 F20: Hallen-Klassiker als grosser, gut lesbarer Stern (statt winzigem «5.0») */}
+                        {isFiveStar && (
                           <span
-                            className="absolute -top-3 -right-2 px-1 py-0.2 bg-[var(--bm-accent)] text-[var(--bm-bg)] rounded-xl border border-[var(--bm-bg)] text-[8px] font-mono font-black flex items-center gap-0.5 shadow-md z-30"
-                            title={`5.0 Hallen-Klassiker (${stats?.avgStars.toFixed(1)} ★)`}
+                            data-testid={`classic-badge-${boulder.id}`}
+                            className="absolute -top-3.5 -right-3.5 z-30 w-6 h-6 rounded-full bg-[var(--bm-star)] border-2 border-[var(--bm-bg)] flex items-center justify-center shadow-md"
+                            title={`Hallen-Klassiker (${stats?.avgStars.toFixed(1)} ★)`}
                           >
-                            <span>5.0</span>
-                            <Star className="w-2 h-2 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
+                            <Star className="w-4 h-4 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
                           </span>
-                        ) : isFavorite ? (
+                        )}
+
+                        {/* SPEC-022 F19: Eigene Begehung als deutliches Abzeichen */}
+                        {(isFlash || isTop) && (
                           <span
-                            className="absolute -top-1.5 -right-1.5 z-30 w-4 h-4 rounded-full bg-[var(--bm-accent)] text-[var(--bm-bg)] flex items-center justify-center shadow-md ring-1 ring-[var(--bm-bg)]"
-                            title={`Community-Favorit (${stats?.avgStars.toFixed(1)} ★)`}
+                            data-testid={`pin-status-${boulder.id}`}
+                            aria-label={isFlash ? 'Flash' : 'Top'}
+                            className={`absolute -bottom-3 -right-3.5 z-30 w-6 h-6 rounded-full border-2 border-[var(--bm-bg)] flex items-center justify-center shadow-md ${
+                              isFlash ? 'bg-[var(--bm-star)]' : 'bg-[var(--bm-success)]'
+                            }`}
                           >
-                            <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+                            {isFlash ? (
+                              <Zap className="w-4 h-4 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
+                            ) : (
+                              <Check className="w-4 h-4 stroke-[3] text-[var(--bm-on-accent)]" />
+                            )}
                           </span>
-                        ) : null}
+                        )}
 
                         {/* SPEC-021 AC-10: «Neu»-Badge */}
                         {newBoulderIds?.has(boulder.id) && (

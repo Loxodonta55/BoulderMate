@@ -1,6 +1,7 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { BoulderSheet } from '../src/components/BoulderSheet';
+import { ToastHost, hideToast } from '../src/components/ui/Toast';
 import { RatingModal } from '../src/components/RatingModal';
 import {
   WallBoulder,
@@ -125,7 +126,7 @@ describe('SPEC-003 AC-14: Deleting Climber Ratings', () => {
     });
   });
 
-  describe('BoulderDetailModal: delete rating in detail view', () => {
+  describe('BoulderSheet: delete rating in detail view', () => {
     it('displays user rating row with delete button and deletes rating on click', () => {
       saveRating(
         sampleClimber.id,
@@ -134,23 +135,25 @@ describe('SPEC-003 AC-14: Deleting Climber Ratings', () => {
         { qualityStars: 4, gradeFeel: 'stiff' }
       );
 
-      const handleDataChanged = vi.fn();
-
       render(
-        <BoulderDetailModal
-          boulder={sampleBoulder}
-          sector={sampleSector}
-          gradeScale={sampleGradeScale}
-          currentUser={sampleClimber}
-          isOpen={true}
-          onClose={vi.fn()}
-          onDataChanged={handleDataChanged}
-        />
+        <>
+          <BoulderSheet
+            boulder={sampleBoulder}
+            sector={sampleSector}
+            gradeScale={sampleGradeScale}
+            currentUser={sampleClimber}
+            onClose={vi.fn()}
+          />
+          <ToastHost />
+        </>
       );
 
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+
       // Verify user rating is shown
-      expect(screen.getByText(/Deine Bewertung:/i)).toBeInTheDocument();
-      expect(screen.getByText('(stiff)')).toBeInTheDocument();
+      const ownRow = screen.getByTestId(`community-rating-row-${sampleClimber.id}`);
+      expect(ownRow).toHaveTextContent('Stiff');
+      expect(screen.getByTestId('open-rating-btn')).toHaveTextContent('Bewertung ändern');
 
       // Delete button exists
       const deleteRatingBtn = screen.getByTestId('delete-rating-btn');
@@ -161,12 +164,19 @@ describe('SPEC-003 AC-14: Deleting Climber Ratings', () => {
 
       // Rating should be deleted from storage
       expect(getUserRating(sampleClimber.id, sampleBoulder.id)).toBeNull();
-      expect(handleDataChanged).toHaveBeenCalled();
 
       // UI should update reactively
       expect(screen.queryByTestId('delete-rating-btn')).not.toBeInTheDocument();
-      expect(screen.queryByText(/Deine Bewertung:/i)).not.toBeInTheDocument();
-      expect(screen.getByText('Jetzt bewerten')).toBeInTheDocument();
+      expect(screen.queryByTestId(`community-rating-row-${sampleClimber.id}`)).not.toBeInTheDocument();
+      expect(screen.getByTestId('open-rating-btn')).toHaveTextContent('Bewerten');
+
+      // Undo-Toast stellt die Bewertung wieder her
+      expect(screen.getByTestId('toast')).toHaveTextContent('Bewertung entfernt');
+      fireEvent.click(screen.getByTestId('toast-action'));
+      const restored = getUserRating(sampleClimber.id, sampleBoulder.id);
+      expect(restored?.qualityStars).toBe(4);
+      expect(restored?.gradeFeel).toBe('stiff');
+      act(() => hideToast());
     });
   });
 });

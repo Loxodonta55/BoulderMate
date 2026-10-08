@@ -33,23 +33,16 @@ async function addDraftPin(page: Page) {
   await page.getByTestId('save-boulder-sheet-btn').click();
 }
 
-// Bereichswechsel per Neuladen: der «Kletterer-App»-Button springt bei frischem Tab per history.back() aus der App
+// Bereichswechsel über die echten Buttons (prüft zugleich, dass «Kletterer-App» in der App bleibt)
 async function toClimber(page: Page) {
-  await page.goto('/');
-  const gatewayClimber = page.getByTestId('role-gateway-climber-btn');
-  if (await gatewayClimber.isVisible().catch(() => false)) {
-    await gatewayClimber.click();
-  }
+  await page.getByTestId('studio-back-to-climber-btn').click();
+  await expect(page).toHaveURL(/localhost/);
   await expect(page.getByTestId('climber-switch-workspace-btn')).toBeVisible();
 }
 
 async function toStudio(page: Page) {
-  await page.goto('/');
-  const gatewaySetter = page.getByTestId('role-gateway-setter-btn');
-  if (!(await gatewaySetter.isVisible().catch(() => false))) {
-    await page.getByTestId('climber-switch-workspace-btn').click();
-  }
-  await gatewaySetter.click();
+  await page.getByTestId('climber-switch-workspace-btn').click();
+  await page.getByTestId('role-gateway-setter-btn').click();
   await expect(page.getByTestId('start-rebuild-btn').or(page.getByTestId('rebuild-badge'))).toBeVisible();
 }
 

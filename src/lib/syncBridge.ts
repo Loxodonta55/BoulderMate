@@ -21,6 +21,7 @@ export interface SyncHandlers {
   syncRatingsAndAscentsQuietly?: () => Promise<boolean>;
   syncClimberRoute?: (route: any) => Promise<boolean>;
   deleteClimberRoute?: (routeId: string) => Promise<boolean>;
+  syncGymLocation?: (gym: { id: string; name: string; lat?: number; lng?: number }) => Promise<boolean>;
 }
 
 const handlers: SyncHandlers = {};
@@ -68,5 +69,8 @@ export const syncBridge = {
   },
   deleteClimberRoute(routeId: string): Promise<boolean> {
     return handlers.deleteClimberRoute ? handlers.deleteClimberRoute(routeId).catch(() => false) : Promise.resolve(false);
+  },
+  syncGymLocation(gym: { id: string; name: string; lat?: number; lng?: number }): Promise<boolean> {
+    return handlers.syncGymLocation ? handlers.syncGymLocation(gym).catch(() => false) : Promise.resolve(false);
   },
 };

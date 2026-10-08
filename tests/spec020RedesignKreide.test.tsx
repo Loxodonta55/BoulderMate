@@ -7,7 +7,7 @@ import { LoginModal } from '../src/components/LoginModal';
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
 import { ProfileKPIsBar } from '../src/components/ProfileKPIsBar';
 import { GradeDistributionChart } from '../src/components/GradeDistributionChart';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { BoulderSheet } from '../src/components/BoulderSheet';
 import { RadarChart } from '../src/components/RadarChart';
 import { RatingModal } from '../src/components/RatingModal';
 import { App } from '../src/App';
@@ -184,13 +184,17 @@ describe('SPEC-020 Redesign «Kreide» & Text-Diät', () => {
     const user: CurrentUser = { id: 'user-hans', nickname: 'Hans', role: 'member' };
 
     it('zeigt nie eine UUID, sondern den Schrauber-Namen oder «Hallenteam» (AC-6.2)', () => {
-      render(<BoulderDetailModal boulder={boulder} sector={sector} gradeScale={scale()} currentUser={user} isOpen onClose={vi.fn()} />);
-      expect(screen.getByText('Hallenteam')).toBeInTheDocument();
+      render(<BoulderSheet boulder={boulder} sector={sector} gradeScale={scale()} currentUser={user} onClose={vi.fn()} />);
+      expect(document.body.textContent).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i);
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      expect(screen.getByText(/Geschraubt von Hallenteam/)).toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i);
     });
 
     it('verzichtet auf Emoji-Legenden und Erklär-Untertitel', () => {
-      render(<BoulderDetailModal boulder={boulder} sector={sector} gradeScale={scale()} currentUser={user} isOpen onClose={vi.fn()} />);
+      render(<BoulderSheet boulder={boulder} sector={sector} gradeScale={scale()} currentUser={user} onClose={vi.fn()} />);
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      expect(screen.getByTestId('boulder-sheet-details')).toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/🟢|🟡|🔴/);
       expect(screen.queryByText(/Klettercharakter \(5-Achsen Radar\)/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Aggregiert aus/)).not.toBeInTheDocument();

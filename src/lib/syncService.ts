@@ -150,6 +150,9 @@ export async function syncFromSupabase(): Promise<boolean> {
               address: g.address || localG.address,
               website: g.website || localG.website,
               logo_url: g.logo_url || localG.logo_url,
+              // SPEC-025: Koordinaten aus Supabase gewinnen, sonst lokale behalten
+              lat: typeof g.lat === 'number' ? g.lat : localG.lat,
+              lng: typeof g.lng === 'number' ? g.lng : localG.lng,
             });
             matched = true;
             break;
@@ -165,6 +168,8 @@ export async function syncFromSupabase(): Promise<boolean> {
             logo_url: g.logo_url || '/images/walls/overhang.jpg',
             created_by: g.created_by || 'system',
             created_at: g.created_at,
+            lat: typeof g.lat === 'number' ? g.lat : undefined,
+            lng: typeof g.lng === 'number' ? g.lng : undefined,
           });
         }
       }
@@ -2336,6 +2341,31 @@ export function stopRealtimeSync(): void {
 }
 
 // Wire implementations into syncBridge (SOLID: Dependency Inversion)
+// SPEC-025: Koordinaten einer Halle nach Supabase schreiben (gyms.lat / gyms.lng)
+export async function syncGymLocationToSupabase(gym: { id: string; name: string; lat?: number; lng?: number }): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured || isTestEnv) return false;
+  try {
+    const targetGymId = (gym.id === 'gym-6a-plus' || gym.id.includes('f2b11564'))
+      ? 'f2b11564-ca86-4ed4-b51c-3affb346144b'
+      : (gym.id === 'gym-minimum-zh' || gym.id.includes('814696b2'))
+      ? '814696b2-303e-4897-9bdb-d83505a63489'
+      : gym.id;
+    const patch = { lat: gym.lat ?? null, lng: gym.lng ?? null };
+    const query = isValidUuid(targetGymId)
+      ? supabase.from('gyms').update(patch).eq('id', targetGymId)
+      : supabase.from('gyms').update(patch).ilike('name', gym.name);
+    const { error } = await query;
+    if (error) {
+      console.warn('[Sync] Hallen-Standort nicht gespeichert:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Sync] Hallen-Standort Fehler:', err);
+    return false;
+  }
+}
+
 registerSyncHandlers({
   syncSector: syncSectorToSupabase,
   deleteSector: deleteSectorFromSupabase,
@@ -2350,4 +2380,5 @@ registerSyncHandlers({
   syncRatingsAndAscentsQuietly: syncRatingsAndAscentsQuietly,
   syncClimberRoute: syncClimberRouteToSupabase,
   deleteClimberRoute: deleteClimberRouteFromSupabase,
+  syncGymLocation: syncGymLocationToSupabase,
 });

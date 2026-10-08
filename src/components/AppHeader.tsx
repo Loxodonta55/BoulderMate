@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { AdminGymSheet } from './admin/AdminGymSheet';
 import { Gym, GymMemberRole } from '../types/boulder';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
 import { Mountain, Wrench, Layers, ArrowLeft, User, Building2, ChevronDown } from 'lucide-react';
@@ -24,6 +25,12 @@ export interface AppHeaderProps {
   onOpenRoleGateway: () => void;
   onOpenLoginModal: () => void;
   onSwitchToClimber: () => void;
+  /** SPEC-025: Tipp auf den Hallennamen öffnet «Halle wählen» (Karte + Liste) */
+  onOpenGymFinder?: () => void;
+  /** Tipp aufs BoulderMate-Logo öffnet die Landing Page (SPEC-011 AC-8) */
+  onOpenLanding?: () => void;
+  /** SPEC-023: nach «Neue Halle» die Hallenliste neu laden */
+  onGymsChanged?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -40,7 +47,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   roleInfo,
   onOpenRoleGateway,
   onSwitchToClimber,
+  onOpenGymFinder,
+  onOpenLanding,
+  onGymsChanged,
 }) => {
+  const [isAdminGymSheetOpen, setIsAdminGymSheetOpen] = useState(false);
+
   if (appMode === 'setter') {
     return (
       <header className="border-b border-[var(--bm-line)] bg-[var(--bm-surface)] sticky top-0 z-40 w-full overflow-hidden">
@@ -111,70 +123,51 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   if (appMode === 'admin') {
+    // SPEC-023 F7: Hallenname ▾ (Sheet «Halle wählen») und genau ein Knopf «Bereich»
+    const activeGym = gyms.find(g => g.id === activeGymId);
     return (
       <header className="border-b border-[var(--bm-line)] bg-[var(--bm-surface)] sticky top-0 z-40 w-full overflow-hidden">
-        <div className="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 w-full">
-          {/* Admin Brand & Gym Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center text-[var(--bm-accent)] shrink-0">
-              <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2]" />
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <span className="text-xs sm:text-base font-headline text-[var(--bm-text)] shrink-0">
-                <span className="inline sm:hidden">Admin</span>
-                <span className="hidden sm:inline">Hallen-Administration</span>
-              </span>
-              {gyms.length > 0 && (
-                <div className="flex items-center gap-1 min-w-0">
-                  <span className="text-[10px] font-mono text-[var(--bm-text-3)] hidden sm:inline">•</span>
-                  <select
-                    value={activeGymId}
-                    onChange={(e) => onSelectGym(e.target.value)}
-                    className="bg-transparent text-[11px] sm:text-xs font-mono font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] focus:outline-none cursor-pointer border-b border-dashed border-[var(--bm-line)] pb-0.5 max-w-[110px] xs:max-w-[150px] sm:max-w-[200px] truncate min-w-0"
-                    title="Aktive Boulderhalle wechseln"
-                    data-testid="admin-gym-select"
-                  >
-                    {gyms.map((g) => (
-                      <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Admin Header Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            <span className="text-[11px] font-mono text-[var(--bm-text-2)] hidden md:inline">
-              Admin: <strong className="text-[var(--bm-text)]">{currentUser.nickname}</strong>
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span
+              className="w-8 h-8 rounded-xl bg-[var(--bm-elevated)] flex items-center justify-center text-[var(--bm-text)] shrink-0"
+              aria-label="Hallen-Administration"
+              title="Hallen-Administration"
+            >
+              <Building2 className="w-4 h-4" />
             </span>
-
             <button
               type="button"
-              onClick={onOpenRoleGateway}
-              className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-mono text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] transition flex items-center gap-1"
-              data-testid="admin-switch-workspace-btn"
-              title="Arbeitsbereich wechseln"
+              onClick={() => setIsAdminGymSheetOpen(true)}
+              data-testid="admin-gym-button"
+              className="min-w-0 min-h-[44px] flex items-center gap-1 text-[17px] font-semibold text-[var(--bm-text)]"
+              aria-haspopup="dialog"
             >
-              <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--bm-accent)]" />
-              <span className="hidden xs:inline">Bereich</span>
-              <span className="hidden sm:inline"> wechseln</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onSwitchToClimber}
-              className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs font-headline font-bold bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-strong)] transition flex items-center gap-1"
-              data-testid="admin-back-to-climber-btn"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Kletterer-App</span>
-              <span className="inline xs:hidden">Wand</span>
+              <span className="truncate">{activeGym?.name || 'Halle wählen'}</span>
+              <ChevronDown className="w-4 h-4 shrink-0 text-[var(--bm-text-2)]" />
             </button>
           </div>
+          <button
+            type="button"
+            onClick={onOpenRoleGateway}
+            className="min-h-[40px] px-3 rounded-full text-[14px] font-semibold bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center gap-1.5 shrink-0"
+            data-testid="admin-switch-workspace-btn"
+            title="Bereich wechseln"
+          >
+            <Layers className="w-4 h-4" />
+            <span>Bereich</span>
+          </button>
         </div>
+        <AdminGymSheet
+          open={isAdminGymSheetOpen}
+          onClose={() => setIsAdminGymSheetOpen(false)}
+          gyms={gyms}
+          activeGymId={activeGymId}
+          userId={currentUser.id}
+          isPlatformAdmin={currentUser.isPlatformAdmin}
+          onSelectGym={onSelectGym}
+          onGymsChanged={onGymsChanged}
+        />
       </header>
     );
   }
@@ -185,28 +178,32 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <header className="bg-[var(--bm-surface)]/95 backdrop-blur-md sticky top-0 z-40 w-full overflow-hidden" data-testid="climber-header">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-4 w-full">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-7 h-7 rounded-lg bg-[var(--bm-elevated)] flex items-center justify-center text-[var(--bm-text)] shrink-0" aria-hidden>
-            <Mountain className="w-4 h-4 stroke-[2]" />
-          </div>
-          <span className="hidden md:inline text-base font-semibold text-[var(--bm-text)] shrink-0">BoulderMate</span>
+          <button
+            type="button"
+            onClick={onOpenLanding}
+            className="flex items-center gap-2 min-h-[44px] shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bm-accent)]"
+            aria-label="BoulderMate, zur Startseite"
+            title="Zur Startseite"
+            data-testid="header-brand-btn"
+          >
+            <span className="w-7 h-7 rounded-lg bg-[var(--bm-elevated)] flex items-center justify-center text-[var(--bm-text)] shrink-0" aria-hidden>
+              <Mountain className="w-4 h-4 stroke-[2]" />
+            </span>
+            <span className="hidden md:inline text-base font-semibold text-[var(--bm-text)] shrink-0">BoulderMate</span>
+          </button>
           {gyms.length > 0 && (
-            <div className="relative flex items-center min-w-0">
-              <select
-                value={activeGymId}
-                onChange={(e) => onSelectGym(e.target.value)}
-                className="appearance-none bg-transparent text-[17px] font-semibold text-[var(--bm-text)] focus:outline-none cursor-pointer pr-6 min-h-[44px] truncate min-w-0 max-w-[70vw] md:max-w-[320px]"
-                title="Halle wählen"
-                aria-label="Halle wählen"
-                data-testid="header-gym-select"
-              >
-                {gyms.map((g) => (
-                  <option key={g.id} value={g.id} className="bg-[var(--bm-surface)] text-[var(--bm-text)]">
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] absolute right-1 pointer-events-none" aria-hidden />
-            </div>
+            <button
+              type="button"
+              onClick={onOpenGymFinder}
+              className="flex items-center gap-1 min-w-0 min-h-[44px] text-[17px] font-semibold text-[var(--bm-text)] max-w-[70vw] md:max-w-[320px]"
+              title="Halle wählen"
+              aria-label={`Halle wählen, gewählt: ${gyms.find(g => g.id === activeGymId)?.name || ''}`}
+              aria-haspopup="dialog"
+              data-testid="header-gym-select"
+            >
+              <span className="truncate">{gyms.find(g => g.id === activeGymId)?.name || gyms[0].name}</span>
+              <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] shrink-0" aria-hidden />
+            </button>
           )}
         </div>
 

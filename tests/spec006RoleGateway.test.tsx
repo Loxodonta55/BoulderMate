@@ -55,7 +55,8 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
 
       expect(screen.getByText('Arbeitsbereich wählen')).toBeInTheDocument();
       expect(screen.getByText(/Hallo/)).toHaveTextContent('Boris');
-      expect(screen.getByText(/In welcher Rolle möchtest du BoulderMate heute nutzen\?/i)).toBeInTheDocument();
+      // SPEC-023 F11: keine Erklärsätze mehr im Gateway
+      expect(screen.queryByText(/In welcher Rolle möchtest du BoulderMate heute nutzen/i)).not.toBeInTheDocument();
 
       // Click Schrauber-Studio
       const setterBtn = screen.getByRole('button', { name: /Schrauber-Studio/i });
@@ -137,14 +138,14 @@ describe('SPEC-006: Rollenbasierte App-Trennung & Role Gateway', () => {
       fireEvent.click(adminBtn);
 
       // 1. In Hallen-Administration: Verify absence of cross-area action buttons
-      expect(screen.getByText('Hallen-Administration')).toBeInTheDocument();
+      expect(screen.getByTestId('admin-gym-button')).toBeInTheDocument();
       expect(screen.queryByTestId('admin-to-setter-btn')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Routen schrauben/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Wand ansehen/i })).not.toBeInTheDocument();
 
       // Verify Admin-exclusive tabs are present
-      expect(screen.getByRole('button', { name: /Farbsystem/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Team & Schrauber/i })).toBeInTheDocument();
+      expect(screen.getByTestId('admin-tab-grades')).toHaveTextContent('Farben');
+      expect(screen.getByTestId('admin-tab-team')).toHaveTextContent('Team');
 
       // Switch area via Role Gateway to Schrauber-Studio
       const switchAreaBtn = screen.getByTestId('admin-switch-workspace-btn');

@@ -1,6 +1,6 @@
 # SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text
 
-## Status: IN PROGRESS (umgesetzt 2026-10-06/07, uncommitted)
+## Status: IN PROGRESS (umgesetzt 2026-10-06/07, Nachtrag F19–F22 am 2026-10-08, uncommitted)
 
 > **Owner:** Hans · **Created:** 2026-10-06 · **Baut auf:** SPEC-020 (Design System v2 «Kreide»), SPEC-021 (Umschrauben)
 >
@@ -99,6 +99,30 @@ Screenshots: Wand, Boulder-Detail und Statistik vor dem Umbau. Befunde:
 **F18 – Was wird getestet?**
 → Unit-Tests: `tests/spec022ClimberUx.test.tsx` (Filter/Sortierung als reine Funktionen in `src/lib/climberWallFilters.ts`, Wand-Aufbau, Sektor-Pill und -Sheet, Sheet statt Modal, Bottom-Nav, Ich-Seite). Bestehende Tests werden auf die neue Oberfläche umgestellt. Playwright: `tests/e2e/climber-ux.spec.ts` (Handy-Viewport: Foto ist erstes Element, eine Hallenwahl, 2-Tap-Logging mit Toast und Rückgängig, Sektorwechsel per Pill, Ich ohne Unter-Tabs, Bottom-Nav mit 2 Tabs). `ascents-logging.spec.ts` wird auf das Sheet umgestellt.
 
+### Nachtrag 08.10.2026 (Hans: «einfacher sehen, was ich schon gemacht habe; Symbole auch für alte Augen»)
+
+**F19 – Wie sieht man auf einen Blick, welche Routen man geschafft hat?**
+→ In der Liste steht rechts eine farbige, beschriftete Plakette mit 15 px fettem Text: «⚡ Flash» (Messing), «✓ Top» (Grün), «◎ Projekt» (nur Rand). Am Foto bekommt jeder geschaffte Pin unten rechts ein 24-px-Abzeichen (Blitz bzw. Haken). Über der Liste steht «n von m geschafft» für die aktuelle Wand.
+*Warum:* Ein 20-px-Symbol ohne Text war zu leicht zu übersehen; Text plus Farbe funktioniert auch bei schlechter Sicht und Farbschwäche.
+
+**F20 – Wie wird der Hallen-Klassiker (≥ 4,8 ★) erkennbar?**
+→ Am Pin ersetzt ein 24-px-Kreis mit großem Stern das winzige «5.0 ★» (8 px). Das «Community-Favorit»-Funkeln entfällt, damit es nur ein Stern-Symbol gibt. In der Liste ist die Bewertung 16 px fett; beim Klassiker steht sie als Messing-Plakette «★ 5.0».
+*Warum:* 8-px-Text ist für viele Menschen unlesbar; ein einziges, großes Symbol ist eindeutig.
+
+Tests (F19/F20): `tests/spec022ClimberUx.test.tsx` und `tests/e2e/climber-ux.spec.ts` (Plakette, Pin-Abzeichen, Fortschritt, Stern-Größe ≥ 20 px).
+
+**F21 – Braucht der Kletterer den Hinweis «Pin antippen» über dem Foto?**
+→ Nein. Im Kletterer-Modus wird das Hinweis-Schild oben links nicht mehr gezeigt. Schrauber behalten ihre Bedienhilfe («Klick = Pin | Drag = Verschieben | Ziehen = Quadrat-Auswahl»).
+*Warum:* Pins sehen antippbar aus; der Text verdeckt nur das Foto (Text-Diät).
+
+**F22 – Was passiert mit den alten Dateien `BoulderDetailModal` und `UserProfileView`?**
+→ Beide werden gelöscht. Sie waren seit SPEC-022 nirgends mehr eingebunden (ersetzt durch `BoulderSheet` und `MeView`/`DeepDiveView`). Ihre Tests wurden auf `BoulderSheet` bzw. `MeView` umgezogen; Tests für Funktionen, die es bewusst nicht mehr gibt, entfallen.
+*Warum:* Toter Code wurde weiter getestet und gepflegt und verwirrte bei Änderungen.
+
+Tests (F21/F22): `tests/spec022ClimberUx.test.tsx` (kein «Pin antippen» beim Kletterer, Schrauber-Hilfe bleibt), `tests/e2e/climber-ux.spec.ts` (Text-Diät prüft «Pin antippen»), umgezogene Tests in den bisherigen Testdateien.
+
+**Fehlerbehebung 08.10.2026 – Person doppelt in «Wer war schon oben»:** Lagen für eine Person zwei Begehungen am selben Boulder vor (Demo-Seed hatte zwei; nach Sync auch Demo-ID plus Supabase-UUID möglich), erschien sie zweimal und wurde doppelt gezählt. Jetzt zählt pro Person nur die neueste Begehung (`computeBoulderStatsAggregate`); die doppelten Seed-Einträge sind entfernt. Tests: `tests/communityAscentDedupe.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
+
 ---
 
 ## 3. Akzeptanzkriterien
@@ -115,10 +139,13 @@ Screenshots: Wand, Boulder-Detail und Statistik vor dem Umbau. Befunde:
 - **AC-10** Kletterer-Header enthält keinen Login-Knopf; der Arbeitsbereich-Knopf erscheint nur für Schrauber/Admins; der Personen-Umschalter existiert nur im Dev-Build.
 - **AC-11** `ToastHost` ist einmal in `App` gerendert.
 - **AC-12** Vollbild ohne Wisch-Hinweis; leerer Sektor zeigt «Noch keine Boulder».
+- **AC-13** (F19) Geschaffte Routen zeigen in der Zeile eine beschriftete Plakette «Flash»/«Top»/«Projekt» (≥ 15 px) und am Pin ein Abzeichen `pin-status-<id>` (≥ 20 px); über der Liste steht `climber-progress` «n von m geschafft».
+- **AC-14** (F20) Hallen-Klassiker zeigen am Pin `classic-badge-<id>` (≥ 20 px, ohne Text) und in der Liste eine Plakette mit ★ und Schnitt (16 px fett). Kein Text unter 11 px an Pins für Bewertungen.
+- **AC-15** (F21) Im Kletterer-Modus steht über dem Wandfoto kein Text «Pin antippen»; im Schrauber-Modus bleibt die Bedienhilfe.
+- **AC-16** (F22) `src/components/BoulderDetailModal.tsx` und `src/components/UserProfileView.tsx` existieren nicht mehr; kein Test importiert sie.
+- **AC-17** «Wer war schon oben» zeigt jede Person höchstens einmal; Summen zählen eine Begehung pro Person.
 
 ## 4. Nicht Teil dieser Runde
 - Rollen-Gateway nach Login entfernen (SPEC-020 AC-8.3).
 - Peek-Sheet für die Routenliste (SPEC-020 AC-3.2) und Foto ≥ 70 % (AC-1.1).
 - Gast-Modus «Ohne Konto umsehen» (SPEC-020 AC-9.2).
-- Löschen der nicht mehr eingebundenen Dateien `UserProfileView`, `BoulderDetailModal` (erst wenn deren Tests umgezogen sind).
-- Hinweis «Pin antippen» im `WallPhotoCanvas` (Datei gehört gerade dem Umschrauben-Thread).

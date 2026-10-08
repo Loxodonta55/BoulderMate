@@ -377,6 +377,15 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
   const filteredIdSet = useMemo(() => new Set(processedBoulders.map(p => p.id)), [processedBoulders]);
 
+  // Wie viele Boulder dieser Wand hat der Kletterer schon getoppt (Flash oder Top)?
+  const doneCount = useMemo(
+    () => boulders.filter(b => {
+      const type = userAscentMap.get(b.id)?.type;
+      return type === 'flash' || type === 'top';
+    }).length,
+    [boulders, userAscentMap]
+  );
+
   const sectorRouteCounts = useMemo(() => {
     const counts = new Map<string, number>();
     if (!isSectorListOpen) return counts;
@@ -537,6 +546,12 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               })}
             </div>
 
+            {boulders.length > 0 && (
+              <p className="px-1 text-[15px] text-[var(--bm-text-2)]" data-testid="climber-progress">
+                <span className="font-semibold text-[var(--bm-text)]">{doneCount}</span> von {boulders.length} geschafft
+              </p>
+            )}
+
             {/* SPEC-022 F6: Routenliste */}
             {boulders.length === 0 ? (
               <p className="py-8 text-center text-[15px] text-[var(--bm-text-2)]" data-testid="climber-empty-sector">
@@ -571,9 +586,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                         className="w-full min-h-[56px] px-4 py-2 flex items-center gap-3 text-left active:bg-[var(--bm-elevated)]"
                       >
                         <span
-                          className={`w-5 h-5 rounded-full shrink-0 ${isClassic ? 'ring-2 ring-offset-2 ring-offset-[var(--bm-surface)] ring-[var(--bm-star)]' : 'ring-1 ring-black/10'}`}
+                          className="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10"
                           style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
-                          data-testid={isClassic ? 'five-star-ribbon' : undefined}
                           aria-hidden
                         />
                         <span className="flex-1 min-w-0">
@@ -591,18 +605,40 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                         </span>
                         {(stats?.totalRatings || 0) > 0 && (
                           <span
-                            className="flex items-center gap-0.5 text-[14px] text-[var(--bm-text-2)] tabular-nums shrink-0"
+                            className={`flex items-center gap-1 text-[16px] font-semibold tabular-nums shrink-0 ${
+                              isClassic
+                                ? 'min-h-[30px] px-2.5 rounded-full bg-[var(--bm-star)] text-[var(--bm-bg)]'
+                                : 'text-[var(--bm-text)]'
+                            }`}
                             data-testid={`hero-score-${boulder.id}`}
-                            title={`${avg.toFixed(1)} Sterne (${stats!.totalRatings})`}
+                            title={`${avg.toFixed(1)} Sterne (${stats!.totalRatings})${isClassic ? ' · Hallen-Klassiker' : ''}`}
                           >
-                            <Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-star)]" />
+                            <Star
+                              className={`w-[18px] h-[18px] ${isClassic ? 'fill-[var(--bm-bg)] text-[var(--bm-bg)]' : 'fill-[var(--bm-star)] text-[var(--bm-star)]'}`}
+                              data-testid={isClassic ? 'five-star-ribbon' : undefined}
+                            />
                             {avg.toFixed(1)}
                           </span>
                         )}
-                        <span className="w-6 flex justify-center shrink-0" data-testid={`route-status-${boulder.id}`}>
-                          {ascent?.type === 'flash' && <Zap className="w-5 h-5 fill-[var(--bm-star)] text-[var(--bm-star)]" aria-label="Flash" />}
-                          {ascent?.type === 'top' && <Check className="w-5 h-5 text-[var(--bm-success)]" aria-label="Top" />}
-                          {ascent?.type === 'project' && <Target className="w-5 h-5 text-[var(--bm-text-2)]" aria-label="Projekt" />}
+                        <span className="w-[92px] flex justify-end shrink-0" data-testid={`route-status-${boulder.id}`}>
+                          {ascent?.type === 'flash' && (
+                            <span aria-label="Flash" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-star)] text-[var(--bm-bg)]">
+                              <Zap className="w-4 h-4 fill-current" aria-hidden />
+                              Flash
+                            </span>
+                          )}
+                          {ascent?.type === 'top' && (
+                            <span aria-label="Top" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-success)] text-[var(--bm-on-accent)]">
+                              <Check className="w-4 h-4 stroke-[3]" aria-hidden />
+                              Top
+                            </span>
+                          )}
+                          {ascent?.type === 'project' && (
+                            <span aria-label="Projekt" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-semibold border-2 border-[var(--bm-line)] text-[var(--bm-text-2)]">
+                              <Target className="w-4 h-4" aria-hidden />
+                              Projekt
+                            </span>
+                          )}
                         </span>
                       </button>
                     </li>

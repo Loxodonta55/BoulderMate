@@ -171,6 +171,9 @@ export function ensureInitialGymData(): void {
     // (Boulders will be comprehensively populated from SEED_EXISTING_BOULDERS below)
   }
 
+  // SPEC-025: Startkoordinaten für die beiden Seed-Hallen (nur wenn noch keine gesetzt sind)
+  backfillSeedGymLocations();
+
   // 3. Register default roles for fake personas across gyms
   const allGyms = getGyms();
   const currentMembers = getMembers();
@@ -401,6 +404,49 @@ export function getUserRoleInGym(gym_id: string, user_id: string): GymRole | nul
     return m.gym_id === gym_id || normalizeGymSectorGymId(m.gym_id) === targetGymNorm;
   });
   return membership ? membership.role : null;
+}
+
+// SPEC-025: Ungefähre Koordinaten der Seed-Hallen. Admins korrigieren sie über «Adresse suchen».
+export const SEED_GYM_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+  'gym-minimum-zh': { lat: 47.3829, lng: 8.5079 },
+  'gym-6a-plus': { lat: 47.4895, lng: 8.7136 },
+};
+
+function backfillSeedGymLocations(): void {
+  const gyms = getGyms();
+  let changed = false;
+  const next = gyms.map(g => {
+    const seed = SEED_GYM_LOCATIONS[g.id];
+    if (seed && (typeof g.lat !== 'number' || typeof g.lng !== 'number')) {
+      changed = true;
+      return { ...g, lat: seed.lat, lng: seed.lng };
+    }
+    return g;
+  });
+  if (changed) saveGyms(next);
+}
+
+/**
+ * SPEC-025 AC-8: Hallen-Admin (eigene Halle) oder Plattform-Admin setzt die Koordinaten der Halle.
+ * Speichert lokal und schreibt nach Supabase (gyms.lat / gyms.lng).
+ */
+export function updateGymLocation(gym_id: string, user_id: string, lat: number, lng: number): Gym {
+  if (!isGymAdmin(gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen den Standort der Halle ändern.');
+  }
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    throw new Error('Ungültige Koordinaten.');
+  }
+  const gyms = getGyms();
+  const idx = gyms.findIndex(g => g.id === gym_id);
+  if (idx === -1) throw new Error('Halle nicht gefunden.');
+  const round = (v: number) => Math.round(v * 1e6) / 1e6;
+  const updated: Gym = { ...gyms[idx], lat: round(lat), lng: round(lng) };
+  const next = [...gyms];
+  next[idx] = updated;
+  saveGyms(next);
+  syncBridge.syncGymLocation(updated);
+  return updated;
 }
 
 export function isGymAdmin(gym_id: string, user_id: string): boolean {
@@ -843,6 +889,51 @@ export function updateSectorWallPhoto(
     }
   }
 
+  return sector;
+}
+
+// SPEC-023 F14: Sektor umbenennen (nur Admin, kein leerer und kein doppelter Name in der Halle).
+export function renameSector(
+  sector_id: string,
+  user_id: string,
+  new_name: string
+): Sector {
+  const all = getSectors();
+  const sector = all.find(s => s.id === sector_id);
+  if (!sector) throw new Error('Sektor nicht gefunden.');
+
+  if (!isGymAdmin(sector.gym_id, user_id)) {
+    throw new Error('Nur Hallen-Admins dürfen Sektoren umbenennen.');
+  }
+
+  const name = (new_name || '').trim();
+  if (!name) throw new Error('Name fehlt.');
+
+  const gymNorm = normalizeGymSectorGymId(sector.gym_id);
+  const duplicate = all.some(s =>
+    s.id !== sector_id &&
+    normalizeGymSectorGymId(s.gym_id) === gymNorm &&
+    s.name.trim().toLowerCase() === name.toLowerCase()
+  );
+  if (duplicate) throw new Error(`Es gibt schon einen Sektor «${name}».`);
+
+  sector.name = name;
+  saveSectors(all);
+
+  // v2-Cache nach ID gleich halten (nicht nach Name, der ändert sich ja gerade)
+  try {
+    const localV2 = getStorageJson<any[]>('boulderapp_sectors_v2', []);
+    if (localV2.some(s => s.id === sector_id)) {
+      setStorageJson('boulderapp_sectors_v2', localV2.map(s => (s.id === sector_id ? { ...s, name } : s)));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bouldermate:sectors_updated', {
+        detail: { action: 'rename', sectorId: sector_id }
+      }));
+    }
+  } catch (_) {}
+
+  syncBridge.syncSector(sector);
   return sector;
 }
 

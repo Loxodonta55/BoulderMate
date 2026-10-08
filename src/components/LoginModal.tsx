@@ -8,7 +8,6 @@ import {
   Building2, 
   Mountain, 
   UserPlus, 
-  Globe, 
   LogIn, 
   Lock, 
   Mail, 
@@ -21,12 +20,12 @@ import {
   signOut,
   setSessionUser,
   getAvailableTestUsers,
-  signInWithGoogle,
   signInWithPassword,
   signUpWithEmail,
   signInWithOtp,
   AuthUser
 } from '../lib/authService';
+import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -57,6 +56,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [registerPassword, setRegisterPassword] = useState('');
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // SPEC-024 AC-1.2: ein Google-Knopf oben, für Anmelden und Registrieren gemeinsam
+  const googleAvailable = useGoogleLoginAvailable();
+  const google = useGoogleSignIn();
 
   useEffect(() => {
     setCurrentUser(getCurrentAuthUser());
@@ -173,27 +176,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsSubmitting(true);
-    setErrorMsg(null);
-    try {
-      const email = registerEmail.trim() || loginEmail.trim() || undefined;
-      const nickname = registerNickname.trim() || undefined;
-      const user = await signInWithGoogle({ email, nickname });
-      setCurrentUser(user);
-      setMessage(`Google-Login erfolgreich! Angemeldet als ${user.nickname}`);
-      onUserChanged?.(user);
-      setTimeout(() => {
-        onClose();
-      }, 500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Fehler beim Google-Login';
-      setErrorMsg(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const getRoleIcon = (u: AuthUser) => {
     if (u.isPlatformAdmin) return <Crown className="w-4 h-4 text-[var(--bm-accent)]" />;
     if (u.id.includes('admin') || u.roleDescription?.includes('Admin')) return <Building2 className="w-4 h-4 text-[var(--bm-accent)]" />;
@@ -287,12 +269,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {errorMsg && (
+          {googleAvailable && (
+            <div className="space-y-3">
+              <GoogleSignInButton onClick={google.start} busy={google.busy} />
+              <div className="flex items-center gap-3 text-[14px] text-[var(--bm-text-2)]">
+                <span className="flex-1 h-px bg-[var(--bm-line)]" />
+                <span>oder mit E-Mail</span>
+                <span className="flex-1 h-px bg-[var(--bm-line)]" />
+              </div>
+            </div>
+          )}
+
+          {(errorMsg || google.error) && (
             <div 
               className="p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-danger)]/40 text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono"
               data-testid="register-error-msg"
             >
-              <span>{errorMsg}</span>
+              <span>{errorMsg || google.error}</span>
             </div>
           )}
 
@@ -409,18 +402,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       </>
                     )}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleAuth}
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-text-2)] font-mono text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
-                    title="Mit Google anmelden"
-                    data-testid="btn-google-login"
-                  >
-                    <Globe className="w-4 h-4 text-[var(--bm-accent)]" />
-                    <span>Mit Google</span>
-                  </button>
                 </div>
               </form>
             </div>
@@ -526,18 +507,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         <span>Anmelden</span>
                       </>
                     )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleAuth}
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-text-2)] font-mono text-xs transition rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
-                    title="Mit Google anmelden"
-                    data-testid="btn-google-login"
-                  >
-                    <Globe className="w-4 h-4 text-[var(--bm-accent)]" />
-                    <span>Mit Google</span>
                   </button>
                 </div>
               </form>

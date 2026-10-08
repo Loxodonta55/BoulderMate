@@ -3,8 +3,9 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { navigationHistory } from '../src/lib/navigationHistory';
 import { App } from '../src/App';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
-import { UserProfileView } from '../src/components/UserProfileView';
+import { BoulderSheet } from '../src/components/BoulderSheet';
+import { MeView } from '../src/components/MeView';
+import { getUserRoleInfo } from '../src/lib/roleService';
 import { BatchBoulderWorkflow } from '../src/components/BatchBoulderWorkflow';
 import { GymManagement } from '../src/components/GymManagement';
 import { resetAllGymData, createGym, createSector, CURRENT_USER } from '../src/lib/gymStorage';
@@ -101,26 +102,25 @@ describe('SPEC-015: Mobile-First Android Back-Button & Hierarchical Navigation',
     });
   });
 
-  describe('2) BoulderDetailModal & Nested Overlays (AC-15.1)', () => {
-    it('closes RatingModal on back without closing BoulderDetailModal', () => {
+  describe('2) BoulderSheet & Nested Overlays (AC-15.1)', () => {
+    it('closes RatingModal on back without closing BoulderSheet', () => {
       const onClose = vi.fn();
 
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={mockBoulder}
           gradeScale={mockGradeScale}
           currentUser={{ id: 'climber-1', nickname: 'Climber 1', role: 'member', isPlatformAdmin: false }}
-          isOpen={true}
           onClose={onClose}
         />
       );
 
-      // Open RatingModal by clicking "Jetzt bewerten"
-      const rateButton = screen.getByRole('button', { name: /Jetzt bewerten/i });
-      fireEvent.click(rateButton);
+      // Open RatingModal via "Bewerten" in the expanded sheet
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      fireEvent.click(screen.getByTestId('open-rating-btn'));
 
       expect(screen.getByText(/Schritt 1\/2/i)).toBeInTheDocument();
-      expect(navigationHistory.has(`boulder-rating-modal-${mockBoulder.id}`)).toBe(true);
+      expect(navigationHistory.has('boulder-sheet-rating')).toBe(true);
 
       // Android Hardware Back pressed: should close RatingModal ONLY
       act(() => {
@@ -128,8 +128,9 @@ describe('SPEC-015: Mobile-First Android Back-Button & Hierarchical Navigation',
       });
 
       expect(screen.queryByText(/Schritt 1\/2/i)).not.toBeInTheDocument();
-      expect(onClose).not.toHaveBeenCalled(); // BoulderDetailModal is still open!
-      expect(navigationHistory.has(`boulder-rating-modal-${mockBoulder.id}`)).toBe(false);
+      expect(onClose).not.toHaveBeenCalled(); // BoulderSheet is still open!
+      expect(screen.getByTestId('boulder-sheet')).toBeInTheDocument();
+      expect(navigationHistory.has('boulder-sheet-rating')).toBe(false);
     });
   });
 
@@ -183,79 +184,58 @@ describe('SPEC-015: Mobile-First Android Back-Button & Hierarchical Navigation',
     });
   });
 
-  describe('5) Sub-Tab Navigation in Profile (AC-15.4)', () => {
-    it('navigates from Deep Dive back to Overall subtab on back press', () => {
+  describe('5) Pushed Screens in MeView (AC-15.4)', () => {
+    const hans = { id: 'hans-kletterer', nickname: 'Hans', role: 'member' as const, isPlatformAdmin: false };
+    const renderMe = () =>
       render(
-        <UserProfileView
-          currentUser={{ id: 'hans-kletterer', nickname: 'Hans', role: 'member', isPlatformAdmin: false }}
-          initialSubTab="overall"
+        <MeView
+          currentUser={hans}
+          activeGymId="gym-6a-plus"
+          roleInfo={getUserRoleInfo(hans.id, 'gym-6a-plus')}
+          onSwitchMode={() => {}}
+          onLogout={() => {}}
         />
       );
 
-      // Switch to deep dive subtab
-      const deepDiveTab = screen.getByTestId('subtab-deep-dive');
-      fireEvent.click(deepDiveTab);
+    it('closes the Deep Dive view and returns to MeView on back press', () => {
+      renderMe();
+
+      // Open Deep Dive from MeView
+      fireEvent.click(screen.getByTestId('me-open-deep-dive'));
 
       expect(screen.getByTestId('deep-dive-view')).toBeInTheDocument();
-      expect(navigationHistory.has('profile-subtab-deep-dive')).toBe(true);
+      expect(navigationHistory.has('me-deep-dive')).toBe(true);
 
       // Press Android Back button
       act(() => {
         window.dispatchEvent(new PopStateEvent('popstate'));
       });
 
-      // Should return to overall subtab
+      // Should return to MeView
       expect(screen.queryByTestId('deep-dive-view')).not.toBeInTheDocument();
+      expect(screen.getByTestId('user-profile-view')).toBeInTheDocument();
       expect(screen.getByTestId('private-logbook-section')).toBeInTheDocument();
-      expect(navigationHistory.has('profile-subtab-deep-dive')).toBe(false);
+      expect(navigationHistory.has('me-deep-dive')).toBe(false);
     });
 
-    it('navigates from Stil & Stärken segment back to Übersicht segment on back press', () => {
-      render(
-        <UserProfileView
-          currentUser={{ id: 'hans-kletterer', nickname: 'Hans', role: 'member', isPlatformAdmin: false }}
-          initialSubTab="overall"
-        />
-      );
+    it('closes the settings screen on back press', () => {
+      renderMe();
 
-      // Switch to performance segment
-      const performanceSegmentBtn = screen.getByTestId('tab-segment-performance');
-      fireEvent.click(performanceSegmentBtn);
+      fireEvent.click(screen.getByTestId('open-settings-btn'));
 
-      expect(screen.getByTestId('athlete-performance-view')).toBeInTheDocument();
-      expect(navigationHistory.has('profile-segment-performance')).toBe(true);
-
-      // Press Android Back button
-      act(() => {
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      });
-
-      // Should return to overview segment
-      expect(screen.queryByTestId('athlete-performance-view')).not.toBeInTheDocument();
-      expect(navigationHistory.has('profile-segment-performance')).toBe(false);
-    });
-
-    it('closes ProfileSettingsModal on back press', () => {
-      render(
-        <UserProfileView
-          currentUser={{ id: 'hans-kletterer', nickname: 'Hans', role: 'member', isPlatformAdmin: false }}
-          initialSubTab="overall"
-        />
-      );
-
-      const settingsBtn = screen.getByTestId('btn-open-settings');
-      fireEvent.click(settingsBtn);
-
+      expect(screen.getByTestId('settings-view')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Einstellungen' })).toBeInTheDocument();
-      expect(navigationHistory.has('profile-settings-modal')).toBe(true);
+      expect(navigationHistory.has('me-settings')).toBe(true);
 
       // Press Android Back button
       act(() => {
         window.dispatchEvent(new PopStateEvent('popstate'));
       });
 
+      expect(screen.queryByTestId('settings-view')).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Einstellungen' })).not.toBeInTheDocument();
-      expect(navigationHistory.has('profile-settings-modal')).toBe(false);
+      expect(screen.getByTestId('user-profile-view')).toBeInTheDocument();
+      expect(navigationHistory.has('me-settings')).toBe(false);
     });
   });
 
@@ -319,17 +299,17 @@ describe('SPEC-015: Mobile-First Android Back-Button & Hierarchical Navigation',
       );
 
       // Switch to grading tab
-      const gradingTab = screen.getByRole('button', { name: /Farbsystem/i });
+      const gradingTab = screen.getByTestId('admin-tab-grades');
       fireEvent.click(gradingTab);
 
-      expect(navigationHistory.has('admin-tab-grading')).toBe(true);
+      expect(navigationHistory.has('admin-tab-grades')).toBe(true);
 
       // Press Android Back button
       act(() => {
         window.dispatchEvent(new PopStateEvent('popstate'));
       });
 
-      expect(navigationHistory.has('admin-tab-grading')).toBe(false);
+      expect(navigationHistory.has('admin-tab-grades')).toBe(false);
     });
   });
 });

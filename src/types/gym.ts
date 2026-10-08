@@ -15,6 +15,9 @@ export interface Gym {
   city?: string;
   logo_url?: string;
   website?: string;
+  /** SPEC-025: Koordinaten für die Hallen-Karte (WGS84) */
+  lat?: number;
+  lng?: number;
   created_by: string;
   created_at: string;
 }

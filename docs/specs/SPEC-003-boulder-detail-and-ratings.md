@@ -6,6 +6,10 @@
 
 > **Update (08.10.2026, Kletterer-UX, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md)):** Das Kletterer-Detail ist jetzt das `BoulderSheet` (halb/voll). Loggen geht in 2 Taps (Zeile → Flash/Top/Projekt); ein erneuter Tap auf den aktiven Status ändert nichts. Danach erscheint statt des automatischen Bewertungsdialogs ein Toast mit «Rückgängig» und Mini-Sternen. Die Vollansicht zeigt «Wer war schon oben» (Begehungen und Bewertungen pro Person, Tap öffnet das Profil). Tests: `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts`, `tests/e2e/ascents-logging.spec.ts`, `tests/e2e/ratings-sync.spec.ts`.
 
+> **Update (08.10.2026, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md) F22):** `BoulderDetailModal` und `UserProfileView` sind gelöscht. Ersetzt durch `BoulderSheet` (Boulder-Detail, Bewertungen, Kommentare) und `MeView` mit `DeepDiveView` (Profil, Statistik). Die zugehörigen Tests laufen jetzt gegen diese Komponenten.
+
+> **Update (08.10.2026, Lesbarkeit, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md) F19/F20):** AC-18 gilt in neuer Form: Der Hallen-Klassiker trägt am Pin einen 24-px-Stern statt des 8-px-Abzeichens «5.0 ★»; das Funkel-Abzeichen «Community-Favorit» entfällt. In der Routenliste steht der Schnitt 16 px fett, beim Klassiker als Messing-Plakette. Eigene Begehungen stehen als beschriftete Plakette («Flash»/«Top»/«Projekt») in der Zeile und als Abzeichen am Pin. Tests: `tests/spec022ClimberUx.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
+
 ## Status: DONE (Teilweise aktualisiert durch SPEC-020)
 
 ## Summary
@@ -36,7 +40,7 @@ Ermöglicht Kletterern das Betrachten aller Details eines Boulders (Farbe, Schwi
 - [x] **AC-8: Community-Aggregat-Anzeige**:
   - Soft/Fair/Stiff wird als prozentualer Balken oder dominanter Trend (z.B. "Eher Soft (62%)") visualisiert.
   - Sterne werden als dezimaler Durchschnitt (z.B. "4.6 ★ (18)") gerendert.
-- [x] **AC-9: Ascent-Feed / Begehungsliste**: Die Detailseite listet Kletterer auf, die den Boulder getoppt oder geflasht haben (Avatar, Nickname, Datum).
+- [x] **AC-9: Ascent-Feed / Begehungsliste**: Die Detailseite listet Kletterer auf, die den Boulder getoppt oder geflasht haben (Avatar, Nickname, Datum). *(08.10.2026: Jede Person steht nur einmal in der Liste. Liegen für eine Person mehrere Begehungen vor, z. B. unter Demo-ID und Supabase-UUID, zählt nur die neueste; das gilt auch für Flash-/Top-/Projekt-Summen. Tests: `tests/communityAscentDedupe.test.tsx`, `tests/e2e/climber-ux.spec.ts`.)*
 - [x] **AC-10: Kompakte Bewertungs-Präsenz auf Wandfoto & Pins (Micro-Rating & Favoriten-Aura)**:
   - Bei bewerteten Bouldern zeigt das Pin-Label unter dem Wandfoto-Pin ultra-kompakt die Durchschnittsnote an (z.B. `[Name • ★ 4.7]`).
   - Boulder mit herausragender Community-Beliebtheit ($\ge 4.2$ Sterne bei $\ge 2$ Wertungen) erhalten einen leuchtenden Sandstein-Gold-Ring (`#C9A96E`) als "Favoriten-Aura" und ein dezentes Kronen-/Stern-Abzeichen am Pin, sodass die "Schmuckstücke" der Wand sofort ins Auge stechen, ohne Platz zu vergeuden.

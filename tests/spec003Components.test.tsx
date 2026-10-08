@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { RadarChart } from '../src/components/RadarChart';
 import { RatingModal } from '../src/components/RatingModal';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { BoulderSheet } from '../src/components/BoulderSheet';
+import { ToastHost, hideToast } from '../src/components/ui/Toast';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import {
   WallBoulder,
@@ -11,7 +12,7 @@ import {
   CurrentUser,
   RadarAttributes
 } from '../src/types/boulder';
-import { resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
+import { resetAscentAndRatingStorage, getUserAscent, getComments } from '../src/lib/ratingAndAscentService';
 
 const sampleRadar: RadarAttributes = {
   maximalkraft: 4,
@@ -148,76 +149,97 @@ describe('SPEC-003: UI Components Integration', () => {
     });
   });
 
-  describe('BoulderDetailModal (AC-1, AC-3, AC-8, AC-9)', () => {
+  describe('BoulderSheet (AC-1, AC-3, AC-8, AC-9)', () => {
     it('displays boulder details, barometer, logging buttons, and ascent feed', () => {
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleGradeScale}
           currentUser={sampleUser}
-          isOpen={true}
           onClose={vi.fn()}
         />
       );
 
       // Verify Header details (AC-1)
-      expect(screen.getByText('Dyno King')).toBeInTheDocument();
-      expect(screen.getByText('Fortgeschritten')).toBeInTheDocument();
-      expect(screen.getByText('Überhang 45°')).toBeInTheDocument();
+      expect(screen.getByTestId('boulder-sheet-title')).toHaveTextContent('Dyno King');
+      expect(screen.getByText(/Fortgeschritten/)).toBeInTheDocument();
+      expect(screen.getByText(/Überhang 45°/)).toBeInTheDocument();
 
       // Verify 3 ascent buttons (AC-3)
-      expect(screen.getAllByText('Flash').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Top').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Projekt').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('log-flash-btn')).toHaveTextContent('Flash');
+      expect(screen.getByTestId('log-top-btn')).toHaveTextContent('Top');
+      expect(screen.getByTestId('log-project-btn')).toHaveTextContent('Projekt');
+
+      // Details aufklappen
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      const details = screen.getByTestId('boulder-sheet-details');
 
       // Verify Barometer & Stars (AC-8)
-      expect(screen.getByText('Grad-Barometer')).toBeInTheDocument();
-      expect(screen.getByText('Community-Bewertung')).toBeInTheDocument();
+      expect(within(details).getByTestId('grade-barometer')).toBeInTheDocument();
+      expect(within(details).getByText('Community')).toBeInTheDocument();
+      expect(within(details).getByText(/\d+ Bewertungen?/)).toBeInTheDocument();
 
       // Verify Ascent feed (AC-9) - seed has HansDereinfacheKletterer and AdminMinimum
-      expect(screen.getAllByText('HansDereinfacheKletterer').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('AdminMinimum').length).toBeGreaterThan(0);
+      const feed = within(details).getByTestId('community-ratings-section');
+      expect(within(feed).getAllByText('HansDereinfacheKletterer').length).toBeGreaterThan(0);
+      expect(within(feed).getAllByText('AdminMinimum').length).toBeGreaterThan(0);
     });
 
     it('allows logging a Top and updates UI', () => {
-      const handleDataChanged = vi.fn();
+      const handleClose = vi.fn();
 
+      const { unmount } = render(
+        <>
+          <BoulderSheet
+            boulder={sampleBoulder}
+            sector={sampleSector}
+            gradeScale={sampleGradeScale}
+            currentUser={sampleUser}
+            onClose={handleClose}
+          />
+          <ToastHost />
+        </>
+      );
+
+      expect(screen.getByTestId('log-top-btn')).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.click(screen.getByTestId('log-top-btn'));
+
+      expect(getUserAscent(sampleUser.id, sampleBoulder.id)?.type).toBe('top');
+      expect(handleClose).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('toast')).toHaveTextContent('Top geloggt');
+      act(() => hideToast());
+      unmount();
+
+      // Beim erneuten Öffnen ist «Top» als aktiv markiert
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleGradeScale}
           currentUser={sampleUser}
-          isOpen={true}
           onClose={vi.fn()}
-          onDataChanged={handleDataChanged}
         />
       );
-
-      const topBtn = screen.getByRole('button', { name: /Top/i });
-      fireEvent.click(topBtn);
-
-      expect(handleDataChanged).toHaveBeenCalled();
+      expect(screen.getByTestId('log-top-btn')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('log-flash-btn')).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('renders route discussion feed and allows posting a beta comment', () => {
-      const handleDataChanged = vi.fn();
-
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleGradeScale}
           currentUser={sampleUser}
-          isOpen={true}
           onClose={vi.fn()}
-          onDataChanged={handleDataChanged}
         />
       );
 
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+
       // Verify discussion section exists
-      expect(screen.getByText(/Routen-Diskussion & Beta/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Beta/ })).toBeInTheDocument();
       // Seed comment is shown
       expect(screen.getByText(/Der Dyno geht super/i)).toBeInTheDocument();
 
@@ -229,7 +251,7 @@ describe('SPEC-003: UI Components Integration', () => {
       fireEvent.click(submitBtn);
 
       expect(screen.getByText('Crux mit links blockieren!')).toBeInTheDocument();
-      expect(handleDataChanged).toHaveBeenCalled();
+      expect(getComments(sampleBoulder.id).some(c => c.text === 'Crux mit links blockieren!')).toBe(true);
     });
   });
 

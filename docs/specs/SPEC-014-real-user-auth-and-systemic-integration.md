@@ -2,6 +2,8 @@
 
 ## Status: APPROVED (Konzipiert via Grill-Me Methodik)
 
+> **Update (08.10.2026, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md) F22):** `BoulderDetailModal` und `UserProfileView` sind gelöscht. Ersetzt durch `BoulderSheet` (Boulder-Detail, Bewertungen, Kommentare) und `MeView` mit `DeepDiveView` (Profil, Statistik). Die zugehörigen Tests laufen jetzt gegen diese Komponenten.
+
 ## Summary
 Dieses Dokument spezifiziert die vollständige, produktionsreife Einführung von **echten Benutzerkonten** (Supabase Auth / GoTrue) in das BoulderMate-Ökosystem. Es löst die bisherige Beschränkung auf rein statische Test-Personas ab und integriert echte Identitäten nahtlos in alle bestehenden Komponenten der Applikation („Die bestehende Welt“):
 - Dynamischer Kletterer- und Authentifizierungs-Header (`App.tsx`)

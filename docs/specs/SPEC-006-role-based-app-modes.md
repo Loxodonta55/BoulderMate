@@ -35,6 +35,7 @@ Reine Kletterer landen immer ohne Umwege direkt im aufgeräumten Kletterer-Panel
   - **Kletterer**: BoulderApp Brand, Hallenauswahl, Wand/Logbuch/Profil-Navigation, Kletterer-Simulator.
   - **Schrauber-Studio**: Studio-Banner mit Wrench-Icon, Hallenauswahl, Schnellwechsel "Bereich wechseln" und "← Zurück zur Kletterer-App".
   - **Hallen-Admin**: Admin-Banner mit Building/Shield-Icon, Hallenauswahl, Schnellwechsel "Routen schrauben" und "← Zurück zur Kletterer-App".
+    *(08.10.2026, SPEC-023 F7: Admin-Header = Building-Symbol, Hallenname ▾ (`admin-gym-button`, Sheet «Halle wählen») und genau ein Knopf «Bereich» (`admin-switch-workspace-btn`). «Zurück zur Kletterer-App» läuft über das Gateway. Gateway-Texte gekürzt (F11), Titel «Arbeitsbereich wählen» bleibt.)*
 - [x] **AC-5**: Berechtigte Nutzer können aus dem Kletterer-Panel über einen dezenten Umschalter oder über ihr Profil jederzeit das Role Gateway erneut öffnen, um den Bereich zu wechseln.
 - [x] **AC-6**: Beim Nutzerwechsel (z.B. Wechsel von Boris (Admin) zu Jonas (Kletterer)) wird die Ansicht sofort an die Berechtigungen des neuen Nutzers angepasst.
 - [x] **AC-7**: **Strikte Feature-Isolation**: Die drei Bereiche sind völlig voneinander getrennt. Keines der Features darf aus zwei Bereichen aufrufbar sein; alle Funktionen, Buttons und Dialoge sind exklusiv in ihrem jeweiligen Bereich verankert.

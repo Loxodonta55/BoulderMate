@@ -13,7 +13,7 @@ import {
   resetAllGymData
 } from '../src/lib/gymStorage';
 import {
-  signInWithGoogle,
+  mockGoogleSignIn,
   signInWithEmail,
   signOut,
   getCurrentAuthUser,
@@ -50,7 +50,7 @@ describe('SPEC-000: Authentifizierung, Rollen- & Berechtigungskonzept (Feature 0
 
   describe('AC-2 & AC-3: Authentifizierung via Google OAuth & E-Mail', () => {
     it('allows signing in with Google and initializes profile', async () => {
-      const user = await signInWithGoogle({ email: 'outdoor.climber@gmail.com', nickname: 'RockClimber' });
+      const user = mockGoogleSignIn({ email: 'outdoor.climber@gmail.com', nickname: 'RockClimber' });
       expect(user).toBeDefined();
       expect(user.provider).toBe('google');
       expect(user.email).toBe('outdoor.climber@gmail.com');

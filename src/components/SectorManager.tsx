@@ -1,641 +1,460 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Sector } from '../types/gym';
-import { createSector, reorderSectors, updateSectorWallPhoto, deleteSector } from '../lib/gymStorage';
+import { createSector, reorderSectors, updateSectorWallPhoto, deleteSector, renameSector } from '../lib/gymStorage';
 import { syncSectorOrderToSupabase } from '../lib/syncService';
+import { getSectors as getWallSectors, isSectorInRebuild } from '../lib/batchBoulderService';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
 import { BatchSectorModal } from './BatchSectorModal';
-import {
-  Layers,
-  Plus,
-  ArrowUp,
-  ArrowDown,
-  Trash2,
-  AlertCircle,
-  CheckCircle2,
-  Upload,
-  GripVertical,
-  ArrowUpDown,
-  Check,
-  Images,
-} from 'lucide-react';
+import { Sheet } from './ui/Sheet';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { showToast } from './ui/Toast';
+import { ArrowUp, ArrowDown, ChevronRight, GripVertical, ImageIcon, Images, Plus, Trash2 } from 'lucide-react';
+
+/**
+ * SPEC-023 · Sektoren im Admin-Bereich.
+ * F2: kompakte Zeilen, Tippen öffnet das Sektor-Sheet (Foto, Umbenennen, Löschen).
+ * F3: Sortier-Bedienelemente nur im Modus «Sortieren».
+ * F4: Löschen nur nach Rückfrage.
+ */
+
+const DEFAULT_PHOTO = '/images/walls/overhang.jpg';
+
+type SectorRow = Sector & { active_boulder_count: number };
 
 interface Props {
   gymId: string;
   userId: string;
   isAdmin: boolean;
-  sectors: (Sector & { active_boulder_count: number })[];
+  sectors: SectorRow[];
   onRefresh: () => void;
 }
 
+const iconBtn =
+  'min-w-[44px] min-h-[44px] rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center justify-center disabled:opacity-25';
+const toolBtn =
+  'min-h-[40px] px-3.5 rounded-full text-[14px] font-semibold flex items-center gap-1.5 whitespace-nowrap';
+const inputCls =
+  'min-h-[44px] px-3 rounded-xl bg-[var(--bm-elevated)] text-[16px] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:ring-2 focus:ring-[var(--bm-accent)]';
+
 export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors, onRefresh }) => {
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const [openSectorId, setOpenSectorId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [photoSector, setPhotoSector] = useState<SectorRow | null>(null);
+  const [deleteSectorRow, setDeleteSectorRow] = useState<SectorRow | null>(null);
+
   const [isAdding, setIsAdding] = useState(false);
-  const [newSectorName, setNewSectorName] = useState('');
-  const [newSectorPhoto, setNewSectorPhoto] = useState('/images/walls/overhang.jpg');
-  const [activeUploadSector, setActiveUploadSector] = useState<Sector | null>(null);
-  const [isUploadForNewSector, setIsUploadForNewSector] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhoto, setNewPhoto] = useState(DEFAULT_PHOTO);
+  const [isPickingNewPhoto, setIsPickingNewPhoto] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const successTimerRef = React.useRef<any>(null);
 
-  React.useEffect(() => {
-    return () => {
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
-    };
-  }, []);
+  const openSector = sectors.find(s => s.id === openSectorId) || null;
+  const deleteBlocked = Boolean(deleteSectorRow && deleteSectorRow.active_boulder_count > 0);
 
-  // Drag & Drop / Touch Reorder State (Requirement 5)
-  const [draggedSectorIndex, setDraggedSectorIndex] = useState<number | null>(null);
-  const [dragOverSectorIndex, setDragOverSectorIndex] = useState<number | null>(null);
-  const [isReorderMode, setIsReorderMode] = useState<boolean>(false);
-
-  const handleAddSector = (e: React.FormEvent) => {
-    e.preventDefault();
+  // F12: «Im Umbau» kommt aus dem Wand-Speicher des Schrauber-Studios (SPEC-021)
+  const rebuildIds = useMemo(() => {
     try {
-      setError(null);
-      createSector(gymId, userId, {
-        name: newSectorName,
-        wall_photo_url: newSectorPhoto
-      });
-      setNewSectorName('');
-      setNewSectorPhoto('/images/walls/overhang.jpg');
-      setIsAdding(false);
-      setSuccessMsg('Sektor erfolgreich hinzugefügt!');
-      setTimeout(() => setSuccessMsg(null), 2500);
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message || 'Fehler beim Anlegen des Sektors.');
+      return new Set(getWallSectors().filter(s => isSectorInRebuild(s)).map(s => s.id));
+    } catch {
+      return new Set<string>();
     }
-  };
+  }, [sectors]);
 
-  const handleUpdatePhoto = (sectorId: string, photoUrl: string) => {
-    try {
-      setError(null);
-      updateSectorWallPhoto(sectorId, userId, photoUrl);
-      setActiveUploadSector(null);
-      setSuccessMsg('Wandfoto aktualisiert. Boulder-Koordinaten wurden unberührt beibehalten!');
-      setTimeout(() => setSuccessMsg(null), 3000);
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message || 'Fehler beim Aktualisieren des Wandfotos.');
-    }
-  };
+  const fail = (err: any, fallback: string) => showToast({ message: err?.message || fallback });
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === sectors.length - 1)) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  const moveTo = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= sectors.length) return;
     const copy = [...sectors];
-    const [movedItem] = copy.splice(index, 1);
-    copy.splice(targetIndex, 0, movedItem);
-
+    const [moved] = copy.splice(from, 1);
+    copy.splice(to, 0, moved);
     const orderedIds = copy.map(s => s.id);
     try {
       reorderSectors(gymId, userId, orderedIds);
       syncSectorOrderToSupabase(gymId, orderedIds).catch(() => {});
-      setSuccessMsg(`Sektor "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
-      successTimerRef.current = setTimeout(() => {
-        try { setSuccessMsg(null); } catch (_) {}
-      }, 2500);
+      showToast({ message: `«${moved.name}» ist jetzt Nr. ${to + 1}`, durationMs: 2000 });
       onRefresh();
     } catch (err: any) {
-      setError(err.message || 'Fehler beim Ändern der Sektor-Reihenfolge.');
+      fail(err, 'Reihenfolge nicht gespeichert.');
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (!isAdmin) return;
-    setDraggedSectorIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', sectors[index].id);
+  const handleDrop = (targetIndex: number) => {
+    const from = draggedIndex;
+    setDragOverIndex(null);
+    setDraggedIndex(null);
+    if (from !== null) moveTo(from, targetIndex);
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    if (!isAdmin || draggedSectorIndex === null) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverSectorIndex !== index) {
-      setDragOverSectorIndex(index);
-    }
+  const openSheet = (sector: SectorRow) => {
+    setOpenSectorId(sector.id);
+    setRenameValue(sector.name);
   };
 
-  const handleDragEnter = (e: React.DragEvent, index: number) => {
-    if (!isAdmin || draggedSectorIndex === null) return;
-    e.preventDefault();
-    setDragOverSectorIndex(index);
-  };
-
-  const handleDragLeave = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (dragOverSectorIndex === index) {
-      setDragOverSectorIndex(null);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault();
-    setDragOverSectorIndex(null);
-    if (!isAdmin || draggedSectorIndex === null || draggedSectorIndex === targetIndex) {
-      setDraggedSectorIndex(null);
-      return;
-    }
-
-    const reordered = [...sectors];
-    const [movedItem] = reordered.splice(draggedSectorIndex, 1);
-    reordered.splice(targetIndex, 0, movedItem);
-
-    setDraggedSectorIndex(null);
-
-    const orderedIds = reordered.map(s => s.id);
+  const handleRename = () => {
+    if (!openSector) return;
     try {
-      reorderSectors(gymId, userId, orderedIds);
-      syncSectorOrderToSupabase(gymId, orderedIds).catch(() => {});
-      setSuccessMsg(`Reihenfolge geändert: "${movedItem.name}" ist jetzt Sektor #${targetIndex + 1}`);
-      setTimeout(() => setSuccessMsg(null), 2500);
+      renameSector(openSector.id, userId, renameValue);
+      showToast({ message: 'Name gesichert', durationMs: 2000 });
       onRefresh();
     } catch (err: any) {
-      setError(err.message || 'Fehler beim Ändern der Sektor-Reihenfolge.');
+      fail(err, 'Name nicht gesichert.');
     }
   };
 
-  const handleDragEnd = () => {
-    setDraggedSectorIndex(null);
-    setDragOverSectorIndex(null);
-  };
-
-  const handleDelete = (sectorId: string) => {
+  const handleUpdatePhoto = (sector: SectorRow, url: string) => {
     try {
-      setError(null);
-      deleteSector(sectorId, userId);
-      setSuccessMsg('Sektor gelöscht.');
-      setTimeout(() => setSuccessMsg(null), 2500);
+      updateSectorWallPhoto(sector.id, userId, url);
+      setPhotoSector(null);
+      showToast({ message: 'Wandfoto geändert', durationMs: 2000 });
       onRefresh();
     } catch (err: any) {
-      setError(err.message);
+      fail(err, 'Wandfoto nicht geändert.');
     }
   };
+
+  const handleDelete = () => {
+    if (!deleteSectorRow) return;
+    const target = deleteSectorRow;
+    setDeleteSectorRow(null);
+    try {
+      deleteSector(target.id, userId);
+      setOpenSectorId(null);
+      showToast({ message: `«${target.name}» gelöscht`, durationMs: 2500 });
+      onRefresh();
+    } catch (err: any) {
+      fail(err, 'Sektor nicht gelöscht.');
+    }
+  };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      createSector(gymId, userId, { name: newName, wall_photo_url: newPhoto });
+      showToast({ message: `«${newName.trim()}» angelegt`, durationMs: 2000 });
+      setIsAdding(false);
+      setNewName('');
+      setNewPhoto(DEFAULT_PHOTO);
+      onRefresh();
+    } catch (err: any) {
+      fail(err, 'Sektor nicht angelegt.');
+    }
+  };
+
+  const startAdding = () => {
+    setIsReorderMode(false);
+    setIsAdding(true);
+  };
+
+  const addButtons = (prefix: '' | 'empty-') => (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsBatchModalOpen(true)}
+        data-testid={`${prefix}batch-add-sector-btn`}
+        className={`${toolBtn} bg-[var(--bm-elevated)] text-[var(--bm-text)]`}
+      >
+        <Images className="w-4 h-4" /> Mehrere
+      </button>
+      <button
+        type="button"
+        onClick={startAdding}
+        data-testid={`${prefix}add-sector-btn`}
+        className={`${toolBtn} bg-[var(--bm-strong)] text-[var(--bm-bg)]`}
+      >
+        <Plus className="w-4 h-4" /> Sektor
+      </button>
+    </>
+  );
+
+  const rowContent = (sector: SectorRow) => (
+    <>
+      <span className="w-14 h-10 rounded-lg overflow-hidden bg-[var(--bm-elevated)] shrink-0 flex items-center justify-center">
+        {sector.wall_photo_url ? (
+          <img
+            src={sector.wall_photo_url}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
+        ) : (
+          <ImageIcon className="w-4 h-4 text-[var(--bm-text-3)]" />
+        )}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[16px] text-[var(--bm-text)] truncate">{sector.name}</span>
+        <span className="flex items-center gap-2 text-[13px] text-[var(--bm-text-2)]">
+          <span>{sector.active_boulder_count} Boulder</span>
+          {rebuildIds.has(sector.id) && (
+            <span
+              data-testid={`sector-rebuild-chip-${sector.id}`}
+              className="px-1.5 rounded-md bg-[var(--bm-elevated)] text-[var(--bm-warning)] text-[12px] font-semibold"
+            >
+              Im Umbau
+            </span>
+          )}
+        </span>
+      </span>
+    </>
+  );
 
   return (
-    <div className="bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl p-3.5 sm:p-5 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--bm-line)] pb-3">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-[var(--bm-accent)] shrink-0" />
-          <h3 className="text-sm sm:text-base font-bold text-[var(--bm-text)] font-headline">
-            Sektoren & Wandbereiche (Topo-Tafeln)
-          </h3>
+    <div className="space-y-3">
+      {/* Werkzeugleiste */}
+      {isAdmin && sectors.length > 0 && (
+        <div className="flex items-center justify-end gap-2">
+          {sectors.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setIsReorderMode(!isReorderMode)}
+              data-testid="toggle-reorder-mode-btn"
+              aria-pressed={isReorderMode}
+              className={`${toolBtn} ${
+                isReorderMode ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)]' : 'bg-[var(--bm-elevated)] text-[var(--bm-text)]'
+              }`}
+            >
+              {isReorderMode ? 'Fertig' : 'Sortieren'}
+            </button>
+          )}
+          {!isReorderMode && addButtons('')}
         </div>
-        {isAdmin && !isAdding && (
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
-            {sectors.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setIsReorderMode(!isReorderMode)}
-                data-testid="toggle-reorder-mode-btn"
-                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-headline rounded-xl transition-all flex items-center justify-center gap-1.5 border whitespace-nowrap ${
-                  isReorderMode
-                    ? 'bg-[var(--bm-accent)] text-[var(--bm-bg)] border-[var(--bm-accent)] font-bold shadow-sm'
-                    : 'bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text-2)] hover:text-[var(--bm-text)] border-[var(--bm-line)]'
+      )}
+
+      {/* Sektor-Liste */}
+      {sectors.length > 0 ? (
+        <ol className="rounded-2xl bg-[var(--bm-surface)] overflow-hidden divide-y divide-[var(--bm-line)]" data-testid="sector-list">
+          {sectors.map((sector, idx) =>
+            isReorderMode && isAdmin ? (
+              <li
+                key={sector.id}
+                draggable
+                onDragStart={(e) => {
+                  setDraggedIndex(idx);
+                  e.dataTransfer.effectAllowed = 'move';
+                  e.dataTransfer.setData('text/plain', sector.id);
+                }}
+                onDragOver={(e) => {
+                  if (draggedIndex === null) return;
+                  e.preventDefault();
+                  if (dragOverIndex !== idx) setDragOverIndex(idx);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(idx);
+                }}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
+                data-testid={`sector-row-${sector.id}`}
+                className={`flex items-center gap-2 pl-1.5 pr-2 py-1.5 ${draggedIndex === idx ? 'opacity-40' : ''} ${
+                  dragOverIndex === idx && draggedIndex !== idx ? 'bg-[var(--bm-elevated)]' : ''
                 }`}
-                title="Sektor-Reihenfolge auf Smartphone oder Desktop anpassen"
               >
-                <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
-                <span>{isReorderMode ? 'Kartenansicht' : 'Reihenfolge anpassen'}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsBatchModalOpen(true)}
-              data-testid="batch-add-sector-btn"
-              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-accent)] hover:text-[var(--bm-text)] border border-[var(--bm-accent)]/50 rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
-              title="Mehrere Sektoren auf einmal per Multi-Upload anlegen"
-            >
-              <Images className="w-3.5 h-3.5 shrink-0" /> Mehrere anlegen
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(true)}
-              data-testid="add-sector-btn"
-              className="flex-1 sm:flex-none px-3.5 py-2 sm:py-1.5 text-xs font-bold font-headline bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
-            >
-              <Plus className="w-3.5 h-3.5 shrink-0" /> Neuer Sektor
-            </button>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-danger)] rounded-xl text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-success)] rounded-xl text-[var(--bm-success)] text-xs flex items-center gap-2 font-mono">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {/* Add Sector Form */}
-      {isAdding && (
-        <form onSubmit={handleAddSector} className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--bm-elevated)] pb-2">
-            <div className="font-bold text-xs text-[var(--bm-text)] font-headline">
-              Neuen Sektor im Topo anlegen
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsAdding(false);
-                setIsBatchModalOpen(true);
-              }}
-              data-testid="switch-to-batch-modal-btn"
-              className="text-[11px] font-mono text-[var(--bm-accent)] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
-            >
-              <Images className="w-3 h-3" />
-              <span>Mehrere Sektoren auf einmal anlegen? Zum Multi-Upload</span>
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
-                Sektorname *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="z.B. Wettkampfwand, Höhle, Dach"
-                value={newSectorName}
-                onChange={(e) => setNewSectorName(e.target.value)}
-                className="w-full bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl px-3 py-1.5 text-xs text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-sans"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--bm-text-2)] font-headline mb-1">
-                Wandfoto *
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  required
-                  placeholder="URL oder Bilddatei auswählen"
-                  value={newSectorPhoto}
-                  onChange={(e) => setNewSectorPhoto(e.target.value)}
-                  className="flex-1 bg-[var(--bm-surface)] border border-[var(--bm-line)] rounded-xl px-3 py-1.5 text-xs text-[var(--bm-text)] focus:outline-none focus:border-[var(--bm-accent)] font-mono"
-                />
+                <span
+                  className="p-1.5 text-[var(--bm-text-3)] cursor-grab active:cursor-grabbing"
+                  data-testid={`drag-handle-${sector.id}`}
+                  aria-label="Ziehen zum Sortieren"
+                >
+                  <GripVertical className="w-5 h-5" />
+                </span>
+                {rowContent(sector)}
                 <button
                   type="button"
-                  onClick={() => setIsUploadForNewSector(true)}
-                  className="px-3 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] text-[var(--bm-accent)] rounded-xl text-xs font-headline flex items-center gap-1.5 shrink-0"
-                  title="Datei vom Computer hochladen oder Wandpreset wählen"
+                  disabled={idx === 0}
+                  onClick={() => moveTo(idx, idx - 1)}
+                  className={iconBtn}
+                  aria-label={`${sector.name} nach oben`}
+                  data-testid={`move-up-${sector.id}`}
                 >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Foto wählen</span>
+                  <ArrowUp className="w-4 h-4" />
                 </button>
-              </div>
+                <button
+                  type="button"
+                  disabled={idx === sectors.length - 1}
+                  onClick={() => moveTo(idx, idx + 1)}
+                  className={iconBtn}
+                  aria-label={`${sector.name} nach unten`}
+                  data-testid={`move-down-${sector.id}`}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                </button>
+              </li>
+            ) : (
+              <li key={sector.id}>
+                <button
+                  type="button"
+                  onClick={() => openSheet(sector)}
+                  disabled={!isAdmin}
+                  data-testid={`sector-row-${sector.id}`}
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 min-h-[56px] enabled:active:bg-[var(--bm-elevated)]"
+                >
+                  {rowContent(sector)}
+                  {isAdmin && <ChevronRight className="w-4 h-4 text-[var(--bm-text-3)] shrink-0" />}
+                </button>
+              </li>
+            )
+          )}
+        </ol>
+      ) : (
+        <div className="rounded-2xl bg-[var(--bm-surface)] px-4 py-8 text-center space-y-4">
+          <p className="text-[15px] text-[var(--bm-text-2)]">Noch keine Sektoren.</p>
+          {isAdmin && <div className="flex flex-wrap items-center justify-center gap-2">{addButtons('empty-')}</div>}
+        </div>
+      )}
+
+      {/* Sektor-Sheet: Foto, Umbenennen, Löschen */}
+      <Sheet
+        open={Boolean(openSector) && !photoSector}
+        onClose={() => setOpenSectorId(null)}
+        fitContent
+        testId="sector-sheet"
+        ariaLabel={openSector?.name}
+      >
+        {openSector && (
+          <div className="px-4 pb-2 space-y-4">
+            <div className="aspect-video max-h-48 w-full rounded-xl overflow-hidden bg-[var(--bm-elevated)]">
+              <img src={openSector.wall_photo_url} alt={openSector.name} className="w-full h-full object-cover" />
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                aria-label="Name"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                data-testid="sector-rename-input"
+                className={`flex-1 min-w-0 ${inputCls}`}
+              />
+              <button
+                type="button"
+                onClick={handleRename}
+                disabled={!renameValue.trim() || renameValue.trim() === openSector.name}
+                data-testid="sector-rename-save"
+                className="min-h-[44px] px-4 rounded-xl bg-[var(--bm-strong)] text-[var(--bm-bg)] text-[15px] font-semibold disabled:opacity-30"
+              >
+                Sichern
+              </button>
+            </div>
+            <div className="rounded-2xl bg-[var(--bm-bg)] overflow-hidden divide-y divide-[var(--bm-line)]">
+              <button
+                type="button"
+                onClick={() => setPhotoSector(openSector)}
+                data-testid="sector-photo-btn"
+                className="w-full flex items-center gap-3 px-4 min-h-[52px] text-[16px] text-[var(--bm-text)]"
+              >
+                <ImageIcon className="w-5 h-5 text-[var(--bm-text-2)]" /> Wandfoto ändern
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteSectorRow(openSector)}
+                data-testid="sector-delete-btn"
+                className="w-full flex items-center gap-3 px-4 min-h-[52px] text-[16px] text-[var(--bm-danger)]"
+              >
+                <Trash2 className="w-5 h-5" /> Sektor löschen
+              </button>
             </div>
           </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+        )}
+      </Sheet>
+
+      {/* Neuer Sektor */}
+      <Sheet
+        open={isAdding && !isPickingNewPhoto}
+        onClose={() => setIsAdding(false)}
+        fitContent
+        testId="add-sector-sheet"
+        ariaLabel="Neuer Sektor"
+      >
+        <form onSubmit={handleAdd} className="px-4 pb-2 space-y-4">
+          <h2 className="text-[17px] font-semibold">Neuer Sektor</h2>
+          <input
+            type="text"
+            required
+            placeholder="Name, z. B. Dach"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            data-testid="new-sector-name"
+            className={`w-full ${inputCls}`}
+          />
+          <button
+            type="button"
+            onClick={() => setIsPickingNewPhoto(true)}
+            data-testid="new-sector-photo-btn"
+            className="w-full flex items-center gap-3 p-2 rounded-xl bg-[var(--bm-elevated)] text-left"
+          >
+            <img src={newPhoto} alt="" className="w-16 h-11 rounded-lg object-cover bg-[var(--bm-bg)]" />
+            <span className="flex-1 text-[15px] text-[var(--bm-text)]">Wandfoto wählen</span>
+            <ChevronRight className="w-4 h-4 text-[var(--bm-text-3)]" />
+          </button>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] text-[var(--bm-text-2)] rounded-xl text-xs font-headline text-center"
+              className="flex-1 min-h-[44px] rounded-xl bg-[var(--bm-elevated)] text-[15px] font-semibold"
             >
               Abbrechen
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] font-bold font-headline rounded-xl text-xs text-center"
+              disabled={!newName.trim()}
+              data-testid="new-sector-save"
+              className="flex-1 min-h-[44px] rounded-xl bg-[var(--bm-strong)] text-[var(--bm-bg)] text-[15px] font-semibold disabled:opacity-30"
             >
-              Sektor speichern
+              Anlegen
             </button>
           </div>
         </form>
-      )}
+      </Sheet>
 
-      {/* Mobile Touch Reorder Mode (Requirement 5) */}
-      {isReorderMode && isAdmin && sectors.length > 1 && (
-        <div
-          className="space-y-3 bg-[var(--bm-bg)] border border-[var(--bm-line)] p-4 rounded-xl animate-in fade-in duration-150"
-          data-testid="mobile-touch-reorder-view"
-        >
-          <div className="flex items-center justify-between border-b border-[var(--bm-elevated)] pb-2.5">
-            <div>
-              <h4 className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-2">
-                <ArrowUpDown className="w-4 h-4 text-[var(--bm-accent)]" />
-                <span>Mobile Sektor-Sortierung</span>
-              </h4>
-              <p className="text-[11px] font-mono text-[var(--bm-text-2)]">
-                Tippe auf Hoch/Runter, um die Reihenfolge der Sektoren anzupassen.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsReorderMode(false)}
-              className="px-3 py-1.5 rounded-xl bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] text-xs font-headline font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>Fertig</span>
-            </button>
-          </div>
+      {/* F4: Rückfrage; mit aktiven Bouldern ist Löschen gesperrt (SPEC-001 AC-6) */}
+      <ConfirmDialog
+        open={Boolean(deleteSectorRow)}
+        title={
+          deleteBlocked
+            ? `«${deleteSectorRow?.name}» hat noch ${deleteSectorRow?.active_boulder_count} Boulder`
+            : `Sektor «${deleteSectorRow?.name ?? ''}» löschen?`
+        }
+        message={
+          deleteBlocked
+            ? deleteSectorRow?.active_boulder_count === 1
+              ? 'Erst den Boulder im Schrauber-Studio abschrauben.'
+              : `Erst die ${deleteSectorRow?.active_boulder_count} Boulder im Schrauber-Studio abschrauben.`
+            : 'Wandfoto und Position gehen verloren.'
+        }
+        onConfirm={deleteBlocked ? undefined : handleDelete}
+        onCancel={() => setDeleteSectorRow(null)}
+      />
 
-          <div className="space-y-2">
-            {sectors.map((sector, idx) => (
-              <div
-                key={sector.id}
-                className="p-3 bg-[var(--bm-surface)] border border-[var(--bm-line)] flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-8 h-8 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-xs font-mono font-bold text-[var(--bm-accent)] flex items-center justify-center shrink-0">
-                    #{idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-headline font-bold text-[var(--bm-text)] truncate">
-                      {sector.name}
-                    </p>
-                    <p className="text-[10px] font-mono text-[var(--bm-text-2)]">
-                      {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
-                    </p>
-                  </div>
-                </div>
-
-                {/* Generous Touch Targets for Up/Down Reorder (42px min) */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    disabled={idx === 0}
-                    onClick={() => handleMove(idx, 'up')}
-                    className="p-2.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-[var(--bm-text)] border border-[var(--bm-line)] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
-                    title="Nach oben verschieben"
-                    aria-label="Nach oben verschieben"
-                    data-testid={`touch-move-up-${sector.id}`}
-                  >
-                    <ArrowUp className="w-4 h-4 text-[var(--bm-accent)]" />
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={idx === sectors.length - 1}
-                    onClick={() => handleMove(idx, 'down')}
-                    className="p-2.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-[var(--bm-text)] border border-[var(--bm-line)] min-w-[42px] min-h-[42px] flex items-center justify-center transition cursor-pointer"
-                    title="Nach unten verschieben"
-                    aria-label="Nach unten verschieben"
-                    data-testid={`touch-move-down-${sector.id}`}
-                  >
-                    <ArrowDown className="w-4 h-4 text-[var(--bm-accent)]" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sector ordering guide for Admins */}
-      {isAdmin && sectors.length > 1 && !isReorderMode && (
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--bm-bg)] border border-[var(--bm-elevated)] text-xs font-mono text-[var(--bm-text-2)]">
-          <div className="flex items-center gap-2">
-            <GripVertical className="w-4 h-4 text-[var(--bm-accent)] shrink-0" />
-            <span>
-              <strong className="text-[var(--bm-text)]">Drag & Drop Sortierung:</strong> Ziehe Karten an den Griffen oder nutze die Pfeile, um den Hallenrundgang logisch anzuordnen.
-            </span>
-          </div>
-          <span className="text-[10px] text-[var(--bm-text-2)] hidden md:inline">
-            {sectors.length} Sektoren
-          </span>
-        </div>
-      )}
-
-      {/* Sectors Grid / Plates */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isReorderMode ? 'hidden sm:grid' : ''}`}>
-        {sectors.map((sector, idx) => {
-          const isDragging = draggedSectorIndex === idx;
-          const isDragOver = dragOverSectorIndex === idx && draggedSectorIndex !== idx;
-
-          return (
-            <div
-              key={sector.id}
-              draggable={isAdmin}
-              onDragStart={(e) => handleDragStart(e, idx)}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDragEnter={(e) => handleDragEnter(e, idx)}
-              onDragLeave={(e) => handleDragLeave(e, idx)}
-              onDrop={(e) => handleDrop(e, idx)}
-              onDragEnd={handleDragEnd}
-              className={`bg-[var(--bm-surface)] border rounded-xl overflow-hidden flex flex-col group transition-all duration-150 ${
-                isDragging
-                  ? 'opacity-40 border-dashed border-[var(--bm-accent)] scale-[0.98]'
-                  : isDragOver
-                  ? 'border-[var(--bm-accent)] ring-2 ring-[var(--bm-accent)] bg-[var(--bm-elevated)] scale-[1.01]'
-                  : 'border-[var(--bm-line)] hover:border-[var(--bm-text-2)]'
-              }`}
-              data-testid={`sector-card-${sector.id}`}
-            >
-              {/* Wall Photo Plate */}
-              <div className="relative aspect-video bg-black overflow-hidden">
-                <img
-                  src={sector.wall_photo_url}
-                  alt={sector.name}
-                  className="w-full h-full object-cover transition-transform duration-200"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-
-                {/* Status Badge */}
-                <div className="absolute top-2 left-2 flex items-center gap-1 bg-[var(--bm-bg)]/90 px-2 py-0.5 rounded-xl border border-[var(--bm-line)] text-[11px] font-mono text-[var(--bm-text)]">
-                  <span className="w-1.5 h-1.5 rounded-xl bg-[var(--bm-success)]" />
-                  {sector.active_boulder_count} {sector.active_boulder_count === 1 ? 'Route' : 'Routen'} aktiv
-                </div>
-
-                {/* Drag Handle & Reorder Buttons (Admin) */}
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-[var(--bm-bg)]/95 p-1 rounded-xl border border-[var(--bm-line)] shadow-md">
-                    {/* Drag Handle */}
-                    <div
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-[var(--bm-elevated)] text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] cursor-grab active:cursor-grabbing transition-colors select-none"
-                      title="Per Drag & Drop verschieben (Reihenfolge anpassen)"
-                      data-testid={`drag-handle-${sector.id}`}
-                    >
-                      <GripVertical className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                      <span className="text-[10px] font-mono font-bold text-[var(--bm-text)]">#{idx + 1}</span>
-                    </div>
-
-                    <div className="w-[1px] h-3.5 bg-[var(--bm-line)]" />
-
-                    {/* Up / Down Arrows as Accessible Alternative */}
-                    <button
-                      type="button"
-                      disabled={idx === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMove(idx, 'up');
-                      }}
-                      className="p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-2)] transition-colors"
-                      title="Nach oben verschieben"
-                      aria-label="Nach oben verschieben"
-                      data-testid={`move-up-${sector.id}`}
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={idx === sectors.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMove(idx, 'down');
-                      }}
-                      className="p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-2)] transition-colors"
-                      title="Nach unten verschieben"
-                      aria-label="Nach unten verschieben"
-                      data-testid={`move-down-${sector.id}`}
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Info & Actions Footer */}
-              <div className="p-3.5 flex flex-col gap-2.5 border-t border-[var(--bm-line)] bg-[var(--bm-surface)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <div
-                        className="cursor-grab active:cursor-grabbing p-1 text-[var(--bm-text-3)] hover:text-[var(--bm-accent)] transition-colors hidden sm:block"
-                        title="Drag & Drop Anfasser"
-                      >
-                        <GripVertical className="w-4 h-4" />
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-bold text-sm text-[var(--bm-text)] font-headline">
-                        {sector.name}
-                      </h4>
-                      <div className="text-[10px] text-[var(--bm-text-3)] font-mono">
-                        SECTOR #{sector.sort_order} {sector.sort_order !== idx + 1 && `(Anzeige: #${idx + 1})`}
-                      </div>
-                    </div>
-                  </div>
-
-                  {isAdmin && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setActiveUploadSector(sector)}
-                        className="p-2 text-[var(--bm-text-2)] hover:text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors border border-transparent hover:border-[var(--bm-line)] flex items-center gap-1 text-xs"
-                        title="Wandfoto aktualisieren oder hochladen"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Foto ändern</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(sector.id)}
-                        className="p-2 text-[var(--bm-text-2)] hover:text-[var(--bm-danger)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors border border-transparent hover:border-[var(--bm-line)]"
-                        title="Sektor löschen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Mobile Direct Reorder Bar (Requirement 5: Prominente Touch-Buttons auf Smartphone) */}
-                {isAdmin && sectors.length > 1 && (
-                  <div className="sm:hidden flex items-center justify-between pt-2 border-t border-[var(--bm-elevated)]">
-                    <span className="text-[11px] font-mono text-[var(--bm-text-2)]">
-                      Position: <strong className="text-[var(--bm-text)]">#{idx + 1}</strong>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMove(idx, 'up');
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-xs font-mono text-[var(--bm-text)] border border-[var(--bm-line)] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
-                        title="Sektor nach oben verschieben"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                        <span>Hoch</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === sectors.length - 1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMove(idx, 'down');
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] disabled:opacity-20 text-xs font-mono text-[var(--bm-text)] border border-[var(--bm-line)] flex items-center gap-1 min-h-[38px] transition cursor-pointer"
-                        title="Sektor nach unten verschieben"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                        <span>Runter</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {sectors.length === 0 && (
-        <div className="text-center py-8 text-stone-500 text-xs font-mono italic space-y-3">
-          <p>Noch keine Sektoren angelegt. Lege jetzt die ersten Wandbereiche an!</p>
-          {isAdmin && !isAdding && (
-            <div className="flex flex-wrap items-center justify-center gap-2.5 not-italic">
-              <button
-                type="button"
-                onClick={() => setIsBatchModalOpen(true)}
-                data-testid="empty-batch-add-sector-btn"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline bg-[var(--bm-accent)] hover:bg-[var(--bm-accent)] text-[var(--bm-bg)] rounded-xl transition-all shadow-sm"
-              >
-                <Images className="w-3.5 h-3.5" /> Mehrere Sektoren auf einmal anlegen
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAdding(true)}
-                data-testid="empty-add-sector-btn"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold font-headline bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] text-[var(--bm-bg)] rounded-xl transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" /> Einzelnen Sektor anlegen
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Upload Modal for Editing Existing Sector Photo */}
-      {activeUploadSector && (
+      {photoSector && (
         <WallPhotoUploadModal
           isOpen={true}
-          sectorName={activeUploadSector.name}
-          currentPhotoUrl={activeUploadSector.wall_photo_url}
-          onClose={() => setActiveUploadSector(null)}
-          onPhotoSelected={(url) => handleUpdatePhoto(activeUploadSector.id, url)}
+          sectorName={photoSector.name}
+          currentPhotoUrl={photoSector.wall_photo_url}
+          onClose={() => setPhotoSector(null)}
+          onPhotoSelected={(url) => handleUpdatePhoto(photoSector, url)}
         />
       )}
 
-      {/* Upload Modal for Creating New Sector */}
-      {isUploadForNewSector && (
+      {isPickingNewPhoto && (
         <WallPhotoUploadModal
           isOpen={true}
-          sectorName={newSectorName || 'Neuer Sektor'}
-          currentPhotoUrl={newSectorPhoto}
-          onClose={() => setIsUploadForNewSector(false)}
+          sectorName={newName || 'Neuer Sektor'}
+          currentPhotoUrl={newPhoto}
+          onClose={() => setIsPickingNewPhoto(false)}
           onPhotoSelected={(url) => {
-            setNewSectorPhoto(url);
-            setIsUploadForNewSector(false);
+            setNewPhoto(url);
+            setIsPickingNewPhoto(false);
           }}
         />
       )}
 
-      {/* SPEC-018: Batch Sector Creation Modal */}
+      {/* SPEC-018: mehrere Sektoren per Foto-Upload */}
       <BatchSectorModal
         isOpen={isBatchModalOpen}
         gymId={gymId}
@@ -643,8 +462,7 @@ export const SectorManager: React.FC<Props> = ({ gymId, userId, isAdmin, sectors
         existingSectorCount={sectors.length}
         onClose={() => setIsBatchModalOpen(false)}
         onSuccess={(count) => {
-          setSuccessMsg(`${count} ${count === 1 ? 'Sektor' : 'Sektoren'} erfolgreich angelegt!`);
-          setTimeout(() => setSuccessMsg(null), 3500);
+          showToast({ message: `${count} ${count === 1 ? 'Sektor' : 'Sektoren'} angelegt`, durationMs: 2500 });
           onRefresh();
         }}
       />

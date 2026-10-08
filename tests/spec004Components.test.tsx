@@ -4,7 +4,8 @@ import { ProfileKPIsBar } from '../src/components/ProfileKPIsBar';
 import { GradeDistributionChart } from '../src/components/GradeDistributionChart';
 import { ProfileSettingsModal } from '../src/components/ProfileSettingsModal';
 import { PublicProfileModal } from '../src/components/PublicProfileModal';
-import { UserProfileView } from '../src/components/UserProfileView';
+import { MeView } from '../src/components/MeView';
+import { getUserRoleInfo } from '../src/lib/roleService';
 import { ProfileKPIs, GradeDistributionItem, CurrentUser } from '../src/types/boulder';
 import { resetProfileStorage } from '../src/lib/profileService';
 import { resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
@@ -183,54 +184,64 @@ describe('SPEC-004: UI Components Integration', () => {
     });
   });
 
-  describe('UserProfileView (AC-1, AC-4, AC-5)', () => {
-    it('renders complete profile view with header, settings button, gym filter, and logbook', () => {
-      const user: CurrentUser = {
-        id: 'hans-kletterer',
-        nickname: 'HansDereinfacheKletterer',
-        role: 'member',
-      };
+  describe('MeView (AC-1, AC-4, AC-5)', () => {
+    const user: CurrentUser = {
+      id: 'hans-kletterer',
+      nickname: 'HansDereinfacheKletterer',
+      role: 'member',
+    };
+    const renderMe = () =>
+      render(
+        <MeView
+          currentUser={user}
+          activeGymId="gym-minimum-zh"
+          roleInfo={getUserRoleInfo(user.id, 'gym-minimum-zh')}
+          onSwitchMode={() => {}}
+          onLogout={() => {}}
+        />
+      );
 
-      render(<UserProfileView currentUser={user} />);
+    it('renders complete profile view with header, settings button, gym filter, and logbook', () => {
+      renderMe();
 
       // AC-1: Header with nickname, join date, settings button
+      expect(screen.getByTestId('user-profile-view')).toBeInTheDocument();
       expect(screen.getByTestId('profile-nickname').textContent).toBe('HansDereinfacheKletterer');
-      expect(screen.getByTestId('btn-open-settings')).toBeInTheDocument();
+      expect(screen.getByText(/Dabei seit/)).toBeInTheDocument();
+      expect(screen.getByTestId('open-settings-btn')).toBeInTheDocument();
 
-      // AC-2: Sub-tabs Overall Statistik and Deep Dive are available
-      expect(screen.getByTestId('subtab-overall')).toBeInTheDocument();
-      expect(screen.getByTestId('subtab-deep-dive')).toBeInTheDocument();
+      // SPEC-022: eine Seite ohne Sub-Tabs, Deep Dive als Einstieg
+      expect(screen.queryByTestId('subtab-overall')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('subtab-deep-dive')).not.toBeInTheDocument();
+      expect(screen.getByTestId('me-open-deep-dive')).toBeInTheDocument();
+      expect(screen.getByTestId('me-kpis')).toBeInTheDocument();
 
-      // AC-4: Gym filter dropdown in Overall Statistik
-      expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
+      // AC-4: Gym filter (Diese Halle / Alle Hallen)
+      expect(screen.getByTestId('me-scope')).toBeInTheDocument();
+      expect(screen.getByText('Alle Hallen')).toBeInTheDocument();
 
-      // AC-5: Private Logbook section in Overall Statistik
+      // AC-5: Private Logbook section
       expect(screen.getByTestId('private-logbook-section')).toBeInTheDocument();
     });
 
-    it('allows toggling between Overall Statistik and Deep Dive sub-areas', () => {
-      const user: CurrentUser = {
-        id: 'hans-kletterer',
-        nickname: 'HansDereinfacheKletterer',
-        role: 'member',
-      };
+    it('opens the Deep Dive view from MeView and returns via back button', () => {
+      renderMe();
 
-      render(<UserProfileView currentUser={user} />);
-
-      // Initially in Overall Statistik
-      expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
+      // Initially on the profile page
+      expect(screen.getByTestId('me-scope')).toBeInTheDocument();
       expect(screen.queryByTestId('deep-dive-view')).not.toBeInTheDocument();
 
-      // Switch to Deep Dive
-      fireEvent.click(screen.getByTestId('subtab-deep-dive'));
+      // Open Deep Dive
+      fireEvent.click(screen.getByTestId('me-open-deep-dive'));
 
-      // Deep Dive view is now displayed with search/filter and stats bar
+      // Deep Dive view is now displayed (with the same gym filter), profile page is hidden
       expect(screen.getByTestId('deep-dive-view')).toBeInTheDocument();
-      expect(screen.queryByTestId('select-gym-filter')).not.toBeInTheDocument();
+      expect(screen.getByTestId('me-scope')).toBeInTheDocument();
+      expect(screen.queryByTestId('private-logbook-section')).not.toBeInTheDocument();
 
-      // Switch back to Overall Statistik
-      fireEvent.click(screen.getByTestId('subtab-overall'));
-      expect(screen.getByTestId('select-gym-filter')).toBeInTheDocument();
+      // Back to profile
+      fireEvent.click(screen.getByTestId('deep-dive-back'));
+      expect(screen.getByTestId('private-logbook-section')).toBeInTheDocument();
       expect(screen.queryByTestId('deep-dive-view')).not.toBeInTheDocument();
     });
   });

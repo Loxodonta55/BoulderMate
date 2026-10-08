@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GradeScale } from '../types/gym';
 import { setGymGradeScales } from '../lib/gymStorage';
 import { syncGradeScalesToSupabase } from '../lib/syncService';
-import { Plus, Trash2, ArrowUp, ArrowDown, Save, Check, Palette, RefreshCw } from 'lucide-react';
 import { isValidUuid, stringToUuid } from '../lib/storageUtils';
+import { Sheet } from './ui/Sheet';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { showToast } from './ui/Toast';
+import { ArrowDown, ArrowUp, ChevronRight, Plus, Trash2 } from 'lucide-react';
+
+/**
+ * SPEC-023 F5 · Farben der Halle: Liste + Sheet.
+ * Jede Änderung wird sofort gespeichert (lokal + Supabase), es gibt keinen globalen Speichern-Knopf.
+ */
 
 interface Props {
   gymId: string;
@@ -12,309 +20,331 @@ interface Props {
   onSaved: () => void;
 }
 
+type Draft = Pick<GradeScale, 'color_name' | 'color_hex' | 'difficulty_label' | 'font_range_min' | 'font_range_max'>;
+
+const EMPTY_DRAFT: Draft = {
+  color_name: '',
+  color_hex: '#8b5cf6',
+  difficulty_label: '',
+  font_range_min: '',
+  font_range_max: '',
+};
+
+const newId = (gymId: string, salt: string) =>
+  typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gymId}_${salt}_${Date.now()}`);
+
+export function formatFontRange(min?: string, max?: string): string {
+  const a = (min || '').trim();
+  const b = (max || '').trim();
+  if (!a && !b) return '';
+  if (!b || a === b) return `Font ${a || b}`;
+  if (!a) return `Font ${b}`;
+  return `Font ${a}–${b}`;
+}
+
+const inputCls =
+  'w-full min-h-[44px] px-3 rounded-xl bg-[var(--bm-elevated)] text-[16px] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] focus:outline-none focus:ring-2 focus:ring-[var(--bm-accent)]';
+const toolBtn =
+  'min-h-[40px] px-3.5 rounded-full text-[14px] font-semibold flex items-center gap-1.5 whitespace-nowrap';
+const iconBtn =
+  'min-w-[44px] min-h-[44px] rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center justify-center disabled:opacity-25';
+
 export const GradeScaleConfig: React.FC<Props> = ({ gymId, userId, initialScales, onSaved }) => {
   const [scales, setScales] = useState<GradeScale[]>(initialScales);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  // null = Sheet zu, -1 = neue Farbe, sonst Index
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setScales(initialScales);
   }, [initialScales]);
 
-  const handleFieldChange = (index: number, field: keyof GradeScale, value: any) => {
-    const next = [...scales];
-    next[index] = { ...next[index], [field]: value };
-    setScales(next);
-  };
-
-  const addColor = () => {
-    const newOrder = scales.length + 1;
-    const newColor: GradeScale = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gymId}_new_${Date.now()}`),
-      gym_id: gymId,
-      color_name: 'Neue Farbe',
-      color_hex: '#8b5cf6',
-      difficulty_label: 'Mittel',
-      font_range_min: '6A',
-      font_range_max: '6B',
-      sort_order: newOrder,
-      created_at: new Date().toISOString()
-    };
-    setScales([...scales, newColor]);
-  };
-
-  const removeColor = (index: number) => {
-    const next = scales.filter((_, i) => i !== index);
-    setScales(next);
-  };
-
-  const moveColor = (index: number, direction: 'up' | 'down') => {
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === scales.length - 1)) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    const next = [...scales];
-    const temp = next[index];
-    next[index] = next[targetIndex];
-    next[targetIndex] = temp;
-    setScales(next.map((s, idx) => ({ ...s, sort_order: idx + 1 })));
-  };
-
-  const handleSave = async () => {
+  const persist = async (next: GradeScale[], message: string): Promise<boolean> => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      setError(null);
-
-      // Sicherstellen, dass jede Farbstufe eine echte UUID besitzt
-      const scalesWithUuids: GradeScale[] = scales.map((s, idx) => ({
+      const withIds: GradeScale[] = next.map((s, idx) => ({
         ...s,
-        id: (s.id && isValidUuid(s.id))
-          ? s.id
-          : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : stringToUuid(`scale_${gymId}_${s.color_name}_${idx}`)),
+        id: s.id && isValidUuid(s.id) ? s.id : newId(gymId, `${s.color_name}_${idx}`),
         sort_order: idx + 1,
       }));
-
-      // 1. Sofort lokal persistieren
-      const validated = setGymGradeScales(gymId, userId, scalesWithUuids);
+      const validated = setGymGradeScales(gymId, userId, withIds);
       setScales(validated);
-
-      // 2. Sofort in Supabase synchronisieren und auf Bestätigung warten
+      // SPEC-001 AC-2.3: erst nach dem Supabase-Abgleich als gesichert melden
       await syncGradeScalesToSupabase(gymId, validated);
-
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2000);
+      showToast({ message, durationMs: 2000 });
       onSaved();
+      return true;
     } catch (e: any) {
-      setError(e.message || 'Fehler beim Speichern der Farbskala.');
+      showToast({ message: e?.message || 'Farben nicht gesichert.' });
+      return false;
     } finally {
       setIsSaving(false);
     }
   };
 
+  const openEdit = (index: number) => {
+    const s = scales[index];
+    setDraft({
+      color_name: s.color_name,
+      color_hex: s.color_hex,
+      difficulty_label: s.difficulty_label,
+      font_range_min: s.font_range_min,
+      font_range_max: s.font_range_max,
+    });
+    setEditIndex(index);
+  };
+
+  const openNew = () => {
+    setIsReorderMode(false);
+    setDraft(EMPTY_DRAFT);
+    setEditIndex(-1);
+  };
+
+  const handleSaveDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editIndex === null) return;
+    const cleaned: Draft = {
+      color_name: draft.color_name.trim(),
+      color_hex: draft.color_hex,
+      difficulty_label: draft.difficulty_label.trim(),
+      font_range_min: draft.font_range_min.trim(),
+      font_range_max: draft.font_range_max.trim(),
+    };
+    let next: GradeScale[];
+    if (editIndex === -1) {
+      next = [
+        ...scales,
+        {
+          ...cleaned,
+          id: newId(gymId, cleaned.color_name),
+          gym_id: gymId,
+          sort_order: scales.length + 1,
+          created_at: new Date().toISOString(),
+        },
+      ];
+    } else {
+      next = scales.map((s, i) => (i === editIndex ? { ...s, ...cleaned } : s));
+    }
+    const ok = await persist(next, `${cleaned.color_name} gesichert`);
+    if (ok) setEditIndex(null);
+  };
+
+  const handleDelete = async () => {
+    if (deleteIndex === null) return;
+    const removed = scales[deleteIndex];
+    const next = scales.filter((_, i) => i !== deleteIndex);
+    setDeleteIndex(null);
+    const ok = await persist(next, `${removed.color_name} gelöscht`);
+    if (ok) setEditIndex(null);
+  };
+
+  const move = (index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= scales.length) return;
+    const next = [...scales];
+    [next[index], next[target]] = [next[target], next[index]];
+    persist(next, 'Reihenfolge gesichert');
+  };
+
+  const canSave = draft.color_name.trim().length > 0 && draft.difficulty_label.trim().length > 0 && !isSaving;
+
   return (
-    <div className="rounded-xl bg-[var(--bm-surface)] p-3.5 sm:p-5 space-y-4 sm:space-y-5 border border-[var(--bm-line)]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--bm-line)] pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-accent)] shrink-0">
-            <Palette className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-headline font-bold text-[var(--bm-text)]">
-              Hallenspezifisches Farbsystem (Grade Scales)
-            </h3>
-            <p className="text-[11px] font-mono text-[var(--bm-text-2)]">
-              Farbstufen, Schwierigkeitsgrade & Fontainebleau-Bänder
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={addColor}
-          className="px-3.5 py-1.5 text-xs font-mono font-semibold bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-[var(--bm-text)] border border-[var(--bm-line)] hover:border-[var(--bm-accent)] rounded-xl transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5 text-[var(--bm-accent)]" /> Farbe hinzufügen
-        </button>
-      </div>
-
-      {error && (
-        <div className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-danger)] rounded-xl text-[var(--bm-danger)] text-xs font-mono">
-          {error}
-        </div>
-      )}
-
-      {/* Desktop Column Header Guide */}
-      <div className="hidden sm:flex items-center gap-3 px-3 py-1 text-[10px] font-mono text-[var(--bm-text-3)] border-b border-[var(--bm-elevated)]">
-        <span className="w-12 text-center">Sort</span>
-        <span className="w-10 text-center">Farbe</span>
-        <span className="w-32">Farbname</span>
-        <span className="w-40">Schwierigkeitsgrad</span>
-        <span className="w-36 text-center">Fontainebleau-Spanne</span>
-        <span className="flex-1 min-w-[90px]">Vorschau</span>
-        <span className="w-8 text-right">Löschen</span>
-      </div>
-
-      <div className="space-y-2.5">
-        {scales.map((scale, idx) => (
-          <div
-            key={scale.id || idx}
-            className="p-3 bg-[var(--bm-bg)] border border-[var(--bm-line)] hover:border-[var(--bm-text-2)] rounded-xl text-xs transition space-y-2.5 sm:space-y-0"
-            data-testid={`scale-row-${idx}`}
+    <div className="space-y-3">
+      <div className="flex items-center justify-end gap-2">
+        {scales.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setIsReorderMode(!isReorderMode)}
+            data-testid="toggle-grade-reorder-btn"
+            aria-pressed={isReorderMode}
+            className={`${toolBtn} ${
+              isReorderMode ? 'bg-[var(--bm-strong)] text-[var(--bm-bg)]' : 'bg-[var(--bm-elevated)] text-[var(--bm-text)]'
+            }`}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
-              {/* Row 1 on mobile / Left group on desktop: Sort, Color picker, Color name, Mobile Delete */}
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Order & Sort Handle / Move */}
-                <div className="flex items-center gap-0.5">
-                  <span className="sm:hidden w-6 h-6 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-line)] text-[10px] font-mono font-bold text-[var(--bm-accent)] flex items-center justify-center mr-1">
-                    #{idx + 1}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={idx === 0}
-                    onClick={() => moveColor(idx, 'up')}
-                    className="p-1.5 sm:p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-3)] transition rounded-xl"
-                    title="Nach oben verschieben"
-                    aria-label="Farbe nach oben verschieben"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={idx === scales.length - 1}
-                    onClick={() => moveColor(idx, 'down')}
-                    className="p-1.5 sm:p-1 hover:text-[var(--bm-accent)] disabled:opacity-20 text-[var(--bm-text-3)] transition rounded-xl"
-                    title="Nach unten verschieben"
-                    aria-label="Farbe nach unten verschieben"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            {isReorderMode ? 'Fertig' : 'Sortieren'}
+          </button>
+        )}
+        {!isReorderMode && (
+          <button
+            type="button"
+            onClick={openNew}
+            data-testid="add-grade-btn"
+            className={`${toolBtn} bg-[var(--bm-strong)] text-[var(--bm-bg)]`}
+          >
+            <Plus className="w-4 h-4" /> Farbe
+          </button>
+        )}
+      </div>
 
-                {/* Color Swatch / Color Picker */}
-                <div className="relative shrink-0 flex items-center">
-                  <div
-                    className="w-8 h-8 rounded-xl border border-black/40 shadow-sm relative overflow-hidden cursor-pointer shrink-0"
-                    style={{ backgroundColor: scale.color_hex }}
-                    title="Farbe anklicken zum Auswählen"
-                  >
-                    <input
-                      type="color"
-                      value={scale.color_hex}
-                      onChange={(e) => handleFieldChange(idx, 'color_hex', e.target.value)}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      title="Farbe ändern"
-                      aria-label={`Farbe für ${scale.color_name || 'Farbstufe'}`}
-                    />
-                  </div>
-                </div>
-
-                {/* Color Name */}
-                <div className="flex-1 sm:w-32 sm:flex-none">
-                  <label className="sm:hidden block text-[10px] font-mono text-[var(--bm-text-2)] mb-0.5 font-bold">
-                    Farbname
-                  </label>
-                  <input
-                    type="text"
-                    value={scale.color_name}
-                    onChange={(e) => handleFieldChange(idx, 'color_name', e.target.value)}
-                    placeholder="Farbname"
-                    title="Farbname"
-                    className="w-full bg-[var(--bm-surface)] border border-[var(--bm-line)] focus:border-[var(--bm-accent)] rounded-xl px-2.5 py-1.5 text-[var(--bm-text)] font-semibold focus:outline-none font-mono text-xs"
-                  />
-                </div>
-
-                {/* Mobile Delete Button (placed on top-right row for thumb reach) */}
-                <div className="sm:hidden ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => removeColor(idx)}
-                    className="p-1.5 text-[var(--bm-text-3)] hover:text-[var(--bm-danger)] hover:bg-[var(--bm-surface)] rounded-xl transition"
-                    title="Farbe entfernen"
-                    aria-label="Farbe entfernen"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Difficulty Label — Full width on mobile with prominent label, 160px on desktop */}
-              <div className="w-full sm:w-40 sm:flex-none">
-                <label className="sm:hidden block text-[10px] font-mono text-[var(--bm-text-2)] mb-0.5 font-bold">
-                  Schwierigkeitsgrad (Hallengrad) <span className="text-[var(--bm-accent)]">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={scale.difficulty_label}
-                  onChange={(e) => handleFieldChange(idx, 'difficulty_label', e.target.value)}
-                  placeholder="z.B. Leicht, Moderat, Schwer"
-                  title="Schwierigkeitsgrad"
-                  className="w-full bg-[var(--bm-surface)] border border-[var(--bm-line)] focus:border-[var(--bm-accent)] rounded-xl px-2.5 py-1.5 text-[var(--bm-text)] focus:outline-none font-sans text-xs"
+      {scales.length === 0 ? (
+        <div className="rounded-2xl bg-[var(--bm-surface)] px-4 py-8 text-center text-[15px] text-[var(--bm-text-2)]">
+          Noch keine Farben.
+        </div>
+      ) : (
+        <ol className="rounded-2xl bg-[var(--bm-surface)] overflow-hidden divide-y divide-[var(--bm-line)]" data-testid="grade-list">
+          {scales.map((scale, idx) => {
+            const content = (
+              <>
+                <span
+                  className="w-7 h-7 rounded-full shrink-0 ring-1 ring-inset ring-black/20"
+                  style={{ backgroundColor: scale.color_hex }}
+                  aria-hidden="true"
                 />
-              </div>
-
-              {/* Font Range Min & Max */}
-              <div className="w-full sm:w-36 sm:flex-none">
-                <label className="sm:hidden block text-[10px] font-mono text-[var(--bm-text-2)] mb-0.5 font-bold">
-                  Fontainebleau-Spanne
-                </label>
-                <div className="flex items-center justify-between sm:justify-start gap-1.5">
-                  <span className="text-[var(--bm-text-3)] font-mono text-[11px] shrink-0 sm:inline">Font:</span>
-                  <input
-                    type="text"
-                    value={scale.font_range_min}
-                    onChange={(e) => handleFieldChange(idx, 'font_range_min', e.target.value)}
-                    placeholder="Min"
-                    title="Font Minimalgrad"
-                    className="flex-1 sm:flex-none sm:w-12 bg-[var(--bm-surface)] border border-[var(--bm-line)] focus:border-[var(--bm-accent)] rounded-xl px-1.5 py-1.5 text-[var(--bm-text)] text-center focus:outline-none font-mono font-bold text-xs"
-                  />
-                  <span className="text-[var(--bm-text-3)]">–</span>
-                  <input
-                    type="text"
-                    value={scale.font_range_max}
-                    onChange={(e) => handleFieldChange(idx, 'font_range_max', e.target.value)}
-                    placeholder="Max"
-                    title="Font Maximalgrad"
-                    className="flex-1 sm:flex-none sm:w-12 bg-[var(--bm-surface)] border border-[var(--bm-line)] focus:border-[var(--bm-accent)] rounded-xl px-1.5 py-1.5 text-[var(--bm-text)] text-center focus:outline-none font-mono font-bold text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* Live Preview Badge (Shows exact Topo representation) */}
-              <div className="flex-1 min-w-[90px] hidden sm:flex items-center">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-elevated)] text-[10px] font-mono text-[var(--bm-text-2)] truncate max-w-full">
-                  <span className="w-2.5 h-2.5 rounded-xl border border-black/40 shrink-0" style={{ backgroundColor: scale.color_hex }} />
-                  <span className="truncate text-[var(--bm-text)] font-bold">{scale.color_name}</span>
-                  <span className="truncate">({scale.difficulty_label})</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[16px] text-[var(--bm-text)] truncate">
+                    {scale.color_name}
+                    {scale.difficulty_label && <span className="text-[var(--bm-text-2)]"> · {scale.difficulty_label}</span>}
+                  </span>
+                  <span className="block text-[13px] text-[var(--bm-text-2)]">
+                    {formatFontRange(scale.font_range_min, scale.font_range_max)}
+                  </span>
                 </span>
-              </div>
-
-              {/* Desktop Delete Button */}
-              <div className="hidden sm:block ml-auto shrink-0 w-8 text-right">
+              </>
+            );
+            return isReorderMode ? (
+              <li key={scale.id || idx} data-testid={`grade-row-${idx}`} className="flex items-center gap-3 px-3 py-1.5">
+                {content}
                 <button
                   type="button"
-                  onClick={() => removeColor(idx)}
-                  className="p-1.5 text-[var(--bm-text-3)] hover:text-[var(--bm-danger)] hover:bg-[var(--bm-elevated)] rounded-xl transition-colors"
-                  title="Farbe entfernen"
-                  aria-label="Farbe entfernen"
+                  disabled={idx === 0 || isSaving}
+                  onClick={() => move(idx, 'up')}
+                  className={iconBtn}
+                  aria-label={`${scale.color_name} nach oben`}
+                  data-testid={`move-grade-up-${idx}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <ArrowUp className="w-4 h-4" />
                 </button>
-              </div>
-            </div>
+                <button
+                  type="button"
+                  disabled={idx === scales.length - 1 || isSaving}
+                  onClick={() => move(idx, 'down')}
+                  className={iconBtn}
+                  aria-label={`${scale.color_name} nach unten`}
+                  data-testid={`move-grade-down-${idx}`}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                </button>
+              </li>
+            ) : (
+              <li key={scale.id || idx}>
+                <button
+                  type="button"
+                  onClick={() => openEdit(idx)}
+                  data-testid={`grade-row-${idx}`}
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 min-h-[56px] active:bg-[var(--bm-elevated)]"
+                >
+                  {content}
+                  <ChevronRight className="w-4 h-4 text-[var(--bm-text-3)] shrink-0" />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-            {/* Mobile-Only Live Preview Badge Bar */}
-            <div className="sm:hidden flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--bm-surface)] text-[11px] font-mono">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="text-[10px] text-[var(--bm-text-3)]">Vorschau:</span>
-                <span className="w-3 h-3 rounded-xl border border-black/50 shrink-0" style={{ backgroundColor: scale.color_hex }} />
-                <span className="text-[var(--bm-text)] font-bold">{scale.color_name || 'Farbe'}</span>
-                <span className="text-[var(--bm-text-2)]">({scale.difficulty_label || 'Grad'})</span>
-              </div>
-              <span className="text-[var(--bm-accent)] font-bold shrink-0">
-                {scale.font_range_min}–{scale.font_range_max}
-              </span>
-            </div>
+      <Sheet
+        open={editIndex !== null && deleteIndex === null}
+        onClose={() => setEditIndex(null)}
+        fitContent
+        testId="grade-sheet"
+        ariaLabel={editIndex === -1 ? 'Neue Farbe' : draft.color_name}
+      >
+        <form onSubmit={handleSaveDraft} className="px-4 pb-2 space-y-4">
+          <div className="flex items-center gap-3">
+            <label
+              className="relative w-12 h-12 rounded-full shrink-0 ring-1 ring-inset ring-black/20 cursor-pointer overflow-hidden"
+              style={{ backgroundColor: draft.color_hex }}
+            >
+              <span className="sr-only">Farbe wählen</span>
+              <input
+                type="color"
+                value={draft.color_hex}
+                onChange={(e) => setDraft({ ...draft, color_hex: e.target.value })}
+                data-testid="grade-color-input"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              />
+            </label>
+            <h2 className="text-[17px] font-semibold">{editIndex === -1 ? 'Neue Farbe' : draft.color_name || 'Farbe'}</h2>
           </div>
-        ))}
-      </div>
 
-      <div className="flex justify-end pt-2">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-5 py-2.5 bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] disabled:opacity-50 text-[var(--bm-bg)] font-headline font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
-        >
-          {isSaving ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : savedSuccess ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
+          <label className="block space-y-1">
+            <span className="text-[13px] text-[var(--bm-text-2)]">Name</span>
+            <input
+              type="text"
+              value={draft.color_name}
+              placeholder="z. B. Blau"
+              onChange={(e) => setDraft({ ...draft, color_name: e.target.value })}
+              data-testid="grade-name-input"
+              className={inputCls}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[13px] text-[var(--bm-text-2)]">Hallengrad</span>
+            <input
+              type="text"
+              value={draft.difficulty_label}
+              placeholder="z. B. Leicht"
+              onChange={(e) => setDraft({ ...draft, difficulty_label: e.target.value })}
+              data-testid="grade-label-input"
+              className={inputCls}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1">
+              <span className="text-[13px] text-[var(--bm-text-2)]">Font von</span>
+              <input
+                type="text"
+                value={draft.font_range_min}
+                placeholder="6a"
+                onChange={(e) => setDraft({ ...draft, font_range_min: e.target.value })}
+                data-testid="grade-font-min-input"
+                className={inputCls}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[13px] text-[var(--bm-text-2)]">Font bis</span>
+              <input
+                type="text"
+                value={draft.font_range_max}
+                placeholder="6b"
+                onChange={(e) => setDraft({ ...draft, font_range_max: e.target.value })}
+                data-testid="grade-font-max-input"
+                className={inputCls}
+              />
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={!canSave}
+            data-testid="grade-save-btn"
+            className="w-full min-h-[48px] rounded-xl bg-[var(--bm-strong)] text-[var(--bm-bg)] text-[16px] font-semibold disabled:opacity-30"
+          >
+            {isSaving ? 'Wird gesichert …' : 'Sichern'}
+          </button>
+          {editIndex !== null && editIndex >= 0 && (
+            <button
+              type="button"
+              onClick={() => setDeleteIndex(editIndex)}
+              data-testid="grade-delete-btn"
+              className="w-full min-h-[44px] rounded-xl text-[15px] font-semibold text-[var(--bm-danger)] flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Farbe löschen
+            </button>
           )}
-          {isSaving ? 'Wird synchronisiert...' : savedSuccess ? 'Gespeichert!' : 'Farbsystem speichern'}
-        </button>
-      </div>
+        </form>
+      </Sheet>
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        title={`Farbe «${deleteIndex !== null ? scales[deleteIndex]?.color_name : ''}» löschen?`}
+        message="Sie fehlt dann in der Farbauswahl der Schrauber."
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteIndex(null)}
+      />
     </div>
   );
 };

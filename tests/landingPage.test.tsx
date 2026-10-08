@@ -21,10 +21,11 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       );
 
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkenne, welche Boulder zu dir passen und beliebt sind/i)).toBeInTheDocument();
       expect(screen.getByText('Perlen finden')).toBeInTheDocument();
-      expect(screen.getByText('Passt zu dir')).toBeInTheDocument();
-      expect(screen.getByText('2 Taps loggen')).toBeInTheDocument();
+      expect(screen.getByText('Erfolge tracken')).toBeInTheDocument();
+      expect(screen.getByText('Know-how teilen')).toBeInTheDocument();
+      expect(screen.getByText('Tracke deine Erfolge und teile dein Know-how.')).toBeInTheDocument();
 
       // Keine Gast-Bypass-Buttons
       expect(screen.queryByTestId('explore-guest-btn')).not.toBeInTheDocument();
@@ -54,7 +55,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
 
       // Standalone Landing Page ist aktiv
       expect(screen.getByText('BoulderMate')).toBeInTheDocument();
-      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkenne, welche Boulder zu dir passen und beliebt sind/i)).toBeInTheDocument();
 
       // Interne App-Navigation und Hallenwände sind für unangemeldete User NICHT sichtbar
       expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
@@ -142,7 +143,7 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       fireEvent.click(logoutBtn);
 
       // Nun befindet sich der Nutzer wieder exklusiv auf der Landing Page
-      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkenne, welche Boulder zu dir passen und beliebt sind/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
       expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
     });
@@ -165,12 +166,43 @@ describe('Landing Page für unangemeldete User (Reine Info & Registrierungs-Gate
       expect(screen.queryByText('Arbeitsbereich wählen')).not.toBeInTheDocument();
 
       // Nutzer ist abgemeldet / unangemeldet auf der Landing Page mit allen Informationen
-      expect(screen.getByText(/Erkennen, welche Boulder cool sind/i)).toBeInTheDocument();
+      expect(screen.getByText(/Erkenne, welche Boulder zu dir passen und beliebt sind/i)).toBeInTheDocument();
       expect(screen.getByTestId('hero-login-btn')).toBeInTheDocument();
 
       // Interne App-Bereiche sind nicht zugänglich
       expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
       expect(screen.queryByText('Schrauber-Studio')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('SPEC-011 AC-8: Logo im Header führt zur Landing Page', () => {
+    it('LandingPage mit onContinue zeigt «Zur App» statt Anmelden und ruft onContinue', () => {
+      const onContinue = vi.fn();
+      const onOpenLogin = vi.fn();
+      render(<LandingPage onOpenLogin={onOpenLogin} onContinue={onContinue} />);
+
+      expect(screen.queryByTestId('login-modal-btn')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('hero-login-btn')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('landing-continue-btn'));
+      fireEvent.click(screen.getByTestId('hero-continue-btn'));
+      expect(onContinue).toHaveBeenCalledTimes(2);
+      expect(onOpenLogin).not.toHaveBeenCalled();
+    });
+
+    it('Klick aufs Logo öffnet angemeldet die Landing Page, «Weiter zur App» führt zurück', () => {
+      setSessionUser('hans-kletterer');
+      render(<App />);
+
+      expect(screen.getByTestId('climber-header')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('header-brand-btn'));
+
+      expect(screen.getByText(/Erkenne, welche Boulder zu dir passen und beliebt sind/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('climber-header')).not.toBeInTheDocument();
+      // Angemeldet bleibt angemeldet: kein Login-Angebot
+      expect(screen.queryByTestId('hero-login-btn')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('hero-continue-btn'));
+      expect(screen.getByTestId('climber-header')).toBeInTheDocument();
     });
   });
 });

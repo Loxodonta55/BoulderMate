@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { BoulderSheet } from '../src/components/BoulderSheet';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import {
   deleteWallBoulder,
@@ -129,36 +129,45 @@ describe('Route Loeschen im Kletterbereich (AC-13)', () => {
   });
 
   describe('Route Deletion Isolated from Climber View', () => {
+    // Weder im halben noch im vollen Sheet darf es einen Route-Löschen-Button geben
+    const expectNoRouteDeleteButtons = () => {
+      const check = () => {
+        expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Boulder löschen|Route löschen/i)).not.toBeInTheDocument();
+      };
+      check();
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      expect(screen.getByTestId('boulder-sheet-details')).toBeInTheDocument();
+      check();
+    };
+
     it('does not render delete buttons in header or footer even for admin/boris in climber view', () => {
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleScale}
           currentUser={borisUser}
-          isOpen={true}
           onClose={vi.fn()}
         />
       );
 
-      expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
+      expectNoRouteDeleteButtons();
     });
 
     it('does not render delete buttons for normal climbers', () => {
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleScale}
           currentUser={normalClimber}
-          isOpen={true}
           onClose={vi.fn()}
         />
       );
 
-      expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
+      expectNoRouteDeleteButtons();
     });
 
     it('does not render delete buttons for route setter in climber view', () => {
@@ -170,18 +179,16 @@ describe('Route Loeschen im Kletterbereich (AC-13)', () => {
       };
 
       render(
-        <BoulderDetailModal
+        <BoulderSheet
           boulder={sampleBoulder}
           sector={sampleSector}
           gradeScale={sampleScale}
           currentUser={setterUser}
-          isOpen={true}
           onClose={vi.fn()}
         />
       );
 
-      expect(screen.queryByTestId('delete-boulder-btn')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('delete-boulder-footer-btn')).not.toBeInTheDocument();
+      expectNoRouteDeleteButtons();
     });
   });
 

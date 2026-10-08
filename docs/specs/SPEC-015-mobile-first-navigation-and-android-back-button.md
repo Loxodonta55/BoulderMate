@@ -2,6 +2,8 @@
 
 ## Status: APPROVED (Konzipiert via Grill-Me Methodik)
 
+> **Update (08.10.2026, [SPEC-022](SPEC-022-kletterer-ux-ordnung.md) F22):** `BoulderDetailModal` und `UserProfileView` sind gelöscht. Ersetzt durch `BoulderSheet` (Boulder-Detail, Bewertungen, Kommentare) und `MeView` mit `DeepDiveView` (Profil, Statistik). Die zugehörigen Tests laufen jetzt gegen diese Komponenten. Die Back-Regeln für das Detail gelten sinngemäß für `BoulderSheet` (`useBackHandler`), die für Unter-Tabs für den Deep Dive in `MeView`.
+
 ## Summary
 In mobilen Browsern, Progressive Web Apps (PWA) und Android WebViews führt das Betätigen der hardware- oder systemseitigen Zurück-Taste (bzw. der seitlichen Wischgeste) in Single-Page-Applications (SPA) häufig zum unabsichtlichen Verlassen der Applikation. 
 Dieses Dokument spezifiziert das durchgängige, hierarchische Mobile-First Navigations- und Verlaufskonzept für BoulderMate. Das System fängt den Android Back-Button auf allen Ebenen (Overlays, Modals, Fullscreen, Sub-Tabs, Workspaces) deterministisch ab und führt den Kletterer schrittweise entlang des Navigationsbaums zurück, anstatt die Anwendung zu beenden.

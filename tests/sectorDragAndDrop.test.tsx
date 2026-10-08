@@ -45,18 +45,19 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
       />
     );
 
-    // Guide banner is visible for admins when more than 1 sector exists
-    expect(screen.getByText(/Drag & Drop Sortierung/i)).toBeInTheDocument();
+    // SPEC-023 F3: Ohne Sortier-Modus keine Griffe, kein Erklärtext
+    expect(screen.queryByText(/Drag & Drop Sortierung/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('drag-handle-sec-1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('toggle-reorder-mode-btn'));
 
     // Check all drag handles
     expect(screen.getByTestId('drag-handle-sec-1')).toBeInTheDocument();
     expect(screen.getByTestId('drag-handle-sec-2')).toBeInTheDocument();
     expect(screen.getByTestId('drag-handle-sec-3')).toBeInTheDocument();
 
-    // Badges #1, #2, #3
-    expect(screen.getAllByText('#1')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('#2')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('#3')[0]).toBeInTheDocument();
+    // Reihenfolge = Listenreihenfolge, Pfeile im Modus
+    expect(screen.getByTestId('move-up-sec-1')).toBeDisabled();
+    expect(screen.getByTestId('move-down-sec-3')).toBeDisabled();
   });
 
   it('does NOT render drag handles or reorder arrows for non-admin members', () => {
@@ -105,8 +106,9 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
       />
     );
 
-    const card1 = screen.getByTestId(`sector-card-${s1.id}`);
-    const card3 = screen.getByTestId(`sector-card-${s3.id}`);
+    fireEvent.click(screen.getByTestId('toggle-reorder-mode-btn'));
+    const card1 = screen.getByTestId(`sector-row-${s1.id}`);
+    const card3 = screen.getByTestId(`sector-row-${s3.id}`);
 
     // Create a mock DataTransfer
     const dataStore: Record<string, string> = {};
@@ -162,6 +164,7 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
     );
 
     // Click move-down on first sector (Eingang)
+    fireEvent.click(screen.getByTestId('toggle-reorder-mode-btn'));
     const downBtn = screen.getByTestId(`move-down-${s1.id}`);
     fireEvent.click(downBtn);
 
@@ -227,6 +230,7 @@ describe('SPEC-001 AC-4: Sektor-Sortierung per Drag & Drop (SectorManager)', () 
     );
 
     // Click move-down on first sector
+    fireEvent.click(screen.getByTestId('toggle-reorder-mode-btn'));
     const downBtn = screen.getByTestId(`move-down-${s1.id}`);
     fireEvent.click(downBtn);
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import {
   toKnownAuthUserUuid,
   handleRealtimeRatingChange,
@@ -22,7 +22,7 @@ import {
   createDraftBoulder,
   SECTOR_ALIAS_MAP
 } from '../src/lib/batchBoulderService';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { BoulderSheet } from '../src/components/BoulderSheet';
 import { WallBoulder, BoulderInput } from '../src/types/boulder';
 import { setStorageJson } from '../src/lib/storageUtils';
 
@@ -216,18 +216,19 @@ describe('Data Synchronization Cross-Device & Multi-User Test Suite', () => {
     });
   });
 
-  describe('4. UI Live Reactivity in BoulderDetailModal', () => {
-    it('updates community stats and ratings in BoulderDetailModal when ratings event arrives', () => {
+  describe('4. UI Live Reactivity in BoulderSheet', () => {
+    it('updates community stats and ratings in BoulderSheet when ratings event arrives', () => {
       render(
-        <BoulderDetailModal
-          isOpen={true}
+        <BoulderSheet
           boulder={mockWallBoulder}
           currentUser={borisUser}
           onClose={() => {}}
         />
       );
 
-      expect(screen.getByText('Slab Dyno')).toBeDefined();
+      expect(screen.getByTestId('boulder-sheet-title').textContent).toBe('Slab Dyno');
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+      expect(screen.queryByTestId('community-rating-row-hans-kletterer')).toBeNull();
 
       act(() => {
         saveRating('hans-kletterer', 'Hans', mockWallBoulder.id, {
@@ -242,6 +243,7 @@ describe('Data Synchronization Cross-Device & Multi-User Test Suite', () => {
       const ratings = getRatings(mockWallBoulder.id);
       expect(ratings.length).toBe(1);
       expect(ratings[0].qualityStars).toBe(5);
+      expect(screen.getByTestId('community-rating-row-hans-kletterer')).toBeDefined();
     });
   });
 

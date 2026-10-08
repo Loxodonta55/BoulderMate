@@ -113,10 +113,10 @@ describe('SPEC-001 AC-2.1: Farbsystem Cross-Area Synchronisation (Admin ⟷ Schr
     const adminBtn = screen.getByRole('button', { name: /Hallen-Administration/i });
     fireEvent.click(adminBtn);
 
-    expect(screen.getByText('Hallen-Administration')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tabs')).toBeInTheDocument();
 
-    // 2. Farbsystem Tab oeffnen
-    const farbsystemTab = screen.getByRole('button', { name: /Farbsystem/i });
+    // 2. Farben-Tab oeffnen (SPEC-023)
+    const farbsystemTab = screen.getByTestId('admin-tab-grades');
     fireEvent.click(farbsystemTab);
 
     // 3. Neue Farbe programmatisch / via Storage fuer aktive Halle speichern

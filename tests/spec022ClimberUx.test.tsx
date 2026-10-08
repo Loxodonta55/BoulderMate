@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
 import { MeView } from '../src/components/MeView';
+import { WallPhotoCanvas } from '../src/components/WallPhotoCanvas';
 import { ToastHost, hideToast } from '../src/components/ui/Toast';
 import * as gymStorage from '../src/lib/gymStorage';
 import {
@@ -155,6 +156,45 @@ describe('SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text', () => {
       expect(ids.indexOf(`route-row-${easy.id}`)).toBeLessThan(ids.indexOf(`route-row-${hard.id}`));
       expect(within(screen.getByTestId(`route-status-${hard.id}`)).getByLabelText('Flash')).toBeInTheDocument();
       expect(screen.getByTestId(`route-status-${easy.id}`)).toBeEmptyDOMElement();
+    });
+
+    it('F19: zeigt geschaffte Routen gross beschriftet (Flash/Top) in Liste und Foto, mit Fortschritt der Wand', () => {
+      const { easy, hard } = seedTwoBoulders();
+      logAscent(climber.id, climber.nickname, easy.id, 'top');
+      logAscent(climber.id, climber.nickname, hard.id, 'flash');
+      render(<ClimberSectorView currentUser={climber} activeGymId={GYM} />);
+
+      expect(screen.getByTestId(`route-status-${easy.id}`)).toHaveTextContent('Top');
+      expect(screen.getByTestId(`route-status-${hard.id}`)).toHaveTextContent('Flash');
+      expect(screen.getByTestId(`pin-status-${easy.id}`)).toHaveAttribute('aria-label', 'Top');
+      expect(screen.getByTestId(`pin-status-${hard.id}`)).toHaveAttribute('aria-label', 'Flash');
+
+      const total = within(screen.getByTestId('climber-route-list')).getAllByRole('button').length;
+      expect(screen.getByTestId('climber-progress')).toHaveTextContent(`2 von ${total} geschafft`);
+    });
+
+    it('F20: Hallen-Klassiker hat einen grossen Stern am Pin statt winzigem «5.0» und eine goldene Plakette in der Liste', () => {
+      const { easy } = seedTwoBoulders();
+      saveRating('friend-1', 'Freundin', easy.id, { qualityStars: 5, gradeFeel: 'fair' });
+      render(<ClimberSectorView currentUser={climber} activeGymId={GYM} />);
+
+      const badge = screen.getByTestId(`classic-badge-${easy.id}`);
+      expect(badge).toHaveClass('w-6', 'h-6');
+      expect(badge).not.toHaveTextContent('5.0');
+      const hero = screen.getByTestId(`hero-score-${easy.id}`);
+      expect(hero).toHaveTextContent('5.0');
+      expect(hero.className).toContain('bg-[var(--bm-star)]');
+      expect(hero.className).toContain('text-[16px]');
+    });
+
+    it('F21: Kletterer sehen keinen «Pin antippen»-Hinweis, Schrauber behalten ihre Bedienhilfe', () => {
+      seedTwoBoulders();
+      const { unmount } = render(<ClimberSectorView currentUser={climber} activeGymId={GYM} />);
+      expect(screen.queryByText('Pin antippen')).not.toBeInTheDocument();
+      unmount();
+
+      render(<WallPhotoCanvas mode="setter" photoUrl="/wall.jpg" boulders={[]} gradeScales={[]} />);
+      expect(screen.getByText('Klick = Pin')).toBeInTheDocument();
     });
 
     it('Filter «Offen» blendet getoppte Boulder aus; «Neu» erscheint nur bei neuen Bouldern', () => {

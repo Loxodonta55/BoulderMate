@@ -1,7 +1,7 @@
 // SPEC-000: Authentifizierung & Identity Service
 // Verwaltet Sessions, echte Supabase Auth (E-Mail/Passwort, Google OAuth, OTP) und Benutzerprofile.
 
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from './supabase';
 import {
   getStorageJson,
   setStorageJson,
@@ -176,13 +176,14 @@ export async function syncUserProfileWithSupabase(userId: string): Promise<Parti
 export async function mapSupabaseUserToAuthUser(sbUser: any): Promise<AuthUser> {
   const isBoris = sbUser.email === 'boris@bouldermate.ch' || sbUser.id === '00000000-1d0e-4000-8000-e92d69136f33';
   
-  // Standard-Metadaten
-  let nickname = sbUser.user_metadata?.nickname || 
-                 sbUser.user_metadata?.name || 
-                 sbUser.user_metadata?.full_name || 
-                 sbUser.email?.split('@')[0] || 
+  // Standard-Metadaten (SPEC-024 F3: bei Google der Vorname, wie im DB-Trigger handle_new_user)
+  const meta = sbUser.user_metadata || {};
+  const fullName: string = meta.full_name || meta.name || '';
+  let nickname = meta.nickname ||
+                 fullName.trim().split(/\s+/)[0] ||
+                 sbUser.email?.split('@')[0] ||
                  'Kletterer';
-  let avatarUrl = sbUser.user_metadata?.avatar_url || undefined;
+  let avatarUrl = meta.avatar_url || meta.picture || undefined;
   let isPlatformAdmin = isBoris;
 
   // Ergänzende Profildaten aus DB holen
@@ -214,6 +215,12 @@ export async function mapSupabaseUserToAuthUser(sbUser: any): Promise<AuthUser> 
  */
 export function initAuthSession(): AuthUser | null {
   currentSessionUser = getStorageJson<AuthUser | null>(STORAGE_AUTH_KEY, null);
+
+  // SPEC-024 G2: Alte Versionen haben beim Google-Klick einen erfundenen Nutzer gespeichert. Diesen verwerfen.
+  if (!isTestEnv && currentSessionUser?.provider === 'google' && currentSessionUser.id.startsWith('google_')) {
+    currentSessionUser = null;
+    removeStorageItem(STORAGE_AUTH_KEY);
+  }
 
   // Supabase Auth Listener einmalig registrieren (im Browser, nicht im Test)
   if (typeof window !== 'undefined' && supabase && isSupabaseConfigured && !isTestEnv && !hasSubscribedToSupabaseAuth) {
@@ -465,38 +472,134 @@ export async function signInWithOtp(email: string): Promise<void> {
 }
 
 /**
- * Führt einen echten Google OAuth 2.0 Login über Supabase durch.
+ * SPEC-024 AC-2.1: Startet den echten Google-Login über Supabase (PKCE).
+ * Der Browser verlässt danach die App; die Session entsteht erst nach der Rückkehr
+ * (siehe finishOAuthRedirect). Hier wird bewusst kein lokaler Nutzer angelegt.
  */
-export async function signInWithGoogle(options?: { email?: string; nickname?: string }): Promise<AuthUser> {
-  if (!isTestEnv && typeof window !== 'undefined' && supabase && isSupabaseConfigured) {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
+export async function signInWithGoogle(): Promise<void> {
+  if (!supabase || !isSupabaseConfigured || typeof window === 'undefined') {
+    throw new Error('Google-Anmeldung ist gerade nicht verfügbar.');
+  }
 
-    if (error) {
-      throw new Error(`Google-Login fehlgeschlagen: ${error.message}`);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Google-Anmeldung fehlgeschlagen: ${error.message}`);
+  }
+}
+
+/**
+ * SPEC-024 AC-6.1: Mock-Login für Unit-Tests und Offline-Betrieb, getrennt vom echten Ablauf.
+ */
+export function mockGoogleSignIn(options?: { email?: string; nickname?: string }): AuthUser {
+  const email = options?.email || 'kletterer.google@gmail.com';
+  const nickname = options?.nickname || email.split('@')[0];
+
+  return setSessionUser({
+    id: 'google_' + Math.random().toString(36).substring(2, 10),
+    email,
+    nickname,
+    isPlatformAdmin: false,
+    provider: 'google',
+    createdAt: new Date().toISOString(),
+  });
+}
+
+let googleAvailability: Promise<boolean> | null = null;
+
+/**
+ * SPEC-024 AC-5.2: Fragt bei Supabase nach, ob der Google-Provider eingeschaltet ist.
+ * Ohne Supabase, im Test oder bei Netzwerkfehlern: false (Knopf wird ausgeblendet).
+ */
+export function isGoogleLoginAvailable(fetchImpl?: typeof fetch): Promise<boolean> {
+  if (googleAvailability) return googleAvailability;
+  const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : undefined);
+  // Unit-Tests gehen ohne eigenes fetchImpl nie ins Netz
+  if (!doFetch || !isSupabaseConfigured || (isTestEnv && !fetchImpl)) {
+    return Promise.resolve(false);
+  }
+  googleAvailability = doFetch(`${supabaseUrl}/auth/v1/settings`, {
+    headers: { apikey: supabaseAnonKey },
+  })
+    .then(res => (res.ok ? res.json() : null))
+    .then(settings => Boolean(settings?.external?.google))
+    .catch(() => false);
+  return googleAvailability;
+}
+
+/** Nur für Tests: Zwischenspeicher von isGoogleLoginAvailable leeren. */
+export function resetGoogleLoginAvailabilityCache(): void {
+  googleAvailability = null;
+}
+
+export type OAuthReturn =
+  | { status: 'none' }
+  | { status: 'pending' }
+  | { status: 'error'; message: string };
+
+export const OAUTH_ERROR_CANCELLED = 'Google-Anmeldung abgebrochen. Bitte nochmal versuchen.';
+export const OAUTH_ERROR_FAILED = 'Anmeldung fehlgeschlagen. Bitte nochmal versuchen.';
+
+/**
+ * SPEC-024 AC-2.3 / AC-5.1: Erkennt die Rückkehr von Google in der Adresse.
+ * `?code=` bleibt stehen, weil der Supabase-Client ihn selbst einlöst und danach entfernt.
+ * Fehlerparameter werden sofort entfernt, damit Neuladen die Meldung nicht wiederholt.
+ */
+export function readOAuthReturnFromUrl(
+  href: string = typeof window !== 'undefined' ? window.location.href : ''
+): OAuthReturn {
+  if (!href) return { status: 'none' };
+  const url = new URL(href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const error = url.searchParams.get('error') || hash.get('error');
+
+  if (error) {
+    const description = url.searchParams.get('error_description') || hash.get('error_description') || '';
+    for (const key of ['error', 'error_code', 'error_description']) url.searchParams.delete(key);
+    if (hash.has('error')) url.hash = '';
+    if (typeof window !== 'undefined' && window.location.href === href) {
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+    const cancelled = error === 'access_denied' || /cancel|denied/i.test(description);
+    return { status: 'error', message: cancelled ? OAUTH_ERROR_CANCELLED : OAUTH_ERROR_FAILED };
+  }
+
+  if (url.searchParams.has('code')) return { status: 'pending' };
+  return { status: 'none' };
+}
+
+/**
+ * SPEC-024 AC-2.4: Wartet, bis der Supabase-Client den ?code= eingelöst hat, und setzt den Nutzer.
+ * Gibt null zurück, wenn keine Session entstanden ist; ein liegengebliebener ?code= wird entfernt.
+ */
+export async function finishOAuthRedirect(): Promise<AuthUser | null> {
+  let user: AuthUser | null = null;
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        user = setSessionUser(await mapSupabaseUserToAuthUser(data.session.user));
+      }
+    } catch (err) {
+      console.warn('[Auth] OAuth-Rückkehr fehlgeschlagen:', err);
     }
   }
 
-  // Test- & Fallback-Rückgabe für Unit-Tests & sofortigen Mock
-  const email = options?.email || 'kletterer.google@gmail.com';
-  const nickname = options?.nickname || email.split('@')[0];
-  const googleId = 'google_' + Math.random().toString(36).substring(2, 10);
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('code') || url.searchParams.has('sb_flow_id')) {
+      url.searchParams.delete('code');
+      url.searchParams.delete('sb_flow_id');
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+  }
 
-  const newUser: AuthUser = {
-    id: googleId,
-    email,
-    nickname,
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&auto=format&fit=crop',
-    isPlatformAdmin: false,
-    provider: 'google',
-    createdAt: new Date().toISOString()
-  };
-
-  return setSessionUser(newUser);
+  return user;
 }
 
 /**

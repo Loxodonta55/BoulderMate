@@ -65,6 +65,7 @@ Im Rahmen des *Grill-Me*-Architektur-Reviews wurden kritische Kernfragen durchle
 - [x] **AC-1 (Universelle Kletterer-Rolle)**: Jeder authentifizierte Nutzer besitzt immer die Basisrolle `climber` (`member`). Diese Rolle ist unverlierbar und gilt über alle Hallen hinweg.
 - [x] **AC-2 (Google & Social Auth)**: 
   - Login-Modal bietet Anmeldeoption via Google OAuth 2.0 (`signInWithOAuth({ provider: 'google' })`).
+  - Echter Ablauf (PKCE, Rückkehr, Profil-Trigger, Fehlerfälle): siehe [SPEC-024](SPEC-024-google-login.md).
   - Fallback-Option für E-Mail-Anmeldung.
   - Test-/Entwicklungs-Switcher zum sofortigen Wechseln zwischen repräsentativen Test-Personas ohne echtes OAuth.
 - [x] **AC-3 (Automatisches User-Profil)**: Nach erfolgreichem Erst-Login wird automatisch ein Datensatz in `user_profiles` angelegt (ID, E-Mail, Nickname aus Google-Display-Name abgeleitet, Avatar-URL).

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { App } from '../src/App';
 import { BoulderBottomSheet } from '../src/components/BoulderBottomSheet';
 import { ClimberSectorView } from '../src/components/ClimberSectorView';
 import { SectorManager } from '../src/components/SectorManager';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { BoulderSheet } from '../src/components/BoulderSheet';
+import { ToastHost, hideToast } from '../src/components/ui/Toast';
+import { getUserAscent, getUserRating, resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
 import { GymGradeScale, WallBoulder, DEFAULT_RADAR } from '../src/types/boulder';
 import { Sector } from '../src/types/gym';
 import { resetAllGymData, createGym, createSector, CURRENT_USER } from '../src/lib/gymStorage';
@@ -171,12 +173,14 @@ describe('Mobile-First Experience Test Suite', () => {
     const toggleReorderBtn = screen.getByTestId('toggle-reorder-mode-btn');
     expect(toggleReorderBtn).toBeInTheDocument();
 
-    // Activate Reorder Mode
+    // Activate Reorder Mode (SPEC-023 F3: Pfeile nur im Modus, 44px Tippfläche)
+    expect(screen.queryByTestId('move-down-sec-1')).not.toBeInTheDocument();
     fireEvent.click(toggleReorderBtn);
-    expect(screen.getByTestId('mobile-touch-reorder-view')).toBeInTheDocument();
+    expect(toggleReorderBtn).toHaveTextContent('Fertig');
 
     // Move sec-1 down using touch button
-    const touchMoveDown = screen.getByTestId('touch-move-down-sec-1');
+    const touchMoveDown = screen.getByTestId('move-down-sec-1');
+    expect(touchMoveDown.className).toContain('min-h-[44px]');
     fireEvent.click(touchMoveDown);
     expect(onRefresh).toHaveBeenCalled();
   });
@@ -206,17 +210,17 @@ describe('Mobile-First Experience Test Suite', () => {
     // Neuer Sektor button exists and has responsive classes
     const addSectorBtn = screen.getByTestId('add-sector-btn');
     expect(addSectorBtn).toBeInTheDocument();
-    expect(addSectorBtn).toHaveTextContent(/Neuer Sektor/i);
+    expect(addSectorBtn).toHaveTextContent(/Sektor/i);
     expect(addSectorBtn.className).toContain('whitespace-nowrap');
 
-    // Clicking it opens the form
+    // Clicking it opens the sheet
     fireEvent.click(addSectorBtn);
-    expect(screen.getByText(/Neuen Sektor im Topo anlegen/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/z\.B\. Wettkampfwand/i)).toBeInTheDocument();
+    expect(screen.getByTestId('add-sector-sheet')).toBeInTheDocument();
+    expect(screen.getByTestId('new-sector-name')).toBeInTheDocument();
 
     // Cancel form
     fireEvent.click(screen.getByText('Abbrechen'));
-    expect(screen.queryByText(/Neuen Sektor im Topo anlegen/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('add-sector-sheet')).not.toBeInTheDocument();
 
     // Empty state also provides add sector button
     rerender(
@@ -232,12 +236,12 @@ describe('Mobile-First Experience Test Suite', () => {
     const emptyAddBtn = screen.getByTestId('empty-add-sector-btn');
     expect(emptyAddBtn).toBeInTheDocument();
     fireEvent.click(emptyAddBtn);
-    expect(screen.getByText(/Neuen Sektor im Topo anlegen/i)).toBeInTheDocument();
+    expect(screen.getByTestId('add-sector-sheet')).toBeInTheDocument();
   });
 
-  it('6) Schnelle Interaktion: BoulderDetailModal schließt sofort nach Bewertungsabgabe & Überspringen', () => {
+  it('6) Schnelle Interaktion: BoulderSheet schließt sofort nach dem Loggen, Bewertung per Toast-Sternen', () => {
+    resetAscentAndRatingStorage();
     const handleClose = vi.fn();
-    const handleDataChanged = vi.fn();
 
     const sampleBoulder: WallBoulder = {
       id: 'boulder-fast-close-1',
@@ -251,58 +255,37 @@ describe('Mobile-First Experience Test Suite', () => {
       createdAt: new Date().toISOString(),
       name: 'Speed Route',
     };
+    const user = { id: 'climber-speed', nickname: 'Speedy', role: 'member' as const, isPlatformAdmin: false };
 
-    const { rerender } = render(
-      <BoulderDetailModal
-        boulder={sampleBoulder}
-        currentUser={{ id: 'climber-speed', nickname: 'Speedy', role: 'member', isPlatformAdmin: false }}
-        isOpen={true}
-        onClose={handleClose}
-        onDataChanged={handleDataChanged}
-      />
+    render(
+      <>
+        <BoulderSheet boulder={sampleBoulder} currentUser={user} onClose={handleClose} />
+        <ToastHost />
+      </>
     );
 
-    // Klick auf "Jetzt bewerten"
-    const rateBtn = screen.getByText('Jetzt bewerten');
-    fireEvent.click(rateBtn);
-
-    // RatingModal erscheint
-    expect(screen.getByText('Soft')).toBeInTheDocument();
-
-    // Soft auswählen & speichern
-    fireEvent.click(screen.getByText('Soft'));
-    fireEvent.click(screen.getByText('Bewertung speichern'));
-
-    // Detailfenster muss sich sofort geschlossen haben (handleClose aufgerufen)
+    // Top loggen -> Sheet schließt sofort und bringt User zurück zur Wand
+    fireEvent.click(screen.getByTestId('log-top-btn'));
     expect(handleClose).toHaveBeenCalledTimes(1);
+    expect(getUserAscent(user.id, sampleBoulder.id)?.type).toBe('top');
 
-    // Zweiter Test: Bei automatischer Bewertung nach Top -> Klick auf Überspringen schließt auch direkt
-    handleClose.mockClear();
-    rerender(
-      <BoulderDetailModal
-        boulder={sampleBoulder}
-        currentUser={{ id: 'climber-speed-2', nickname: 'Speedy2', role: 'member', isPlatformAdmin: false }}
-        isOpen={true}
-        onClose={handleClose}
-        onDataChanged={handleDataChanged}
-      />
-    );
+    // Kein automatischer Bewertungsdialog mehr, kein «Überspringen» – stattdessen Toast mit Mini-Sternen
+    expect(screen.queryByText(/Schritt 1\/2/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Überspringen')).not.toBeInTheDocument();
+    expect(screen.getByTestId('toast')).toHaveTextContent('Top geloggt');
+    expect(screen.getByTestId('toast-action')).toHaveTextContent('Rückgängig');
 
-    // Top loggen -> löst automatisches RatingModal aus
-    const topBtn = screen.getByRole('button', { name: /Top/i });
-    fireEvent.click(topBtn);
-
-    // Überspringen klicken
-    const skipBtn = screen.getByText('Überspringen');
-    fireEvent.click(skipBtn);
-
-    // Detailfenster schließt sich direkt und bringt User zurück zur Wand
+    // Ein Tap auf die Sterne speichert die Bewertung, ohne weiteren Dialog
+    fireEvent.click(screen.getByTestId('toast-star-4'));
+    expect(getUserRating(user.id, sampleBoulder.id)?.qualityStars).toBe(4);
+    expect(screen.getByTestId('toast')).toHaveTextContent('4 Sterne gespeichert');
     expect(handleClose).toHaveBeenCalledTimes(1);
+    act(() => hideToast());
   });
 
-  it('7) 2-Stufen-Bewertung & Abhaken ganz oben im Frame', () => {
+  it('7) 2-Stufen-Bewertung & Abhaken ganz oben im Sheet', () => {
+    resetAscentAndRatingStorage();
     const handleClose = vi.fn();
-    const handleDataChanged = vi.fn();
 
     const sampleBoulder: WallBoulder = {
       id: 'boulder-2step-1',
@@ -316,40 +299,34 @@ describe('Mobile-First Experience Test Suite', () => {
       createdAt: new Date().toISOString(),
       name: 'Flow Route',
     };
+    const user = { id: 'climber-flow', nickname: 'Flowy', role: 'member' as const, isPlatformAdmin: false };
 
-    render(
-      <BoulderDetailModal
-        boulder={sampleBoulder}
-        currentUser={{ id: 'climber-flow', nickname: 'Flowy', role: 'member', isPlatformAdmin: false }}
-        isOpen={true}
-        onClose={handleClose}
-        onDataChanged={handleDataChanged}
-      />
-    );
+    render(<BoulderSheet boulder={sampleBoulder} currentUser={user} onClose={handleClose} />);
 
-    // 1) Verify Ascent card is at the top of scrollable modal content
+    // 1) Logging-Karte ist direkt im halben Sheet sichtbar
     const ascentCard = screen.getByTestId('ascent-logging-card');
     expect(ascentCard).toBeInTheDocument();
     // Verify it contains Flash, Top, Projekt
-    expect(screen.getByRole('button', { name: /Flash/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Top/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Projekt/i })).toBeInTheDocument();
+    expect(screen.getByTestId('log-flash-btn')).toHaveTextContent('Flash');
+    expect(screen.getByTestId('log-top-btn')).toHaveTextContent('Top');
+    expect(screen.getByTestId('log-project-btn')).toHaveTextContent('Projekt');
+    expect(ascentCard.querySelectorAll('button').length).toBe(3);
 
-    // 2) Top anklicken -> löst Rating-Modal aus
-    const topBtn = screen.getByRole('button', { name: /Top/i });
-    fireEvent.click(topBtn);
+    // 2) Bewerten aus dem vollen Sheet öffnen
+    fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+    fireEvent.click(screen.getByTestId('open-rating-btn'));
 
     // 3) Fenster Schritt 1: NUR Grad-Empfinden sichtbar
     expect(screen.getByText('Schritt 1/2')).toBeInTheDocument();
-    expect(screen.getByText('Soft')).toBeInTheDocument();
-    expect(screen.getByText('Fair')).toBeInTheDocument();
-    expect(screen.getByText('Stiff')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Soft/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Fair/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Stiff/ })).toBeInTheDocument();
     // Sterne und Radar sind in Schritt 1 NICHT sichtbar
     expect(screen.queryByText(/von 5 Sternen/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Klettereigenschaften bewerten/i)).not.toBeInTheDocument();
 
     // 4) Klick auf "Fair" -> schaltet direkt zu Schritt 2
-    fireEvent.click(screen.getByText('Fair'));
+    fireEvent.click(screen.getByRole('button', { name: /^Fair/ }));
 
     // 5) Fenster Schritt 2: Qualität 1-5 Sterne & optional Radar
     expect(screen.getByText('Schritt 2/2')).toBeInTheDocument();
@@ -363,9 +340,14 @@ describe('Mobile-First Experience Test Suite', () => {
     fireEvent.click(star4);
     expect(screen.getByText(/4 von 5 Sternen/i)).toBeInTheDocument();
 
-    // Speichern -> schließt Dialog
+    // Speichern -> schließt den Bewertungsdialog, Bewertung ist gespeichert, Sheet bleibt offen
     fireEvent.click(screen.getByText('Bewertung speichern'));
-    expect(handleClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Schritt 2/2')).not.toBeInTheDocument();
+    const saved = getUserRating(user.id, sampleBoulder.id);
+    expect(saved?.qualityStars).toBe(4);
+    expect(saved?.gradeFeel).toBe('fair');
+    expect(screen.getByTestId('open-rating-btn')).toHaveTextContent('Bewertung ändern');
+    expect(handleClose).not.toHaveBeenCalled();
   });
 });
 

@@ -79,6 +79,38 @@ test.describe('SPEC-022: Kletterer-UX', () => {
     expect(afterUndo).toBe(false);
   });
 
+  test('F19: Geschaffte Route zeigt grosses «Flash» in der Liste, Abzeichen am Pin und den Fortschritt', async ({ page }) => {
+    await loginAsHans(page);
+    const row = await firstOpenRoute(page);
+    const rowId = (await row.getAttribute('data-testid'))!.replace('route-row-', '');
+    await page.getByTestId('filter-chip-all').click();
+    const before = await page.getByTestId('climber-progress').textContent();
+    const doneBefore = parseInt(before!.trim(), 10);
+
+    await page.getByTestId(`route-row-${rowId}`).click();
+    await page.getByTestId('log-flash-btn').click();
+    await expect(page.getByTestId('boulder-sheet')).toHaveCount(0);
+
+    const status = page.getByTestId(`route-status-${rowId}`);
+    await expect(status).toHaveText(/Flash/);
+    const font = await status.locator('span').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    expect(font).toBeGreaterThanOrEqual(15);
+    await expect(page.getByTestId(`pin-status-${rowId}`)).toBeVisible();
+    await expect(page.getByTestId('climber-progress')).toContainText(`${doneBefore + 1} von`);
+  });
+
+  test('F20: Hallen-Klassiker-Stern am Pin ist mindestens 20 px gross und ohne Mini-Text', async ({ page }) => {
+    await loginAsHans(page);
+    const badge = page.locator('[data-testid^="classic-badge-"]').first();
+    for (let i = 0; i < 10 && !(await badge.isVisible().catch(() => false)); i++) {
+      await page.getByTestId('sector-next-btn').click();
+    }
+    await expect(badge).toBeVisible();
+    const box = (await badge.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(20);
+    await expect(badge).not.toContainText('5.0');
+  });
+
   test('Details zeigen Community und «Wer war schon oben»', async ({ page }) => {
     await loginAsHans(page);
     await page.locator('[data-testid^="route-row-"]').first().click();
@@ -91,7 +123,7 @@ test.describe('SPEC-022: Kletterer-UX', () => {
   test('Text-Diät (SPEC-020): keine UUIDs, keine Farbkreise, keine Erklärtexte', async ({ page, isMobile }) => {
     await loginAsHans(page);
     const body = page.locator('body');
-    for (const t of [/Sektoren & Wandansicht/, /Filter:/, /Sortierung:/, /SPEC-005/]) {
+    for (const t of [/Sektoren & Wandansicht/, /Filter:/, /Sortierung:/, /SPEC-005/, /Pin antippen/]) {
       await expect(body).not.toContainText(t);
     }
     await expect(page.getByTestId(isMobile ? 'mobile-tab-stats' : 'tab-stats')).toHaveText(/Ich/);
@@ -107,6 +139,26 @@ test.describe('SPEC-022: Kletterer-UX', () => {
     await page.getByTestId('open-rating-btn').click();
     await expect(page.getByRole('button', { name: /^Soft/ }).first()).toBeVisible();
     await expect(body).not.toContainText(/🟢|🟡|🔴/);
+  });
+
+  test('«Wer war schon oben» zeigt jede Person nur einmal, auch bei doppelt gespeicherter Begehung', async ({ page }) => {
+    await loginAsHans(page);
+    const row = page.locator('[data-testid^="route-row-"]').first();
+    const boulderId = (await row.getAttribute('data-testid'))!.replace('route-row-', '');
+    // Doppelte Begehung derselben Person (Demo-ID und Supabase-UUID) einspielen
+    await page.evaluate((id) => {
+      const key = 'boulderapp_ascents_v3';
+      const all = JSON.parse(localStorage.getItem(key) || '[]');
+      all.push(
+        { id: 'dup-1', userId: 'admin-minimum', userNickname: 'AdminMinimum', boulderId: id, type: 'top', createdAt: '2026-09-01T10:00:00Z' },
+        { id: 'dup-2', userId: '00000000-2ff9-4000-8000-b7902cb24230', userNickname: 'AdminMinimum', boulderId: id, type: 'flash', createdAt: '2026-09-02T10:00:00Z' },
+      );
+      localStorage.setItem(key, JSON.stringify(all));
+    }, boulderId);
+    await row.click();
+    await page.getByTestId('boulder-sheet-more').click();
+    const section = page.getByTestId('community-ratings-section');
+    await expect(section.getByText('AdminMinimum', { exact: true })).toHaveCount(1);
   });
 
   test('Sektorwechsel per Pill und Sektor-Liste', async ({ page }) => {

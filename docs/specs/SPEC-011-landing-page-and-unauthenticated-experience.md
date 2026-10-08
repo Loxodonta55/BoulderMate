@@ -2,7 +2,7 @@
 
 > **Hinweis (04.10.2026):** Gemäß [SPEC-020](SPEC-020-ux-overhaul-design-system-v2.md) wurde das strikte Informations-Gate gelockert: Unangemeldete Gäste dürfen die Wandansicht und Sektoren im **Read-only-Modus** frei erkunden («Ohne Konto umsehen»). Aktionen wie Begehungs-Logging oder Bewerten fordern zur Anmeldung auf. Zudem entfällt das Pflicht-Role-Gateway beim Login.
 
-> **Update (06.10.2026, Text-Diät, SPEC-020 AC-9):** Die Landing Page passt auf einen Screen: Logo mit «Anmelden», Claim «Erkennen, welche Boulder cool sind.», drei Punkte («Perlen finden», «Passt zu dir», «2 Taps loggen») und zwei Buttons («Konto erstellen», «Als Kletterer testen»). Höchstens 40 Wörter. Rollen-Schalter, Mockup-Karten und Schrauber-Showcase entfallen. Test-Personas erscheinen nur im Dev-Build (`import.meta.env.DEV`), auf der Landing Page wie im Login-Modal. Ein Standardpasswort gibt es nicht mehr: Registrierung verlangt mindestens 6 Zeichen. Technische Footer-Texte («Supabase Authentication», «Aktuell nicht angemeldet (Gast)») sind entfernt. Farben: Palette «Kreide» aus SPEC-020 §2.3. Tests: `tests/landingPage.test.tsx`, `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`.
+> **Update (06.10.2026, Text-Diät, SPEC-020 AC-9):** Die Landing Page passt auf einen Screen: Logo mit «Anmelden», Claim «Erkenne, welche Boulder zu dir passen und beliebt sind.» mit Unterzeile «Tracke deine Erfolge und teile dein Know-how.» (Text von Hans, 08.10.2026), drei Punkte («Perlen finden», «Erfolge tracken», «Know-how teilen») und zwei Buttons («Konto erstellen», «Als Kletterer testen»). Höchstens 40 Wörter. Rollen-Schalter, Mockup-Karten und Schrauber-Showcase entfallen. Test-Personas erscheinen nur im Dev-Build (`import.meta.env.DEV`), auf der Landing Page wie im Login-Modal. Ein Standardpasswort gibt es nicht mehr: Registrierung verlangt mindestens 6 Zeichen. Technische Footer-Texte («Supabase Authentication», «Aktuell nicht angemeldet (Gast)») sind entfernt. Farben: Palette «Kreide» aus SPEC-020 §2.3. Tests: `tests/landingPage.test.tsx`, `tests/spec020RedesignKreide.test.tsx`, `tests/e2e/redesign-kreide.spec.ts`.
 
 ## Status: APPROVED (Aktualisiert durch SPEC-020)
 
@@ -56,3 +56,8 @@ Definiert die Landing Page für unangemeldete Besucher von BoulderMate:
   - Ein Klick auf das 'X' bricht die Anmeldung ab (`signOut()`), schließt das Fenster und versetzt den Nutzer zurück auf die Landing Page als unangemeldeter User (`Gast`).
 - [x] **AC-7**: **Logout-Verhalten**:
   - Das Abmelden aus dem Profil führt direkt zurück auf die Landing Page.
+- [x] **AC-8**: **Logo führt zur Landing Page** (08.10.2026):
+  - Im Kletterer-Header ist das Logo (Berg-Symbol, ab Tablet mit Schriftzug «BoulderMate») ein Button (`data-testid="header-brand-btn"`, Tippfläche mindestens 44 px). Ein Tipp öffnet die Landing Page.
+  - Angemeldet bleibt die Session erhalten: Statt «Anmelden» und «Konto erstellen» zeigt die Landing Page «Zur App» (`landing-continue-btn`) und «Weiter zur App» (`hero-continue-btn`); Test-Personas sind dann ausgeblendet. Die Android-Zurück-Taste führt ebenfalls zurück in die App.
+  - Schrauber-Studio und Hallen-Administration tragen kein BoulderMate-Logo (eigene Symbole), dort ändert sich nichts.
+  - Tests: `tests/landingPage.test.tsx` (Block «SPEC-011 AC-8»), `tests/e2e/logo-landing.spec.ts`.

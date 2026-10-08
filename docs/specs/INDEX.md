@@ -26,4 +26,7 @@
 | [SPEC-019](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-019-cross-device-sector-and-gym-realtime-sync.md) | Geräteübergreifende Echtzeit-Synchronisation für Sektoren, Hallen & Routen (Mobile <-> Desktop) | DONE | Boris | 2026-09-17 |
 | [SPEC-020](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-020-ux-overhaul-design-system-v2.md) | UX-Overhaul & Design System v2 («Chalk») | APPROVED | Boris | 2026-10-04 |
 | [SPEC-022](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-022-kletterer-ux-ordnung.md) | Kletterer-UX – Ordnung, Übersicht, wenig Text | IN PROGRESS | Hans | 2026-10-06 |
+| [SPEC-023](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-023-admin-ux-ordnung.md) | Admin-UX – Ordnung, Übersicht, wenig Text | IMPLEMENTED | Hans | 2026-10-08 |
+| [SPEC-024](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-024-google-login.md) | Login mit Google-Konto | IN PROGRESS | Hans | 2026-10-08 |
+| [SPEC-025](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-025-halle-suchen-karte.md) | Halle suchen – Karte aller teilnehmenden Hallen | IN PROGRESS | Hans | 2026-10-08 |
 | [SPEC-026](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-026-nutzer-feedback.md) | Nutzer-Feedback – Fehler, Ideen und Lob aus der App | IN PROGRESS | Hans | 2026-10-08 |

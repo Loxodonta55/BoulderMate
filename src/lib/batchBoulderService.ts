@@ -99,6 +99,14 @@ export function getGyms(): Gym[] {
   try {
     const v1Gyms = gymStorage.getGyms();
     const existingIds = new Set(v2Gyms.map(g => g.id));
+    // SPEC-025: Koordinaten werden in gymStorage gepflegt und auch für v2-Hallen übernommen
+    const v1ById = new Map(v1Gyms.map(g => [g.id, g]));
+    for (let i = 0; i < v2Gyms.length; i++) {
+      const v1 = v1ById.get(v2Gyms[i].id);
+      if (v1 && typeof v1.lat === 'number' && typeof v1.lng === 'number') {
+        v2Gyms[i] = { ...v2Gyms[i], lat: v1.lat, lng: v1.lng };
+      }
+    }
     for (const g of v1Gyms) {
       if (!existingIds.has(g.id)) {
         v2Gyms.push({
@@ -108,6 +116,8 @@ export function getGyms(): Gym[] {
           city: g.city,
           logoUrl: g.logo_url,
           website: g.website,
+          lat: g.lat,
+          lng: g.lng,
           createdBy: g.created_by,
           createdAt: g.created_at,
         });

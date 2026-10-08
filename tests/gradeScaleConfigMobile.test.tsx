@@ -1,153 +1,93 @@
-﻿import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { GradeScaleConfig } from '../src/components/GradeScaleConfig';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { GradeScale } from '../src/types/gym';
 
-describe('GradeScaleConfig: Mobile Mode & Usability Improvements', () => {
-  const initialScales: GradeScale[] = [
-    {
-      id: 'scale-1',
-      gym_id: 'gym-test',
-      color_name: 'Gelb',
-      color_hex: '#eab308',
-      difficulty_label: 'Sehr leicht',
-      font_range_min: '3',
-      font_range_max: '4+',
-      sort_order: 1,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'scale-2',
-      gym_id: 'gym-test',
-      color_name: 'Grün',
-      color_hex: '#22c55e',
-      difficulty_label: 'Leicht',
-      font_range_min: '5',
-      font_range_max: '5+',
-      sort_order: 2,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'scale-3',
-      gym_id: 'gym-test',
-      color_name: 'Blau',
-      color_hex: '#3b82f6',
-      difficulty_label: 'Mittel',
-      font_range_min: '6A',
-      font_range_max: '6B+',
-      sort_order: 3,
-      created_at: new Date().toISOString(),
-    },
-  ];
+// SPEC-023 F5: Farben als Liste + Sheet; jede Änderung speichert sofort.
+const setGymGradeScales = vi.fn((_gym: string, _user: string, scales: GradeScale[]) => scales);
+vi.mock('../src/lib/gymStorage', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/gymStorage')>()),
+  setGymGradeScales: (...a: [string, string, GradeScale[]]) => setGymGradeScales(...a),
+}));
+vi.mock('../src/lib/syncService', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/syncService')>()),
+  syncGradeScalesToSupabase: vi.fn(() => Promise.resolve()),
+}));
 
-  it('renders all difficulty labels and color names prominently with clear labels', () => {
-    const onSaved = vi.fn();
-    render(
-      <GradeScaleConfig
-        gymId="gym-test"
-        userId="user-admin"
-        initialScales={initialScales}
-        onSaved={onSaved}
-      />
-    );
+import { GradeScaleConfig, formatFontRange } from '../src/components/GradeScaleConfig';
 
-    // 1. Check title & headers
-    expect(screen.getByText('Hallenspezifisches Farbsystem (Grade Scales)')).toBeInTheDocument();
-    expect(screen.getAllByText(/Schwierigkeitsgrad/i).length).toBeGreaterThan(0);
+const uuid = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
+const initialScales: GradeScale[] = [
+  { id: uuid(1), gym_id: 'gym-test', color_name: 'Gelb', color_hex: '#eab308', difficulty_label: 'Sehr leicht', font_range_min: '3', font_range_max: '4+', sort_order: 1, created_at: '' },
+  { id: uuid(2), gym_id: 'gym-test', color_name: 'Grün', color_hex: '#22c55e', difficulty_label: 'Leicht', font_range_min: '5', font_range_max: '5+', sort_order: 2, created_at: '' },
+  { id: uuid(3), gym_id: 'gym-test', color_name: 'Blau', color_hex: '#3b82f6', difficulty_label: 'Mittel', font_range_min: '6A', font_range_max: '6B+', sort_order: 3, created_at: '' },
+];
 
-    // 2. Check each scale's color name and difficulty label are rendered in input fields
-    expect(screen.getByDisplayValue('Gelb')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Sehr leicht')).toBeInTheDocument();
+const renderConfig = (onSaved = vi.fn()) =>
+  render(<GradeScaleConfig gymId="gym-test" userId="user-admin" initialScales={initialScales} onSaved={onSaved} />);
 
-    expect(screen.getByDisplayValue('Grün')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Leicht')).toBeInTheDocument();
+describe('SPEC-023 F5: Farben als Liste + Sheet', () => {
+  beforeEach(() => setGymGradeScales.mockClear());
 
-    expect(screen.getByDisplayValue('Blau')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Mittel')).toBeInTheDocument();
-
-    // 3. Check mobile preview badges contain the difficulty names
-    expect(screen.getAllByText('(Sehr leicht)').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('(Leicht)').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('(Mittel)').length).toBeGreaterThan(0);
-  });
-
-  it('allows editing difficulty label and reflects changes immediately in live preview', () => {
-    const onSaved = vi.fn();
-    render(
-      <GradeScaleConfig
-        gymId="gym-test"
-        userId="user-admin"
-        initialScales={initialScales}
-        onSaved={onSaved}
-      />
-    );
-
-    // Change difficulty of Gelb from 'Sehr leicht' to 'Anfänger Warmup'
-    const diffInput = screen.getByDisplayValue('Sehr leicht');
-    fireEvent.change(diffInput, { target: { value: 'Anfänger Warmup' } });
-
-    expect(screen.getByDisplayValue('Anfänger Warmup')).toBeInTheDocument();
-    // Live preview badge immediately reflects the updated difficulty name
-    expect(screen.getAllByText('(Anfänger Warmup)').length).toBeGreaterThan(0);
-  });
-
-  it('allows adding a new color scale with clear default difficulty and values', () => {
-    const onSaved = vi.fn();
-    render(
-      <GradeScaleConfig
-        gymId="gym-test"
-        userId="user-admin"
-        initialScales={initialScales}
-        onSaved={onSaved}
-      />
-    );
-
-    const addBtn = screen.getByRole('button', { name: /Farbe hinzufügen/i });
-    fireEvent.click(addBtn);
-
-    // Newly added scale has name 'Neue Farbe' and difficulty 'Mittel'
-    expect(screen.getByDisplayValue('Neue Farbe')).toBeInTheDocument();
-    // Total count of scale rows is now 4
-    expect(screen.getByTestId('scale-row-3')).toBeInTheDocument();
-  });
-
-  it('allows reordering scales up and down', () => {
-    const onSaved = vi.fn();
-    render(
-      <GradeScaleConfig
-        gymId="gym-test"
-        userId="user-admin"
-        initialScales={initialScales}
-        onSaved={onSaved}
-      />
-    );
-
-    // Row 1 (Grün) move up -> becomes Row 0
-    const moveUpButtons = screen.getAllByTitle('Nach oben verschieben');
-    // Button for scale index 1 (Grün) is moveUpButtons[1]
-    fireEvent.click(moveUpButtons[1]);
-
-    const rows = screen.getAllByTestId(/scale-row-/);
-    expect(rows[0]).toHaveTextContent('Grün');
-    expect(rows[1]).toHaveTextContent('Gelb');
-  });
-
-  it('allows deleting a scale', () => {
-    const onSaved = vi.fn();
-    render(
-      <GradeScaleConfig
-        gymId="gym-test"
-        userId="user-admin"
-        initialScales={initialScales}
-        onSaved={onSaved}
-      />
-    );
-
-    const deleteButtons = screen.getAllByTitle('Farbe entfernen');
-    // Delete first scale (Gelb)
-    fireEvent.click(deleteButtons[0]);
-
+  it('zeigt jede Farbe als kompakte Zeile mit Name, Hallengrad und Font-Bereich', () => {
+    renderConfig();
+    const row = screen.getByTestId('grade-row-0');
+    expect(row).toHaveTextContent('Gelb');
+    expect(row).toHaveTextContent('Sehr leicht');
+    expect(row).toHaveTextContent('Font 3–4+');
+    expect(screen.getAllByTestId(/^grade-row-/)).toHaveLength(3);
+    // Keine Eingabefelder in der Liste
     expect(screen.queryByDisplayValue('Gelb')).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue('Grün')).toBeInTheDocument();
+  });
+
+  it('formatFontRange fasst Min/Max knapp zusammen', () => {
+    expect(formatFontRange('6A', '6B+')).toBe('Font 6A–6B+');
+    expect(formatFontRange('7A', '7A')).toBe('Font 7A');
+    expect(formatFontRange('', '')).toBe('');
+  });
+
+  it('Tippen auf eine Zeile öffnet das Sheet; Sichern speichert sofort', async () => {
+    const onSaved = vi.fn();
+    renderConfig(onSaved);
+    fireEvent.click(screen.getByTestId('grade-row-0'));
+    expect(screen.getByTestId('grade-sheet')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('grade-label-input'), { target: { value: 'Anfänger' } });
+    fireEvent.click(screen.getByTestId('grade-save-btn'));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const saved = setGymGradeScales.mock.calls[0][2];
+    expect(saved[0].difficulty_label).toBe('Anfänger');
+    expect(screen.getByTestId('grade-row-0')).toHaveTextContent('Anfänger');
+  });
+
+  it('+ Farbe legt eine neue Farbe mit gültiger UUID an', async () => {
+    renderConfig();
+    fireEvent.click(screen.getByTestId('add-grade-btn'));
+    expect(screen.queryByTestId('grade-delete-btn')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('grade-name-input'), { target: { value: 'Pink' } });
+    fireEvent.change(screen.getByTestId('grade-label-input'), { target: { value: 'Schwer' } });
+    fireEvent.click(screen.getByTestId('grade-save-btn'));
+    await waitFor(() => expect(screen.getByTestId('grade-row-3')).toHaveTextContent('Pink'));
+    const saved = setGymGradeScales.mock.calls[0][2];
+    expect(saved[3].id).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it('Sortieren zeigt Pfeile erst nach Tippen auf «Sortieren»', async () => {
+    renderConfig();
+    expect(screen.queryByTestId('move-grade-up-1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('toggle-grade-reorder-btn'));
+    fireEvent.click(screen.getByTestId('move-grade-up-1'));
+    await waitFor(() => expect(screen.getByTestId('grade-row-0')).toHaveTextContent('Grün'));
+    expect(screen.getByTestId('grade-row-1')).toHaveTextContent('Gelb');
+  });
+
+  it('Löschen fragt erst nach (AC Rückfrage)', async () => {
+    renderConfig();
+    fireEvent.click(screen.getByTestId('grade-row-0'));
+    fireEvent.click(screen.getByTestId('grade-delete-btn'));
+    const dialog = screen.getByTestId('confirm-dialog');
+    expect(within(dialog).getByText(/Gelb/)).toBeInTheDocument();
+    expect(setGymGradeScales).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('confirm-ok'));
+    await waitFor(() => expect(screen.getAllByTestId(/^grade-row-/)).toHaveLength(2));
+    expect(screen.getByTestId('grade-row-0')).toHaveTextContent('Grün');
   });
 });

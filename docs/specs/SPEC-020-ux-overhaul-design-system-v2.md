@@ -128,7 +128,7 @@ flowchart TD
 - **AC-4.4**: Ein leuchtender Favoriten-Ring («Hallen-Klassiker») wird exklusiv an die Top-3-bestbewerteten Boulder des Sektors vergeben.
 
 ### AC-5: Einheitliches Boulder-Sheet & 2-Tap-Logging Flow
-- **AC-5.1**: `BoulderBottomSheet`, `BoulderDetailModal` und `RatingModal` werden vollständig in einer einzigen responsiven Komponente `BoulderSheet` konsolidiert.
+- **AC-5.1**: `BoulderBottomSheet`, `BoulderDetailModal` und `RatingModal` werden vollständig in einer einzigen responsiven Komponente `BoulderSheet` konsolidiert. *(08.10.2026: `BoulderDetailModal` gelöscht, siehe SPEC-022 F22.)*
 - **AC-5.2**: **Halb geöffneter Zustand (Standard)**:
   - Zeigt Farb-Badge, Boulder-Name, Schwierigkeitsgrad, Charakteristik und Sterne-Schnitt.
   - Zeigt in der unteren Daumenzone drei große, kreidetaugliche Buttons (Höhe 64 px): `⚡ Flash`, `✓ Top`, `◎ Projekt`.
@@ -184,6 +184,7 @@ flowchart TD
 - **AC-11.1**: Eigenständige Shell mit «Fertig»-Schaltfläche zur Rückkehr.
 - **AC-11.2**: Strukturierte Ansicht mit 3 Sektionen: `Sektoren`, `Farben & Grade`, `Team`.
 - **AC-11.3**: Sektor-Reordering erfolgt über einen mobilen Sortiermodus mit Drag-Handles (iOS-Listenstil); Desktop-Pfeil-Buttons entfallen.
+- **AC-11.4** *(08.10.2026, SPEC-023)*: Umgesetzt als Tabs `Sektoren · Farben · Team · Halle` direkt unter dem Header; Hallenwahl über den Hallennamen im Header (Sheet). Der Sortiermodus zeigt Griff **und** 44-px-Pfeile (Hans, F3), Bearbeiten läuft über Liste + Sheet, Löschen immer mit Rückfrage. Details: [SPEC-023](SPEC-023-admin-ux-ordnung.md).
 
 ---
 

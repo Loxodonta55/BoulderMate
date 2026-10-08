@@ -250,7 +250,7 @@ describe('SPEC-018: Multi-Sektor-Batch-Erstellung & Multi-Foto-Upload', () => {
       expect(screen.getByTestId('batch-sector-modal')).toBeInTheDocument();
     });
 
-    it('switches from single add form to batch modal on clicking switch link', () => {
+    it('offers single and batch creation side by side (SPEC-023 F13)', () => {
       render(
         <SectorManager
           gymId={gymId}
@@ -261,17 +261,14 @@ describe('SPEC-018: Multi-Sektor-Batch-Erstellung & Multi-Foto-Upload', () => {
         />
       );
 
-      // Open single add form
+      // SPEC-023 F13: «Sektor» und «Mehrere» stehen nebeneinander, kein Umweg über einen Link
       fireEvent.click(screen.getByTestId('empty-add-sector-btn'));
-      expect(screen.getByText(/Neuen Sektor im Topo anlegen/i)).toBeInTheDocument();
+      expect(screen.getByTestId('add-sector-sheet')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Abbrechen'));
+      expect(screen.queryByTestId('add-sector-sheet')).not.toBeInTheDocument();
 
-      // Click switch link
-      const switchBtn = screen.getByTestId('switch-to-batch-modal-btn');
-      fireEvent.click(switchBtn);
-
-      // Batch modal opens, single form closes
+      fireEvent.click(screen.getByTestId('empty-batch-add-sector-btn'));
       expect(screen.getByTestId('batch-sector-modal')).toBeInTheDocument();
-      expect(screen.queryByText(/Neuen Sektor im Topo anlegen/i)).not.toBeInTheDocument();
     });
   });
 });

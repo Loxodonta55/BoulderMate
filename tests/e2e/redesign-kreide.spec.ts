@@ -40,10 +40,11 @@ test.describe('SPEC-020 Redesign «Kreide»', () => {
 test.describe('SPEC-020 Text-Diät', () => {
   test('Landing passt ohne Scrollen auf einen Screen', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Erkennen, welche Boulder cool sind.')).toBeVisible();
+    await expect(page.getByText('Erkenne, welche Boulder zu dir passen und beliebt sind.')).toBeVisible();
     await expect(page.getByText('Perlen finden')).toBeVisible();
-    await expect(page.getByText('Passt zu dir')).toBeVisible();
-    await expect(page.getByText('2 Taps loggen')).toBeVisible();
+    await expect(page.getByText('Erfolge tracken')).toBeVisible();
+    await expect(page.getByText('Know-how teilen')).toBeVisible();
+    await expect(page.getByText('Tracke deine Erfolge und teile dein Know-how.')).toBeVisible();
     await expect(page.getByTestId('hero-login-btn')).toBeInViewport();
 
     const overflow = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);

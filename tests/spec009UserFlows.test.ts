@@ -20,7 +20,7 @@ import {
   appointGymSetter,
 } from '../src/lib/roleService';
 import { ensureInitialGymData } from '../src/lib/gymStorage';
-import { signInWithGoogle } from '../src/lib/authService';
+import { mockGoogleSignIn } from '../src/lib/authService';
 
 describe('SPEC-009: End-to-End User Flow & Journey Verification', () => {
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('SPEC-009: End-to-End User Flow & Journey Verification', () => {
 
   it('Phase 1: Zero-Friction Registration & Profile Creation', async () => {
     // 1-Tap Google Sign-In
-    const user = await signInWithGoogle();
+    const user = mockGoogleSignIn();
     expect(user).toBeDefined();
     expect(user.id).toBeDefined();
     expect(user.nickname).toBeDefined();

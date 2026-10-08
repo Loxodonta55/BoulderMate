@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datenschutz – BoulderMate</title>
+  <!-- SPEC-024 F6: Entwurf von Claude. Hans prüft den Text und füllt die [eckigen Klammern] aus. Keine Rechtsberatung. -->
+  <style>
+    :root { --bg: #F4F2EE; --text: #1A1918; --text-2: #55524D; --line: #D9D5CE; --warn: #8C6A2A; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #121110; --text: #F4F2EE; --text-2: #B9B4AB; --line: #34312D; --warn: #E0B65C; }
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 18px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 42rem; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 30px; line-height: 1.2; margin: 8px 0 24px; }
+    h2 { font-size: 21px; margin: 32px 0 8px; }
+    p, li { color: var(--text); }
+    small, .meta { color: var(--text-2); font-size: 16px; }
+    a { color: var(--text); }
+    .draft { border: 2px solid var(--warn); color: var(--warn); border-radius: 12px; padding: 12px 16px; font-weight: 600; }
+    .back { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="/">← Zurück zu BoulderMate</a>
+    <h1>Datenschutzerklärung</h1>
+    <p class="draft">Entwurf: Angaben in [eckigen Klammern] fehlen noch.</p>
+
+    <h2>1. Wer ist verantwortlich?</h2>
+    <p>[Name / Firma]<br />[Anschrift]<br />E-Mail: [Kontakt-E-Mail]</p>
+
+    <h2>2. Welche Daten wir verarbeiten</h2>
+    <ul>
+      <li><strong>Konto:</strong> E-Mail-Adresse, Kletter-Name und, falls vorhanden, Profilbild.</li>
+      <li><strong>Anmeldung mit Google:</strong> Google übermittelt uns deinen Namen, deine E-Mail-Adresse und dein Profilbild. Dein Google-Passwort erhalten wir nie.</li>
+      <li><strong>Klettern:</strong> Begehungen, Projekte, Bewertungen und Kommentare zu Bouldern, die du in der App einträgst.</li>
+      <li><strong>Feedback:</strong> Wenn du über «Feedback geben» schreibst: deine Nachricht, die Art (Fehler, Idee, Lob), deine Halle, deinen Kletter-Namen, Browser und Bildschirmgröße. Deine E-Mail-Adresse nur, wenn du ankreuzt, dass wir dich kontaktieren dürfen. Das Feedback lesen nur die Betreiber der App.</li>
+      <li><strong>Technik:</strong> Für die Anmeldung speichert die App ein Sitzungs-Token im Speicher deines Browsers (Local Storage). Es gibt keine Werbe- oder Tracking-Cookies.</li>
+    </ul>
+
+    <h2>3. Wozu</h2>
+    <p>Nur um die App bereitzustellen: dich anzumelden, deine Begehungen und Statistiken zu speichern und Bewertungen in deiner Halle anzuzeigen. Rechtsgrundlage ist die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Wir verkaufen keine Daten und nutzen sie nicht für Werbung.</p>
+
+    <h2>4. Wer die Daten sonst sieht</h2>
+    <ul>
+      <li><strong>Andere Kletterer:</strong> Dein Kletter-Name, dein Profilbild und deine Bewertungen sind für andere Nutzer sichtbar.</li>
+      <li><strong>Supabase</strong> (Datenbank und Anmeldung), Serverstandort: [Region aus dem Supabase-Dashboard].</li>
+      <li><strong>Vercel</strong> (Webhosting der App).</li>
+      <li><strong>Google</strong>, nur wenn du «Mit Google fortfahren» wählst. Es gilt zusätzlich die Datenschutzerklärung von Google.</li>
+    </ul>
+    <p>Mit diesen Anbietern bestehen Auftragsverarbeitungsverträge. [Bitte prüfen.]</p>
+
+    <h2>5. Wie lange</h2>
+    <p>So lange dein Konto besteht. Löschst du dein Konto, löschen wir deine Daten, soweit keine gesetzliche Aufbewahrungspflicht besteht.</p>
+    <p>Feedback löschen wir, sobald es erledigt ist, spätestens nach 2 Jahren.</p>
+
+    <h2>6. Deine Rechte</h2>
+    <p>Du kannst jederzeit Auskunft, Berichtigung, Löschung, Einschränkung und Herausgabe deiner Daten verlangen und der Verarbeitung widersprechen. Schreib dazu an [Kontakt-E-Mail]. Du kannst dich auch bei einer Datenschutz-Aufsichtsbehörde beschweren.</p>
+
+    <p class="meta">Stand: [Datum]</p>
+  </main>
+</body>
+</html>

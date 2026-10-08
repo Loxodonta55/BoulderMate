@@ -16,6 +16,36 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- SPEC-024: Profilzeile für jeden neuen Nutzer (Google oder E-Mail)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, nickname, avatar_url)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.email, ''),
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data->>'nickname', ''),
+      NULLIF(split_part(COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''), ' ', 1), ''),
+      NULLIF(split_part(COALESCE(NEW.email, ''), '@', 1), ''),
+      'Kletterer'
+    ),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- 3. GYMS
 CREATE TABLE IF NOT EXISTS public.gyms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,6 +54,8 @@ CREATE TABLE IF NOT EXISTS public.gyms (
   city TEXT,
   logo_url TEXT,
   website TEXT,
+  lat DOUBLE PRECISION CHECK (lat IS NULL OR lat BETWEEN -90 AND 90),   -- SPEC-025
+  lng DOUBLE PRECISION CHECK (lng IS NULL OR lng BETWEEN -180 AND 180), -- SPEC-025
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -164,6 +196,15 @@ CREATE POLICY "Public read boulders" ON public.boulders FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public read profiles" ON public.user_profiles;
 CREATE POLICY "Public read profiles" ON public.user_profiles FOR SELECT USING (true);
+
+-- SPEC-024: Eigenes Profil ändern (nur Name, Bild, Zeitstempel); Profile legt nur der Trigger an
+DROP POLICY IF EXISTS "Own profile update" ON public.user_profiles;
+CREATE POLICY "Own profile update" ON public.user_profiles
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+REVOKE INSERT, UPDATE ON public.user_profiles FROM anon, authenticated;
+GRANT UPDATE (nickname, avatar_url, updated_at) ON public.user_profiles TO authenticated;
 
 DROP POLICY IF EXISTS "Public read ascents" ON public.ascents;
 CREATE POLICY "Public read ascents" ON public.ascents FOR SELECT USING (true);

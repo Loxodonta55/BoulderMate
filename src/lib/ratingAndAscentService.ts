@@ -460,7 +460,11 @@ export function computeBoulderStatsAggregate(
   comments: BoulderComment[] = getComments()
 ): BoulderStatsAggregate {
   const boulderRatings = ratings.filter(r => r.boulderId === boulder.id);
-  const boulderAscents = ascents.filter(a => a.boulderId === boulder.id);
+  // Pro Person zählt nur die neueste Begehung (doppelte Einträge z. B. aus Sync oder Seed)
+  const boulderAscents = ascents
+    .filter(a => a.boulderId === boulder.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter((a, i, list) => list.findIndex(x => isUserMatch(x.userId, a.userId)) === i);
   const boulderComments = comments.filter(c => c.boulderId === boulder.id);
 
   // Quality stars average

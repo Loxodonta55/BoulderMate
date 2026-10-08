@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
-import { Mountain, Wrench, Building2, ChevronRight, X, Shield, Sparkles } from 'lucide-react';
+import { Mountain, Wrench, Building2, ChevronRight, X, Shield } from 'lucide-react';
 
 interface RoleGatewayModalProps {
   isOpen: boolean;
@@ -49,15 +49,11 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
 
         {/* Header */}
         <div className="mb-6 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] text-[var(--bm-accent)] text-xs font-mono mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Berechtigter Zugang • Step 1</span>
-          </div>
           <h2 className="text-2xl font-headline font-bold text-[var(--bm-text)]">
             Arbeitsbereich wählen
           </h2>
           <p className="text-xs sm:text-sm font-sans text-[var(--bm-text-2)] mt-1">
-            Hallo <span className="text-[var(--bm-text)] font-bold">{nickname}</span>! In welcher Rolle möchtest du BoulderMate heute nutzen?
+            Hallo <span className="text-[var(--bm-text)] font-bold">{nickname}</span>!
           </p>
         </div>
 
@@ -88,7 +84,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
                   </span>
                 </div>
                 <p className="text-xs font-sans text-[var(--bm-text-2)] mt-1 leading-relaxed">
-                  Wandansicht & Sektoren erkunden, Boulder-Pins antippen, Begehungen loggen und persönliches Profil einsehen.
+                  Wand und Logbuch
                 </p>
               </div>
             </div>
@@ -121,7 +117,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
                     </span>
                   </div>
                   <p className="text-xs font-sans text-[var(--bm-text-2)] mt-1 leading-relaxed">
-                    Visuelles Setzen von Routen auf Wandfotos, Farben zuweisen, 5-Achsen-Radar und Batch-Veröffentlichung.
+                    Routen setzen und umschrauben
                   </p>
                 </div>
               </div>
@@ -150,6 +146,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
             <button
               type="button"
               onClick={() => onSelectMode('admin')}
+              data-testid="role-gateway-admin-btn"
               className={`w-full p-4 sm:p-5 rounded-xl border text-left transition group flex items-center justify-between gap-4 ${
                 currentMode === 'admin'
                   ? 'bg-[var(--bm-elevated)] border-[var(--bm-strong)]'
@@ -170,7 +167,7 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
                     </span>
                   </div>
                   <p className="text-xs font-sans text-[var(--bm-text-2)] mt-1 leading-relaxed">
-                    Hallenstammdaten, hallenspezifische Farbsysteme / Font-Bänder und Sektoren mit Wandfotos anlegen.
+                    Sektoren, Farben, Team
                   </p>
                 </div>
               </div>
@@ -197,9 +194,6 @@ export const RoleGatewayModal: React.FC<RoleGatewayModalProps> = ({
 
         {/* Footer info */}
         <div className="mt-6 pt-4 border-t border-[var(--bm-line)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-[var(--bm-text-3)]">
-          <span className="text-center sm:text-left text-[11px]">
-            Du kannst deinen Arbeitsbereich jederzeit oben rechts wechseln.
-          </span>
           {onClose && (
             <button
               type="button"

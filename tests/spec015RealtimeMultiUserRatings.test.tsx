@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent, within } from '@testing-library/react';
 import {
   handleRealtimeRatingChange,
   handleRealtimeAscentChange,
@@ -14,7 +14,7 @@ import {
   STORAGE_KEY_RATINGS,
   STORAGE_KEY_ASCENTS
 } from '../src/lib/ratingAndAscentService';
-import { BoulderDetailModal } from '../src/components/BoulderDetailModal';
+import { BoulderSheet } from '../src/components/BoulderSheet';
 import { WallBoulder } from '../src/types/boulder';
 import { setStorageJson } from '../src/lib/storageUtils';
 
@@ -172,7 +172,19 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
     });
   });
 
-  describe('Community Reviews UI in BoulderDetailModal (AC-16)', () => {
+  describe('Community Reviews UI in BoulderSheet (AC-16)', () => {
+    const renderSheet = () => {
+      render(
+        <BoulderSheet
+          boulder={mockBoulder}
+          currentUser={borisUser}
+          onClose={vi.fn()}
+        />
+      );
+      // Community-Bereich liegt im vollen Sheet
+      fireEvent.click(screen.getByTestId('boulder-sheet-more'));
+    };
+
     it('renders community reviews list showing what friends rated (stars, feel, ascent style)', () => {
       // Setup Hans ascent & rating
       logAscent('hans-kletterer', 'HansDereinfacheKletterer', mockBoulder.id, 'flash');
@@ -181,19 +193,12 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
         gradeFeel: 'soft'
       });
 
-      // Boris views the boulder detail modal
-      render(
-        <BoulderDetailModal
-          isOpen={true}
-          boulder={mockBoulder}
-          currentUser={borisUser}
-          onClose={vi.fn()}
-        />
-      );
+      // Boris views the boulder sheet
+      renderSheet();
 
       // Check Community Ratings section exists
       expect(screen.getByTestId('community-ratings-section')).toBeInTheDocument();
-      expect(screen.getByText(/Community-Wertungen & Reviews/i)).toBeInTheDocument();
+      expect(within(screen.getByTestId('community-ratings-section')).getByText(/Wer war schon oben/i)).toBeInTheDocument();
 
       // Check Hans's specific rating card is rendered
       const hansRow = screen.getByTestId('community-rating-row-hans-kletterer');
@@ -201,21 +206,14 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
       expect(hansRow).toHaveTextContent('HansDereinfacheKletterer');
       expect(hansRow).toHaveTextContent('5'); // 5 stars
       expect(hansRow).toHaveTextContent(/Soft/i); // Soft grade feel
-      expect(hansRow).toHaveTextContent(/FLASH/i); // Logged ascent badge
+      expect(within(hansRow).getByLabelText('Flash')).toBeInTheDocument(); // Logged ascent badge
     });
 
     it('instantly updates community reviews when a friend submits a rating in real time', async () => {
-      // Boris opens modal when no ratings exist yet
-      render(
-        <BoulderDetailModal
-          isOpen={true}
-          boulder={mockBoulder}
-          currentUser={borisUser}
-          onClose={vi.fn()}
-        />
-      );
+      // Boris opens the sheet when no ratings exist yet
+      renderSheet();
 
-      expect(screen.getByText(/Noch keine detaillierten Bewertungen vorhanden/i)).toBeInTheDocument();
+      expect(within(screen.getByTestId('community-ratings-section')).getByText('Noch niemand.')).toBeInTheDocument();
 
       // Friend Hans rates the boulder on another phone in real-time
       act(() => {
@@ -232,8 +230,8 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
         });
       });
 
-      // Boris's modal immediately renders Hans's new rating without reload or modal reopen!
-      expect(screen.queryByText(/Noch keine detaillierten Bewertungen vorhanden/i)).not.toBeInTheDocument();
+      // Boris's sheet immediately renders Hans's new rating without reload or modal reopen!
+      expect(screen.queryByText('Noch niemand.')).not.toBeInTheDocument();
       const hansLiveRow = screen.getByTestId('community-rating-row-hans-kletterer');
       expect(hansLiveRow).toBeInTheDocument();
       expect(hansLiveRow).toHaveTextContent('HansDereinfacheKletterer');
@@ -255,14 +253,7 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
         }
       });
 
-      render(
-        <BoulderDetailModal
-          isOpen={true}
-          boulder={mockBoulder}
-          currentUser={borisUser}
-          onClose={vi.fn()}
-        />
-      );
+      renderSheet();
 
       expect(screen.getByTestId('community-rating-row-hans-kletterer')).toBeInTheDocument();
 
@@ -278,9 +269,9 @@ describe('SPEC-003 AC-15 & AC-16: Instant Multi-User Rating Sync & Community Rev
         });
       });
 
-      // Boris's modal updates immediately: rating is gone
+      // Boris's sheet updates immediately: rating is gone
       expect(screen.queryByTestId('community-rating-row-hans-kletterer')).not.toBeInTheDocument();
-      expect(screen.getByText(/Noch keine detaillierten Bewertungen vorhanden/i)).toBeInTheDocument();
+      expect(within(screen.getByTestId('community-ratings-section')).getByText('Noch niemand.')).toBeInTheDocument();
     });
   });
 });
