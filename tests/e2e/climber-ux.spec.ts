@@ -79,6 +79,22 @@ test.describe('SPEC-022: Kletterer-UX', () => {
     expect(afterUndo).toBe(false);
   });
 
+  test('F23: «Bewerten»-Knopf direkt im halben Sheet, gross und mit einem Tap', async ({ page }) => {
+    await loginAsHans(page);
+    const row = await firstOpenRoute(page);
+    await row.click();
+    await expect(page.getByTestId('boulder-sheet')).toBeVisible();
+
+    const btn = page.getByTestId('quick-rate-btn');
+    await expect(btn).toBeVisible();
+    await expect(page.getByTestId('boulder-sheet-details')).toHaveCount(0);
+    const box = await btn.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(56);
+
+    await btn.click();
+    await expect(page.getByText('Wie fandest du den Grad / die Schwierigkeit?')).toBeVisible();
+  });
+
   test('F19: Geschaffte Route zeigt grosses «Flash» in der Liste, Abzeichen am Pin und den Fortschritt', async ({ page }) => {
     await loginAsHans(page);
     const row = await firstOpenRoute(page);
@@ -194,11 +210,11 @@ test.describe('SPEC-022: Kletterer-UX', () => {
     await expect(page.getByTestId('hero-login-btn')).toBeVisible();
   });
 
-  test('Untere Leiste: genau zwei Tabs, kein Login- oder Studio-Knopf', async ({ page, isMobile }) => {
+  test('Untere Leiste: Wand, Ich und Treff (SPEC-028), kein Login- oder Studio-Knopf', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'Bottom-Nav gibt es nur auf dem Handy');
     await loginAsHans(page);
     const nav = page.getByTestId('mobile-bottom-nav');
-    await expect(nav.getByRole('button')).toHaveCount(2);
+    await expect(nav.getByRole('button')).toHaveText(['Wand', 'Ich', 'Treff']);
     await expect(page.getByTestId('mobile-bottom-login-btn')).toHaveCount(0);
     await expect(page.getByTestId('mobile-workspace-btn')).toHaveCount(0);
     await expect(page.getByTestId('login-modal-btn')).toHaveCount(0);

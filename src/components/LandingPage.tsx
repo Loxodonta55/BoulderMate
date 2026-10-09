@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mountain, Wrench, Shield, Star, TrendingUp, MessageCircle, LogIn, MapPin } from 'lucide-react';
+import { Mountain, Wrench, Shield, Star, TrendingUp, MessageCircle, LogIn, MapPin, Users } from 'lucide-react';
 import { AuthUser, DEMO_USERS } from '../lib/authService';
 import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
 
@@ -8,6 +8,8 @@ interface LandingPageProps {
   onQuickLogin?: (user: AuthUser) => void;
   /** SPEC-025 F5: Hallen-Karte ohne Konto ansehen */
   onShowGyms?: () => void;
+  /** SPEC-028 F10: «Wer ist heute da?» anonym ansehen */
+  onShowTreff?: () => void;
   /** SPEC-024 AC-5.1: Meldung nach abgebrochener oder fehlgeschlagener Google-Anmeldung */
   notice?: string | null;
   /** Angemeldet über das Logo geöffnet: «Zur App» statt Anmelden (SPEC-011 AC-8) */
@@ -21,7 +23,7 @@ const FEATURES = [
   { icon: MessageCircle, label: 'Know-how teilen' },
 ];
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLogin, notice, onContinue, onShowGyms }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLogin, notice, onContinue, onShowGyms, onShowTreff }) => {
   // AC-9.4: Test-Personas nur im Dev-Build
   const showDemo = import.meta.env.DEV && onQuickLogin && !onContinue;
   // SPEC-024 AC-1.1: Google als Hauptknopf, sobald der Provider in Supabase aktiv ist (nicht für Angemeldete)
@@ -114,6 +116,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
             >
               <MapPin className="w-5 h-5" strokeWidth={1.75} aria-hidden />
               Hallen ansehen
+            </button>
+          )}
+          {onShowTreff && (
+            <button
+              type="button"
+              onClick={onShowTreff}
+              className="w-full min-h-[52px] rounded-xl bg-[var(--bm-surface)] text-[var(--bm-text)] text-[16px] font-semibold flex items-center justify-center gap-2 active:bg-[var(--bm-elevated)]"
+              data-testid="landing-show-treff"
+            >
+              <Users className="w-5 h-5" strokeWidth={1.75} aria-hidden />
+              Wer ist heute da?
             </button>
           )}
           {showDemo && (

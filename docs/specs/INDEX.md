@@ -29,5 +29,6 @@
 | [SPEC-023](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-023-admin-ux-ordnung.md) | Admin-UX – Ordnung, Übersicht, wenig Text | IMPLEMENTED | Hans | 2026-10-08 |
 | [SPEC-024](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-024-google-login.md) | Login mit Google-Konto | IN PROGRESS | Hans | 2026-10-08 |
 | [SPEC-025](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-025-halle-suchen-karte.md) | Halle suchen – Karte aller teilnehmenden Hallen | IN PROGRESS | Hans | 2026-10-08 |
-| [SPEC-026](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-026-nutzer-feedback.md) | Nutzer-Feedback – Fehler, Ideen und Lob aus der App | DONE | Hans | 2026-10-08 |
+| [SPEC-026](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-026-nutzer-feedback.md) | Nutzer-Feedback – Fehler, Ideen und Lob aus der App | IN PROGRESS | Hans | 2026-10-08 |
 | [SPEC-027](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-027-test-login-ansehen-als.md) | Test-Login – «Ansehen als …» und echte Test-Konten | IN PROGRESS | Hans | 2026-10-08 |
+| [SPEC-028](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-028-kletterpartner-finden.md) | Treff – «Wer ist da?» (Bescheid geben, wer in der Halle ist) | IN PROGRESS | Hans | 2026-10-09 |

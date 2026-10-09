@@ -34,7 +34,7 @@ import { useBackHandler } from '../hooks/useBackHandler';
 
 /**
  * SPEC-020 §5.2 · Ein einziges Boulder-Sheet (ersetzt Detail-Modal + separate Flows).
- * Halb: Kopf + 3 grosse Log-Buttons (1 Tap = geloggt, Sheet schliesst, Undo-Toast).
+ * Halb: Kopf + 3 grosse Log-Buttons (1 Tap = geloggt, Sheet schliesst, Undo-Toast) + «Bewerten»-Knopf.
  * Voll: Community, Charakter, Beta, eigene Einträge.
  */
 export interface BoulderSheetProps {
@@ -316,6 +316,24 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
           {isGuest && (
             <p className="text-[13px] text-[var(--bm-text-2)] text-center mt-2">Zum Loggen anmelden</p>
           )}
+
+          {/* Bewerten mit einem Tap, geht nie von selbst auf (SPEC-022 F23) */}
+          <button
+            type="button"
+            data-testid="quick-rate-btn"
+            aria-label={myRating?.qualityStars ? `Bewertung ändern (deine Wertung: ${myRating.qualityStars} von 5)` : 'Bewerten'}
+            onClick={() => (isGuest ? onRequireLogin?.() : setIsRatingOpen(true))}
+            className="w-full mt-2.5 min-h-[56px] rounded-2xl border-2 border-[var(--bm-star)] bg-[var(--bm-elevated)] text-[var(--bm-text)] text-[17px] font-semibold flex items-center justify-center gap-2 transition active:scale-[0.98]"
+          >
+            <Star className="w-6 h-6 fill-[var(--bm-star)] text-[var(--bm-star)]" aria-hidden />
+            {myRating?.qualityStars ? (
+              <span>
+                Deine Bewertung: {myRating.qualityStars} {myRating.qualityStars === 1 ? 'Stern' : 'Sterne'} · ändern
+              </span>
+            ) : (
+              <span>Bewerten</span>
+            )}
+          </button>
 
           {detent === 'half' && (
             <button

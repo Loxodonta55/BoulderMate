@@ -1,6 +1,6 @@
 # SPEC-026: Nutzer-Feedback – Fehler, Ideen und Lob direkt aus der App
 
-## Status: DONE (umgesetzt und auf main 2026-10-08; Migration laut Hans am 2026-10-08 eingespielt)
+## Status: IN PROGRESS (Basis auf main 2026-10-08, Migration eingespielt; F16 «Feedback im Header» umgesetzt 2026-10-09, uncommitted)
 
 > **Owner:** Hans · **Created:** 2026-10-08 · **Baut auf:** SPEC-020 (Design System «Kreide», Einstellungen im iOS-Stil), SPEC-022 (Kletterer-UX, ein Ort pro Funktion), SPEC-024 (Datenschutzerklärung)
 >
@@ -30,7 +30,7 @@
 **F2 – Wo findet der Nutzer «Feedback geben»?**
 ✔ *Entschieden (Empfehlung):* «Ich» → Einstellungen → neue Gruppe **«Hilfe»** mit der Zeile **«Feedback geben»** (Untertitel «Fehler, Ideen, Lob»). Kein schwebender Knopf, kein neuer Tab.
 *Warum:* Dort suchen Nutzer nach Hilfe und Kontakt (Muster aus iOS/Android). SPEC-022 verlangt einen Ort pro Funktion; ein schwebender Knopf würde Wandfoto und Pins verdecken.
-*Später prüfen:* Kommt kaum Feedback, zusätzlich eine Zeile direkt auf der Seite «Ich».
+*Geändert am 2026-10-09 durch F16:* Die Zeile in den Einstellungen bleibt, der Haupteinstieg ist jetzt der Knopf im Header.
 
 **F3 – Wer darf Feedback geben?**
 ✔ *Entschieden (Empfehlung):* Nur **angemeldete Nutzer** (alle Rollen; Schrauber und Admins wechseln mit «Fertig» in die Kletterer-App). Gäste nicht.
@@ -86,6 +86,13 @@
 **F15 – Muss die Datenschutzerklärung ergänzt werden?**
 ✔ *Entschieden (Empfehlung):* Ja. Unter «Welche Daten wir verarbeiten» kommt der Punkt **Feedback** dazu (Text, Art, Halle, Gerät, Kletter-Name, E-Mail nur bei Häkchen); unter «Wie lange»: Feedback wird nach Erledigung, spätestens nach 2 Jahren gelöscht.
 
+**F16 – Wie wird «Feedback geben» prominenter? (Hans, 2026-10-09)**
+Hans: «Am Anfang ist Feedback eines der wichtigsten Dinge, die ich für die Weiterentwicklung bekommen kann.»
+✔ *Entschieden (Empfehlung):* Ein dauerhaft sichtbarer Knopf **«Feedback»** (Sprechblase + Wort) rechts im **Kletterer-Header**, auf der Wand und auf «Ich», auf Handy und Desktop. Kontrastreich gefüllt (Akzentfarbe, wie «Absenden»), 44 px hoch, 16 px fett. Nur für angemeldete Nutzer (F3). Er öffnet dasselbe Sheet; die Meldung trägt `app_view = 'header'`, so sieht Hans, welcher Einstieg genutzt wird. Die Zeile in den Einstellungen bleibt als zweiter Weg.
+*Warum:* Der Header ist auf jeder Kletterer-Seite sichtbar, ohne Wandfoto oder Pins zu verdecken. Mit Wort statt nur Symbol ist er auch für Menschen mit schlechteren Augen eindeutig. Der Hallenname wird dafür auf kleinen Handys früher gekürzt («6a plus Kl…»), bleibt aber antippbar.
+*Verworfen:* Schwebender Knopf über dem Wandfoto (verdeckt Pins), Hinweis im Toast nach dem Loggen (der Toast trägt «Rückgängig»), Karte oben auf «Ich» (nur auf einer Seite sichtbar).
+*Später:* Wenn genug Feedback kommt, kann der Knopf wieder kleiner werden (nur Symbol) oder ganz in die Einstellungen zurück.
+
 ---
 
 ## 3. Datenmodell (Migration, spielt Hans im SQL-Editor ein)
@@ -132,12 +139,14 @@ CREATE POLICY "Insert app_feedback" ON public.app_feedback
 - **AC-10** Nach 5 Meldungen innerhalb einer Stunde ist `feedback-submit` gesperrt und `feedback-rate-limit` erklärt warum.
 - **AC-11** Gäste sehen keinen Feedback-Einstieg (sie haben kein «Ich»).
 - **AC-12** Die Datenschutzerklärung (`public/datenschutz.html`) nennt Feedback (F15).
+- **AC-13** Angemeldet zeigt der Kletterer-Header auf Wand und «Ich» den Knopf `header-feedback-btn` («Feedback», mind. 44 px hoch). Er öffnet `feedback-sheet` über dem ganzen Bildschirm; die Meldung hat `app_view = 'header'`. Gäste sehen den Knopf nicht.
 
 ## 5. Umsetzung
 
 - `src/lib/feedbackService.ts`: Prüfung (`validateFeedbackMessage`), Aufbau der Zeile (`buildFeedbackRow`), Senden mit Warteschlange (`submitFeedback`, `flushFeedbackQueue`, `startFeedbackQueueSync`), Ratenbremse (`isFeedbackRateLimited`).
 - `src/components/FeedbackSheet.tsx`: Formular und Danke-Ansicht im `Sheet` (SPEC-020).
 - `src/components/MeView.tsx`: Gruppe «Hilfe» in den Einstellungen.
+- `src/components/HeaderFeedbackButton.tsx` (F16): Knopf mit eigenem Sheet, per Portal in `<body>` gerendert (der Header hat `backdrop-blur` und `overflow-hidden` und würde ein `fixed`-Sheet sonst abschneiden). Eingehängt im Kletterer-Zweig von `AppHeader.tsx`; `FeedbackSheet` hat dafür die Prop `appView`.
 - `src/App.tsx`: startet beim Laden `startFeedbackQueueSync()`.
 - `supabase/migrations/20261008_spec026_feedback.sql`, `supabase/schema.sql`, `public/datenschutz.html`.
 
@@ -147,12 +156,14 @@ CREATE POLICY "Insert app_feedback" ON public.app_feedback
 - Textprüfung (zu kurz, Leerzeichen, zu lang), Zeile mit Kontext und E-Mail nur bei Häkchen, Senden erfolgreich, Senden schlägt fehl → Warteschlange, Nachsenden leert die Warteschlange und nutzt `ignoreDuplicates`, Ratenbremse.
 - Sheet: keine Art vorausgewählt, Knopf gesperrt bis gültig, Platzhalter je Art, Zähler, Häkchen standardmäßig aus, Danke-Ansicht (gesendet / in Warteschlange), Hinweis bei Ratenbremse.
 - MeView: Einstellungen → «Feedback geben» öffnet das Sheet.
+- AppHeader (F16): Knopf «Feedback» nur angemeldet, öffnet das Sheet, Meldung mit `app_view = 'header'`.
 
 **Playwright** – `tests/e2e/feedback.spec.ts` (Desktop und Mobile Chrome)
 - Einstellungen → Feedback → «Idee» + Text → Absenden; der abgefangene POST an `/rest/v1/app_feedback` enthält UUID, ISO-Zeit, Art, Text, Halle und kein `email`; Danke-Ansicht.
 - Mit Häkchen enthält der POST die E-Mail des Kontos.
 - Supabase nicht erreichbar → Danke-Ansicht «sobald du wieder Netz hast», Eintrag in der Warteschlange; nach Neuladen mit erreichbarem Supabase wird genau eine Meldung mit derselben ID gesendet und die Warteschlange ist leer.
 - Knopf bleibt gesperrt bei zu kurzem Text; Kacheln und Knopf sind mindestens 56 px hoch.
+- F16: Header-Knopf auf Wand und «Ich» sichtbar (≥ 44 px), Hallenname bleibt sichtbar, Senden mit `app_view = 'header'`; Gäste sehen keinen Knopf.
 
 Stand 2026-10-08: `npm test` 433 grün (davon 13 neu), Playwright (Desktop + Mobile Chrome) 91 grün, 3 übersprungen (davon 8 neu). Typprüfung grün. Mobile Safari wurde nicht getestet.
 

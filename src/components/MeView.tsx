@@ -14,6 +14,7 @@ import { showToast } from './ui/Toast';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { FeedbackSheet } from './FeedbackSheet';
 import { getCurrentAuthUser } from '../lib/authService';
+import { TreffSettingsGroup } from './treff/TreffSettingsGroup';
 
 /**
  * SPEC-020 §5.3/§5.4 · «Ich» – eine Seite ohne Sub-Tabs + Einstellungen (iOS-Settings-Stil).
@@ -240,6 +241,9 @@ export const MeView: React.FC<MeViewProps> = ({
               onClick={exportData}
             />
           </ListGroup>
+
+          {/* SPEC-028: Treff – Niveau, Ausblenden, Löschen, Meldungen */}
+          <TreffSettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} />
 
           {/* SPEC-026: Feedback an das App-Team */}
           <ListGroup title="Hilfe">

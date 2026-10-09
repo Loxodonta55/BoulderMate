@@ -126,4 +126,38 @@ test.describe('SPEC-026: Nutzer-Feedback', () => {
     const fontSize = await page.getByTestId('feedback-message').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
     expect(fontSize).toBeGreaterThanOrEqual(17);
   });
+
+  test('Knopf «Feedback» im Header ist auf Wand und «Ich» sichtbar und sendet mit app_view = header', async ({ page, isMobile }) => {
+    const posts = await stubSupabase(page, { current: 'ok' });
+    await page.goto('/');
+    await page.getByTestId('quick-login-hans').click();
+    await expect(page.getByTestId('climber-wall-view')).toBeVisible();
+
+    const btn = page.getByTestId('header-feedback-btn');
+    await expect(btn).toBeVisible();
+    await expect(btn).toHaveText('Feedback');
+    const box = await btn.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    // Hallenname bleibt daneben sichtbar
+    await expect(page.getByTestId('header-gym-select')).toBeVisible();
+
+    await page.getByTestId(isMobile ? 'mobile-tab-stats' : 'tab-stats').click();
+    await expect(page.getByTestId('user-profile-view')).toBeVisible();
+    await expect(btn).toBeVisible();
+
+    await btn.click();
+    await expect(page.getByTestId('feedback-sheet')).toBeVisible();
+    await page.getByTestId('feedback-category-bug').click();
+    await page.getByTestId('feedback-message').fill('Header-Knopf funktioniert');
+    await page.getByTestId('feedback-submit').click();
+    await expect(page.getByTestId('feedback-thanks')).toBeVisible();
+    expect(posts[0]).toMatchObject({ app_view: 'header', category: 'bug' });
+  });
+
+  test('Gäste sehen keinen Feedback-Knopf', async ({ page }) => {
+    await stubSupabase(page, { current: 'ok' });
+    await page.goto('/');
+    await expect(page.getByTestId('quick-login-hans')).toBeVisible();
+    await expect(page.getByTestId('header-feedback-btn')).toHaveCount(0);
+  });
 });

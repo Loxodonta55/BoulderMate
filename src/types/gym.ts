@@ -18,6 +18,8 @@ export interface Gym {
   /** SPEC-025: Koordinaten für die Hallen-Karte (WGS84) */
   lat?: number;
   lng?: number;
+  /** SPEC-028 F16: Treff in dieser Halle erlaubt (undefined = ja) */
+  treff_enabled?: boolean;
   created_by: string;
   created_at: string;
 }

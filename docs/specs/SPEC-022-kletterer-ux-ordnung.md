@@ -1,6 +1,6 @@
 # SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text
 
-## Status: IN PROGRESS (umgesetzt 2026-10-06/07, Nachtrag F19–F22 am 2026-10-08, uncommitted)
+## Status: IN PROGRESS (umgesetzt 2026-10-06/07, Nachtrag F19–F22 am 2026-10-08, F23 am 2026-10-09, uncommitted)
 
 > **Owner:** Hans · **Created:** 2026-10-06 · **Baut auf:** SPEC-020 (Design System v2 «Kreide»), SPEC-021 (Umschrauben)
 >
@@ -75,6 +75,7 @@ Screenshots: Wand, Boulder-Detail und Statistik vor dem Umbau. Befunde:
 **F11 – Welche Knöpfe hat die untere Leiste?**
 → Nur `Wand` und `Ich` (Person-Symbol). «Studio» und «Login/Name» entfallen. Arbeitsbereich wechseln und Abmelden gibt es unter Ich → Einstellungen.
 *Warum:* Tabs sind Orte, keine Aktionen (SPEC-020 §3).
+*Nachtrag 2026-10-09 (SPEC-028):* Rechts kommt als dritter Ort `Treff` («Wer ist da?») dazu, ohne Zahl am Tab; unter Ich → Einstellungen → Treff ausblendbar. Die App startet weiter auf `Wand`.
 
 **F12 – Was bleibt rechts im Kletterer-Header?**
 → Für reine Kletterer nichts. Schrauber und Admins behalten einen kleinen Werkzeug-Knopf (`climber-switch-workspace-btn`), weil sie oft wechseln. Auf dem Desktop zusätzlich die zwei Tabs `Wand` / `Ich`. Der Personen-Umschalter (Test-Personas) erscheint nur noch im Dev-Build. Der Login-Knopf entfällt.
@@ -121,6 +122,14 @@ Tests (F19/F20): `tests/spec022ClimberUx.test.tsx` und `tests/e2e/climber-ux.spe
 
 Tests (F21/F22): `tests/spec022ClimberUx.test.tsx` (kein «Pin antippen» beim Kletterer, Schrauber-Hilfe bleibt), `tests/e2e/climber-ux.spec.ts` (Text-Diät prüft «Pin antippen»), umgezogene Tests in den bisherigen Testdateien.
 
+### Nachtrag 09.10.2026 (Hans: «Ich möchte die Bewertung auf jeden Fall wieder haben, aber das Argument berücksichtigen, warum sie weg sind»)
+
+**F23 – Wie kommt man schnell zum Bewerten, ohne dass das Loggen wieder langsamer wird?**
+→ Im halben `BoulderSheet` steht direkt unter Flash/Top/Projekt ein großer Knopf «★ Bewerten» (`quick-rate-btn`, ≥ 56 px hoch, 17 px fett, Rahmen und Stern in Sternfarbe). Ein Tap öffnet das Bewertungsfenster (Grad-Empfinden, Sterne, Charakter). Ist schon bewertet, steht dort «Deine Bewertung: n Sterne · ändern». Als Gast führt der Knopf zur Anmeldung. Nach dem Loggen geht weiterhin **nichts** von selbst auf; die Mini-Sterne im Toast bleiben. Der Knopf «Bewerten» in den Details bleibt zusätzlich.
+*Warum:* Seit F6/F7 war die volle Bewertung nur noch über «Details» → «Community» erreichbar und wurde nicht mehr gefunden. Der Knopf macht sie mit einem Tap sichtbar, ohne den 2-Tap-Log-Flow zu unterbrechen (das Argument aus F7 gilt weiter).
+
+Tests (F23): `tests/spec022ClimberUx.test.tsx` («Bewerten-Knopf im halben Sheet»), `tests/e2e/climber-ux.spec.ts` («F23»).
+
 **Fehlerbehebung 08.10.2026 – Person doppelt in «Wer war schon oben»:** Lagen für eine Person zwei Begehungen am selben Boulder vor (Demo-Seed hatte zwei; nach Sync auch Demo-ID plus Supabase-UUID möglich), erschien sie zweimal und wurde doppelt gezählt. Jetzt zählt pro Person nur die neueste Begehung (`computeBoulderStatsAggregate`); die doppelten Seed-Einträge sind entfernt. Tests: `tests/communityAscentDedupe.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
 
 ---
@@ -144,6 +153,7 @@ Tests (F21/F22): `tests/spec022ClimberUx.test.tsx` (kein «Pin antippen» beim K
 - **AC-15** (F21) Im Kletterer-Modus steht über dem Wandfoto kein Text «Pin antippen»; im Schrauber-Modus bleibt die Bedienhilfe.
 - **AC-16** (F22) `src/components/BoulderDetailModal.tsx` und `src/components/UserProfileView.tsx` existieren nicht mehr; kein Test importiert sie.
 - **AC-17** «Wer war schon oben» zeigt jede Person höchstens einmal; Summen zählen eine Begehung pro Person.
+- **AC-18** (F23) Das halbe Sheet zeigt `quick-rate-btn` (≥ 56 px hoch); ein Tap öffnet das Bewertungsfenster, ohne die Details aufzuziehen. Mit eigener Bewertung lautet der Text «Deine Bewertung: n Sterne · ändern». Nach Flash/Top/Projekt öffnet sich kein Bewertungsfenster von selbst.
 
 ## 4. Nicht Teil dieser Runde
 - Rollen-Gateway nach Login entfernen (SPEC-020 AC-8.3).

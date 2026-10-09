@@ -152,7 +152,8 @@ export async function syncUserProfileWithSupabase(userId: string): Promise<Parti
   try {
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('*')
+      // SPEC-028 F13: ausdrückliche Spalten, weil `email` nicht mehr öffentlich lesbar ist
+      .select('id, nickname, avatar_url, is_platform_admin')
       .eq('id', userId)
       .maybeSingle();
 

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { AdminGymSheet } from './admin/AdminGymSheet';
 import { Gym, GymMemberRole } from '../types/boulder';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
-import { Mountain, Wrench, Layers, ArrowLeft, User, Building2, ChevronDown } from 'lucide-react';
+import { HeaderFeedbackButton } from './HeaderFeedbackButton';
+import { Mountain, Wrench, Layers, ArrowLeft, User, Users, Building2, ChevronDown } from 'lucide-react';
+import type { ClimberTab } from './MobileBottomNav';
 
 export interface AppHeaderProps {
   appMode: AppMode;
@@ -18,8 +20,10 @@ export interface AppHeaderProps {
   climberId: string | null;
   selectableClimbers: { id: string; nickname: string }[];
   onSelectClimber: (id: string) => void;
-  activeTab: 'wall' | 'stats';
-  onSelectTab: (tab: 'wall' | 'stats') => void;
+  activeTab: ClimberTab;
+  onSelectTab: (tab: ClimberTab) => void;
+  /** SPEC-028 F1: dritter Tab «Treff» (Desktop) */
+  showTreffTab?: boolean;
   roleInfo: UserRoleInfo;
   isLoggedIn: boolean;
   onOpenRoleGateway: () => void;
@@ -44,7 +48,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onSelectClimber,
   activeTab,
   onSelectTab,
+  showTreffTab = false,
   roleInfo,
+  isLoggedIn,
   onOpenRoleGateway,
   onSwitchToClimber,
   onOpenGymFinder,
@@ -233,7 +239,31 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <User className="w-4 h-4" />
             <span>Ich</span>
           </button>
+          {showTreffTab && (
+            <button
+              type="button"
+              onClick={() => onSelectTab('treff')}
+              data-testid="tab-treff"
+              aria-current={activeTab === 'treff' ? 'page' : undefined}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition ${
+                activeTab === 'treff' ? 'bg-[var(--bm-elevated)] text-[var(--bm-text)]' : 'text-[var(--bm-text-2)] hover:text-[var(--bm-text)]'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Treff</span>
+            </button>
+          )}
         </nav>
+
+        {/* SPEC-026 F16: Feedback gut sichtbar auf jeder Kletterer-Seite (nur angemeldet, F3) */}
+        {isLoggedIn && (
+          <HeaderFeedbackButton
+            userId={currentUser.id}
+            nickname={currentUser.nickname}
+            gymId={activeGymId}
+            gymName={gyms.find(g => g.id === activeGymId)?.name}
+          />
+        )}
 
         {/* SPEC-022 F12: Schrauber/Admins wechseln oft – kompakter Knopf nur für sie, reine Kletterer sehen ihn nie */}
         {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (

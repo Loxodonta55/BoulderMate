@@ -286,6 +286,42 @@ describe('SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text', () => {
     });
   });
 
+  describe('Bewerten-Knopf im halben Sheet (F23)', () => {
+    it('öffnet das Bewertungsfenster mit einem Tap, ohne Details aufzuziehen', () => {
+      const { easy } = seedTwoBoulders();
+      render(<ClimberSectorView currentUser={climber} activeGymId={GYM} />);
+      fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
+
+      const btn = screen.getByTestId('quick-rate-btn');
+      expect(btn).toHaveTextContent('Bewerten');
+      expect(screen.queryByTestId('boulder-sheet-details')).not.toBeInTheDocument();
+
+      fireEvent.click(btn);
+      expect(screen.getByText('Wie fandest du den Grad / die Schwierigkeit?')).toBeInTheDocument();
+    });
+
+    it('zeigt die eigene Bewertung auf dem Knopf', () => {
+      const { easy } = seedTwoBoulders();
+      saveRating(climber.id, climber.nickname, easy.id, { qualityStars: 4 });
+      render(<ClimberSectorView currentUser={climber} activeGymId={GYM} />);
+      fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
+      expect(screen.getByTestId('quick-rate-btn')).toHaveTextContent('Deine Bewertung: 4 Sterne');
+    });
+
+    it('nach dem Loggen geht kein Bewertungsfenster von selbst auf', () => {
+      const { easy } = seedTwoBoulders();
+      render(
+        <>
+          <ClimberSectorView currentUser={climber} activeGymId={GYM} />
+          <ToastHost />
+        </>
+      );
+      fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
+      fireEvent.click(screen.getByTestId('log-top-btn'));
+      expect(screen.queryByText('Wie fandest du den Grad / die Schwierigkeit?')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Navigation und Ich (F10, F11)', () => {
     it('Bottom-Nav hat genau zwei Tabs', () => {
       render(<MobileBottomNav activeTab="wall" onSelectTab={() => {}} />);

@@ -103,7 +103,8 @@ export async function syncFromSupabase(): Promise<boolean> {
     try {
       const { data: dbProfiles } = await supabase
         .from('user_profiles')
-        .select('*');
+        // SPEC-028 F13: ausdrückliche Spalten, weil `email` nicht mehr öffentlich lesbar ist
+        .select('id, nickname, avatar_url, created_at, updated_at');
 
       if (dbProfiles && dbProfiles.length > 0) {
         const localProfiles = getProfiles();
@@ -153,6 +154,8 @@ export async function syncFromSupabase(): Promise<boolean> {
               // SPEC-025: Koordinaten aus Supabase gewinnen, sonst lokale behalten
               lat: typeof g.lat === 'number' ? g.lat : localG.lat,
               lng: typeof g.lng === 'number' ? g.lng : localG.lng,
+              // SPEC-028 F16: Treff erlaubt?
+              treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : localG.treff_enabled,
             });
             matched = true;
             break;
@@ -170,6 +173,7 @@ export async function syncFromSupabase(): Promise<boolean> {
             created_at: g.created_at,
             lat: typeof g.lat === 'number' ? g.lat : undefined,
             lng: typeof g.lng === 'number' ? g.lng : undefined,
+            treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : undefined,
           });
         }
       }

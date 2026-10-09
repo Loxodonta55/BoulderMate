@@ -8,6 +8,7 @@ import { GradeScaleConfig } from './GradeScaleConfig';
 import { SectorManager } from './SectorManager';
 import { TeamManager } from './admin/TeamManager';
 import { GymLocationEditor } from './GymLocationEditor';
+import { GymTreffToggle } from './treff/GymTreffToggle';
 
 /**
  * SPEC-023 · Admin-Konsole.
@@ -146,7 +147,11 @@ export const GymManagement: React.FC<GymManagementProps> = ({ activeGymId, onSel
       {activeTab === 'team' && <TeamManager gymId={selectedGym.id} userId={effectiveUserId} />}
 
       {activeTab === 'gym' && (
-        <GymLocationEditor key={selectedGym.id} gymId={selectedGym.id} userId={effectiveUserId} onSaved={refreshData} />
+        <div className="space-y-4">
+          <GymLocationEditor key={selectedGym.id} gymId={selectedGym.id} userId={effectiveUserId} onSaved={refreshData} />
+          {/* SPEC-028 F16 */}
+          <GymTreffToggle key={`treff-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
+        </div>
       )}
     </div>
   );

@@ -57,9 +57,10 @@ Die App ist strikt in drei autarke, voneinander getrennte Bereiche unterteilt.
 > Die 3 Bereiche der App sind **völlig voneinander getrennt**. **Keines der Features darf aus zwei Bereichen aufrufbar sein.** Jedes Feature, jede Aktion und jeder Dialog gehört exklusiv zu genau einem Bereich. Es gibt keine geteilten oder bereichsübergreifenden Feature-Aufrufe.
 
 ### 3.1 Kletterer-Bereich (Standard-User / Kletterer-App)
-- **Hauptnavigation (2 Tabs)**:
+- **Hauptnavigation (2 Tabs + Treff)**:
   - **Wand**: Interaktive Wand- & Sektoransicht mit markierten Bouldern, Bouldernavigation, Filter & Sortierung, Begehungen erfassen (Flash/Top/Projekt), Boulder bewerten (Grad-Einschätzung Soft/Fair/Stiff, Sterne-Qualität, Radar-Chart).
   - **Ich**: Persönlicher Bereich bündelt Statistiken (Tops, Flash-Quote, Bester Grad, Fontainebleau-Gradpyramide, 5-Achsen-Stilprofil), Session-Verlauf und Einstellungen (Zahnrad).
+  - **Treff** (SPEC-028, Zusatzzweck): «Wer ist da?» – eintragen, wann man in der Halle ist und Lust auf Austausch hat. Keine Nachrichten, ohne Zahl am Tab, unter Einstellungen ausblendbar. Die App startet immer auf **Wand**.
 - **Bereichswechsel & Berechtigungen**:
   - Der Wechsel in das Schrauber-Studio oder die Hallen-Admin-Konsole erfolgt **ausschließlich über `Ich → Einstellungen → Arbeitsbereich`** (nur sichtbar bei entsprechenden Rechten).
   - **Kein Pflicht-Gateway nach Login**: Nach der Anmeldung startet der Nutzer direkt in seinem zuletzt genutzten Bereich; die App merkt sich diesen Zustand.

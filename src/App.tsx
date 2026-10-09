@@ -24,7 +24,10 @@ import { ViewAsSwitcher } from './components/ViewAsSwitcher';
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
 import { startFeedbackQueueSync } from './lib/feedbackService';
 import { AppHeader } from './components/AppHeader';
-import { MobileBottomNav } from './components/MobileBottomNav';
+import { MobileBottomNav, ClimberTab } from './components/MobileBottomNav';
+import { TreffView } from './components/treff/TreffView';
+import { TreffGuestSheet } from './components/treff/TreffGuestSheet';
+import { getTreffSettings, TREFF_CHANGED_EVENT } from './lib/treffService';
 import { useBackHandler } from './hooks/useBackHandler';
 import { GymFinderSheet } from './components/GymFinderSheet';
 import { getGymFinderEntries } from './lib/gymFinder';
@@ -39,7 +42,7 @@ export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
 ];
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'wall' | 'stats'>('wall');
+  const [activeTab, setActiveTab] = useState<ClimberTab>('wall');
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
@@ -48,6 +51,9 @@ export const App: React.FC = () => {
   const [hasChosenModeForUser, setHasChosenModeForUser] = useState<Record<string, boolean>>({});
   // SPEC-025: «Halle wählen» mit Karte
   const [isGymFinderOpen, setIsGymFinderOpen] = useState<boolean>(false);
+  // SPEC-028: Treff – Gast-Ansicht auf der Landing Page, Tab ausblendbar
+  const [isTreffGuestOpen, setIsTreffGuestOpen] = useState<boolean>(false);
+  const [treffHiddenFor, setTreffHiddenFor] = useState<Record<string, boolean>>({});
 
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [activeGymId, setActiveGymId] = useState<string>('gym-6a-plus');
@@ -240,6 +246,28 @@ export const App: React.FC = () => {
     onBack: () => setActiveTab('wall'),
   });
 
+  useBackHandler({
+    id: 'tab-treff',
+    isOpen: activeTab === 'treff' && appMode === 'climber',
+    onBack: () => setActiveTab('wall'),
+  });
+
+  // SPEC-028 F12: «Treff ausblenden» unter Einstellungen
+  useEffect(() => {
+    const read = () => {
+      if (!climberId) return;
+      setTreffHiddenFor(prev => ({ ...prev, [climberId]: getTreffSettings(climberId).hidden }));
+    };
+    read();
+    window.addEventListener(TREFF_CHANGED_EVENT, read);
+    return () => window.removeEventListener(TREFF_CHANGED_EVENT, read);
+  }, [climberId]);
+  const showTreff = Boolean(climberId) && !(climberId && treffHiddenFor[climberId]);
+
+  useEffect(() => {
+    if (activeTab === 'treff' && !showTreff) setActiveTab('wall');
+  }, [activeTab, showTreff]);
+
   const gymFinderEntries = useMemo(
     () => (isGymFinderOpen ? getGymFinderEntries(gyms) : []),
     [isGymFinderOpen, gyms]
@@ -315,6 +343,10 @@ export const App: React.FC = () => {
         <LandingPage
           onOpenLogin={() => setIsLoginModalOpen(true)}
           onShowGyms={() => setIsGymFinderOpen(true)}
+          onShowTreff={() => {
+            refreshGyms();
+            setIsTreffGuestOpen(true);
+          }}
           notice={authNotice}
           onContinue={authSession ? () => setIsLandingOpen(false) : undefined}
           onQuickLogin={(user) => {
@@ -359,6 +391,23 @@ export const App: React.FC = () => {
           }}
         />
 
+        {/* SPEC-028 F10: Gäste sehen anonym, wer da ist */}
+        <TreffGuestSheet
+          open={isTreffGuestOpen}
+          onClose={() => setIsTreffGuestOpen(false)}
+          gyms={gyms}
+          activeGymId={activeGymId}
+          onLogin={() => {
+            setIsTreffGuestOpen(false);
+            if (authSession) {
+              setIsLandingOpen(false);
+              setActiveTab('treff');
+            } else {
+              setIsLoginModalOpen(true);
+            }
+          }}
+        />
+
         {/* Role Gateway Modal if triggered */}
         {climberId && (
           <RoleGatewayModal
@@ -394,6 +443,7 @@ export const App: React.FC = () => {
         }}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        showTreffTab={showTreff}
         roleInfo={roleInfo}
         isLoggedIn={Boolean(authSession)}
         onOpenRoleGateway={() => setIsRoleGatewayOpen(true)}
@@ -444,6 +494,9 @@ export const App: React.FC = () => {
               refreshGyms();
             }}
           />
+        ) : activeTab === 'treff' ? (
+          /* 3. Kletterer-App: Treff – «Wer ist da?» (SPEC-028) */
+          <TreffView currentUser={currentUser} activeGymId={activeGymId} gyms={gyms} />
         ) : (
           /* 3. Kletterer-App: «Ich» – eine Seite ohne Unter-Tabs (SPEC-022 F10) */
           <MeView
@@ -483,6 +536,7 @@ export const App: React.FC = () => {
         <MobileBottomNav
           activeTab={activeTab}
           onSelectTab={setActiveTab}
+          showTreff={showTreff}
         />
       )}
 

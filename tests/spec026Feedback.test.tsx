@@ -28,6 +28,7 @@ import {
 } from '../src/lib/feedbackService';
 import { FeedbackSheet } from '../src/components/FeedbackSheet';
 import { MeView } from '../src/components/MeView';
+import { AppHeader, AppHeaderProps } from '../src/components/AppHeader';
 import { CurrentUser } from '../src/types/boulder';
 import { UserRoleInfo } from '../src/lib/roleService';
 
@@ -206,5 +207,42 @@ describe('SPEC-026 Einstieg in den Einstellungen', () => {
     expect(screen.queryByTestId('feedback-sheet')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('settings-feedback'));
     expect(screen.getByTestId('feedback-sheet')).toBeInTheDocument();
+  });
+
+  const headerProps = (isLoggedIn: boolean): AppHeaderProps => ({
+    appMode: 'climber' as AppHeaderProps['appMode'],
+    gyms: [{ id: 'gym-6a-plus', name: '6a plus' } as AppHeaderProps['gyms'][number]],
+    activeGymId: 'gym-6a-plus',
+    onSelectGym: () => {},
+    currentUser: { id: climber.id, nickname: climber.nickname, role: 'member', isPlatformAdmin: false },
+    climberId: climber.id,
+    selectableClimbers: [],
+    onSelectClimber: () => {},
+    activeTab: 'wall',
+    onSelectTab: () => {},
+    roleInfo: climberRole,
+    isLoggedIn,
+    onOpenRoleGateway: () => {},
+    onOpenLoginModal: () => {},
+    onSwitchToClimber: () => {},
+  });
+
+  it('Kletterer-Header zeigt angemeldet den Knopf «Feedback», der das Sheet öffnet (F16, AC-13)', async () => {
+    render(<AppHeader {...headerProps(true)} />);
+    const btn = screen.getByTestId('header-feedback-btn');
+    expect(btn).toHaveTextContent('Feedback');
+    fireEvent.click(btn);
+    expect(screen.getByTestId('feedback-sheet')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('feedback-category-praise'));
+    fireEvent.change(screen.getByTestId('feedback-message'), { target: { value: 'Gefällt mir sehr' } });
+    fireEvent.click(screen.getByTestId('feedback-submit'));
+    await waitFor(() => expect(screen.getByTestId('feedback-thanks')).toBeInTheDocument());
+    expect(upsert.mock.calls[0][0][0]).toMatchObject({ app_view: 'header', gym_name: '6a plus', nickname: 'Feedbacker' });
+  });
+
+  it('Gäste sehen den Feedback-Knopf im Header nicht (F3)', () => {
+    render(<AppHeader {...headerProps(false)} />);
+    expect(screen.queryByTestId('header-feedback-btn')).not.toBeInTheDocument();
   });
 });

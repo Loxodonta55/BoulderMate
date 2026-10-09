@@ -22,6 +22,8 @@ export interface FeedbackSheetProps {
   email?: string;
   gymId?: string;
   gymName?: string;
+  /** Woher das Feedback kommt (F7): 'settings' oder 'header' */
+  appView?: string;
 }
 
 const CATEGORIES: { id: FeedbackCategory; label: string; icon: React.ReactNode; placeholder: string }[] = [
@@ -30,7 +32,7 @@ const CATEGORIES: { id: FeedbackCategory; label: string; icon: React.ReactNode; 
   { id: 'praise', label: 'Lob', icon: <Heart className="w-7 h-7" />, placeholder: 'Was gefällt dir?' },
 ];
 
-export const FeedbackSheet: React.FC<FeedbackSheetProps> = ({ open, onClose, userId, nickname, email, gymId, gymName }) => {
+export const FeedbackSheet: React.FC<FeedbackSheetProps> = ({ open, onClose, userId, nickname, email, gymId, gymName, appView = 'settings' }) => {
   const [category, setCategory] = useState<FeedbackCategory | null>(null);
   const [message, setMessage] = useState('');
   const [contactOk, setContactOk] = useState(false);
@@ -56,7 +58,7 @@ export const FeedbackSheet: React.FC<FeedbackSheetProps> = ({ open, onClose, use
     e.preventDefault();
     if (!canSubmit || !category) return;
     setSending(true);
-    const res = await submitFeedback({ category, message, contactOk, userId, nickname, email, gymId, gymName, appView: 'settings' });
+    const res = await submitFeedback({ category, message, contactOk, userId, nickname, email, gymId, gymName, appView });
     setSending(false);
     if (res === 'rate_limited') {
       setRateLimited(true);
