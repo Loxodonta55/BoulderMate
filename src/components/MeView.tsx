@@ -15,6 +15,17 @@ import { useBackHandler } from '../hooks/useBackHandler';
 import { FeedbackSheet } from './FeedbackSheet';
 import { getCurrentAuthUser } from '../lib/authService';
 import { TreffSettingsGroup } from './treff/TreffSettingsGroup';
+import { MyProjectsSection, ForYouSection, WeeklySection, PerGymTable, VisibilityGroup } from './me/MeSections';
+import { ChallengeCards } from './challenge/ChallengeCard';
+import { GroupsSettings } from './me/GroupsSettings';
+import { ImportRows, useImportedTicks } from './me/ImportTicks';
+import { LanguageGroup } from './me/LanguageGroup';
+import { t, getLang, useLang } from '../lib/i18n';
+import { importedAsLogbook, mergePyramid } from '../lib/importService';
+import { selectMyProjects, flashShare, recommendBoulders, buildLogbookCsv } from '../lib/meStats';
+import { getUserAscent } from '../lib/ratingAndAscentService';
+import { getBoulderNumber } from '../lib/boulderNumbers';
+import { DEEP_DIVE_AXES, DeepDiveAxis, axisLabel } from '../lib/deepDiveService';
 
 /**
  * SPEC-020 §5.3/§5.4 · «Ich» – eine Seite ohne Sub-Tabs + Einstellungen (iOS-Settings-Stil).
@@ -29,20 +40,22 @@ export interface MeViewProps {
   onLogout: () => void;
 }
 
-const TYPE_ICON: Record<AscentType, React.ReactNode> = {
+const typeIcon = (): Record<AscentType, React.ReactNode> => ({
   flash: <Zap className="w-4 h-4 text-[var(--bm-star)]" aria-label="Flash" />,
   top: <Check className="w-4 h-4 text-[var(--bm-success)]" aria-label="Top" />,
-  project: <Target className="w-4 h-4 text-[var(--bm-text-2)]" aria-label="Projekt" />,
-};
+  project: <Target className="w-4 h-4 text-[var(--bm-text-2)]" aria-label={t('Projekt')} />,
+});
+
+const dateLocale = () => (getLang() === 'en' ? 'en-GB' : 'de-CH');
 
 function dayLabel(iso: string): string {
   const d = new Date(iso);
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return 'Heute';
-  if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
-  return d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (d.toDateString() === today.toDateString()) return t('Heute');
+  if (d.toDateString() === yesterday.toDateString()) return t('Gestern');
+  return d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 export const MeView: React.FC<MeViewProps> = ({
@@ -61,6 +74,7 @@ export const MeView: React.FC<MeViewProps> = ({
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  useLang();
 
   useBackHandler({ id: 'me-settings', isOpen: isSettingsOpen, onBack: () => setIsSettingsOpen(false) });
   useBackHandler({ id: 'me-feedback', isOpen: isFeedbackOpen, onBack: () => setIsFeedbackOpen(false) });
@@ -90,16 +104,57 @@ export const MeView: React.FC<MeViewProps> = ({
     [currentUser.id, gymFilter, version]
   );
 
-  const gymName = useMemo(() => getGyms().find(g => g.id === activeGymId)?.name || 'Diese Halle', [activeGymId]);
+  const gymName = useMemo(() => getGyms().find(g => g.id === activeGymId)?.name || t('Diese Halle'), [activeGymId]);
+
+  // SPEC-035 F1: Meine Projekte (nur Boulder, die noch hängen)
+  const myProjects = useMemo(
+    () => selectMyProjects(logbook, getWallBoulders()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [logbook, version]
+  );
+  const attemptsOf = (boulderId: string) => getUserAscent(currentUser.id, boulderId)?.attempts;
+
+  // SPEC-037 F4: «Für dich» – offene Boulder der aktuellen Halle für die Baustelle
+  const gymReport = useMemo(
+    () => (scope === 'gym' ? report : getAthletePerformanceReport(currentUser.id, activeGymId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scope, report, currentUser.id, activeGymId, version]
+  );
+  const forYou = useMemo(() => {
+    const axis = gymReport.isUnlocked ? (gymReport.weakness?.attribute as DeepDiveAxis | undefined) : undefined;
+    if (!axis || !(DEEP_DIVE_AXES as string[]).includes(axis)) return { axis: undefined, items: [] };
+    const sectors = getSectors(activeGymId);
+    const sectorIds = new Set(sectors.map(sec => sec.id));
+    const scales = getGradeScales(activeGymId);
+    const boulders = getWallBoulders().filter(b => sectorIds.has(b.sectorId) && b.status === 'active');
+    const myAscents = new Map(boulders.map(b => [b.id, getUserAscent(currentUser.id, b.id)]));
+    const gymData = getProfileData(currentUser.id, activeGymId);
+    const items = recommendBoulders({
+      axis,
+      boulders,
+      scaleOf: b => scales.find(sc => sc.id === b.gradeScaleId),
+      myAscents,
+      bestGrade: gymData.kpis.bestTopFont || kpis.bestTopFont,
+    });
+    return { axis, items };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gymReport, activeGymId, currentUser.id, version]);
   const sendCount = kpis.totalTops;
   const flashRate = sendCount > 0 ? Math.round((kpis.totalFlashes / sendCount) * 100) : 0;
   const bestGrade = kpis.bestTopFont || kpis.bestTop?.colorName || '–';
 
   // Grad-Pyramide: nur der Bereich, in dem tatsächlich etwas geklettert wurde
+  // SPEC-043: importierte Ticks zählen nur in der Statistik «Alle Hallen»
+  const importedTicks = useImportedTicks(currentUser.id);
+  const shownImports = useMemo(() => (scope === 'all' ? importedTicks : []), [scope, importedTicks]);
+  const statsLogbook = useMemo(
+    () => (shownImports.length ? [...logbook, ...importedAsLogbook(shownImports)] : logbook),
+    [logbook, shownImports]
+  );
   const pyramid = useMemo(() => {
     // SPEC-022: nur Grade mit mindestens einem Top/Flash, schwerster oben
-    return gradeDistribution.filter(g => g.totalCount > 0).reverse();
-  }, [gradeDistribution]);
+    return mergePyramid(gradeDistribution.filter(g => g.totalCount > 0).reverse(), shownImports);
+  }, [gradeDistribution, shownImports]);
   const maxCount = Math.max(1, ...pyramid.map(p => p.totalCount));
 
   const grouped = useMemo(() => {
@@ -119,8 +174,8 @@ export const MeView: React.FC<MeViewProps> = ({
       value={scope}
       onChange={setScope}
       options={[
-        { value: 'gym', label: gymName.length > 22 ? 'Diese Halle' : gymName },
-        { value: 'all', label: 'Alle Hallen' },
+        { value: 'gym', label: gymName.length > 22 ? t('Diese Halle') : gymName },
+        { value: 'all', label: t('Alle Hallen') },
       ]}
     />
   );
@@ -147,6 +202,7 @@ export const MeView: React.FC<MeViewProps> = ({
   const boulderSheet = selectedBoulder && (
     <BoulderSheet
       boulder={selectedBoulder}
+      number={getBoulderNumber(selectedBoulder)}
       sector={selectedSector}
       gradeScale={selectedScale}
       currentUser={currentUser}
@@ -164,13 +220,29 @@ export const MeView: React.FC<MeViewProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  // SPEC-033 F6: Logbuch als Tabelle (CSV, Semikolon, BOM)
+  const exportCsv = () => {
+    const all = getProfileData(currentUser.id, 'all').logbook;
+    const csv = buildLogbookCsv(all, e => ({
+      number: getBoulderNumber({ id: e.boulderId, sectorId: e.sectorId }),
+      attempts: getUserAscent(currentUser.id, e.boulderId)?.attempts,
+    }));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bouldermate-logbuch-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const saveName = () => {
     const name = nameDraft.trim();
     if (!name || name === profile.nickname) return;
     updateProfile(currentUser.id, { nickname: name });
     onProfileUpdated?.(name);
     setVersion(v => v + 1);
-    showToast({ message: 'Name gespeichert', durationMs: 2000 });
+    showToast({ message: t('Name gespeichert'), durationMs: 2000 });
   };
 
   // ---------------------------------------------------------------------------
@@ -187,17 +259,17 @@ export const MeView: React.FC<MeViewProps> = ({
             data-testid="settings-back"
           >
             <ChevronLeft className="w-6 h-6" />
-            Ich
+            {t('Ich')}
           </button>
         </div>
-        <h1 className="text-[28px] font-bold mb-5">Einstellungen</h1>
+        <h1 className="text-[28px] font-bold mb-5">{t('Einstellungen')}</h1>
 
         <div className="space-y-7">
-          <ListGroup title="Profil">
+          <ListGroup title={t('Profil')}>
             <div className="flex items-center gap-3 px-4 min-h-[52px]">
               <User className="w-5 h-5 text-[var(--bm-text-2)]" />
               <input
-                aria-label="Name"
+                aria-label={t('Name')}
                 data-testid="settings-name-input"
                 defaultValue={profile.nickname}
                 onChange={e => setNameDraft(e.target.value)}
@@ -233,25 +305,44 @@ export const MeView: React.FC<MeViewProps> = ({
             </ListGroup>
           )}
 
-          <ListGroup title="Daten">
+          {/* SPEC-039: Sprache */}
+          <LanguageGroup />
+
+          {/* SPEC-033: Sichtbarkeit in «Wer war schon oben» */}
+          <VisibilityGroup userId={currentUser.id} onChanged={() => setVersion(v => v + 1)} />
+
+          <ListGroup title={t('Daten')}>
+            <ListRow
+              testId="settings-export-csv"
+              icon={<Download className="w-5 h-5 text-[var(--bm-text-2)]" />}
+              title={t('Als Tabelle (CSV)')}
+              subtitle={t('Für Excel, Numbers, R, Python')}
+              onClick={exportCsv}
+            />
             <ListRow
               testId="settings-export"
               icon={<Download className="w-5 h-5 text-[var(--bm-text-2)]" />}
-              title="Logbuch exportieren"
+              title={t('Logbuch exportieren')}
+              subtitle="JSON"
               onClick={exportData}
             />
+            {/* SPEC-043 */}
+            <ImportRows userId={currentUser.id} />
           </ListGroup>
+
+          {/* SPEC-042: Trainings-Gruppen */}
+          <GroupsSettings currentUser={currentUser} />
 
           {/* SPEC-028: Treff – Niveau, Ausblenden, Löschen, Meldungen */}
           <TreffSettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} />
 
           {/* SPEC-026: Feedback an das App-Team */}
-          <ListGroup title="Hilfe">
+          <ListGroup title={t('Hilfe')}>
             <ListRow
               testId="settings-feedback"
               icon={<MessageSquareText className="w-5 h-5 text-[var(--bm-text-2)]" />}
-              title="Feedback geben"
-              subtitle="Fehler, Ideen, Lob"
+              title={t('Feedback geben')}
+              subtitle={t('Fehler, Ideen, Lob')}
               onClick={() => setIsFeedbackOpen(true)}
             />
           </ListGroup>
@@ -260,18 +351,18 @@ export const MeView: React.FC<MeViewProps> = ({
             <ListRow
               testId="settings-logout"
               icon={<LogOut className="w-5 h-5 text-[var(--bm-text-2)]" />}
-              title="Abmelden"
+              title={t('Abmelden')}
               chevron={false}
               onClick={onLogout}
             />
             <ListRow
               testId="settings-delete-account"
               icon={<Trash2 className="w-5 h-5 text-[var(--bm-danger)]" />}
-              title="Konto löschen"
+              title={t('Konto löschen')}
               destructive
               chevron={false}
               onClick={() => {
-                if (window.confirm('Konto und alle Einträge endgültig löschen?')) {
+                if (window.confirm(t('Konto und alle Einträge endgültig löschen?'))) {
                   deleteAccount(currentUser.id);
                   onLogout();
                 }
@@ -317,14 +408,14 @@ export const MeView: React.FC<MeViewProps> = ({
   return (
     <div className="max-w-xl mx-auto px-4 pb-8 space-y-7" data-testid="user-profile-view">
       <div className="flex items-center justify-between pt-3">
-        <h1 className="text-[28px] font-bold">Ich</h1>
+        <h1 className="text-[28px] font-bold">{t('Ich')}</h1>
         <button
           type="button"
           onClick={() => {
             setNameDraft(profile.nickname);
             setIsSettingsOpen(true);
           }}
-          aria-label="Einstellungen"
+          aria-label={t('Einstellungen')}
           data-testid="open-settings-btn"
           className="w-10 h-10 rounded-full bg-[var(--bm-surface)] flex items-center justify-center"
         >
@@ -344,7 +435,7 @@ export const MeView: React.FC<MeViewProps> = ({
         <div className="min-w-0">
           <p className="text-[20px] font-semibold truncate" data-testid="profile-nickname">{profile.nickname}</p>
           <p className="text-[14px] text-[var(--bm-text-2)]">
-            Dabei seit {new Date(profile.createdAt).toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })}
+            {t('Dabei seit {date}', { date: new Date(profile.createdAt).toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' }) })}
           </p>
         </div>
       </div>
@@ -354,23 +445,48 @@ export const MeView: React.FC<MeViewProps> = ({
       {/* Hero-Zahlen */}
       <div className="grid grid-cols-3 gap-2.5" data-testid="me-kpis">
         {[
-          { label: 'Tops', value: String(sendCount) },
-          { label: 'Flash-Quote', value: `${flashRate}%` },
-          { label: 'Bester Grad', value: bestGrade },
+          { label: t('Tops'), value: String(sendCount) },
+          { label: t('Flash-Quote'), value: `${flashRate}%` },
+          { label: t('Bester Grad'), value: bestGrade },
         ].map(k => (
           <div key={k.label} className="rounded-2xl bg-[var(--bm-surface)] p-3.5">
             <p className="text-[26px] font-semibold leading-tight tabular-nums truncate">{k.value}</p>
-            <p className="text-[13px] text-[var(--bm-text-2)]">{k.label}</p>
+            <p className="text-[15px] text-[var(--bm-text-2)]">{k.label}</p>
           </div>
         ))}
       </div>
 
+      {/* SPEC-037 F5: Pro Halle (nur «Alle Hallen») */}
+      {scope === 'all' && <PerGymTable logbook={statsLogbook} />}
+
+      {/* SPEC-038 F3: laufende Challenge der aktuellen Halle */}
+      <ChallengeCards currentUser={currentUser} gymId={activeGymId} version={version} />
+
+      {/* SPEC-035 F1: Meine Projekte */}
+      <MyProjectsSection
+        projects={myProjects}
+        attemptsOf={attemptsOf}
+        showGym={scope === 'all'}
+        onOpen={openEntry}
+      />
+
+      {/* SPEC-037 F4: Für dich */}
+      {forYou.axis && (
+        <ForYouSection
+          axisLabel={axisLabel(forYou.axis)}
+          items={forYou.items}
+          scaleOf={b => getGradeScales(activeGymId).find(sc => sc.id === b.gradeScaleId)}
+          sectorName={b => getSectors(activeGymId).find(sec => sec.id === b.sectorId)?.name || ''}
+          onOpen={b => setSelectedBoulder(b)}
+        />
+      )}
+
       {/* Grad-Pyramide */}
       <section className="space-y-2.5">
-        <h2 className="text-[20px] font-semibold">Grade</h2>
+        <h2 className="text-[20px] font-semibold">{t('Grade')}</h2>
         <div className="rounded-2xl bg-[var(--bm-surface)] p-4" data-testid="grade-pyramid">
           {pyramid.length === 0 ? (
-            <p className="text-[15px] text-[var(--bm-text-2)]">Logge deinen ersten Top – hier entsteht deine Pyramide.</p>
+            <p className="text-[15px] text-[var(--bm-text-2)]">{t('Logge deinen ersten Top – hier entsteht deine Pyramide.')}</p>
           ) : (
             <ul className="space-y-2">
               {pyramid.map(item => (
@@ -386,13 +502,22 @@ export const MeView: React.FC<MeViewProps> = ({
                       style={{ width: `${(item.topCount / maxCount) * 100}%` }}
                     />
                   </div>
-                  <span className="w-6 text-right text-[14px] text-[var(--bm-text-2)] tabular-nums">{item.totalCount || ''}</span>
+                  {/* SPEC-037 F1: Anzahl und Flash-Anteil pro Grad */}
+                  <span className="w-[86px] text-right text-[15px] tabular-nums shrink-0" data-testid={`pyramid-count-${item.fontGrade || item.gradeScale.id}`}>
+                    <span className="font-semibold">{item.totalCount || ''}</span>
+                    <span className="text-[var(--bm-text-2)]"> · {flashShare(item)} % ⚡</span>
+                  </span>
                 </li>
               ))}
             </ul>
           )}
+          {shownImports.length > 0 && (
+            <p className="mt-3 text-[14px] text-[var(--bm-text-2)]" data-testid="pyramid-imported-note">
+              {t('inkl. {n} importierte Ticks', { n: shownImports.length })}
+            </p>
+          )}
           {pyramid.length > 0 && (
-            <div className="flex gap-4 mt-3 text-[12px] text-[var(--bm-text-2)]">
+            <div className="flex gap-4 mt-3 text-[14px] text-[var(--bm-text-2)]">
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[var(--bm-star)]" />Flash</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[var(--bm-accent)]" />Top</span>
             </div>
@@ -400,9 +525,12 @@ export const MeView: React.FC<MeViewProps> = ({
         </div>
       </section>
 
+      {/* SPEC-037 F2: Verlauf 8 Wochen */}
+      <WeeklySection logbook={statsLogbook} />
+
       {/* Stil (SPEC-020 AC-7.6): Radar + eine Zeile, Details auf Wunsch */}
       <section className="space-y-2.5">
-        <h2 className="text-[20px] font-semibold">Dein Stil</h2>
+        <h2 className="text-[20px] font-semibold">{t('Dein Stil')}</h2>
         {!report.isUnlocked ? (
           <div className="rounded-2xl bg-[var(--bm-surface)] p-4 space-y-2" data-testid="me-style-locked">
             <div className="h-2 rounded-full bg-[var(--bm-elevated)] overflow-hidden">
@@ -412,7 +540,7 @@ export const MeView: React.FC<MeViewProps> = ({
               />
             </div>
             <p className="text-[15px] text-[var(--bm-text-2)]">
-              Noch {Math.max(0, report.minRequiredAscents - report.loggedAscentsCount)} Tops bis zu deinem Stil-Profil
+              {t('Noch {n} Tops bis zu deinem Stil-Profil', { n: Math.max(0, report.minRequiredAscents - report.loggedAscentsCount) })}
             </p>
           </div>
         ) : isStyleExpanded ? (
@@ -424,7 +552,7 @@ export const MeView: React.FC<MeViewProps> = ({
               className="w-full min-h-[44px] text-[15px] font-medium text-[var(--bm-accent)]"
               data-testid="me-style-less"
             >
-              Weniger zeigen
+              {t('Weniger zeigen')}
             </button>
           </>
         ) : (
@@ -434,11 +562,11 @@ export const MeView: React.FC<MeViewProps> = ({
             </div>
             <p className="text-[15px] text-center mt-2">
               {[
-                report.strength ? `Stärke: ${report.strength.attributeLabel}` : null,
-                report.weakness ? `Baustelle: ${report.weakness.attributeLabel}` : null,
+                report.strength ? t('Stärke: {label}', { label: report.strength.attributeLabel }) : null,
+                report.weakness ? t('Baustelle: {label}', { label: report.weakness.attributeLabel }) : null,
               ]
                 .filter(Boolean)
-                .join(' · ') || 'Ausgeglichen'}
+                .join(' · ') || t('Ausgeglichen')}
             </p>
             <button
               type="button"
@@ -446,7 +574,7 @@ export const MeView: React.FC<MeViewProps> = ({
               className="w-full mt-2 min-h-[44px] text-[15px] font-medium text-[var(--bm-accent)]"
               data-testid="me-style-more"
             >
-              Mehr zum Stil
+              {t('Mehr zum Stil')}
             </button>
           </div>
         )}
@@ -458,16 +586,16 @@ export const MeView: React.FC<MeViewProps> = ({
           testId="me-open-deep-dive"
           icon={<Microscope className="w-5 h-5 text-[var(--bm-accent)]" />}
           title="Deep Dive"
-          subtitle="Was deine schwersten Routen verlangen"
+          subtitle={t('Was deine schwersten Routen verlangen')}
           onClick={() => setIsDeepDiveOpen(true)}
         />
       </ListGroup>
 
       {/* Verlauf */}
       <section className="space-y-2.5" data-testid="private-logbook-section">
-        <h2 className="text-[20px] font-semibold">Verlauf</h2>
+        <h2 className="text-[20px] font-semibold">{t('Verlauf')}</h2>
         {grouped.length === 0 ? (
-          <p className="text-[15px] text-[var(--bm-text-2)]">Noch keine Einträge.</p>
+          <p className="text-[15px] text-[var(--bm-text-2)]">{t('Noch keine Einträge.')}</p>
         ) : (
           grouped.map(entries => (
             <ListGroup key={entries[0].createdAt} title={dayLabel(entries[0].createdAt)}>
@@ -478,7 +606,7 @@ export const MeView: React.FC<MeViewProps> = ({
                   icon={<span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: e.gradeScale.colorHex }} />}
                   title={e.boulderName || e.gradeScale.colorName}
                   subtitle={[e.fontGrade, e.sectorName && !/unbekannt/i.test(e.sectorName) ? e.sectorName : null].filter(Boolean).join(' · ')}
-                  value={TYPE_ICON[e.type]}
+                  value={typeIcon()[e.type]}
                   onClick={() => openEntry(e)}
                 />
               ))}

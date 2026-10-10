@@ -487,6 +487,17 @@ export function setLastSelectedGradeScaleId(gymId: string, scaleId: string): voi
   setStorageString(STORAGE_KEY_LAST_COLOR_PREFIX + gymId, scaleId);
 }
 
+// SPEC-030 F8: «Geschraubt von» – letzte Wahl pro Halle gilt für die nächsten neuen Boulder
+const STORAGE_KEY_LAST_SETTER_PREFIX = 'boulderapp_last_setter_v1_';
+
+export function getLastSelectedSetterId(gymId: string): string | null {
+  return getStorageString(STORAGE_KEY_LAST_SETTER_PREFIX + gymId);
+}
+
+export function setLastSelectedSetterId(gymId: string, setterId: string): void {
+  setStorageString(STORAGE_KEY_LAST_SETTER_PREFIX + gymId, setterId);
+}
+
 // -------------------------------------------------------------
 // Wall Boulder Lifecycle
 // -------------------------------------------------------------
@@ -1065,6 +1076,21 @@ export function setRebuildPhoto(sectorId: string, photoUrl: string): Sector {
   });
 }
 
+// SPEC-031 F5: Umbau ankündigen («Wird abgeschraubt am …»); null löscht die Ankündigung
+export function setPlannedRebuild(sectorId: string, date: string | null, today: Date = new Date()): Sector {
+  if (date === null || date === '') {
+    return patchSector(sectorId, { rebuildPlannedFor: undefined });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error('Bitte ein gültiges Datum wählen.');
+  }
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (date < todayKey) {
+    throw new Error('Das Datum liegt in der Vergangenheit.');
+  }
+  return patchSector(sectorId, { rebuildPlannedFor: date });
+}
+
 // AC-6: «Wand fertig» – alte Routen abschrauben, Entwürfe veröffentlichen, Entwurfsfoto wird live
 export function completeSectorRebuild(sectorId: string): BatchPublishResult {
   const sector = getSectorById(sectorId);
@@ -1100,6 +1126,7 @@ export function completeSectorRebuild(sectorId: string): BatchPublishResult {
     draftPhotoUrl: undefined,
     rebuildStartedAt: undefined,
     rebuiltAt: now,
+    rebuildPlannedFor: undefined, // SPEC-031 AC-6: Ankündigung erledigt
   });
 
   const affected = updated.filter(b => publishedBoulderIds.includes(b.id) || archivedBoulderIds.includes(b.id));

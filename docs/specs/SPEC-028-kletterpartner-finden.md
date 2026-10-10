@@ -64,7 +64,7 @@ Zusätzlich ein Schnellknopf **«Ich bin jetzt da»**: heute, ab jetzt für 2 St
 *Nicht:* Alter, Geschlecht, Fotos, Telefonnummer.
 
 **F5 – Wie viele Einträge, wie weit im Voraus?**
-✔ *Entschieden:* Höchstens **3 offene Einträge** pro Person, höchstens 14 Tage im Voraus. Ein Eintrag verschwindet nach Ende des Zeitfensters aus der Liste. Man kann ihn jederzeit löschen («Doch nicht»).
+✔ *Entschieden:* Höchstens **5 offene Einträge** (seit SPEC-036; vorher 3) pro Person, höchstens 14 Tage im Voraus. Ein Eintrag verschwindet nach Ende des Zeitfensters aus der Liste. Man kann ihn jederzeit löschen («Doch nicht»).
 
 ### Kontakt
 
@@ -101,7 +101,7 @@ Zusätzlich ein Schnellknopf **«Ich bin jetzt da»**: heute, ab jetzt für 2 St
 ✔ *Entschieden:*
 - **Ausblenden (Blockieren):** Im Eintrag `Person ausblenden`. Ich sehe ihre Einträge nicht mehr, sie sieht meine nicht mehr. Sie erfährt davon nichts. Rückgängig unter Einstellungen → Treff.
 - **Melden:** `Melden` am Eintrag mit Grund (`Belästigung · Spam · Unangemessen · Anderes`). Die Meldung speichert eine Kopie des Eintrags.
-- **Grenzen:** max. 3 offene Einträge, Text max. 120 Zeichen. Links im Text sind nicht anklickbar.
+- **Grenzen:** max. 5 offene Einträge (SPEC-036), Text max. 120 Zeichen. Links im Text sind nicht anklickbar.
 
 **F15 – Wer prüft Meldungen?**
 ✔ *Entschieden:* Der **Plattform-Admin** unter Ich → Einstellungen → Treff → `Meldungen prüfen` (nur für ihn sichtbar). Aktionen: `Eintrag löschen`, `Person für Treff sperren`, `Erledigt`. Hallen-Admins sehen Meldungen nicht.
@@ -129,7 +129,7 @@ Datei: `supabase/migrations/20261009_spec028_treff.sql`
 
 | Tabelle | Inhalt | Lesen | Schreiben |
 |---|---|---|---|
-| `treff_entries` | `id, user_id, gym_id, starts_at, ends_at, grade_min, grade_max, boulder_ref, note, nickname, avatar_url, created_at` | angemeldet: alle, außer bei Ausblenden in eine der beiden Richtungen | Insert nur `user_id = auth.uid()`, mit Häkchen, nicht gesperrt, Halle erlaubt, < 3 offene, max. 14 Tage; Delete nur eigene (oder Plattform-Admin) |
+| `treff_entries` | `id, user_id, gym_id, starts_at, ends_at, grade_min, grade_max, boulder_ref, note, nickname, avatar_url, created_at` | angemeldet: alle, außer bei Ausblenden in eine der beiden Richtungen | Insert nur `user_id = auth.uid()`, mit Häkchen, nicht gesperrt, Halle erlaubt, < 5 offene (ohne Hallen-Termine, SPEC-036), max. 14 Tage; Delete nur eigene (oder Plattform-Admin) |
 | `treff_entries_public` (View) | `id, gym_id, starts_at, ends_at, grade_min, grade_max` | `anon`, `authenticated` | – |
 | `treff_blocks` | `blocker_id, blocked_id` | nur `blocker_id`; Prüfung «wurde ich ausgeblendet» über Funktion | nur `blocker_id = auth.uid()` |
 | `treff_reports` | `id, reporter_id, entry_id, reported_user_id, reason, snapshot, created_at, handled_at` | nur Plattform-Admin | Insert: angemeldet; Update: Plattform-Admin |
@@ -164,7 +164,7 @@ Voraussetzung im selben Skript: Spaltenrechte `user_profiles` ohne `email` (F13)
 - **AC-2** Die Treff-Seite zeigt Einträge der gewählten Halle in «Jetzt da» und «Kommt noch»; `Alle Hallen` zeigt alle mit Hallenname. Abgelaufene Einträge erscheinen nicht.
 - **AC-3** Vor dem ersten Eintrag erscheinen Hinweis und Alters-Häkchen (`treff-consent`); ohne beides kein Eintrag.
 - **AC-4** «Ich bin jetzt da» legt einen Eintrag heute, ab jetzt, 2 Stunden an. «Eintragen» verlangt Tag und Zeit (bis > von), höchstens 14 Tage im Voraus; Satz ≤ 120 Zeichen.
-- **AC-5** Mehr als 3 offene Einträge sind nicht möglich (Meldung).
+- **AC-5** Mehr als 5 offene Einträge sind nicht möglich (Meldung).
 - **AC-6** «Ich komme auch» legt einen eigenen Eintrag mit gleicher Halle und Zeit an; der fremde Eintrag zeigt «Auch da: <Name>».
 - **AC-7** Ein Boulder im Eintrag ist antippbar und öffnet das Boulder-Sheet.
 - **AC-8** «Person ausblenden» blendet ihre Einträge für mich und meine für sie aus.
@@ -222,3 +222,7 @@ Voraussetzung im selben Skript: Spaltenrechte `user_profiles` ohne `email` (F13)
 Die Migration wurde in einer lokalen PostgreSQL-16-Datenbank mit nachgebauten Supabase-Rollen (`anon`, `authenticated`, `auth.uid()`) eingespielt (zweimal, wiederholbar) und gegen 23 Fälle geprüft: E-Mail für Gäste gesperrt, Eintragen nur mit Häkchen, nur für sich selbst, max. 14 Tage, max. 3 offen, Ausblenden in beide Richtungen, Meldungen nur für den Plattform-Admin, Sperren nur durch ihn, Sperre lässt sich nicht selbst aufheben, Halle abgeschaltet, Gast-Ansicht ohne Personen-Spalten. Gegen das echte Supabase ist sie nicht getestet.
 
 **Für Hans – Reihenfolge:** 1. Code committen und ausliefern (Vercel). 2. Danach im Supabase-SQL-Editor `20261009_spec028_treff.sql` einspielen. 3. Die drei Kontroll-Abfragen am Ende des Skripts ausführen. Optional: pg_cron einschalten und die `cron.schedule`-Zeile ausführen.
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- Erweiterungen in [SPEC-036](SPEC-036-treff-plus.md): «Jede Woche», «Anfänger willkommen», «Mit Kind», Termine der Halle; Grenze 5.
+- Oben in «Treff» zeigt [SPEC-041](SPEC-041-wie-voll-ist-die-halle.md) «Gerade: ruhig / normal / viel los».

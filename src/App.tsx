@@ -31,6 +31,10 @@ import { getTreffSettings, TREFF_CHANGED_EVENT } from './lib/treffService';
 import { useBackHandler } from './hooks/useBackHandler';
 import { GymFinderSheet } from './components/GymFinderSheet';
 import { getGymFinderEntries } from './lib/gymFinder';
+import { useLang } from './lib/i18n';
+import { getSectors } from './lib/batchBoulderService';
+import { readWallLinkFromUrl, clearWallLinkFromUrl, savePendingWallLink, getPendingWallLink, clearPendingWallLink, resolveWallLinkSector } from './lib/wallLink';
+import { showToast } from './components/ui/Toast';
 
 export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
   { id: 'user-boris', nickname: 'Boris (OverAdmin)' },
@@ -42,6 +46,8 @@ export const AVAILABLE_CLIMBERS: { id: string; nickname: string }[] = [
 ];
 
 export const App: React.FC = () => {
+  // SPEC-039: beim Umschalten der Sprache alles neu zeichnen
+  useLang();
   const [activeTab, setActiveTab] = useState<ClimberTab>('wall');
   const [appMode, setAppMode] = useState<AppMode>('climber');
   const [isRoleGatewayOpen, setIsRoleGatewayOpen] = useState<boolean>(false);
@@ -62,6 +68,19 @@ export const App: React.FC = () => {
   const [climberNicknames, setClimberNicknames] = useState<Record<string, string>>({});
 
   const [authSession, setAuthSession] = useState<AuthUser | null>(() => initAuthSession());
+
+  // SPEC-029: QR-Code an der Wand (`?wand=<Sektor>`) – Ziel merken (übersteht Anmeldung und Google-Umweg)
+  const [pendingWallLinkId, setPendingWallLinkId] = useState<string | null>(() => {
+    const fromUrl = readWallLinkFromUrl();
+    if (fromUrl) {
+      savePendingWallLink(fromUrl);
+      clearWallLinkFromUrl();
+      return fromUrl;
+    }
+    return getPendingWallLink();
+  });
+  const [focusSectorId, setFocusSectorId] = useState<string | null>(null);
+  const [isFirstSyncDone, setIsFirstSyncDone] = useState<boolean>(false);
   const [climberId, setClimberId] = useState<string | null>(() => authSession ? authSession.id : null);
 
   // SPEC-024 AC-2.4 / AC-5.1: Rückkehr von Google (?code= oder ?error=) beim Start auswerten
@@ -309,6 +328,8 @@ export const App: React.FC = () => {
       }
     }).catch(err => {
       console.warn('[Supabase Sync] Background sync warning:', err);
+    }).finally(() => {
+      setIsFirstSyncDone(true);
     });
 
     // Start Supabase Realtime multi-user sync (AC-15)
@@ -322,6 +343,44 @@ export const App: React.FC = () => {
       cleanupFeedbackQueue();
     };
   }, []);
+
+  // SPEC-029 F5: Bei schlechtem Netz nicht ewig auf den ersten Abgleich warten
+  useEffect(() => {
+    if (!pendingWallLinkId || !authSession || isFirstSyncDone) return;
+    const timer = window.setTimeout(() => setIsFirstSyncDone(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, [pendingWallLinkId, authSession, isFirstSyncDone]);
+
+  // SPEC-029 AC-1/AC-4/AC-5: Gemerktes Ziel anwenden, sobald man angemeldet ist
+  useEffect(() => {
+    if (!pendingWallLinkId || !authSession || isFinishingOAuth) return;
+    const sector = resolveWallLinkSector(pendingWallLinkId, getSectors());
+    if (!sector) {
+      // Vor dem ersten Abgleich sind Sektoren evtl. noch nicht geladen
+      if (!isFirstSyncDone) return;
+      clearPendingWallLink();
+      setPendingWallLinkId(null);
+      showToast({ message: 'Diese Wand gibt es nicht mehr.' });
+      return;
+    }
+    clearPendingWallLink();
+    setPendingWallLinkId(null);
+    setHasChosenModeForUser(prev => ({ ...prev, [authSession.id]: true }));
+    setIsRoleGatewayOpen(false);
+    setIsLandingOpen(false);
+    setAppMode('climber');
+    setActiveTab('wall');
+    setActiveGymId(sector.gymId);
+    setFocusSectorId(sector.id);
+  }, [pendingWallLinkId, authSession, isFinishingOAuth, isFirstSyncDone, gyms]);
+
+  const wallLinkNotice = useMemo(() => {
+    if (!pendingWallLinkId || authSession) return null;
+    const sector = resolveWallLinkSector(pendingWallLinkId, getSectors());
+    return sector
+      ? `Melde dich an, dann geht es direkt zur Wand «${sector.name}».`
+      : 'Melde dich an, dann geht es direkt zur Wand.';
+  }, [pendingWallLinkId, authSession, gyms, isFirstSyncDone]);
 
   if (isFinishingOAuth && !authSession) {
     return (
@@ -348,6 +407,7 @@ export const App: React.FC = () => {
             setIsTreffGuestOpen(true);
           }}
           notice={authNotice}
+          wallLinkNotice={wallLinkNotice}
           onContinue={authSession ? () => setIsLandingOpen(false) : undefined}
           onQuickLogin={(user) => {
             setIsLandingOpen(false);
@@ -489,6 +549,8 @@ export const App: React.FC = () => {
           <ClimberSectorView
             currentUser={currentUser}
             activeGymId={activeGymId}
+            focusSectorId={focusSectorId}
+            onFocusApplied={() => setFocusSectorId(null)}
             onSelectGym={(id) => {
               setActiveGymId(id);
               refreshGyms();

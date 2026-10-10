@@ -251,3 +251,8 @@ LIMIT 50;
 
 ## Open Questions
 - Keine (im Grill-Me Interview geklärt).
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- «Ich»: Meine Projekte und Versuche → [SPEC-035](SPEC-035-meine-projekte-und-versuche.md); Verlauf, Flash-Quote pro Grad, «Für dich», Hallen getrennt, Deep Dive «Dein Stil im Verlauf» → [SPEC-037](SPEC-037-statistik-verlauf-und-empfehlungen.md).
+- CSV-Export → [SPEC-033](SPEC-033-sichtbarkeit-und-meine-daten.md); Import (nur Statistik «Alle Hallen», Kennzeichen «importiert») → [SPEC-043](SPEC-043-import-fremder-ticks.md).
+- Einstellungen: Gruppen ([SPEC-042](SPEC-042-trainer-gruppe.md)), Sprache ([SPEC-039](SPEC-039-englisch.md)), Challenges ([SPEC-038](SPEC-038-hallen-challenge.md)).

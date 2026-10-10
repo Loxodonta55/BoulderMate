@@ -124,6 +124,41 @@ export function updateProfile(
 }
 
 /**
+ * SPEC-033 F1/F4: Schalter «Mit Namen in ‹Wer war schon oben›».
+ * Lokal sofort; nach Supabase als eigene Spalte (fehlt sie noch, bleibt es lokal).
+ */
+export function isShownInLists(userId: string): boolean {
+  const p = getProfiles().find(x => x.id === userId);
+  return p?.showInLists !== false;
+}
+
+export function setShowInLists(userId: string, show: boolean): UserProfile {
+  const profiles = getProfiles();
+  const idx = profiles.findIndex(p => p.id === userId);
+  const base = idx >= 0 ? profiles[idx] : getProfile(userId);
+  const updated: UserProfile = { ...base, showInLists: show, updatedAt: new Date().toISOString() };
+  const list = getProfiles().filter(p => p.id !== userId);
+  list.push(updated);
+  setStorageJson(STORAGE_KEY_PROFILES, list);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:ratings_updated', { detail: { action: 'visibility' } }));
+  }
+
+  if (typeof window !== 'undefined' && supabase && isSupabaseConfigured && !isTestEnv) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (isUuid) {
+      supabase.from('user_profiles').update({ show_in_lists: show }).eq('id', userId).then(
+        ({ error }) => {
+          if (error) console.warn('[Profile] show_in_lists nicht gespeichert (Migration SPEC-033 eingespielt?):', error.message);
+        },
+        () => undefined
+      );
+    }
+  }
+  return updated;
+}
+
+/**
  * AC-7: Deletes user's account data (profile, ascents and ratings).
  */
 export function deleteAccount(userId: string): void {

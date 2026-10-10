@@ -102,7 +102,7 @@ describe('AC-1 Admin-Konsole', () => {
   it('zeigt direkt die Tabs, keine Hallen-Karten, keine Suche, kein Banner', () => {
     render(<GymManagement activeGymId="gym-6a-plus" userId={BORIS} />);
     const tabs = screen.getByTestId('admin-tabs');
-    expect(within(tabs).getAllByRole('tab').map(t => t.textContent)).toEqual(['Sektoren', 'Farben', 'Team', 'Halle']);
+    expect(within(tabs).getAllByRole('tab').map(t => t.textContent)).toEqual(['Sektoren', 'Farben', 'Team', 'Halle', 'Zahlen']);
     expect(screen.getByTestId('admin-tab-sectors')).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/Halle suchen/i)).not.toBeInTheDocument();

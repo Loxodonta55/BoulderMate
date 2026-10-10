@@ -14,6 +14,7 @@ import { GradeScale } from '../types/gym';
 import * as gymStorage from './gymStorage';
 import { getStorageJson, setStorageJson, setStorageString, isBoulderDeleted, markBoulderDeleted, isValidUuid, stringToUuid } from './storageUtils';
 import { registerSyncHandlers } from './syncBridge';
+import { hasPendingSync } from './pendingSync';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
 import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY, isTestEnv, getCurrentAuthUser } from './authService';
 import { getProfiles, STORAGE_KEY_PROFILES } from './profileService';
@@ -24,6 +25,15 @@ const STORAGE_KEY_ASCENTS = 'boulderapp_ascents_v3';
 const STORAGE_KEY_RATINGS = 'boulderapp_ratings_v3';
 const STORAGE_KEY_GRADE_SCALES = 'boulderapp_grade_scales_v2';
 const STORAGE_KEY_CLIMBER_ROUTES = 'boulder_app_records_v1';
+
+
+/** SPEC-041: Auslastungs-Meldung der Halle übernehmen, wenn sie neuer ist als die lokale. */
+function newerCrowd(remote: any, local: any): { crowd_level?: any; crowd_updated_at?: string } {
+  const r = remote?.crowd_updated_at as string | undefined;
+  const l = local?.crowd_updated_at as string | undefined;
+  if (r && (!l || r > l)) return { crowd_level: remote.crowd_level || undefined, crowd_updated_at: r };
+  return l ? { crowd_level: local.crowd_level, crowd_updated_at: l } : {};
+}
 
 export interface SyncStatus {
   lastSyncTime: string | null;
@@ -52,18 +62,26 @@ function isMissingColumnError(error: any): boolean {
   return error?.code === 'PGRST204' || error?.code === '42703' || /column|schema cache/i.test(msg);
 }
 
-function mapSectorRebuildFields(row: any, local?: Partial<Sector>): Pick<Sector, 'draftPhotoUrl' | 'rebuildStartedAt' | 'rebuiltAt'> {
+// SPEC-031: Umbau-Ankündigung (Migration 20261009_spec031_umbau_ankuendigen.sql); fehlt die Spalte, ohne sie synchronisieren
+let spec031ColumnMissing = false;
+
+function mapSectorRebuildFields(row: any, local?: Partial<Sector>): Pick<Sector, 'draftPhotoUrl' | 'rebuildStartedAt' | 'rebuiltAt' | 'rebuildPlannedFor'> {
+  const rebuildPlannedFor = row && 'rebuild_planned_for' in row
+    ? (row.rebuild_planned_for ? String(row.rebuild_planned_for).slice(0, 10) : undefined)
+    : local?.rebuildPlannedFor;
   if (row && 'rebuild_started_at' in row) {
     return {
       draftPhotoUrl: row.draft_photo_url || undefined,
       rebuildStartedAt: row.rebuild_started_at || undefined,
       rebuiltAt: row.rebuilt_at || undefined,
+      rebuildPlannedFor,
     };
   }
   return {
     draftPhotoUrl: local?.draftPhotoUrl,
     rebuildStartedAt: local?.rebuildStartedAt,
     rebuiltAt: local?.rebuiltAt,
+    rebuildPlannedFor,
   };
 }
 
@@ -101,10 +119,16 @@ export async function syncFromSupabase(): Promise<boolean> {
   try {
     // 0.5 User Profiles aus Supabase laden & lokal ablegen
     try {
-      const { data: dbProfiles } = await supabase
+      // SPEC-028 F13: ausdrückliche Spalten, weil `email` nicht mehr öffentlich lesbar ist.
+      // SPEC-033: `show_in_lists` dazu; fehlt die Spalte noch (Migration), ohne sie nochmal laden.
+      let { data: dbProfiles, error: profileSelectErr } = await supabase
         .from('user_profiles')
-        // SPEC-028 F13: ausdrückliche Spalten, weil `email` nicht mehr öffentlich lesbar ist
-        .select('id, nickname, avatar_url, created_at, updated_at');
+        .select('id, nickname, avatar_url, created_at, updated_at, show_in_lists');
+      if (profileSelectErr) {
+        ({ data: dbProfiles } = await supabase
+          .from('user_profiles')
+          .select('id, nickname, avatar_url, created_at, updated_at'));
+      }
 
       if (dbProfiles && dbProfiles.length > 0) {
         const localProfiles = getProfiles();
@@ -117,6 +141,7 @@ export async function syncFromSupabase(): Promise<boolean> {
             avatarUrl: p.avatar_url || existing?.avatarUrl,
             createdAt: p.created_at || existing?.createdAt || new Date().toISOString(),
             updatedAt: p.updated_at || existing?.updatedAt,
+            showInLists: typeof (p as any).show_in_lists === 'boolean' ? (p as any).show_in_lists : existing?.showInLists,
           });
         }
         setStorageJson(STORAGE_KEY_PROFILES, Array.from(profileMap.values()));
@@ -156,6 +181,8 @@ export async function syncFromSupabase(): Promise<boolean> {
               lng: typeof g.lng === 'number' ? g.lng : localG.lng,
               // SPEC-028 F16: Treff erlaubt?
               treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : localG.treff_enabled,
+              // SPEC-041: Meldung der Halle (neuere gewinnt)
+              ...newerCrowd(g, localG),
             });
             matched = true;
             break;
@@ -174,6 +201,7 @@ export async function syncFromSupabase(): Promise<boolean> {
             lat: typeof g.lat === 'number' ? g.lat : undefined,
             lng: typeof g.lng === 'number' ? g.lng : undefined,
             treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : undefined,
+            ...newerCrowd(g, {}),
           });
         }
       }
@@ -521,6 +549,8 @@ export async function syncFromSupabase(): Promise<boolean> {
         const matchingBoulder = localBoulders.find(b => b.id === a.boulder_id || stringToUuid(b.id) === a.boulder_id);
         const resolvedBoulderId = matchingBoulder?.id || a.boulder_id;
         const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+        // SPEC-032 AC-3: Wartendes (offline geloggt) nicht vom Server überschreiben lassen
+        if (hasPendingSync('ascent', resolvedUser.userId, resolvedBoulderId, sameSyncRef, sameSyncRef)) continue;
 
         ascentMap.set(key, {
           id: a.id,
@@ -529,6 +559,7 @@ export async function syncFromSupabase(): Promise<boolean> {
           userAvatarUrl: resolvedUser.avatarUrl,
           boulderId: resolvedBoulderId,
           type: (a.ascent_style as any) || 'top',
+          attempts: typeof a.attempts === 'number' && a.attempts > 1 ? a.attempts : undefined,
           createdAt: a.created_at,
         });
       }
@@ -553,6 +584,8 @@ export async function syncFromSupabase(): Promise<boolean> {
         const matchingBoulder = localBoulders.find(b => b.id === r.boulder_id || stringToUuid(b.id) === r.boulder_id);
         const resolvedBoulderId = matchingBoulder?.id || r.boulder_id;
         const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+        // SPEC-032 AC-3: Wartendes (offline geloggt) nicht vom Server überschreiben lassen
+        if (hasPendingSync('rating', resolvedUser.userId, resolvedBoulderId, sameSyncRef, sameSyncRef)) continue;
 
         ratingMap.set(key, {
           id: r.id,
@@ -992,10 +1025,19 @@ export async function syncSectorToSupabase(sector: any): Promise<boolean> {
       rebuildPayload.rebuild_started_at = sector.rebuildStartedAt || null;
       rebuildPayload.rebuilt_at = sector.rebuiltAt || null;
     }
+    // SPEC-031: Umbau-Ankündigung
+    const plannedPayload: Record<string, any> = sector.gymId !== undefined && !spec031ColumnMissing
+      ? { rebuild_planned_for: sector.rebuildPlannedFor || null }
+      : {};
 
     let { error } = await supabase.from('sectors').upsert(
-      spec021ColumnsMissing ? payload : { ...payload, ...rebuildPayload }
+      spec021ColumnsMissing ? payload : { ...payload, ...rebuildPayload, ...plannedPayload }
     );
+    if (error && !spec021ColumnsMissing && Object.keys(plannedPayload).length > 0 && isMissingColumnError(error)) {
+      spec031ColumnMissing = true;
+      console.warn('[Sync] SPEC-031-Spalte rebuild_planned_for fehlt in Supabase, synchronisiere ohne Umbau-Ankündigung.');
+      ({ error } = await supabase.from('sectors').upsert({ ...payload, ...rebuildPayload }));
+    }
     if (error && !spec021ColumnsMissing && Object.keys(rebuildPayload).length > 0 && isMissingColumnError(error)) {
       spec021ColumnsMissing = true;
       console.warn('[Sync] SPEC-021-Spalten fehlen in Supabase, synchronisiere ohne Umbau-Felder.');
@@ -1368,6 +1410,13 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
   }
 }
 
+/** SPEC-032: gleiche ID lokal oder als abgeleitete UUID */
+function sameSyncRef(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return stringToUuid(a) === b || stringToUuid(b) === a;
+}
+
 /**
  * Synchronisiert eine Begehung in Echtzeit aufwärts nach Supabase.
  */
@@ -1383,7 +1432,8 @@ export async function syncAscentToSupabase(ascent: Ascent): Promise<boolean> {
       boulder_id: boulderUuid,
       user_id: userUuid,
       ascent_style: ascent.type,
-      attempts: ascent.type === 'flash' ? 1 : 1,
+      // SPEC-035: gezählte Versuche (ohne Zählung 1 wie bisher)
+      attempts: ascent.type === 'flash' ? 1 : Math.max(1, ascent.attempts || 1),
       notes: null,
       created_at: ascent.createdAt || new Date().toISOString(),
     };
@@ -1503,7 +1553,8 @@ export async function deleteRatingFromSupabase(userId: string, boulderId: string
  * Löscht eine Begehung eines Kletterers aus Supabase.
  */
 export async function deleteAscentFromSupabase(userId: string, boulderId: string): Promise<boolean> {
-  if (!supabase || !isSupabaseConfigured || !userId || !boulderId) return false;
+  // SPEC-032: «nichts zu senden» gilt als erledigt (sonst landet es in der Warteschlange)
+  if (!supabase || !isSupabaseConfigured || isTestEnv || !userId || !boulderId) return true;
   try {
     const boulderUuid = isValidUuid(boulderId) ? boulderId : stringToUuid(boulderId);
     const userUuid = toKnownAuthUserUuid(userId);
@@ -2108,9 +2159,12 @@ export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
         const matchingBoulder = localBoulders.find(b => b.id === a.boulder_id || stringToUuid(b.id) === a.boulder_id);
         const resolvedBoulderId = matchingBoulder?.id || a.boulder_id;
         const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+        // SPEC-032 AC-3: Wartendes (offline geloggt) nicht vom Server überschreiben lassen
+        if (hasPendingSync('ascent', resolvedUser.userId, resolvedBoulderId, sameSyncRef, sameSyncRef)) continue;
 
         const existing = ascentMap.get(key);
-        if (!existing || existing.type !== a.ascent_style) {
+        const remoteAttempts = typeof a.attempts === 'number' && a.attempts > 1 ? a.attempts : undefined;
+        if (!existing || existing.type !== a.ascent_style || (existing.attempts || undefined) !== remoteAttempts) {
           ascentsChanged = true;
           ascentMap.set(key, {
             id: a.id,
@@ -2119,6 +2173,7 @@ export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
             userAvatarUrl: resolvedUser.avatarUrl,
             boulderId: resolvedBoulderId,
             type: (a.ascent_style as any) || 'top',
+            attempts: typeof a.attempts === 'number' && a.attempts > 1 ? a.attempts : undefined,
             createdAt: a.created_at,
           });
         }
@@ -2144,6 +2199,8 @@ export async function syncRatingsAndAscentsQuietly(): Promise<boolean> {
         const matchingBoulder = localBoulders.find(b => b.id === r.boulder_id || stringToUuid(b.id) === r.boulder_id);
         const resolvedBoulderId = matchingBoulder?.id || r.boulder_id;
         const key = `${resolvedBoulderId}_${resolvedUser.userId}`;
+        // SPEC-032 AC-3: Wartendes (offline geloggt) nicht vom Server überschreiben lassen
+        if (hasPendingSync('rating', resolvedUser.userId, resolvedBoulderId, sameSyncRef, sameSyncRef)) continue;
 
         const existing = ratingMap.get(key);
         if (!existing || existing.qualityStars !== r.stars || existing.gradeFeel !== r.perceived_difficulty) {

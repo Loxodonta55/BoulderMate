@@ -7,6 +7,15 @@
  * dependencies and removing dynamic import() calls.
  */
 
+import {
+  PendingSyncItem,
+  enqueuePendingSync,
+  clearPendingSync,
+  flushPendingSync,
+  getPendingSyncCount,
+  isDeviceOnline,
+} from './pendingSync';
+
 export interface SyncHandlers {
   syncSector?: (sector: any) => Promise<boolean>;
   deleteSector?: (sectorId: string) => Promise<boolean>;
@@ -26,8 +35,61 @@ export interface SyncHandlers {
 
 const handlers: SyncHandlers = {};
 
+/**
+ * SPEC-032 F3: Begehungen und Bewertungen, die nicht gesendet werden konnten,
+ * kommen in die Warteschlange und werden später erneut gesendet.
+ */
+function sendPending(item: PendingSyncItem): Promise<boolean> {
+  if (item.kind === 'ascent') {
+    if (item.op === 'delete') return handlers.deleteAscent ? handlers.deleteAscent(item.userId, item.boulderId) : Promise.resolve(false);
+    return handlers.syncAscent ? handlers.syncAscent(item.payload) : Promise.resolve(false);
+  }
+  if (item.op === 'delete') return handlers.deleteRating ? handlers.deleteRating(item.userId, item.boulderId) : Promise.resolve(false);
+  return handlers.syncRating ? handlers.syncRating(item.payload) : Promise.resolve(false);
+}
+
+export function flushPendingSyncNow(): Promise<number> {
+  return flushPendingSync(sendPending);
+}
+
+let pendingWatcherInstalled = false;
+function installPendingWatcher(): void {
+  if (pendingWatcherInstalled || typeof window === 'undefined') return;
+  pendingWatcherInstalled = true;
+  window.addEventListener('online', () => {
+    void flushPendingSyncNow();
+  });
+  window.setTimeout(() => {
+    void flushPendingSyncNow();
+  }, 1500);
+}
+
+/** Sendet einmal; bei Fehlschlag in die Warteschlange, bei Erfolg Wartendes nachschieben. */
+function sendOrQueue(
+  run: (() => Promise<boolean>) | undefined,
+  item: Omit<PendingSyncItem, 'queuedAt' | 'tries'>
+): Promise<boolean> {
+  if (!run) return Promise.resolve(false);
+  if (!isDeviceOnline()) {
+    enqueuePendingSync(item);
+    return Promise.resolve(false);
+  }
+  return run()
+    .catch(() => false)
+    .then(ok => {
+      if (ok) {
+        clearPendingSync(item.kind, item.userId, item.boulderId);
+        if (getPendingSyncCount() > 0) void flushPendingSyncNow();
+      } else {
+        enqueuePendingSync(item);
+      }
+      return ok;
+    });
+}
+
 export function registerSyncHandlers(newHandlers: Partial<SyncHandlers>): void {
   Object.assign(handlers, newHandlers);
+  installPendingWatcher();
 }
 
 export const syncBridge = {
@@ -50,16 +112,24 @@ export const syncBridge = {
     return handlers.deleteBoulder ? handlers.deleteBoulder(boulderId).catch(() => false) : Promise.resolve(false);
   },
   syncAscent(ascent: any): Promise<boolean> {
-    return handlers.syncAscent ? handlers.syncAscent(ascent).catch(() => false) : Promise.resolve(false);
+    return sendOrQueue(handlers.syncAscent && (() => handlers.syncAscent!(ascent)), {
+      kind: 'ascent', op: 'upsert', userId: ascent?.userId, boulderId: ascent?.boulderId, payload: ascent,
+    });
   },
   deleteAscent(userId: string, boulderId: string): Promise<boolean> {
-    return handlers.deleteAscent ? handlers.deleteAscent(userId, boulderId).catch(() => false) : Promise.resolve(false);
+    return sendOrQueue(handlers.deleteAscent && (() => handlers.deleteAscent!(userId, boulderId)), {
+      kind: 'ascent', op: 'delete', userId, boulderId,
+    });
   },
   syncRating(rating: any): Promise<boolean> {
-    return handlers.syncRating ? handlers.syncRating(rating).catch(() => false) : Promise.resolve(false);
+    return sendOrQueue(handlers.syncRating && (() => handlers.syncRating!(rating)), {
+      kind: 'rating', op: 'upsert', userId: rating?.userId, boulderId: rating?.boulderId, payload: rating,
+    });
   },
   deleteRating(userId: string, boulderId: string): Promise<boolean> {
-    return handlers.deleteRating ? handlers.deleteRating(userId, boulderId).catch(() => false) : Promise.resolve(false);
+    return sendOrQueue(handlers.deleteRating && (() => handlers.deleteRating!(userId, boulderId)), {
+      kind: 'rating', op: 'delete', userId, boulderId,
+    });
   },
   syncRatingsAndAscentsQuietly(): Promise<boolean> {
     return handlers.syncRatingsAndAscentsQuietly ? handlers.syncRatingsAndAscentsQuietly().catch(() => false) : Promise.resolve(false);

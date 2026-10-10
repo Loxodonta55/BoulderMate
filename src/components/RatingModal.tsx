@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { InfoTip, GRADE_FEEL_HELP } from './basis/InfoTip';
+import { t, useLang } from '../lib/i18n';
 import {
   WallBoulder,
   GymGradeScale,
@@ -42,6 +44,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   onSave,
   onDeleteRating,
 }) => {
+  useLang();
   // Step 1: GradeFeel ('soft' | 'fair' | 'stiff')
   // Step 2: Quality Stars (1-5) & optional Radar attributes
   const [step, setStep] = useState<1 | 2>(1);
@@ -127,23 +130,23 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-headline text-[var(--bm-text)] flex items-center gap-1.5">
-                  <span>{boulder.name || `${gradeScale?.colorName || 'Boulder'} Problem`}</span>
+                  <span>{boulder.name || t('{name} Problem', { name: gradeScale?.colorName || 'Boulder' })}</span>
                 </h2>
                 <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-xl bg-[var(--bm-elevated)] text-[var(--bm-accent)] border border-[var(--bm-line)]">
-                  Schritt {step}/2
+                  {t('Schritt {n}/2', { n: step })}
                 </span>
               </div>
               <p className="text-xs font-mono text-[var(--bm-text-2)]">
                 {step === 1
-                  ? 'Wie fandest du den Grad / die Schwierigkeit?'
-                  : 'Routenqualität & Spaß bewerten'}
+                  ? t('Wie fandest du den Grad / die Schwierigkeit?')
+                  : t('Routenqualität & Spaß bewerten')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
-            aria-label="Schließen"
+            aria-label={t('Schließen')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -153,9 +156,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         {step === 1 && (
           <div className="p-4 sm:p-5 space-y-6">
             <div className="space-y-3">
-              <label className="text-xs font-mono font-bold text-[var(--bm-text-2)] block text-center">
-                Grad-Empfinden (Schwierigkeit)
-              </label>
+              <div className="flex flex-wrap items-center justify-center gap-x-2">
+                <span className="text-[15px] font-semibold text-[var(--bm-text-2)]">{t('Grad-Empfinden (Schwierigkeit)')}</span>
+                <InfoTip text={GRADE_FEEL_HELP} label={t('Was heisst Soft, Fair, Stiff?')} testId="rating-info-grade-feel" />
+              </div>
 
               <div className="grid grid-cols-3 gap-2.5">
                 <button
@@ -168,7 +172,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   }`}
                 >
                   <span className="font-headline text-sm">Soft</span>
-                  <span className="text-[10px] font-normal text-[var(--bm-text-2)]">eher leicht</span>
+                  <span className="text-[14px] font-normal text-[var(--bm-text-2)]">{t('eher leicht')}</span>
                 </button>
 
                 <button
@@ -181,7 +185,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   }`}
                 >
                   <span className="font-headline text-sm">Fair</span>
-                  <span className="text-[10px] font-normal text-[var(--bm-text-2)]">genau passend</span>
+                  <span className="text-[14px] font-normal text-[var(--bm-text-2)]">{t('genau passend')}</span>
                 </button>
 
                 <button
@@ -194,7 +198,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   }`}
                 >
                   <span className="font-headline text-sm">Stiff</span>
-                  <span className="text-[10px] font-normal text-[var(--bm-text-2)]">ziemlich hart</span>
+                  <span className="text-[14px] font-normal text-[var(--bm-text-2)]">{t('ziemlich hart')}</span>
                 </button>
               </div>
             </div>
@@ -210,10 +214,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                     onClose();
                   }}
                   className="py-2 px-3 text-xs font-mono font-semibold text-[var(--bm-danger)] hover:text-[var(--bm-danger)] bg-[var(--bm-danger)]/10 hover:bg-[var(--bm-danger)]/15 border border-[var(--bm-danger)]/40 rounded-xl transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                  title="Eigene Bewertung löschen"
+                  title={t('Eigene Bewertung löschen')}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Löschen</span>
+                  <span className="hidden sm:inline">{t('Löschen')}</span>
                 </button>
               )}
 
@@ -222,7 +226,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                 onClick={onClose}
                 className="flex-1 py-2 px-4 text-xs font-mono font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] rounded-xl transition text-center cursor-pointer"
               >
-                {isTriggeredByAscent ? 'Überspringen' : 'Abbrechen'}
+                {isTriggeredByAscent ? t('Überspringen') : t('Abbrechen')}
               </button>
 
               <button
@@ -230,7 +234,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                 onClick={() => setStep(2)}
                 className="flex-1 py-2 px-4 text-xs font-headline font-bold text-[var(--bm-bg)] bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Weiter</span>
+                <span>{t('Weiter')}</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>
             </div>
@@ -242,7 +246,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           <div className="p-4 sm:p-5 space-y-6 animate-in fade-in duration-150">
             {/* Ausgewaehltes Grad-Empfinden als kompakter Badge mit Zurueck-Option */}
             <div className="flex items-center justify-between px-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-xs font-mono">
-              <span className="text-[var(--bm-text-2)]">Grad-Empfinden:</span>
+              <span className="text-[var(--bm-text-2)]">{t('Grad-Empfinden:')}</span>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-[var(--bm-text)]">
                   {gradeFeel ? (
@@ -252,7 +256,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                       {gradeFeel === 'stiff' && 'Stiff'}
                     </>
                   ) : (
-                    'Nicht angegeben'
+                    t('Nicht angegeben')
                   )}
                 </span>
                 <button
@@ -260,7 +264,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                   onClick={() => setStep(1)}
                   className="text-[10px] text-[var(--bm-accent)] hover:underline cursor-pointer ml-1"
                 >
-                  Ändern
+                  {t('Ändern')}
                 </button>
               </div>
             </div>
@@ -269,10 +273,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold text-[var(--bm-text-2)] block">
-                  Routenqualität & Spaß
+                  {t('Routenqualität & Spaß')}
                 </label>
                 <span className="text-xs font-mono font-bold text-[var(--bm-accent)]">
-                  {hoverStars !== null ? hoverStars : qualityStars} von 5 Sternen
+                  {t('{n} von 5 Sternen', { n: hoverStars !== null ? hoverStars : qualityStars })}
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 py-3 bg-[var(--bm-bg)] rounded-xl border border-[var(--bm-line)]">
@@ -286,7 +290,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                       onMouseLeave={() => setHoverStars(null)}
                       onClick={() => setQualityStars(star)}
                       className="p-1 transition-opacity hover:opacity-80 active:opacity-60 focus:outline-none cursor-pointer"
-                      aria-label={`${star} Sterne`}
+                      aria-label={t('{n} Sterne', { n: star })}
                     >
                       <Star
                         className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors ${
@@ -310,9 +314,9 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Sliders className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                  <span>Klettereigenschaften bewerten (Radar-Chart)</span>
+                  <span>{t('Klettereigenschaften bewerten (Radar-Chart)')}</span>
                   <span className="text-[10px] font-mono text-[var(--bm-text-2)] normal-case tracking-normal">
-                    (optional)
+                    {t('(optional)')}
                   </span>
                 </div>
                 {isRadarExpanded ? (
@@ -325,14 +329,14 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               {isRadarExpanded && (
                 <div className="p-4 space-y-4 border-t border-[var(--bm-line)] bg-[var(--bm-surface)] animate-in slide-in-from-top-2 duration-150">
                   <p className="text-[11px] font-mono text-[var(--bm-text-2)]">
-                    Passe die 6 Achsen nach deinem Empfinden an (1 = minimal, 5 = dominant).
-                    Fließt mit in den Community-Schnitt ein!
+                    {t('Passe die 6 Achsen nach deinem Empfinden an (1 = minimal, 5 = dominant).')}{' '}
+                    {t('Fließt mit in den Community-Schnitt ein!')}
                   </p>
 
                   {RADAR_AXIS_DEFINITIONS.map(axisDef => (
                     <div key={axisDef.key} className="space-y-1 font-mono">
                       <div className="flex justify-between text-[11px] font-bold text-[var(--bm-text)]">
-                        <span>{axisDef.fullLabel}</span>
+                        <span>{t(axisDef.fullLabel)}</span>
                         <span className="text-[var(--bm-accent)] font-bold">{radarValues[axisDef.key]}/5</span>
                       </div>
                       <input
@@ -361,10 +365,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                     onClose();
                   }}
                   className="py-2 px-3 text-xs font-mono font-semibold text-[var(--bm-danger)] hover:text-[var(--bm-danger)] bg-[var(--bm-danger)]/10 hover:bg-[var(--bm-danger)]/15 border border-[var(--bm-danger)]/40 rounded-xl transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                  title="Eigene Bewertung löschen"
+                  title={t('Eigene Bewertung löschen')}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Löschen</span>
+                  <span className="hidden sm:inline">{t('Löschen')}</span>
                 </button>
               )}
 
@@ -373,7 +377,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                 onClick={() => setStep(1)}
                 className="py-2 px-3 text-xs font-mono font-semibold text-[var(--bm-text-2)] hover:text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] rounded-xl transition text-center cursor-pointer"
               >
-                Zurück
+                {t('Zurück')}
               </button>
 
               <button
@@ -382,7 +386,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
                 className="flex-1 py-2 px-4 text-xs font-headline font-bold text-[var(--bm-bg)] bg-[var(--bm-strong)] hover:bg-[var(--bm-text)] rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 stroke-[2]" />
-                <span>Bewertung speichern</span>
+                <span>{t('Bewertung speichern')}</span>
               </button>
             </div>
           </div>

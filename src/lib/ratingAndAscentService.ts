@@ -178,6 +178,8 @@ export function logAscent(
     resultAscent = {
       ...prev,
       type,
+      // SPEC-035 F3: Top im (n+1). Versuch, Flash immer 1
+      attempts: attemptsAfterLog(prev, type),
       userNickname,
       userAvatarUrl: userAvatarUrl || prev.userAvatarUrl,
       createdAt: now,
@@ -194,6 +196,7 @@ export function logAscent(
       userAvatarUrl,
       boulderId,
       type,
+      attempts: type === 'flash' ? 1 : undefined,
       createdAt: now,
     };
     all.push(resultAscent);
@@ -204,6 +207,64 @@ export function logAscent(
   syncBridge.syncAscent(resultAscent);
 
   return { ascent: resultAscent, isFirstTopOrFlash };
+}
+
+/** SPEC-035 F3: Versuche nach dem Loggen. Ohne gezählte Versuche bleibt das Feld leer. */
+export function attemptsAfterLog(prev: Ascent | null | undefined, type: AscentType): number | undefined {
+  if (type === 'flash') return 1;
+  const counted = prev?.attempts;
+  if (!counted) return undefined;
+  if (type === 'top' && prev?.type === 'project') return counted + 1;
+  return counted;
+}
+
+/**
+ * SPEC-035 F2: «+1 Versuch». Ist der Boulder noch nicht geloggt, wird er Projekt.
+ * Gibt den vorherigen Stand zurück (für «Rückgängig»).
+ */
+export function addAttempt(
+  userId: string,
+  userNickname: string,
+  boulderId: string,
+  userAvatarUrl?: string
+): { ascent: Ascent; previous: Ascent | null } {
+  const all = getAscents();
+  const idx = all.findIndex(a => isUserMatch(a.userId, userId) && isBoulderMatch(a.boulderId, boulderId));
+  const previous = idx >= 0 ? { ...all[idx] } : null;
+  let ascent: Ascent;
+  if (idx >= 0) {
+    ascent = { ...all[idx], attempts: (all[idx].attempts || 0) + 1 };
+    all[idx] = ascent;
+  } else {
+    ascent = {
+      id: `ascent-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      userId,
+      userNickname,
+      userAvatarUrl,
+      boulderId,
+      type: 'project',
+      attempts: 1,
+      createdAt: getUniqueIsoTimestamp(),
+    };
+    all.push(ascent);
+  }
+  setStorageJson(STORAGE_KEY_ASCENTS, all);
+  notifyAscentsChanged(boulderId);
+  syncBridge.syncAscent(ascent);
+  return { ascent, previous };
+}
+
+/** Stellt einen früheren Stand wieder her (null = Eintrag entfernen). */
+export function restoreAscent(userId: string, boulderId: string, previous: Ascent | null): void {
+  if (!previous) {
+    deleteAscent(userId, boulderId);
+    return;
+  }
+  const all = getAscents().filter(a => !(isUserMatch(a.userId, userId) && isBoulderMatch(a.boulderId, boulderId)));
+  all.push(previous);
+  setStorageJson(STORAGE_KEY_ASCENTS, all);
+  notifyAscentsChanged(boulderId);
+  syncBridge.syncAscent(previous);
 }
 
 export function deleteAscent(userId: string, boulderId: string): boolean {

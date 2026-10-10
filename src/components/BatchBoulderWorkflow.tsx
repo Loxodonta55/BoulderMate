@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   WallBoulder,
   GymMemberRole,
@@ -19,7 +19,13 @@ import {
   setRebuildPhoto,
   completeSectorRebuild,
   discardSectorRebuild,
+  getLastSelectedSetterId,
+  setLastSelectedSetterId,
 } from '../lib/batchBoulderService';
+import { getSetterOptions } from '../lib/gymInsights';
+import { isUserMatch } from '../lib/ratingAndAscentService';
+import { RebuildAnnounceDialog } from './RebuildAnnounceDialog';
+import { isRebuildAnnounced, formatPlannedDate } from '../lib/wallNews';
 import { useGymSectorData } from '../hooks/useGymSectorData';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { BoulderBottomSheet } from './BoulderBottomSheet';
@@ -41,6 +47,7 @@ import {
   Save,
   Archive,
   RefreshCw,
+  CalendarClock,
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
@@ -87,6 +94,17 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
   // SPEC-021: Foto für Live-Wand oder für einen Umbau (Entwurfsfoto)
   const [photoPurpose, setPhotoPurpose] = useState<'live' | 'rebuild'>('live');
   const inRebuild = isSectorInRebuild(selectedSector);
+  // SPEC-031 F5: Umbau ankündigen
+  const [isAnnounceOpen, setIsAnnounceOpen] = useState<boolean>(false);
+  const announcedFor = isRebuildAnnounced(selectedSector) ? selectedSector!.rebuildPlannedFor! : null;
+
+  // SPEC-030 F8: «Geschraubt von» – Hallen-Team; neue Boulder bekommen die letzte Wahl, sonst den Erfasser
+  const setterOptions = useMemo(() => (gym?.id ? getSetterOptions(gym.id) : []), [gym?.id]);
+  const resolveNewSetterId = (): string => {
+    const last = gym?.id ? getLastSelectedSetterId(gym.id) : null;
+    if (last && setterOptions.some(o => o.id === last)) return last;
+    return setterOptions.find(o => isUserMatch(o.id, currentUserId))?.id || currentUserId;
+  };
 
   // SPEC-015: Mobile-First Android Back-Button Handling in Setter Studio
   useBackHandler({
@@ -143,7 +161,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
           gradeScaleId: lastColorId,
           positionX: x,
           positionY: y,
-          setterId: currentUserId,
+          setterId: resolveNewSetterId(),
         },
         currentRole
       );
@@ -181,8 +199,10 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     name?: string;
     notes?: string;
     radar: RadarAttributes;
+    setterId?: string;
   }) => {
     if (!selectedBoulder) return;
+    if (data.setterId && gym?.id) setLastSelectedSetterId(gym.id, data.setterId);
 
     // AC-14 & AC-15: Immediately persist to storage & cloud (works for both draft and active boulders!)
     try {
@@ -393,7 +413,8 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     }
 
     const modCount = pendingModifiedIds.length;
-    const result = publishBatch(selectedSectorId, currentUserId, pendingArchiveIds);
+    // SPEC-030 F8: Alle Entwürfe der Wand veröffentlichen, auch die für Kollegen eingetragenen («Geschraubt von»)
+    const result = publishBatch(selectedSectorId, '', pendingArchiveIds);
 
     // Refresh state
     setBoulders(getWallBoulders(selectedSectorId));
@@ -537,6 +558,23 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Wand neu schrauben</span>
+              </button>
+            )}
+
+            {/* SPEC-031 F5: Umbau ankündigen */}
+            {!inRebuild && (
+              <button
+                type="button"
+                data-testid="announce-rebuild-btn"
+                onClick={() => setIsAnnounceOpen(true)}
+                className={`min-h-[36px] px-3.5 py-1.5 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                  announcedFor
+                    ? 'border-[var(--bm-warning)] text-[var(--bm-warning)] bg-[var(--bm-elevated)]'
+                    : 'border-[var(--bm-line)] text-[var(--bm-text)] bg-[var(--bm-elevated)]'
+                }`}
+              >
+                <CalendarClock className="w-4 h-4" />
+                <span>{announcedFor ? `Umbau am ${formatPlannedDate(announcedFor)}` : 'Umbau ankündigen'}</span>
               </button>
             )}
 
@@ -730,7 +768,17 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
         onToggleArchive={handleToggleArchive}
         onDeleteBoulder={handleDeleteBoulder}
         onResetBoulder={inRebuild ? undefined : handleResetBoulder}
+        setterOptions={setterOptions}
       />
+
+      {selectedSector && (
+        <RebuildAnnounceDialog
+          open={isAnnounceOpen}
+          sector={selectedSector}
+          onClose={() => setIsAnnounceOpen(false)}
+          onSaved={showToast}
+        />
+      )}
 
       {/* Summary & Batch Publish Modal */}
       <BatchSummaryModal

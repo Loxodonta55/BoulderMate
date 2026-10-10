@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { isGoogleLoginAvailable, signInWithGoogle } from '../lib/authService';
+import { t } from '../lib/i18n';
 
 /** SPEC-024 AC-5.2: true, sobald Supabase bestätigt, dass Google eingeschaltet ist. */
 export function useGoogleLoginAvailable(): boolean {
@@ -28,7 +29,7 @@ export function useGoogleSignIn() {
       await signInWithGoogle();
       // Erfolgreich: Der Browser verlässt gleich die Seite, busy bleibt stehen.
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google-Anmeldung fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : t('Google-Anmeldung fehlgeschlagen.'));
       setBusy(false);
     }
   };
@@ -64,6 +65,6 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ onClick,
     data-testid="btn-google-login"
   >
     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleLogo />}
-    <span>{busy ? 'Weiterleitung zu Google …' : 'Mit Google fortfahren'}</span>
+    <span>{busy ? t('Weiterleitung zu Google …') : t('Mit Google fortfahren')}</span>
   </button>
 );

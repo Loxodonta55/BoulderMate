@@ -3,8 +3,10 @@ import { AdminGymSheet } from './admin/AdminGymSheet';
 import { Gym, GymMemberRole } from '../types/boulder';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
 import { HeaderFeedbackButton } from './HeaderFeedbackButton';
+import { OfflineChip } from './basis/OfflineChip';
 import { Mountain, Wrench, Layers, ArrowLeft, User, Users, Building2, ChevronDown } from 'lucide-react';
 import type { ClimberTab } from './MobileBottomNav';
+import { t, useLang } from '../lib/i18n';
 
 export interface AppHeaderProps {
   appMode: AppMode;
@@ -58,6 +60,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onGymsChanged,
 }) => {
   const [isAdminGymSheetOpen, setIsAdminGymSheetOpen] = useState(false);
+  useLang();
 
   if (appMode === 'setter') {
     return (
@@ -188,8 +191,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             type="button"
             onClick={onOpenLanding}
             className="flex items-center gap-2 min-h-[44px] shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bm-accent)]"
-            aria-label="BoulderMate, zur Startseite"
-            title="Zur Startseite"
+            aria-label={t('BoulderMate, zur Startseite')}
+            title={t('Zur Startseite')}
             data-testid="header-brand-btn"
           >
             <span className="w-7 h-7 rounded-lg bg-[var(--bm-elevated)] flex items-center justify-center text-[var(--bm-text)] shrink-0" aria-hidden>
@@ -202,8 +205,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               type="button"
               onClick={onOpenGymFinder}
               className="flex items-center gap-1 min-w-0 min-h-[44px] text-[17px] font-semibold text-[var(--bm-text)] max-w-[70vw] md:max-w-[320px]"
-              title="Halle wählen"
-              aria-label={`Halle wählen, gewählt: ${gyms.find(g => g.id === activeGymId)?.name || ''}`}
+              title={t('Halle wählen')}
+              aria-label={t('Halle wählen, gewählt: {name}', { name: gyms.find(g => g.id === activeGymId)?.name || '' })}
               aria-haspopup="dialog"
               data-testid="header-gym-select"
             >
@@ -214,7 +217,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Desktop: zwei Tabs wie die untere Leiste auf dem Handy */}
-        <nav className="hidden md:flex items-center p-0.5 rounded-xl bg-[var(--bm-bg)] shrink-0" aria-label="Bereiche">
+        <nav className="hidden md:flex items-center p-0.5 rounded-xl bg-[var(--bm-bg)] shrink-0" aria-label={t('Bereiche')}>
           <button
             type="button"
             onClick={() => onSelectTab('wall')}
@@ -225,7 +228,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Wand</span>
+            <span>{t('Wand')}</span>
           </button>
           <button
             type="button"
@@ -237,7 +240,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Ich</span>
+            <span>{t('Ich')}</span>
           </button>
           {showTreffTab && (
             <button
@@ -250,10 +253,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>Treff</span>
+              <span>{t('Treff')}</span>
             </button>
           )}
         </nav>
+
+        {/* SPEC-032 F4: offline / wartende Einträge */}
+        {isLoggedIn && <OfflineChip />}
 
         {/* SPEC-026 F16: Feedback gut sichtbar auf jeder Kletterer-Seite (nur angemeldet, F3) */}
         {isLoggedIn && (
@@ -271,8 +277,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             type="button"
             onClick={onOpenRoleGateway}
             className="w-10 h-10 rounded-full bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center justify-center shrink-0"
-            title="Arbeitsbereich wechseln"
-            aria-label="Arbeitsbereich wechseln"
+            title={t('Arbeitsbereich wechseln')}
+            aria-label={t('Arbeitsbereich wechseln')}
             data-testid="climber-switch-workspace-btn"
           >
             <Wrench className="w-4 h-4" />

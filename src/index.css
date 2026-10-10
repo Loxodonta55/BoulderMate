@@ -24,7 +24,7 @@
     --bm-text: #1A1918;
     --bm-strong: #1A1918;
     --bm-text-2: #6B6762;
-    --bm-text-3: #8A857D;
+    --bm-text-3: #736E67; /* SPEC-032 F8: ≥ 4,5:1 auf Hintergrund */
     --bm-accent: #1A1918;
     --bm-on-accent: #FFFFFF;
     --bm-star: #8C6A2A;
@@ -46,7 +46,7 @@
       --bm-text: #F4F2EE;
       --bm-strong: #F4F2EE;
       --bm-text-2: #A39E96;
-      --bm-text-3: #78736C;
+      --bm-text-3: #948E85; /* SPEC-032 F8: hebt Hinweistexte auf ≥ 4,5:1 auf der Fläche */
       --bm-accent: #F4F2EE;
       --bm-on-accent: #121110;
       --bm-star: #D4B06A;

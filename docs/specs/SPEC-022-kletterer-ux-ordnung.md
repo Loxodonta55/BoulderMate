@@ -39,6 +39,7 @@ Screenshots: Wand, Boulder-Detail und Statistik vor dem Umbau. Befunde:
 **F3 – Wie wechselt man den Sektor?**
 → Eine Sektor-Pill direkt unter dem Foto: `‹  Sektorname · 2/8  ›`. Pfeile springen zum vorherigen/nächsten Sektor, Tippen auf den Namen öffnet ein Sheet mit allen Sektoren (Name, Anzahl Boulder, «Neu»/«Im Umbau»). Wischen auf dem Foto bleibt. Die Chip-Leiste entfällt.
 *Warum:* Die Chip-Leiste zeigte bei 8 Sektoren nur 2 Namen und brauchte eine eigene Zeile plus Zähler.
+*Nachtrag 2026-10-09 (SPEC-031):* Unter dem Wandfoto kann der Streifen «n neue Boulder seit deinem letzten Besuch» stehen; das Sektor-Sheet zeigt dann pro Sektor «n neu». Angekündigte Umbauten tragen das Badge «bis Mo 13.10.».
 
 **F4 – Welche Filter braucht ein Kletterer?**
 → Genau vier Chips: `Alle` · `Offen` · `Neu` · `★ Top`.
@@ -159,3 +160,8 @@ Tests (F23): `tests/spec022ClimberUx.test.tsx` («Bewerten-Knopf im halben Sheet
 - Rollen-Gateway nach Login entfernen (SPEC-020 AC-8.3).
 - Peek-Sheet für die Routenliste (SPEC-020 AC-3.2) und Foto ≥ 70 % (AC-1.1).
 - Gast-Modus «Ohne Konto umsehen» (SPEC-020 AC-9.2).
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- Wand: Nummer pro Boulder im Pin, Abzeichen «Projekt», Beta-Spoilerschutz, Offline-Chip, erste Schritte → [SPEC-032](SPEC-032-kletterer-basis-icon-offline-lesbarkeit.md).
+- «Wer war schon oben»: Namens-Schalter («Jemand») → [SPEC-033](SPEC-033-sichtbarkeit-und-meine-daten.md).
+- Englisch im Kletterer-Bereich → [SPEC-039](SPEC-039-englisch.md).

@@ -29,6 +29,7 @@
 - **E8 – «Neu»-Badge**: Neue Routen und neu geschraubte Wände tragen 7 Tage ab Veröffentlichung ein kleines «Neu»-Badge (Sektorliste und Pin). Basis: `publishedAt` der Route bzw. Zeitpunkt von «Wand fertig».
 - **E9 – Umbau verwerfen**: Ein laufender Umbau kann mit «Umbau verwerfen» (mit Rückfrage) abgebrochen werden. Alle Entwürfe des Umbaus und das Entwurfsfoto werden gelöscht, die Live-Wand bleibt unverändert.
 - **E10 – Hinweis «Im Umbau»**: Während ein Umbau läuft, sehen Kletterer über der Wand (und in der Sektorliste) einen kleinen Hinweis «Im Umbau». Alte Routen bleiben sichtbar und loggbar.
+- **E11 – Umbau ankündigen (Nachtrag 2026-10-09, SPEC-031)**: Vor einem Umbau kann der Schrauber ein Datum ankündigen («Umbau ankündigen»). «Wand fertig» löscht die Ankündigung. Außerdem schaltet «Veröffentlichen» seit SPEC-030 alle Entwürfe der Wand live, auch die für einen Kollegen eingetragenen.
 
 ## User Stories
 - **US-1**: Als Schrauber möchte ich «Wand neu schrauben» starten, damit alle alten Routen gesammelt ersetzt werden, ohne jede einzeln zu archivieren.

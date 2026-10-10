@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronDown, Zap, Check } from 'lucide-react';
 import {
   getDeepDiveReport,
+  getDeepDiveInputs,
   formatAxisValue,
   AttributeHighlight,
   DeepDiveRoute,
 } from '../lib/deepDiveService';
+import { styleTrend } from '../lib/meStats';
 
 /**
  * SPEC-004 (Deep Dive v2) · Was verlangen meine Routen?
@@ -85,6 +87,16 @@ export const DeepDiveView: React.FC<DeepDiveViewProps> = ({ userId, gymId, versi
     [userId, gymId, version]
   );
   const [openGrade, setOpenGrade] = useState<string | null>(null);
+  // SPEC-037 F3: Stil-Verlauf – letzte 4 Wochen gegen die 4 Wochen davor
+  const trend = useMemo(
+    () => {
+      const { logbook, radarOf } = getDeepDiveInputs(userId, gymId);
+      return styleTrend(logbook, radarOf as any);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, gymId, version]
+  );
+  const hasTrend = trend.some(t => t.arrow !== '');
 
   return (
     <div className="max-w-xl mx-auto px-4 pb-8 space-y-7" data-testid="deep-dive-view">
@@ -149,6 +161,40 @@ export const DeepDiveView: React.FC<DeepDiveViewProps> = ({ userId, gymId, versi
             </div>
           </section>
 
+          {/* Stil-Verlauf (SPEC-037 F3) */}
+          <section className="space-y-2.5" data-testid="deep-dive-trend">
+            <h2 className="text-[20px] font-semibold">Dein Stil im Verlauf</h2>
+            {hasTrend ? (
+              <>
+                <p className="text-[15px] text-[var(--bm-text-2)]">Letzte 4 Wochen gegen die 4 Wochen davor.</p>
+                <div className="rounded-2xl bg-[var(--bm-surface)] overflow-hidden divide-y divide-[var(--bm-line)]">
+                  {trend
+                    .filter(t => t.arrow !== '')
+                    .map(t => (
+                      <div key={t.key} className="flex items-center gap-3 px-4 min-h-[52px]" data-testid={`deep-dive-trend-${t.key}`}>
+                        <span className="flex-1 text-[17px]">{t.label}</span>
+                        <span className="text-[15px] text-[var(--bm-text-2)] tabular-nums">
+                          {formatAxisValue(t.before!)} → {formatAxisValue(t.recent!)}
+                        </span>
+                        <span
+                          className={`w-8 text-center text-[20px] font-bold ${
+                            t.arrow === '↑' ? 'text-[var(--bm-success)]' : t.arrow === '↓' ? 'text-[var(--bm-warning)]' : 'text-[var(--bm-text-2)]'
+                          }`}
+                          aria-label={t.arrow === '↑' ? 'mehr' : t.arrow === '↓' ? 'weniger' : 'gleich'}
+                        >
+                          {t.arrow}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-[15px] text-[var(--bm-text-2)]" data-testid="deep-dive-trend-empty">
+                Sobald du in zwei aufeinanderfolgenden 4-Wochen-Abschnitten Tops hast, siehst du hier, wie sich dein Stil verändert.
+              </p>
+            )}
+          </section>
+
           {/* Pro Grad */}
           <section className="space-y-2.5" data-testid="deep-dive-levels">
             <h2 className="text-[20px] font-semibold">Was jeder Grad verlangt</h2>
@@ -172,7 +218,7 @@ export const DeepDiveView: React.FC<DeepDiveViewProps> = ({ userId, gymId, versi
                             <TraitChip key={h.key} h={h} testId={`deep-dive-level-${level.fontGrade}-trait-${h.key}`} />
                           ))
                         ) : (
-                          <span className="text-[13px] text-[var(--bm-text-2)]">Ausgeglichen</span>
+                          <span className="text-[14px] text-[var(--bm-text-2)]">Ausgeglichen</span>
                         )}
                       </span>
                       <span className="text-[14px] text-[var(--bm-text-2)] tabular-nums">{level.sendCount}×</span>
@@ -200,7 +246,7 @@ export const DeepDiveView: React.FC<DeepDiveViewProps> = ({ userId, gymId, versi
         </>
       )}
 
-      <p className="text-[12px] text-[var(--bm-text-2)]" data-testid="deep-dive-source-note">
+      <p className="text-[14px] text-[var(--bm-text-2)]" data-testid="deep-dive-source-note">
         Nur Boulder, die du an der Wand als Top oder Flash abgehakt hast. Merkmale von 1 bis 5 aus Schrauber- und
         Community-Einschätzung.
       </p>

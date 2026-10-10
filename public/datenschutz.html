@@ -34,7 +34,8 @@
     <ul>
       <li><strong>Konto:</strong> E-Mail-Adresse, Kletter-Name und, falls vorhanden, Profilbild.</li>
       <li><strong>Anmeldung mit Google:</strong> Google übermittelt uns deinen Namen, deine E-Mail-Adresse und dein Profilbild. Dein Google-Passwort erhalten wir nie.</li>
-      <li><strong>Klettern:</strong> Begehungen, Projekte, Bewertungen und Kommentare zu Bouldern, die du in der App einträgst.</li>
+      <li><strong>Klettern:</strong> Begehungen, Projekte, Bewertungen und Kommentare zu Bouldern, die du in der App einträgst. Gezählte Versuche sind privat und nur für dich sichtbar.</li>
+      <li><strong>Challenges und Gruppen:</strong> Nur wenn du bei einer Hallen-Challenge mitmachst oder einer Trainings-Gruppe beitrittst: deine Teilnahme und dein Kletter-Name.</li>
       <li><strong>Feedback:</strong> Wenn du über «Feedback geben» schreibst: deine Nachricht, die Art (Fehler, Idee, Lob), deine Halle, deinen Kletter-Namen, Browser und Bildschirmgröße. Deine E-Mail-Adresse nur, wenn du ankreuzt, dass wir dich kontaktieren dürfen. Das Feedback lesen nur die Betreiber der App.</li>
       <li><strong>Treff («Wer ist da?»):</strong> Nur wenn du dich einträgst: Halle, Tag und Uhrzeit, dein Kletter-Name, dein Profilbild und, wenn du es erlaubst, dein Niveau, dazu freiwillig ein Boulder und ein kurzer Satz. Außerdem speichern wir deine Bestätigung, dass du mindestens 16 Jahre alt bist, wen du ausgeblendet hast und Meldungen, die du abschickst.</li>
       <li><strong>Technik:</strong> Für die Anmeldung speichert die App ein Sitzungs-Token im Speicher deines Browsers (Local Storage). Es gibt keine Werbe- oder Tracking-Cookies.</li>
@@ -45,18 +46,22 @@
 
     <h2>4. Wer die Daten sonst sieht</h2>
     <ul>
-      <li><strong>Andere Kletterer:</strong> Dein Kletter-Name, dein Profilbild und deine Bewertungen sind für andere Nutzer sichtbar.</li>
+      <li><strong>Andere Kletterer:</strong> Dein Kletter-Name, dein Profilbild und deine Bewertungen sind für andere Nutzer sichtbar, unter anderem in der Liste «Wer war schon oben» und bei Beta-Kommentaren. Unter Ich → Einstellungen → Sichtbarkeit kannst du das abschalten; andere sehen dann «Jemand» statt deines Namens. Sterne und Status zählen weiter im Durchschnitt.</li>
+      <li><strong>Challenges:</strong> Machst du bei einer Challenge mit, sehen die anderen Teilnehmer deinen Kletter-Namen und deinen Fortschritt in der Rangliste. Wer nicht mitmacht, sieht die Rangliste nicht.</li>
+      <li><strong>Trainings-Gruppen:</strong> Trittst du einer Gruppe bei, sieht die Person, die sie gegründet hat, deine Tops, Flashes und Projekte der letzten 8 Wochen. Deine Versuche und Bewertungen sieht sie nicht. Du kannst jederzeit austreten.</li>
       <li><strong>Treff:</strong> Deine Einträge sehen angemeldete Nutzer mit Kletter-Name, Profilbild, Zeit und Halle. Nicht angemeldete Besucher sehen nur Halle, Zeit und Niveau, ohne Namen und Bild. Deine E-Mail-Adresse sieht niemand. Meldungen liest nur der Betreiber der App.</li>
-      <li><strong>Supabase</strong> (Datenbank und Anmeldung), Serverstandort: Europa.</li>
+      <li><strong>Supabase</strong> (Datenbank und Anmeldung), Speicherort der Daten: Server in Europa. [Region aus dem Supabase-Dashboard eintragen, z. B. EU – Frankfurt.]</li>
       <li><strong>Vercel</strong> (Webhosting der App).</li>
       <li><strong>Google</strong>, nur wenn du «Mit Google fortfahren» wählst. Es gilt zusätzlich die Datenschutzerklärung von Google.</li>
+      <li><strong>Apple</strong>, nur wenn du «Mit Apple anmelden» wählst. Wählst du bei Apple «E-Mail verbergen», erhalten wir nur eine Weiterleitungs-Adresse von Apple.</li>
     </ul>
     <p>Mit diesen Anbietern bestehen Auftragsverarbeitungsverträge. [Bitte prüfen.]</p>
 
     <h2>5. Wie lange</h2>
     <p>So lange dein Konto besteht. Löschst du dein Konto, löschen wir deine Daten, soweit keine gesetzliche Aufbewahrungspflicht besteht.</p>
     <p>Feedback löschen wir, sobald es erledigt ist, spätestens nach 2 Jahren.</p>
-    <p>Treff-Einträge löschen wir automatisch einen Tag nach dem eingetragenen Zeitpunkt. Du kannst sie vorher jederzeit selbst löschen (Ich → Einstellungen → Treff). Meldungen bewahren wir auf, bis sie geprüft sind.</p>
+    <p>Deine Daten kannst du jederzeit unter Ich → Einstellungen → Daten herunterladen (als Tabelle oder JSON).</p>
+    <p>Treff-Einträge verschwinden in der App nach dem Termin und werden 24 Stunden danach automatisch gelöscht. Du kannst sie vorher jederzeit selbst löschen (Ich → Einstellungen → Treff). Meldungen bewahren wir auf, bis sie geprüft sind.</p>
 
     <h2>6. Deine Rechte</h2>
     <p>Du kannst jederzeit Auskunft, Berichtigung, Löschung, Einschränkung und Herausgabe deiner Daten verlangen und der Verarbeitung widersprechen. Schreib dazu an <a href="mailto:bors.dolic@web.de">bors.dolic@web.de</a>. Du kannst dich auch bei einer Datenschutz-Aufsichtsbehörde beschweren.</p>

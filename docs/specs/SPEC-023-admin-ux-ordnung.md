@@ -111,6 +111,7 @@ Screenshots und Volltext: Projektordner `ux-analyse/admin/` (`ANALYSE-admin-vorh
 
 ## 7. Umsetzung (2026-10-08)
 - Neu: `src/components/admin/TeamManager.tsx`, `src/components/admin/AdminGymSheet.tsx`, `src/components/ui/ConfirmDialog.tsx`, `src/lib/adminTeam.ts`; `renameSector` in `gymStorage.ts`.
+- Nachtrag 2026-10-09: Fünfter Tab «Zahlen» mit der Hallen-Auswertung ([SPEC-030](SPEC-030-hallen-auswertung.md)); im Tab «Halle» zusätzlich «QR-Codes drucken» ([SPEC-029](SPEC-029-qr-codes-an-der-wand.md)). Die Tabs sind dafür schmaler (`px-1.5`), damit fünf auf das Handy passen.
 - Tab «Halle» hängt `GymLocationEditor` (SPEC-025) ein; `tests/e2e/gym-finder.spec.ts` Admin-Test ist dadurch aktiv (kein `fixme` mehr).
 - Umgebaut: `GymManagement.tsx`, `SectorManager.tsx`, `GradeScaleConfig.tsx`, `AppHeader.tsx` (Admin-Zweig), `RoleGatewayModal.tsx`, `App.tsx` (`onGymsChanged`).
 - Farben: «Sichern» wartet wie bisher auf den Supabase-Abgleich (SPEC-001 AC-2.3) und zeigt so lange «Wird gesichert …».

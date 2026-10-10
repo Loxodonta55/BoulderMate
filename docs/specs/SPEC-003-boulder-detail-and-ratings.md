@@ -191,3 +191,6 @@ Für Altdaten wird `Initial_Maximalkraft = Initial_Kraft` und `Initial_KraftAusd
 
 ## Open Questions
 - Keine (im Grill-Me Interview geklärt).
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- Versuche zählen und Projekt merken → [SPEC-035](SPEC-035-meine-projekte-und-versuche.md); Beta ist hinter «Beta zeigen» versteckt → [SPEC-032](SPEC-032-kletterer-basis-icon-offline-lesbarkeit.md); anonyme Anzeige → [SPEC-033](SPEC-033-sichtbarkeit-und-meine-daten.md).

@@ -165,11 +165,8 @@ CREATE POLICY "Public read for sector photos"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'sector-photos');
 
--- Storage Policy: Authentifizierte & Anon Upload (damit es direkt funktioniert)
+-- Storage Policy: Hochladen nur angemeldet (SPEC-034, Regeln in 20261009_spec034_schreibrechte.sql)
 DROP POLICY IF EXISTS "Public upload for sector photos" ON storage.objects;
-CREATE POLICY "Public upload for sector photos"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'sector-photos');
 
 -- 10. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -212,24 +209,19 @@ CREATE POLICY "Public read ascents" ON public.ascents FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read ratings" ON public.ratings;
 CREATE POLICY "Public read ratings" ON public.ratings FOR SELECT USING (true);
 
--- Schreibrechte (fuer schnellen Start zulaessig fuer authentifizierte Nutzer)
-DROP POLICY IF EXISTS "Allow insert sectors" ON public.sectors;
-CREATE POLICY "Allow insert sectors" ON public.sectors FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow insert boulders" ON public.boulders;
-CREATE POLICY "Allow insert boulders" ON public.boulders FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow insert grade_scales" ON public.grade_scales;
-CREATE POLICY "Allow insert grade_scales" ON public.grade_scales FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow insert gyms" ON public.gyms;
-CREATE POLICY "Allow insert gyms" ON public.gyms FOR ALL USING (true) WITH CHECK (true);
+-- SPEC-034: Schreibrechte nur für Berechtigte (Plattform-Admin, Admin/Schrauber der Halle,
+-- eigene Begehungen und Bewertungen). Die offenen «Allow insert …»-Regeln sind entfernt.
+-- Bei einer neuen Installation nach dieser Datei ausführen:
+--   supabase/migrations/20261009_spec034_schreibrechte.sql
 
 -- SPEC-021: Umschrauben (siehe supabase/migrations/20261006_spec021_umschrauben.sql)
 ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS draft_photo_url TEXT;
 ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS rebuild_started_at TIMESTAMPTZ;
 ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS rebuilt_at TIMESTAMPTZ;
 ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS wall_photo_url TEXT;
+
+-- SPEC-031: Umbau ankündigen (siehe supabase/migrations/20261009_spec031_umbau_ankuendigen.sql)
+ALTER TABLE public.sectors ADD COLUMN IF NOT EXISTS rebuild_planned_for DATE;
 
 -- SPEC-026: Nutzer-Feedback (siehe supabase/migrations/20261008_spec026_feedback.sql)
 -- Einmalig im Supabase SQL-Editor ausführen. Rein additiv, bestehende Daten bleiben unverändert.

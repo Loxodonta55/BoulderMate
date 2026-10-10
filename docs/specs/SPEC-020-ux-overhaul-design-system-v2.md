@@ -184,7 +184,7 @@ flowchart TD
 - **AC-11.1**: Eigenständige Shell mit «Fertig»-Schaltfläche zur Rückkehr.
 - **AC-11.2**: Strukturierte Ansicht mit 3 Sektionen: `Sektoren`, `Farben & Grade`, `Team`.
 - **AC-11.3**: Sektor-Reordering erfolgt über einen mobilen Sortiermodus mit Drag-Handles (iOS-Listenstil); Desktop-Pfeil-Buttons entfallen.
-- **AC-11.4** *(08.10.2026, SPEC-023)*: Umgesetzt als Tabs `Sektoren · Farben · Team · Halle` direkt unter dem Header; Hallenwahl über den Hallennamen im Header (Sheet). Der Sortiermodus zeigt Griff **und** 44-px-Pfeile (Hans, F3), Bearbeiten läuft über Liste + Sheet, Löschen immer mit Rückfrage. Details: [SPEC-023](SPEC-023-admin-ux-ordnung.md).
+- **AC-11.4** *(08.10.2026, SPEC-023; 09.10.2026 fünfter Tab «Zahlen», SPEC-030)*: Umgesetzt als Tabs `Sektoren · Farben · Team · Halle · Zahlen` direkt unter dem Header; Hallenwahl über den Hallennamen im Header (Sheet). Der Sortiermodus zeigt Griff **und** 44-px-Pfeile (Hans, F3), Bearbeiten läuft über Liste + Sheet, Löschen immer mit Rückfrage. Details: [SPEC-023](SPEC-023-admin-ux-ordnung.md).
 
 ---
 
@@ -227,3 +227,6 @@ Die folgenden Themen sind bewusst **nicht** Bestandteil von SPEC-020 und bleiben
 - **SPEC-012 (Turniere & Boulder Jam Events)**: Auf ON HOLD gesetzt.
 - **IDEA-004 (Boulder-Fit-Engine)**: Backlog.
 - **Erweiterte GNPI-Detailmathematik**: Zurückgestellt, Fokus liegt auf der vereinfachten 5-Achsen-Darstellung.
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- Kontrast: `--bm-text-3` angehoben auf #736E67 (hell) / #948E85 (dunkel), kleinste Textgröße im Deep Dive 14 px → [SPEC-032](SPEC-032-kletterer-basis-icon-offline-lesbarkeit.md) F8.

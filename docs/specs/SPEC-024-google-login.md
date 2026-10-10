@@ -1,6 +1,6 @@
 # SPEC-024: Login mit Google-Konto
 
-## Status: IN PROGRESS (Code umgesetzt 2026-10-08, uncommitted; offen: Einrichtung durch Hans §4 und Abnahmetest §6.3)
+## Status: DONE (Einrichtung §4 erledigt; Login mit echtem Google-Konto lokal und live von Hans bestätigt, 2026-10-10. Offen außerhalb der Spec: Anschrift und AVV-Satz in public/datenschutz.html)
 
 > **Owner:** Hans · **Created:** 2026-10-08 · **Baut auf:** SPEC-000 (Auth & Rollen), SPEC-014 (echte Nutzer-Auth), SPEC-020 AC-9 (Landing & Gast-Zugang), SPEC-022 (Kletterer-UX)
 >
@@ -208,3 +208,6 @@ Geprüft: Unit 395/395 grün; Playwright `google-login` 14/14 sowie logo-landing
 - Migration eingespielt (Hans), Google-Provider aktiv, Redirect-URLs gesetzt.
 - Manueller Abnahmetest §6.3 auf localhost und bouldermate.ch bestanden.
 - SPEC-000 AC-2 verweist auf diese Spec; INDEX-Status aktualisiert.
+
+## Nachtrag 2026-10-09 (Nutzer-Simulation)
+- Login mit Apple als zweiter Anbieter → [SPEC-040](SPEC-040-login-mit-apple.md). Anbieter-Erkennung über `/auth/v1/settings` gilt jetzt für beide Knöpfe.

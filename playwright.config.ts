@@ -22,6 +22,8 @@ export default defineConfig({
   ],
   use: {
     baseURL,
+    // SPEC-039: App folgt der Gerätesprache; bestehende Tests laufen auf Deutsch
+    locale: 'de-DE',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

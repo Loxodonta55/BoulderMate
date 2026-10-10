@@ -20,6 +20,9 @@ export interface Gym {
   lng?: number;
   /** SPEC-028 F16: Treff in dieser Halle erlaubt (undefined = ja) */
   treff_enabled?: boolean;
+  /** SPEC-041: Meldung der Halle «ruhig/normal/voll», gilt 90 Minuten ab crowd_updated_at */
+  crowd_level?: 'ruhig' | 'normal' | 'voll';
+  crowd_updated_at?: string;
   created_by: string;
   created_at: string;
 }

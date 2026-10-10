@@ -8,8 +8,9 @@ import {
   filterByGym,
   formatTreffDay,
   formatTreffTime,
+  treffDisplayName,
 } from '../../lib/treffService';
-import { GradeBadge, TreffAvatar } from './TreffView';
+import { GradeBadge, TreffAvatar, TreffChips, GymEventBadge } from './TreffView';
 
 /**
  * SPEC-028 F10 · Gäste auf der Landing Page: «Wer ist heute da?»
@@ -48,10 +49,15 @@ export const TreffGuestSheet: React.FC<TreffGuestSheetProps> = ({ open, onClose,
             <div key={e.id} className="flex items-center gap-3 px-4 py-3 min-h-[64px]" data-testid={`treff-guest-row-${e.id}`}>
               <TreffAvatar />
               <span className="flex-1 min-w-0">
-                <span className="block text-[17px] font-semibold">Jemand</span>
+                <span className="flex items-center gap-2 text-[17px] font-semibold">
+                  {e.isGymEvent ? treffDisplayName({ ...e, nickname: 'Halle' }) : 'Jemand'}
+                  {e.isGymEvent && <GymEventBadge />}
+                </span>
                 <span className="block text-[20px] font-bold">
                   {formatTreffDay(e.startsAt)} · {formatTreffTime(e)}
                 </span>
+                {e.isGymEvent && e.note && <span className="block text-[15px] text-[var(--bm-text-2)]">{e.note}</span>}
+                <TreffChips entry={{ ...e, userId: '', nickname: '', createdAt: '' }} />
               </span>
               <GradeBadge min={e.gradeMin} max={e.gradeMax} />
             </div>

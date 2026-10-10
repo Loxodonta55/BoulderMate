@@ -9,14 +9,19 @@ import { SectorManager } from './SectorManager';
 import { TeamManager } from './admin/TeamManager';
 import { GymLocationEditor } from './GymLocationEditor';
 import { GymTreffToggle } from './treff/GymTreffToggle';
+import { GymCrowdControl } from './basis/CrowdBadge';
+import { GymChallengeAdmin } from './challenge/GymChallengeAdmin';
+import { WallQrCodes } from './admin/WallQrCodes';
+import { GymInsightsView } from './admin/GymInsightsView';
 
 /**
  * SPEC-023 · Admin-Konsole.
  * F1: Unter dem Header stehen direkt die Tabs Sektoren · Farben · Team · Halle (Standort aus SPEC-025 AC-8).
+ * SPEC-030 F1: fünfter Tab «Zahlen» (Hallen-Auswertung). SPEC-029 F6: QR-Codes im Tab «Halle».
  * Die Halle wird nur im Header gewählt (AdminGymSheet), deshalb gibt es hier keine Hallen-Karten, keine Suche und kein Banner.
  */
 
-export type AdminTab = 'sectors' | 'grades' | 'team' | 'gym';
+export type AdminTab = 'sectors' | 'grades' | 'team' | 'gym' | 'insights';
 
 interface GymManagementProps {
   activeGymId?: string;
@@ -96,6 +101,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({ activeGymId, onSel
     { id: 'grades', label: 'Farben' },
     { id: 'team', label: 'Team' },
     { id: 'gym', label: 'Halle' },
+    { id: 'insights', label: 'Zahlen' },
   ];
 
   return (
@@ -115,7 +121,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({ activeGymId, onSel
               aria-selected={active}
               data-testid={`admin-tab-${t.id}`}
               onClick={() => setActiveTab(t.id)}
-              className={`flex-1 min-h-[40px] px-3 rounded-[10px] text-[15px] font-semibold transition ${
+              className={`flex-1 min-w-0 min-h-[40px] px-1.5 rounded-[10px] text-[15px] font-semibold transition ${
                 active ? 'bg-[var(--bm-surface)] text-[var(--bm-text)] shadow-sm' : 'text-[var(--bm-text-2)]'
               }`}
             >
@@ -151,8 +157,15 @@ export const GymManagement: React.FC<GymManagementProps> = ({ activeGymId, onSel
           <GymLocationEditor key={selectedGym.id} gymId={selectedGym.id} userId={effectiveUserId} onSaved={refreshData} />
           {/* SPEC-028 F16 */}
           <GymTreffToggle key={`treff-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
+          {/* SPEC-041 */}
+          <GymCrowdControl key={`crowd-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
+          {/* SPEC-038 */}
+          <GymChallengeAdmin key={`challenge-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
+          <WallQrCodes gymId={selectedGym.id} />
         </div>
       )}
+
+      {activeTab === 'insights' && <GymInsightsView key={selectedGym.id} gymId={selectedGym.id} />}
     </div>
   );
 };

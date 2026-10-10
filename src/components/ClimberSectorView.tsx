@@ -7,6 +7,7 @@ import {
   GymGradeScale,
 } from '../types/boulder';
 import { getWallBoulders, isSectorInRebuild, isRecentlyNew } from '../lib/batchBoulderService';
+import { computeBoulderNumbers, readableTextOn } from '../lib/boulderNumbers';
 import {
   getUserAscent,
   getRatings,
@@ -25,7 +26,18 @@ import {
   CLASSIC_MIN_STARS,
 } from '../lib/climberWallFilters';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
+import { WallNewsBanner } from './WallNewsBanner';
+import {
+  registerWallVisit,
+  newCountsBySector,
+  lastChanceSectors,
+  isRebuildAnnounced,
+  formatPlannedDate,
+  isWallNewsDismissed,
+  dismissWallNews,
+} from '../lib/wallNews';
 import { useBackHandler } from '../hooks/useBackHandler';
+import { t, useLang } from '../lib/i18n';
 import {
   Zap,
   Check,
@@ -43,13 +55,19 @@ interface ClimberSectorViewProps {
   currentUser: CurrentUser;
   activeGymId?: string;
   onSelectGym?: (gymId: string) => void;
+  /** SPEC-029: Sektor aus einem QR-Code an der Wand anzeigen */
+  focusSectorId?: string | null;
+  onFocusApplied?: () => void;
 }
 
 export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   currentUser,
   activeGymId,
   onSelectGym,
+  focusSectorId,
+  onFocusApplied,
 }) => {
+  useLang();
   const {
     gym,
     sectors,
@@ -68,6 +86,30 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
   const [isSectorListOpen, setIsSectorListOpen] = useState<boolean>(false);
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
   const [isWallZoomed, setIsWallZoomed] = useState<boolean>(false);
+
+  // SPEC-031 F2/F3: Besuch dieser Halle merken; Vergleichspunkt für «neu seit deinem letzten Besuch»
+  const isGuest = !currentUser.id || currentUser.id === 'guest';
+  const [newsSince, setNewsSince] = useState<number | null>(null);
+  const [isNewsDismissed, setIsNewsDismissed] = useState<boolean>(false);
+  useEffect(() => {
+    if (isGuest || !gym?.id) {
+      setNewsSince(null);
+      return;
+    }
+    setNewsSince(registerWallVisit(currentUser.id, gym.id));
+    setIsNewsDismissed(isWallNewsDismissed(currentUser.id, gym.id));
+  }, [isGuest, currentUser.id, gym?.id]);
+
+  // SPEC-029 AC-1: Sektor aus dem QR-Code wählen, sobald er in der aktiven Halle geladen ist
+  useEffect(() => {
+    if (!focusSectorId) return;
+    if (sectors.some(s => s.id === focusSectorId)) {
+      setSelectedSectorId(focusSectorId);
+      setSelectedBoulder(null);
+      setIsSectorFullscreen(false);
+      onFocusApplied?.();
+    }
+  }, [focusSectorId, sectors, setSelectedSectorId, onFocusApplied]);
 
   // Reset wall zoom when sector changes or fullscreen exits
   useEffect(() => {
@@ -360,6 +402,41 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     return ids;
   }, [boulders, selectedSector?.rebuiltAt]);
 
+  // SPEC-032 F7: Nummer pro Wand (Schraub-Reihenfolge, unabhängig vom Filter)
+  const boulderNumbers = useMemo(
+    () => (selectedSector ? computeBoulderNumbers(getWallBoulders(selectedSector.id), selectedSector.rebuiltAt) : new Map<string, number>()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [boulders, selectedSector?.id, selectedSector?.rebuiltAt]
+  );
+
+  // SPEC-031: Aktive Boulder der ganzen Halle (für «neu» pro Sektor und «Letzte Chance»)
+  const gymBoulders = useMemo(() => {
+    const sectorIds = new Set(sectors.map(s => s.id));
+    return getWallBoulders().filter(b => b.status === 'active' && sectorIds.has(b.sectorId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors, dataVersion]);
+  const sectorNewCounts = useMemo(() => newCountsBySector(gymBoulders, newsSince), [gymBoulders, newsSince]);
+  const totalNewCount = useMemo(() => [...sectorNewCounts.values()].reduce((sum, n) => sum + n, 0), [sectorNewCounts]);
+  const lastChance = useMemo(
+    () => (isGuest ? [] : lastChanceSectors(sectors, gymBoulders, id => getUserAscent(currentUser.id, id))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isGuest, sectors, gymBoulders, currentUser.id, dataVersion]
+  );
+  const showNewsBanner = !isGuest && !isNewsDismissed && (totalNewCount > 0 || lastChance.length > 0);
+  const handleDismissNews = () => {
+    setIsNewsDismissed(true);
+    if (!isGuest && gym?.id) dismissWallNews(currentUser.id, gym.id);
+  };
+
+  // SPEC-031 AC-5: Angekündigter Umbau an dieser Wand + eigene offene Projekte
+  const plannedForSelected = !isSectorInRebuild(selectedSector) && isRebuildAnnounced(selectedSector)
+    ? selectedSector!.rebuildPlannedFor!
+    : null;
+  const openProjectsHere = useMemo(
+    () => boulders.filter(b => userAscentMap.get(b.id)?.type === 'project').length,
+    [boulders, userAscentMap]
+  );
+
   // SPEC-022 F4/F5: Filter + feste Sortierung nach Schwierigkeit
   const processedBoulders = useMemo(() => {
     const filtered = filterClimberBoulders(boulders, filterMode, { userAscentMap, statsMap, newBoulderIds });
@@ -417,17 +494,24 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
 
   const filterChips: { id: ClimberWallFilter; label: React.ReactNode; show: boolean }[] = [
-    { id: 'all', label: 'Alle', show: true },
-    { id: 'open', label: 'Offen', show: true },
-    { id: 'new', label: 'Neu', show: newBoulderIds.size > 0 },
+    { id: 'all', label: t('Alle'), show: true },
+    { id: 'open', label: t('Offen'), show: true },
+    { id: 'new', label: t('Neu'), show: newBoulderIds.size > 0 },
     { id: 'top_rated', label: <><Star className="w-3.5 h-3.5 fill-[var(--bm-star)] text-[var(--bm-star)]" />Top</>, show: true },
   ];
 
   const sectorBadge = (sector: typeof sectors[number]) =>
     isSectorInRebuild(sector) ? (
-      <span className="text-[12px] font-semibold text-[var(--bm-warning)] shrink-0">Im Umbau</span>
+      <span className="text-[12px] font-semibold text-[var(--bm-warning)] shrink-0">{t('Im Umbau')}</span>
+    ) : isRebuildAnnounced(sector) ? (
+      <span
+        className="px-1.5 rounded-md text-[12px] font-bold border border-[var(--bm-warning)] text-[var(--bm-warning)] shrink-0 tabular-nums"
+        data-testid="sector-planned-badge"
+      >
+        bis {formatPlannedDate(sector.rebuildPlannedFor!)}
+      </span>
     ) : isRecentlyNew(sector.rebuiltAt) ? (
-      <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">Neu</span>
+      <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">{t('Neu')}</span>
     ) : null;
 
   return (
@@ -435,8 +519,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
       {sectors.length === 0 && (
         <div className="px-6 py-16 text-center" data-testid="climber-empty-gym">
           <Building2 className="w-10 h-10 text-[var(--bm-text-3)] mx-auto mb-3" />
-          <p className="text-[17px] font-semibold text-[var(--bm-text)]">Noch keine Wände</p>
-          <p className="text-[15px] text-[var(--bm-text-2)] mt-1">{gym?.name || 'Diese Halle'} hat noch keine Sektoren.</p>
+          <p className="text-[17px] font-semibold text-[var(--bm-text)]">{t('Noch keine Wände')}</p>
+          <p className="text-[15px] text-[var(--bm-text-2)] mt-1">{t('{name} hat noch keine Sektoren.', { name: gym?.name || t('Diese Halle') })}</p>
         </div>
       )}
 
@@ -460,6 +544,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               statsMap={statsMap}
               userAscentMap={userAscentMap}
               newBoulderIds={newBoulderIds}
+              boulderNumbers={boulderNumbers}
               onPinClick={setSelectedBoulder}
               isFullscreen={isSectorFullscreen}
               onToggleFullscreen={() => setIsSectorFullscreen(true)}
@@ -475,7 +560,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 onClick={goToPreviousSector}
                 disabled={!hasPreviousSector}
                 className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] disabled:opacity-30 shrink-0"
-                aria-label="Vorheriger Sektor"
+                aria-label={t('Vorheriger Sektor')}
                 data-testid="sector-prev-btn"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -484,7 +569,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 type="button"
                 onClick={() => setIsSectorListOpen(true)}
                 className="flex-1 min-w-0 min-h-[44px] px-4 rounded-full bg-[var(--bm-surface)] flex items-center justify-center gap-2"
-                aria-label={`Sektor ${selectedSector.name}, alle Sektoren zeigen`}
+                aria-label={t('Sektor {name}, alle Sektoren zeigen', { name: selectedSector.name })}
                 data-testid="sector-pill-name"
               >
                 <h2 className="text-[17px] font-semibold text-[var(--bm-text)] truncate">{selectedSector.name}</h2>
@@ -499,7 +584,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 onClick={goToNextSector}
                 disabled={!hasNextSector}
                 className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] disabled:opacity-30 shrink-0"
-                aria-label="Nächster Sektor"
+                aria-label={t('Nächster Sektor')}
                 data-testid="sector-next-btn"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -509,22 +594,43 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 onClick={() => setIsSectorFullscreen(true)}
                 data-testid="toggle-fullscreen-btn"
                 className="w-11 h-11 rounded-full bg-[var(--bm-surface)] flex items-center justify-center text-[var(--bm-text)] shrink-0"
-                title="Vollbild"
-                aria-label="Vollbild"
+                title={t('Vollbild')}
+                aria-label={t('Vollbild')}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
             </div>
 
+            {/* SPEC-031 F2/AC-7: Neu seit dem letzten Besuch, Letzte Chance */}
+            {showNewsBanner && (
+              <WallNewsBanner
+                newCount={totalNewCount}
+                lastChance={lastChance}
+                onShow={() => {
+                  handleDismissNews();
+                  setIsSectorListOpen(true);
+                }}
+                onDismiss={handleDismissNews}
+              />
+            )}
+
+            {/* SPEC-031 AC-5: Umbau angekündigt */}
+            {plannedForSelected && (
+              <p data-testid="climber-planned-notice" className="text-[15px] font-semibold text-[var(--bm-warning)] text-center">
+                Wird am {formatPlannedDate(plannedForSelected)} abgeschraubt
+                {openProjectsHere > 0 && ` · ${openProjectsHere} ${openProjectsHere === 1 ? 'Projekt' : 'Projekte'} offen`}
+              </p>
+            )}
+
             {/* SPEC-021 AC-5: Wand wird gerade neu geschraubt */}
             {isSectorInRebuild(selectedSector) && (
               <p data-testid="climber-rebuild-notice" className="text-[13px] font-semibold text-[var(--bm-warning)] text-center">
-                Im Umbau
+                {t('Im Umbau')}
               </p>
             )}
 
             {/* SPEC-022 F4: Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Filter" data-testid="climber-filter-chips">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar" role="group" aria-label={t('Filter')} data-testid="climber-filter-chips">
               {filterChips.filter(c => c.show).map(chip => {
                 const active = filterMode === chip.id;
                 return (
@@ -548,24 +654,24 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
             {boulders.length > 0 && (
               <p className="px-1 text-[15px] text-[var(--bm-text-2)]" data-testid="climber-progress">
-                <span className="font-semibold text-[var(--bm-text)]">{doneCount}</span> von {boulders.length} geschafft
+                <span className="font-semibold text-[var(--bm-text)]">{doneCount}</span> {t('von {m} geschafft', { m: boulders.length })}
               </p>
             )}
 
             {/* SPEC-022 F6: Routenliste */}
             {boulders.length === 0 ? (
               <p className="py-8 text-center text-[15px] text-[var(--bm-text-2)]" data-testid="climber-empty-sector">
-                Noch keine Boulder an dieser Wand.
+                {t('Noch keine Boulder an dieser Wand.')}
               </p>
             ) : processedBoulders.length === 0 ? (
               <div className="py-8 text-center space-y-3" data-testid="climber-empty-filter">
-                <p className="text-[15px] text-[var(--bm-text-2)]">Nichts gefunden.</p>
+                <p className="text-[15px] text-[var(--bm-text-2)]">{t('Nichts gefunden.')}</p>
                 <button
                   type="button"
                   onClick={() => setFilterMode('all')}
                   className="min-h-[44px] px-5 rounded-full bg-[var(--bm-surface)] text-[15px] font-medium text-[var(--bm-text)]"
                 >
-                  Alle zeigen
+                  {t('Alle zeigen')}
                 </button>
               </div>
             ) : (
@@ -585,21 +691,25 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                         data-testid={`route-row-${boulder.id}`}
                         className="w-full min-h-[56px] px-4 py-2 flex items-center gap-3 text-left active:bg-[var(--bm-elevated)]"
                       >
+                        {/* SPEC-032 F7: Nummer im Farbpunkt, dieselbe wie am Pin */}
                         <span
-                          className="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10"
-                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)' }}
-                          aria-hidden
-                        />
+                          className="w-8 h-8 rounded-full shrink-0 ring-1 ring-black/10 flex items-center justify-center text-[15px] font-bold tabular-nums"
+                          style={{ backgroundColor: scale?.colorHex || 'var(--bm-text-3)', color: readableTextOn(scale?.colorHex) }}
+                          data-testid={`route-number-${boulder.id}`}
+                          aria-label={boulderNumbers.get(boulder.id) ? t('Nummer {n}', { n: boulderNumbers.get(boulder.id)! }) : undefined}
+                        >
+                          {boulderNumbers.get(boulder.id) ?? ''}
+                        </span>
                         <span className="flex-1 min-w-0">
                           <span className="flex items-center gap-1.5">
                             <span className="text-[16px] font-medium text-[var(--bm-text)] truncate">
                               {boulder.name?.trim() || scale?.colorName || 'Boulder'}
                             </span>
                             {newBoulderIds.has(boulder.id) && (
-                              <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">Neu</span>
+                              <span className="px-1.5 rounded-md text-[11px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0">{t('Neu')}</span>
                             )}
                           </span>
-                          <span className="block text-[13px] text-[var(--bm-text-2)] truncate">
+                          <span className="block text-[14px] text-[var(--bm-text-2)] truncate">
                             {[grade, scale?.colorName && boulder.name?.trim() ? scale.colorName : null].filter(Boolean).join(' · ')}
                           </span>
                         </span>
@@ -611,7 +721,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                                 : 'text-[var(--bm-text)]'
                             }`}
                             data-testid={`hero-score-${boulder.id}`}
-                            title={`${avg.toFixed(1)} Sterne (${stats!.totalRatings})${isClassic ? ' · Hallen-Klassiker' : ''}`}
+                            title={`${t('{avg} Sterne ({n})', { avg: avg.toFixed(1), n: stats!.totalRatings })}${isClassic ? ` · ${t('Hallen-Klassiker')}` : ''}`}
                           >
                             <Star
                               className={`w-[18px] h-[18px] ${isClassic ? 'fill-[var(--bm-bg)] text-[var(--bm-bg)]' : 'fill-[var(--bm-star)] text-[var(--bm-star)]'}`}
@@ -622,21 +732,21 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                         )}
                         <span className="w-[92px] flex justify-end shrink-0" data-testid={`route-status-${boulder.id}`}>
                           {ascent?.type === 'flash' && (
-                            <span aria-label="Flash" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-star)] text-[var(--bm-bg)]">
+                            <span aria-label={t('Flash')} className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-star)] text-[var(--bm-bg)]">
                               <Zap className="w-4 h-4 fill-current" aria-hidden />
-                              Flash
+                              {t('Flash')}
                             </span>
                           )}
                           {ascent?.type === 'top' && (
-                            <span aria-label="Top" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-success)] text-[var(--bm-on-accent)]">
+                            <span aria-label={t('Top')} className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-bold bg-[var(--bm-success)] text-[var(--bm-on-accent)]">
                               <Check className="w-4 h-4 stroke-[3]" aria-hidden />
-                              Top
+                              {t('Top')}
                             </span>
                           )}
                           {ascent?.type === 'project' && (
-                            <span aria-label="Projekt" className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-semibold border-2 border-[var(--bm-line)] text-[var(--bm-text-2)]">
+                            <span aria-label={t('Projekt')} className="min-h-[30px] px-2.5 rounded-full flex items-center gap-1 text-[15px] font-semibold border-2 border-[var(--bm-line)] text-[var(--bm-text-2)]">
                               <Target className="w-4 h-4" aria-hidden />
-                              Projekt
+                              {t('Projekt')}
                             </span>
                           )}
                         </span>
@@ -652,9 +762,9 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
       {/* SPEC-022 F3: Sektor-Liste */}
       {isSectorListOpen && (
-        <Sheet open onClose={() => setIsSectorListOpen(false)} fitContent testId="sector-list-sheet" ariaLabel="Sektoren">
+        <Sheet open onClose={() => setIsSectorListOpen(false)} fitContent testId="sector-list-sheet" ariaLabel={t('Sektoren')}>
           <div className="px-5 pb-4">
-            <h2 className="text-[20px] font-semibold mb-3">Sektoren</h2>
+            <h2 className="text-[20px] font-semibold mb-3">{t('Sektoren')}</h2>
             <ul className="rounded-2xl bg-[var(--bm-elevated)] overflow-hidden divide-y divide-[var(--bm-line)]">
               {sectors.map(sector => {
                 const isSelected = sector.id === selectedSectorId;
@@ -678,10 +788,18 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                       )}
                       <span className="flex-1 min-w-0">
                         <span className={`block text-[16px] truncate ${isSelected ? 'font-semibold' : ''}`}>{sector.name}</span>
-                        <span className="block text-[13px] text-[var(--bm-text-2)]">{count} Boulder</span>
+                        <span className="block text-[13px] text-[var(--bm-text-2)]">{t('{n} Boulder', { n: count })}</span>
                       </span>
+                      {(sectorNewCounts.get(sector.id) || 0) > 0 && (
+                        <span
+                          className="px-1.5 rounded-md text-[12px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)] shrink-0 tabular-nums"
+                          data-testid={`sector-new-count-${sector.id}`}
+                        >
+                          {sectorNewCounts.get(sector.id)} neu
+                        </span>
+                      )}
                       {sectorBadge(sector)}
-                      {isSelected && <Check className="w-5 h-5 text-[var(--bm-text)] shrink-0" aria-label="Aktuell" />}
+                      {isSelected && <Check className="w-5 h-5 text-[var(--bm-text)] shrink-0" aria-label={t('Aktuell')} />}
                     </button>
                   </li>
                 );
@@ -707,11 +825,11 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
             onClick={() => setIsSectorFullscreen(false)}
             data-testid="exit-fullscreen-btn"
             className="absolute top-3 right-3 z-40 p-2 sm:p-2.5 rounded-xl bg-black/60 hover:bg-black/85 text-[var(--bm-strong)] border border-[var(--bm-line)] hover:border-[var(--bm-accent)] backdrop-blur-md transition-all shadow-lg active:scale-95 cursor-pointer flex items-center gap-1.5"
-            title="Vollbild beenden"
-            aria-label="Vollbild beenden"
+            title={t('Vollbild beenden')}
+            aria-label={t('Vollbild beenden')}
           >
             <Minimize2 className="w-4 h-4 text-[var(--bm-accent)]" />
-            <span className="text-[10px] font-mono font-bold text-[var(--bm-text)] hidden xs:inline">Beenden</span>
+            <span className="text-[10px] font-mono font-bold text-[var(--bm-text)] hidden xs:inline">{t('Beenden')}</span>
           </button>
 
           {/* Minimal Floating Sector HUD (Top-Left, Zero Layout Height) */}
@@ -727,7 +845,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               {currentSectorIndex + 1}/{sectors.length}
             </span>
             {isSectorInRebuild(selectedSector) && (
-              <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] shrink-0">Im Umbau</span>
+              <span className="text-[10px] font-mono font-bold text-[var(--bm-accent)] shrink-0">{t('Im Umbau')}</span>
             )}
           </div>
 
@@ -737,7 +855,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               data-testid="fullscreen-empty-notice"
               className="absolute top-14 left-3 z-40 bg-black/80 backdrop-blur-md border border-[var(--bm-accent)]/40 px-3 py-1.5 rounded-xl text-[11px] font-mono text-[var(--bm-text)] shadow-lg flex items-center gap-2 pointer-events-none max-w-[calc(100%-24px)] animate-in fade-in duration-200"
             >
-              <span>Noch keine Boulder</span>
+              <span>{t('Noch keine Boulder')}</span>
             </div>
           )}
 
@@ -752,8 +870,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 }}
                 data-testid="fullscreen-prev-sector-btn"
                 className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-xl bg-black/30 hover:bg-black/80 active:scale-95 text-[var(--bm-text)] border border-white/10 hover:border-[var(--bm-accent)] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
-                title="Vorheriger Sektor (oder nach rechts wischen)"
-                aria-label="Vorheriger Sektor"
+                title={t('Vorheriger Sektor (oder nach rechts wischen)')}
+                aria-label={t('Vorheriger Sektor')}
               >
                 <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--bm-accent)]" />
               </button>
@@ -766,8 +884,8 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 }}
                 data-testid="fullscreen-next-sector-btn"
                 className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-xl bg-black/30 hover:bg-black/80 active:scale-95 text-[var(--bm-text)] border border-white/10 hover:border-[var(--bm-accent)] backdrop-blur-sm transition-all cursor-pointer shadow-md opacity-40 hover:opacity-100"
-                title="Nächster Sektor (oder nach links wischen)"
-                aria-label="Nächster Sektor"
+                title={t('Nächster Sektor (oder nach links wischen)')}
+                aria-label={t('Nächster Sektor')}
               >
                 <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--bm-accent)]" />
               </button>
@@ -787,6 +905,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               statsMap={statsMap}
               userAscentMap={userAscentMap}
                 newBoulderIds={newBoulderIds}
+              boulderNumbers={boulderNumbers}
               onPinClick={setSelectedBoulder}
               isFullscreen={true}
               onToggleFullscreen={() => setIsSectorFullscreen(false)}
@@ -801,6 +920,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
       {selectedBoulder && (
         <BoulderSheet
           boulder={selectedBoulder}
+          number={boulderNumbers.get(selectedBoulder.id)}
           sector={selectedSector || undefined}
           gradeScale={resolveBoulderScale(selectedBoulder)}
           currentUser={currentUser}

@@ -153,7 +153,7 @@ describe('Schrauber-Bereich: Änderungen speichern & Veröffentlichen (SPEC-002 
       sampleActiveBoulder.positionX,
       sampleActiveBoulder.positionY
     );
-    expect(publishBatchSpy).toHaveBeenCalledWith('sec-1', 'setter-1', []);
+    expect(publishBatchSpy).toHaveBeenCalledWith('sec-1', '', []);
   });
 });
 

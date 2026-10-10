@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { isUserMatch } from '../lib/ratingAndAscentService';
 import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR, RADAR_AXIS_DEFINITIONS } from '../types/boulder';
 import { X, Check, Trash2, Archive, Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { SEED_GRADE_SCALES } from '../lib/seedData';
@@ -91,11 +92,14 @@ interface BoulderBottomSheetProps {
     name?: string;
     notes?: string;
     radar: RadarAttributes;
+    setterId?: string;
   }) => void;
   onDeleteDraft?: (boulderId: string) => void;
   onToggleArchive?: (boulderId: string) => void;
   onDeleteBoulder?: (boulderId: string) => void;
   onResetBoulder?: (boulderId: string) => void; // SPEC-021 AC-9: «Neu geschraubt»
+  /** SPEC-030 F8: Auswahl «Geschraubt von» (Hallen-Team); ohne Optionen keine Zeile */
+  setterOptions?: { id: string; name: string }[];
 }
 
 export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
@@ -110,11 +114,13 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   onToggleArchive,
   onDeleteBoulder,
   onResetBoulder,
+  setterOptions,
 }) => {
   const [selectedScaleId, setSelectedScaleId] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [radar, setRadar] = useState<RadarAttributes>(DEFAULT_RADAR);
+  const [setterId, setSetterId] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -141,6 +147,7 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
       const resolvedId = resolveScaleId(boulder, gradeScales, defaultGradeScaleId);
       setSelectedScaleId(resolvedId);
       setName(boulder.name || '');
+      setSetterId(setterOptions?.find(o => isUserMatch(o.id, boulder.setterId))?.id || boulder.setterId || '');
       const initialRadar: RadarAttributes = {
         maximalkraft: boulder.radar?.maximalkraft ?? (boulder as any).radar_maximalkraft ?? boulder.radar?.kraft ?? (boulder as any).radar_kraft ?? DEFAULT_RADAR.maximalkraft,
         kraftausdauer: boulder.radar?.kraftausdauer ?? (boulder as any).radar_kraftausdauer ?? DEFAULT_RADAR.kraftausdauer,
@@ -171,6 +178,7 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
       name: name.trim() || undefined,
       notes: notes.trim() || undefined,
       radar,
+      ...(setterOptions && setterOptions.length > 0 && setterId && !isUserMatch(setterId, boulder.setterId) ? { setterId } : {}),
     });
   };
 
@@ -333,6 +341,29 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
               })}
             </div>
           </div>
+
+          {/* SPEC-030 F8: Geschraubt von */}
+          {setterOptions && setterOptions.length > 0 && (
+            <div className="flex items-center gap-3">
+              <label htmlFor="setter-select" className="text-[15px] font-semibold text-[var(--bm-text)] shrink-0">
+                Geschraubt von
+              </label>
+              <select
+                id="setter-select"
+                data-testid="setter-select"
+                value={setterId}
+                onChange={e => setSetterId(e.target.value)}
+                className="flex-1 min-w-0 min-h-[44px] px-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[16px] text-[var(--bm-text)]"
+              >
+                {!setterOptions.some(o => o.id === setterId) && (
+                  <option value={setterId}>{setterId ? 'Anderer Schrauber' : 'Bitte wählen'}</option>
+                )}
+                {setterOptions.map(o => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Radar Attributes — Mobile-First Touch Stepper with min 38-40px Touch Targets */}
           <div className="p-3.5 sm:p-4 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] space-y-3">

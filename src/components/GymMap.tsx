@@ -189,7 +189,7 @@ export const GymMap: React.FC<GymMapProps> = ({
   }, [userPos]);
 
   return (
-    <div className={`relative overflow-hidden bg-[#E8E4DC] ${className}`} data-testid={testId}>
+    <div className={`relative isolate overflow-hidden bg-[#E8E4DC] ${className}`} data-testid={testId}>
       <div ref={containerRef} className="absolute inset-0 z-0" />
       {unavailable && (
         <div

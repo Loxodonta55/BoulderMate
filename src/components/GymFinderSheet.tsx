@@ -11,6 +11,7 @@ import {
   sortGymEntries,
 } from '../lib/gymFinder';
 import { useBackHandler } from '../hooks/useBackHandler';
+import { CrowdBadge } from './basis/CrowdBadge';
 
 /**
  * SPEC-025: «Halle wählen» – Karte (oben) und Liste (unten) aller eingetragenen Hallen.
@@ -169,6 +170,9 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                 {formatPlace(selected)}
                 {selected.distanceKm !== undefined && ` · ${formatDistance(selected.distanceKm)}`}
               </p>
+              <div className="mt-1">
+                <CrowdBadge gymId={selected.id} testId="gym-card-crowd" />
+              </div>
               <p className="text-[16px] mt-1" data-testid="gym-card-stats">
                 <span className="font-semibold">{selected.activeBoulders} Boulder</span>
                 {selected.newBoulders > 0 && (
@@ -233,6 +237,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                     {e.city || e.address || 'Ort fehlt'}
                     {isActive && ' · gewählt'}
                   </span>
+                  <CrowdBadge gymId={e.id} compact testId={`gym-row-crowd-${e.id}`} />
                 </span>
                 {e.distanceKm !== undefined && (
                   <span className="text-[15px] font-semibold text-[var(--bm-text-2)] shrink-0" data-testid={`gym-row-distance-${e.id}`}>

@@ -212,12 +212,19 @@ export function buildDeepDiveReport(
  * ist das Schrauber-Radar, gewichtet mit den Einschätzungen der Community (SPEC-003).
  */
 export function getDeepDiveReport(userId: string, selectedGymId: string = 'all'): DeepDiveReport {
+  const { logbook, radarOf } = getDeepDiveInputs(userId, selectedGymId);
+  return buildDeepDiveReport(logbook, radarOf);
+}
+
+/** Logbuch und Anforderungsprofil je Boulder (auch für den Stil-Verlauf, SPEC-037 F3). */
+export function getDeepDiveInputs(userId: string, selectedGymId: string = 'all') {
   const { logbook } = getProfileData(userId, selectedGymId);
   const boulders = new Map(getWallBoulders().map(b => [b.id, b]));
   const ratings = getRatings();
-  return buildDeepDiveReport(logbook, boulderId => {
+  const radarOf = (boulderId: string) => {
     const b = boulders.get(boulderId);
     if (!b) return undefined;
     return computeAggregatedRadar(b.radar, ratings.filter(r => r.boulderId === boulderId));
-  });
+  };
+  return { logbook, radarOf };
 }

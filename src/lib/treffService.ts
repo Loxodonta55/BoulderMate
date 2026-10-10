@@ -13,7 +13,8 @@ import { FONT_GRADE_LADDER } from './gradeConverter';
  * Test-Personen, Tests und Dev-Gäste speichern lokal im Browser (F17).
  */
 
-export const TREFF_MAX_OPEN_ENTRIES = 3;
+/** SPEC-036 F2: 5 statt 3, damit zwei wöchentliche Serien Platz haben. Hallen-Termine zählen nicht. */
+export const TREFF_MAX_OPEN_ENTRIES = 5;
 export const TREFF_MAX_DAYS_AHEAD = 14;
 export const TREFF_NOTE_MAX = 120;
 export const TREFF_NOW_DURATION_MIN = 120;
@@ -35,10 +36,20 @@ export interface TreffEntry {
   nickname: string;
   avatarUrl?: string;
   createdAt: string;
+  /** SPEC-036 F1: jede Woche wiederholen */
+  repeatWeekly?: boolean;
+  /** SPEC-036 F3: Markierungen */
+  beginnersWelcome?: boolean;
+  withKids?: boolean;
+  /** SPEC-036 F4: Termin der Halle (nur Admins der Halle) */
+  isGymEvent?: boolean;
 }
 
-/** Gast-Ansicht: ohne Personen-Daten (F10). */
-export type PublicTreffEntry = Pick<TreffEntry, 'id' | 'gymId' | 'startsAt' | 'endsAt' | 'gradeMin' | 'gradeMax'>;
+/** Gast-Ansicht: ohne Personen-Daten (F10). Hallen-Termine zeigen zusätzlich ihre Notiz (SPEC-036 F6). */
+export type PublicTreffEntry = Pick<
+  TreffEntry,
+  'id' | 'gymId' | 'startsAt' | 'endsAt' | 'gradeMin' | 'gradeMax' | 'beginnersWelcome' | 'withKids' | 'isGymEvent' | 'note'
+>;
 
 export interface TreffBlock {
   blockerId: string;
@@ -84,6 +95,10 @@ export interface TreffEntryInput {
   gradeMax?: string;
   boulderRef?: string;
   note?: string;
+  repeatWeekly?: boolean;
+  beginnersWelcome?: boolean;
+  withKids?: boolean;
+  isGymEvent?: boolean;
 }
 
 export interface TreffUser {
@@ -105,6 +120,7 @@ export type TreffError =
   | 'banned'
   | 'gym_disabled'
   | 'already'
+  | 'not_gym_admin'
   | 'guest'
   | 'offline'
   | 'failed';
@@ -122,6 +138,7 @@ export const TREFF_ERROR_TEXT: Record<TreffError, string> = {
   banned: 'Du kannst dich bei Treff nicht mehr eintragen.',
   gym_disabled: 'Diese Halle nutzt Treff nicht.',
   already: 'Du bist zu dieser Zeit schon eingetragen.',
+  not_gym_admin: 'Termine der Halle können nur Admins der Halle eintragen.',
   guest: 'Bitte zuerst anmelden.',
   offline: 'Keine Verbindung. Bitte später nochmal versuchen.',
   failed: 'Das hat nicht geklappt. Bitte nochmal versuchen.',
@@ -226,12 +243,18 @@ export function sortTreffEntries<T extends Pick<TreffEntry, 'startsAt' | 'endsAt
   return [...entries].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.endsAt.localeCompare(b.endsAt));
 }
 
+/** SPEC-036 F4: Termine der Halle stehen im jeweiligen Abschnitt oben. */
+function gymEventsFirst<T>(list: T[]): T[] {
+  const isEvent = (e: T) => Boolean((e as { isGymEvent?: boolean }).isGymEvent);
+  return [...list.filter(isEvent), ...list.filter(e => !isEvent(e))];
+}
+
 /** Teilt aktive Einträge in «Jetzt da» und «Kommt noch» (abgelaufene fallen weg). */
 export function splitTreffEntries<T extends Pick<TreffEntry, 'startsAt' | 'endsAt'>>(
   entries: T[],
   now: Date = new Date()
 ): { now: T[]; later: T[] } {
-  const sorted = sortTreffEntries(entries);
+  const sorted = gymEventsFirst(sortTreffEntries(entries));
   return {
     now: sorted.filter(e => treffPhase(e, now) === 'now'),
     later: sorted.filter(e => treffPhase(e, now) === 'later'),
@@ -253,7 +276,79 @@ export function filterBlocked(entries: TreffEntry[], viewerId: string, blocks: T
 }
 
 export function toPublicEntry(e: TreffEntry): PublicTreffEntry {
-  return { id: e.id, gymId: e.gymId, startsAt: e.startsAt, endsAt: e.endsAt, gradeMin: e.gradeMin, gradeMax: e.gradeMax };
+  const out: PublicTreffEntry = { id: e.id, gymId: e.gymId, startsAt: e.startsAt, endsAt: e.endsAt, gradeMin: e.gradeMin, gradeMax: e.gradeMax };
+  if (e.beginnersWelcome) out.beginnersWelcome = true;
+  if (e.withKids) out.withKids = true;
+  if (e.isGymEvent) {
+    out.isGymEvent = true;
+    if (e.note) out.note = e.note;
+  }
+  return out;
+}
+
+/** SPEC-036 F3: Markierungen als Chips mit Wort. */
+export function treffMarkers(e: Pick<TreffEntry, 'beginnersWelcome' | 'withKids' | 'repeatWeekly'>): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  if (e.beginnersWelcome) out.push({ key: 'beginners', label: '🌱 Anfänger willkommen' });
+  if (e.withKids) out.push({ key: 'kids', label: '👧 Mit Kind' });
+  if (e.repeatWeekly) out.push({ key: 'weekly', label: '🔁 Jede Woche' });
+  return out;
+}
+
+/** SPEC-036 F4: Darf diese Person Termine der Halle eintragen? */
+export function canCreateGymEvent(gymId: string, userId: string): boolean {
+  if (!userId || userId === 'guest') return false;
+  try {
+    return isPlatformAdmin(userId) || gymStorage.isGymAdmin(gymId, userId);
+  } catch {
+    return false;
+  }
+}
+
+/** Anzeigename: Hallen-Termine zeigen den Hallennamen statt des Spitznamens. */
+export function treffDisplayName(e: Pick<TreffEntry, 'isGymEvent' | 'gymId' | 'nickname'>): string {
+  if (!e.isGymEvent) return e.nickname;
+  try {
+    return gymStorage.getGyms().find(g => g.id === e.gymId)?.name || e.nickname;
+  } catch {
+    return e.nickname;
+  }
+}
+
+/** Gleiche Halle, gleicher Wochentag, gleiche Uhrzeit = gleiche Serie. */
+function sameWeeklySlot(a: Pick<TreffEntry, 'gymId' | 'startsAt'>, b: Pick<TreffEntry, 'gymId' | 'startsAt'>): boolean {
+  const x = new Date(a.startsAt);
+  const y = new Date(b.startsAt);
+  return a.gymId === b.gymId && x.getDay() === y.getDay() && x.getHours() === y.getHours() && x.getMinutes() === y.getMinutes();
+}
+
+/** Gleicher Zeitpunkt eine Woche später (lokale Zeit, damit Sommer-/Winterzeit stimmt). */
+export function plusOneWeek(iso: string): string {
+  const d = new Date(iso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7, d.getHours(), d.getMinutes(), d.getSeconds()).toISOString();
+}
+
+/**
+ * SPEC-036 F1/AC-2: Für jede eigene Serie, deren Termin begonnen hat und für die
+ * noch kein späterer Termin existiert, den Termin der Folgewoche bauen.
+ * Rein: legt nichts an, gibt nur die neuen Einträge zurück.
+ */
+export function dueWeeklyFollowUps(entries: TreffEntry[], userId: string, now: Date = new Date()): TreffEntry[] {
+  const mine = entries.filter(e => e.userId === userId);
+  const out: TreffEntry[] = [];
+  for (const e of mine) {
+    if (!e.repeatWeekly) continue;
+    if (new Date(e.startsAt).getTime() > now.getTime()) continue;
+    const nextStart = plusOneWeek(e.startsAt);
+    // Gibt es schon einen späteren Termin dieser Serie (gleiche Halle, gleiche Uhrzeit, Wochenabstand)?
+    const hasLater = [...mine, ...out].some(x => x.id !== e.id && sameWeeklySlot(x, e) && x.startsAt > e.startsAt);
+    if (hasLater) continue;
+    // Folgetermin schon vorbei (App lange nicht geöffnet)? Dann nicht nachholen.
+    const nextEnd = plusOneWeek(e.endsAt);
+    if (new Date(nextEnd).getTime() <= now.getTime()) continue;
+    out.push({ ...e, id: newId(), startsAt: nextStart, endsAt: nextEnd, createdAt: now.toISOString() });
+  }
+  return out;
 }
 
 function overlaps(a: Pick<TreffEntry, 'startsAt' | 'endsAt'>, b: Pick<TreffEntry, 'startsAt' | 'endsAt'>): boolean {
@@ -273,7 +368,7 @@ export function treffCompanions(entry: TreffEntry, all: TreffEntry[]): TreffEntr
 }
 
 export function countOpenEntries(entries: TreffEntry[], userId: string, now: Date = new Date()): number {
-  return entries.filter(e => e.userId === userId && treffPhase(e, now) !== 'over').length;
+  return entries.filter(e => e.userId === userId && !e.isGymEvent && treffPhase(e, now) !== 'over').length;
 }
 
 export function validateTreffInput(input: TreffEntryInput, now: Date = new Date()): TreffError | null {
@@ -507,7 +602,7 @@ function isOffline(): boolean {
 }
 
 function rowToEntry(r: any): TreffEntry {
-  return {
+  const e: TreffEntry = {
     id: r.id,
     userId: r.user_id,
     gymId: fromRemoteGymId(r.gym_id),
@@ -521,6 +616,25 @@ function rowToEntry(r: any): TreffEntry {
     avatarUrl: r.avatar_url || undefined,
     createdAt: r.created_at,
   };
+  if (r.repeat_weekly) e.repeatWeekly = true;
+  if (r.beginners_welcome) e.beginnersWelcome = true;
+  if (r.with_kids) e.withKids = true;
+  if (r.is_gym_event) e.isGymEvent = true;
+  return e;
+}
+
+/** SPEC-036: Spalten erst nach der Migration vorhanden. */
+function plusFields(e: TreffEntry): Record<string, unknown> {
+  return {
+    repeat_weekly: Boolean(e.repeatWeekly),
+    beginners_welcome: Boolean(e.beginnersWelcome),
+    with_kids: Boolean(e.withKids),
+    is_gym_event: Boolean(e.isGymEvent),
+  };
+}
+
+function hasPlusFields(e: TreffEntry): boolean {
+  return Boolean(e.repeatWeekly || e.beginnersWelcome || e.withKids || e.isGymEvent);
 }
 
 function entryToRow(e: TreffEntry): Record<string, unknown> {
@@ -590,14 +704,23 @@ export async function loadPublicTreffEntries(now: Date = new Date()): Promise<Tr
       .order('starts_at', { ascending: true });
     if (error) throw error;
     return {
-      entries: (data || []).map((r: any) => ({
-        id: r.id,
-        gymId: fromRemoteGymId(r.gym_id),
-        startsAt: r.starts_at,
-        endsAt: r.ends_at,
-        gradeMin: r.grade_min || undefined,
-        gradeMax: r.grade_max || undefined,
-      })),
+      entries: (data || []).map((r: any) => {
+        const p: PublicTreffEntry = {
+          id: r.id,
+          gymId: fromRemoteGymId(r.gym_id),
+          startsAt: r.starts_at,
+          endsAt: r.ends_at,
+          gradeMin: r.grade_min || undefined,
+          gradeMax: r.grade_max || undefined,
+        };
+        if (r.beginners_welcome) p.beginnersWelcome = true;
+        if (r.with_kids) p.withKids = true;
+        if (r.is_gym_event) {
+          p.isGymEvent = true;
+          if (r.note) p.note = r.note;
+        }
+        return p;
+      }),
       offline: false,
     };
   } catch (e) {
@@ -622,7 +745,7 @@ function precheck(user: TreffUser | null, gymId: string): TreffError | null {
 async function insertEntry(entry: TreffEntry, now: Date): Promise<TreffResult<TreffEntry>> {
   if (!useRemote(entry.userId)) {
     const s = readLocal();
-    if (countOpenEntries(s.entries, entry.userId, now) >= TREFF_MAX_OPEN_ENTRIES) return { ok: false, error: 'limit' };
+    if (!entry.isGymEvent && countOpenEntries(s.entries, entry.userId, now) >= TREFF_MAX_OPEN_ENTRIES) return { ok: false, error: 'limit' };
     s.entries.push(entry);
     writeLocal(s);
     notifyChanged();
@@ -630,13 +753,20 @@ async function insertEntry(entry: TreffEntry, now: Date): Promise<TreffResult<Tr
   }
   if (isOffline()) return { ok: false, error: 'offline' };
   try {
-    const { count } = await supabase!
-      .from('treff_entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', entry.userId)
-      .gt('ends_at', now.toISOString());
-    if ((count || 0) >= TREFF_MAX_OPEN_ENTRIES) return { ok: false, error: 'limit' };
-    const { error } = await supabase!.from('treff_entries').insert(entryToRow(entry));
+    if (!entry.isGymEvent) {
+      const { data: open } = await supabase!
+        .from('treff_entries')
+        .select('id, is_gym_event')
+        .eq('user_id', entry.userId)
+        .gt('ends_at', now.toISOString());
+      const personal = (open || []).filter((r: any) => !r.is_gym_event).length;
+      if (personal >= TREFF_MAX_OPEN_ENTRIES) return { ok: false, error: 'limit' };
+    }
+    let { error } = await supabase!.from('treff_entries').insert({ ...entryToRow(entry), ...plusFields(entry) });
+    // Ohne SPEC-036-Migration gibt es die neuen Spalten nicht: ohne sie nochmal (nur wenn nichts verloren geht)
+    if (error && /repeat_weekly|beginners_welcome|with_kids|is_gym_event|column/i.test(error.message || '') && !hasPlusFields(entry)) {
+      ({ error } = await supabase!.from('treff_entries').insert(entryToRow(entry)));
+    }
     if (error) {
       console.warn('[Treff] Eintragen fehlgeschlagen:', error.message);
       return { ok: false, error: 'failed' };
@@ -673,7 +803,8 @@ export async function createTreffEntry(
   if (pre) return { ok: false, error: pre };
   const invalid = validateTreffInput(input, now);
   if (invalid) return { ok: false, error: invalid };
-  const showGrade = getTreffSettings(user!.id).showGrade;
+  if (input.isGymEvent && !canCreateGymEvent(input.gymId, user!.id)) return { ok: false, error: 'not_gym_admin' };
+  const showGrade = getTreffSettings(user!.id).showGrade || Boolean(input.isGymEvent);
   const start = combineDayTime(input.day, input.from);
   const end = combineDayTime(input.day, input.to);
   const entry: TreffEntry = {
@@ -681,7 +812,53 @@ export async function createTreffEntry(
     boulderRef: input.boulderRef || undefined,
     note: input.note?.trim() || undefined,
   };
+  if (input.repeatWeekly) entry.repeatWeekly = true;
+  if (input.beginnersWelcome) entry.beginnersWelcome = true;
+  if (input.withKids) entry.withKids = true;
+  if (input.isGymEvent) entry.isGymEvent = true;
   return insertEntry(entry, now);
+}
+
+/**
+ * SPEC-036 AC-2: Beim Öffnen von Treff die Folgetermine eigener Serien anlegen.
+ * Gibt die Anzahl neu angelegter Termine zurück.
+ */
+export async function ensureWeeklyFollowUps(userId: string, entries: TreffEntry[], now: Date = new Date()): Promise<number> {
+  if (!userId || userId === 'guest') return 0;
+  let all = entries;
+  if (!useRemote(userId)) all = readLocal().entries;
+  const due = dueWeeklyFollowUps(all, userId, now);
+  let created = 0;
+  for (const e of due) {
+    const res = await insertEntry(e, now);
+    if (res.ok) created++;
+  }
+  return created;
+}
+
+/** SPEC-036 F1/AC-3: «Wiederholung beenden» – der nächste Termin bleibt, es kommen keine weiteren. */
+export async function stopTreffRepeat(userId: string, entryId: string, entries: TreffEntry[] = []): Promise<boolean> {
+  const local = !useRemote(userId);
+  const pool = local ? readLocal().entries : entries;
+  const target = pool.find(e => e.id === entryId);
+  if (!target || target.userId !== userId) return false;
+  // Alle Termine dieser Serie (gleiche Halle, gleiche Uhrzeit, wöchentlich) beenden
+  const sameSeries = (e: TreffEntry) => e.userId === userId && Boolean(e.repeatWeekly) && sameWeeklySlot(e, target);
+  const ids = pool.filter(sameSeries).map(e => e.id);
+  if (local) {
+    const s = readLocal();
+    s.entries = s.entries.map(e => (ids.includes(e.id) ? { ...e, repeatWeekly: false } : e));
+    writeLocal(s);
+    notifyChanged();
+    return true;
+  }
+  try {
+    const { error } = await supabase!.from('treff_entries').update({ repeat_weekly: false }).in('id', ids);
+    notifyChanged();
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 /** «Ich bin jetzt da» (F4). */

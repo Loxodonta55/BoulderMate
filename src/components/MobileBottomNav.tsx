@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layers, User, Users } from 'lucide-react';
+import { t, useLang } from '../lib/i18n';
 
 /**
  * SPEC-022 F11 · Untere Leiste: Wand und Ich.
@@ -21,6 +22,7 @@ const TABS: { id: ClimberTab; label: string; Icon: typeof Layers; testId: string
 ];
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onSelectTab, showTreff = false }) => {
+  useLang();
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--bm-surface)]/95 backdrop-blur-md border-t border-[var(--bm-line)] pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))] flex items-stretch"
@@ -40,7 +42,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onS
             }`}
           >
             <Icon className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
-            <span>{label}</span>
+            <span>{t(label)}</span>
           </button>
         );
       })}

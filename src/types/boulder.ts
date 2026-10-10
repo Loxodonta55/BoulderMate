@@ -179,6 +179,7 @@ export interface Sector {
   draftPhotoUrl?: string; // Entwurfsfoto während eines laufenden Umbaus
   rebuildStartedAt?: string; // gesetzt = Umbau läuft
   rebuiltAt?: string; // Zeitpunkt von «Wand fertig» (für «Neu»-Badge)
+  rebuildPlannedFor?: string; // SPEC-031: angekündigter Umbau (YYYY-MM-DD)
 }
 
 export interface RadarAttributes {
@@ -283,6 +284,8 @@ export interface Ascent {
   userAvatarUrl?: string;
   boulderId: string;
   type: AscentType;
+  /** SPEC-035: gezählte Versuche (privat); Flash = 1 */
+  attempts?: number;
   createdAt: string;
 }
 
@@ -357,6 +360,8 @@ export interface UserProfile {
   avatarUrl?: string;
   createdAt: string; // ISO timestamp, e.g. "2026-05-15T00:00:00Z"
   updatedAt?: string;
+  /** SPEC-033: mit Namen in «Wer war schon oben» und bei Beta (Standard: true) */
+  showInLists?: boolean;
 }
 
 export interface ProfileKPIs {

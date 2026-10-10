@@ -194,7 +194,7 @@ describe('SPEC-028 Treff – Speichern (lokal)', () => {
     expect(getTreffSettings(A.id).banned).toBe(false);
   });
 
-  it('eintragen, höchstens 3 offene, Niveau nur wenn erlaubt', async () => {
+  it('eintragen, höchstens 5 offene, Niveau nur wenn erlaubt', async () => {
     await consent(A.id);
     const base = { gymId: GYM, from: '18:00', to: '20:00', gradeMin: '6a', gradeMax: '6b', note: '  Bin am Überhang  ' };
     const r1 = await createTreffEntry(A, { ...base, day: '2026-10-16' }, NOW);
@@ -205,7 +205,10 @@ describe('SPEC-028 Treff – Speichern (lokal)', () => {
     }
     expect((await createTreffEntry(A, { ...base, day: '2026-10-17' }, NOW)).ok).toBe(true);
     expect((await createTreffEntry(A, { ...base, day: '2026-10-18' }, NOW)).ok).toBe(true);
-    expect(await createTreffEntry(A, { ...base, day: '2026-10-19' }, NOW)).toEqual({ ok: false, error: 'limit' });
+    // SPEC-036 F2: Grenze 5 statt 3
+    expect((await createTreffEntry(A, { ...base, day: '2026-10-19' }, NOW)).ok).toBe(true);
+    expect((await createTreffEntry(A, { ...base, day: '2026-10-20' }, NOW)).ok).toBe(true);
+    expect(await createTreffEntry(A, { ...base, day: '2026-10-21' }, NOW)).toEqual({ ok: false, error: 'limit' });
 
     await saveTreffSettings({ userId: B.id, consentAt: NOW.toISOString(), ageConfirmed: true, showGrade: false });
     const rb = await createTreffEntry(B, { ...base, day: '2026-10-16' }, NOW);

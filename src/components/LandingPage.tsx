@@ -2,6 +2,8 @@ import React from 'react';
 import { Mountain, Wrench, Shield, Star, TrendingUp, MessageCircle, LogIn, MapPin, Users } from 'lucide-react';
 import { AuthUser, DEMO_USERS } from '../lib/authService';
 import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
+import { AppleSignInButton, useAppleLoginAvailable, useAppleSignIn } from './AppleSignInButton';
+import { t, useLang } from '../lib/i18n';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -14,23 +16,30 @@ interface LandingPageProps {
   notice?: string | null;
   /** Angemeldet über das Logo geöffnet: «Zur App» statt Anmelden (SPEC-011 AC-8) */
   onContinue?: () => void;
+  /** SPEC-029 AC-4: Gast hat einen QR-Code an der Wand gescannt */
+  wallLinkNotice?: string | null;
 }
 
 /** SPEC-020 AC-9.1: Landing auf einen Screen. Claim, 3 Punkte, Login. */
-const FEATURES = [
-  { icon: Star, label: 'Perlen finden' },
-  { icon: TrendingUp, label: 'Erfolge tracken' },
-  { icon: MessageCircle, label: 'Know-how teilen' },
+const FEATURES = () => [
+  { icon: Star, label: t('Perlen finden') },
+  { icon: TrendingUp, label: t('Erfolge tracken') },
+  { icon: MessageCircle, label: t('Know-how teilen') },
 ];
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLogin, notice, onContinue, onShowGyms, onShowTreff }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLogin, notice, onContinue, onShowGyms, onShowTreff, wallLinkNotice }) => {
   // AC-9.4: Test-Personas nur im Dev-Build
   const showDemo = import.meta.env.DEV && onQuickLogin && !onContinue;
   // SPEC-024 AC-1.1: Google als Hauptknopf, sobald der Provider in Supabase aktiv ist (nicht für Angemeldete)
   const googleAvailable = useGoogleLoginAvailable();
   const showGoogle = googleAvailable && !onContinue;
   const google = useGoogleSignIn();
-  const alert = onContinue ? null : google.error || notice;
+  // SPEC-040: Apple unter Google, nur wenn Supabase Apple meldet
+  const appleAvailable = useAppleLoginAvailable();
+  const showApple = appleAvailable && !onContinue;
+  const apple = useAppleSignIn();
+  useLang();
+  const alert = onContinue ? null : google.error || apple.error || notice;
 
   return (
     <div className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] font-sans flex flex-col">
@@ -49,7 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               className="min-h-[40px] px-3.5 rounded-xl text-[15px] font-semibold flex items-center gap-1.5 text-[var(--bm-text)] active:bg-[var(--bm-elevated)]"
               data-testid="landing-continue-btn"
             >
-              <span>Zur App</span>
+              <span>{t('Zur App')}</span>
             </button>
           ) : (
             <button
@@ -59,7 +68,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               data-testid="login-modal-btn"
             >
               <LogIn className="w-4 h-4" strokeWidth={1.75} />
-              <span>Anmelden</span>
+              <span>{t('Anmelden')}</span>
             </button>
           )}
         </div>
@@ -68,15 +77,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
       <main className="flex-1 flex flex-col justify-center max-w-xl w-full mx-auto px-4 pb-10 gap-10">
         <div className="space-y-3">
           <h1 className="text-[30px] sm:text-[40px] leading-[1.1] font-bold tracking-tight text-balance">
-            Erkenne, welche Boulder zu dir passen und beliebt sind.
+            {t('Erkenne, welche Boulder zu dir passen und beliebt sind.')}
           </h1>
           <p className="text-[17px] leading-snug text-balance text-[var(--bm-text-2)]">
-            Tracke deine Erfolge und teile dein Know-how.
+            {t('Tracke deine Erfolge und teile dein Know-how.')}
           </p>
         </div>
 
         <ul className="grid grid-cols-3 gap-2">
-          {FEATURES.map(({ icon: Icon, label }) => (
+          {FEATURES().map(({ icon: Icon, label }) => (
             <li key={label} className="rounded-2xl bg-[var(--bm-surface)] px-2 py-4 flex flex-col items-center gap-2 text-center">
               <Icon className="w-[22px] h-[22px] text-[var(--bm-star)]" strokeWidth={1.75} />
               <span className="text-[13px] font-medium leading-tight">{label}</span>
@@ -85,6 +94,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
         </ul>
 
         <div className="space-y-3">
+          {wallLinkNotice && !onContinue && (
+            <p
+              role="status"
+              className="rounded-xl bg-[var(--bm-surface)] px-4 py-3 text-[17px] font-semibold text-[var(--bm-text)]"
+              data-testid="wall-link-notice"
+            >
+              {wallLinkNotice}
+            </p>
+          )}
           {alert && (
             <p
               role="alert"
@@ -95,6 +113,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
             </p>
           )}
           {showGoogle && <GoogleSignInButton onClick={google.start} busy={google.busy} />}
+          {showApple && <AppleSignInButton onClick={apple.start} busy={apple.busy} />}
           <button
             type="button"
             onClick={onContinue ?? onOpenLogin}
@@ -105,7 +124,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
             }`}
             data-testid={onContinue ? 'hero-continue-btn' : 'hero-login-btn'}
           >
-            {onContinue ? 'Weiter zur App' : showGoogle ? 'Mit E-Mail fortfahren' : 'Konto erstellen'}
+            {onContinue ? t('Weiter zur App') : showGoogle ? t('Mit E-Mail fortfahren') : t('Konto erstellen')}
           </button>
           {onShowGyms && (
             <button
@@ -115,7 +134,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               data-testid="landing-show-gyms"
             >
               <MapPin className="w-5 h-5" strokeWidth={1.75} aria-hidden />
-              Hallen ansehen
+              {t('Hallen ansehen')}
             </button>
           )}
           {onShowTreff && (
@@ -126,7 +145,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               data-testid="landing-show-treff"
             >
               <Users className="w-5 h-5" strokeWidth={1.75} aria-hidden />
-              Wer ist heute da?
+              {t('Wer ist heute da?')}
             </button>
           )}
           {showDemo && (
@@ -136,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               className="w-full min-h-[52px] rounded-xl bg-[var(--bm-surface)] text-[var(--bm-text)] text-[16px] font-semibold active:bg-[var(--bm-elevated)]"
               data-testid="hero-quick-start-btn"
             >
-              Als Kletterer testen
+              {t('Als Kletterer testen')}
             </button>
           )}
         </div>
@@ -180,7 +199,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
       <footer className="pb-safe">
         <div className="max-w-xl mx-auto px-4 pb-4 text-center">
           <a href="/datenschutz.html" className="text-[14px] text-[var(--bm-text-2)] underline" data-testid="link-datenschutz">
-            Datenschutz
+            {t('Datenschutz')}
           </a>
         </div>
       </footer>

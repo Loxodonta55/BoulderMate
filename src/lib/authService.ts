@@ -216,7 +216,8 @@ export async function mapSupabaseUserToAuthUser(sbUser: any): Promise<AuthUser> 
   if (synced.avatarUrl) avatarUrl = synced.avatarUrl;
   if (synced.isPlatformAdmin !== undefined) isPlatformAdmin = isPlatformAdmin || synced.isPlatformAdmin;
 
-  const provider = (sbUser.app_metadata?.provider === 'google') ? 'google' : 'email';
+  const rawProvider = sbUser.app_metadata?.provider;
+  const provider = rawProvider === 'google' ? 'google' : rawProvider === 'apple' ? 'apple' : 'email';
 
   // Demo Persona Verknüpfung prüfen
   const demoKey = SUPABASE_UUID_TO_DEMO_KEY[sbUser.id];
@@ -550,31 +551,55 @@ export function mockGoogleSignIn(options?: { email?: string; nickname?: string }
   });
 }
 
-let googleAvailability: Promise<boolean> | null = null;
+let providerSettings: Promise<Record<string, boolean>> | null = null;
+
+/** Liest einmal `/auth/v1/settings` (welche Anbieter sind in Supabase eingeschaltet?). */
+function loadProviderSettings(fetchImpl?: typeof fetch): Promise<Record<string, boolean>> {
+  if (providerSettings) return providerSettings;
+  const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : undefined);
+  // Unit-Tests gehen ohne eigenes fetchImpl nie ins Netz
+  if (!doFetch || !isSupabaseConfigured || (isTestEnv && !fetchImpl)) {
+    return Promise.resolve({});
+  }
+  providerSettings = doFetch(`${supabaseUrl}/auth/v1/settings`, {
+    headers: { apikey: supabaseAnonKey },
+  })
+    .then(res => (res.ok ? res.json() : null))
+    .then(settings => (settings?.external && typeof settings.external === 'object' ? settings.external : {}))
+    .catch(() => ({}));
+  return providerSettings;
+}
 
 /**
  * SPEC-024 AC-5.2: Fragt bei Supabase nach, ob der Google-Provider eingeschaltet ist.
  * Ohne Supabase, im Test oder bei Netzwerkfehlern: false (Knopf wird ausgeblendet).
  */
 export function isGoogleLoginAvailable(fetchImpl?: typeof fetch): Promise<boolean> {
-  if (googleAvailability) return googleAvailability;
-  const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : undefined);
-  // Unit-Tests gehen ohne eigenes fetchImpl nie ins Netz
-  if (!doFetch || !isSupabaseConfigured || (isTestEnv && !fetchImpl)) {
-    return Promise.resolve(false);
-  }
-  googleAvailability = doFetch(`${supabaseUrl}/auth/v1/settings`, {
-    headers: { apikey: supabaseAnonKey },
-  })
-    .then(res => (res.ok ? res.json() : null))
-    .then(settings => Boolean(settings?.external?.google))
-    .catch(() => false);
-  return googleAvailability;
+  return loadProviderSettings(fetchImpl).then(ext => Boolean(ext.google));
 }
 
-/** Nur für Tests: Zwischenspeicher von isGoogleLoginAvailable leeren. */
+/** SPEC-040 F2: Apple-Knopf nur, wenn Supabase Apple meldet. */
+export function isAppleLoginAvailable(fetchImpl?: typeof fetch): Promise<boolean> {
+  return loadProviderSettings(fetchImpl).then(ext => Boolean(ext.apple));
+}
+
+/** Nur für Tests: Zwischenspeicher der Anbieter-Abfrage leeren. */
 export function resetGoogleLoginAvailabilityCache(): void {
-  googleAvailability = null;
+  providerSettings = null;
+}
+
+/** SPEC-040 F1/AC-3: Weiterleitung zu Apple, Rückkehr auf dieselbe Seite. */
+export async function signInWithApple(): Promise<void> {
+  if (!supabase || !isSupabaseConfigured || typeof window === 'undefined') {
+    throw new Error('Apple-Anmeldung ist gerade nicht verfügbar.');
+  }
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'apple',
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) {
+    throw new Error(`Apple-Anmeldung fehlgeschlagen: ${error.message}`);
+  }
 }
 
 export type OAuthReturn =

@@ -42,7 +42,13 @@ import {
   blockTreffUser,
   reportTreffEntry,
   cleanupLocalTreff,
+  treffMarkers,
+  canCreateGymEvent,
+  treffDisplayName,
+  ensureWeeklyFollowUps,
+  stopTreffRepeat,
 } from '../../lib/treffService';
+import { CrowdBadge } from '../basis/CrowdBadge';
 
 /**
  * SPEC-028 · Treff – «Wer ist da?»
@@ -78,6 +84,48 @@ export const GradeBadge: React.FC<{ min?: string; max?: string }> = ({ min, max 
     </span>
   );
 };
+
+/** SPEC-036 F3/F4: Markierungen als Chips mit Wort, Abzeichen «Halle». */
+export const TreffChips: React.FC<{ entry: TreffEntry; withWeekly?: boolean }> = ({ entry, withWeekly }) => {
+  const chips = treffMarkers({ ...entry, repeatWeekly: withWeekly ? entry.repeatWeekly : false });
+  if (chips.length === 0) return null;
+  return (
+    <span className="flex flex-wrap gap-1.5 mt-1" data-testid={`treff-chips-${entry.id}`}>
+      {chips.map(c => (
+        <span
+          key={c.key}
+          data-testid={`treff-chip-${c.key}`}
+          className="px-2.5 py-0.5 rounded-lg bg-[var(--bm-elevated)] text-[var(--bm-text)] text-[15px] font-semibold"
+        >
+          {c.label}
+        </span>
+      ))}
+    </span>
+  );
+};
+
+export const GymEventBadge: React.FC = () => (
+  <span
+    className="shrink-0 px-2.5 py-0.5 rounded-lg bg-[var(--bm-strong)] text-[var(--bm-bg)] text-[15px] font-bold"
+    data-testid="treff-gym-badge"
+  >
+    Halle
+  </span>
+);
+
+const CheckRow: React.FC<{ checked: boolean; onChange: (v: boolean) => void; testId: string; children: React.ReactNode }> = ({
+  checked,
+  onChange,
+  testId,
+  children,
+}) => (
+  <label className="flex items-center gap-3 min-h-[52px] text-[17px] font-semibold cursor-pointer">
+    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="w-7 h-7 accent-[var(--bm-accent)]" data-testid={testId} />
+    {children}
+  </label>
+);
+
+const treffPhaseNow = (e: TreffEntry) => new Date(e.startsAt).getTime() <= Date.now() && new Date(e.endsAt).getTime() > Date.now();
 
 const BigToggle: React.FC<{ value: 'gym' | 'all'; onChange: (v: 'gym' | 'all') => void }> = ({ value, onChange }) => (
   <div role="tablist" data-testid="treff-scope" className="flex p-1 rounded-xl bg-[var(--bm-elevated)]">
@@ -180,9 +228,10 @@ const TreffForm: React.FC<{
   gymName: string;
   bestGrade?: string;
   showGrade: boolean;
+  canGymEvent?: boolean;
   onBack: () => void;
   onSubmit: (input: TreffEntryInput) => Promise<TreffError | null>;
-}> = ({ gymId, gymName, bestGrade, showGrade, onBack, onSubmit }) => {
+}> = ({ gymId, gymName, bestGrade, showGrade, canGymEvent, onBack, onSubmit }) => {
   const days = useMemo(() => treffDayOptions(), []);
   const [day, setDay] = useState(days[0].key);
   const initialFrom = useMemo(() => {
@@ -199,6 +248,10 @@ const TreffForm: React.FC<{
   const [gradeMax, setGradeMax] = useState(bestIdx >= 0 ? TREFF_GRADE_OPTIONS[bestIdx] : '');
   const [boulderRef, setBoulderRef] = useState('');
   const [note, setNote] = useState('');
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [beginnersWelcome, setBeginnersWelcome] = useState(false);
+  const [withKids, setWithKids] = useState(false);
+  const [isGymEvent, setIsGymEvent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const boulders = useMemo(() => activeBouldersForGym(gymId), [gymId]);
@@ -214,6 +267,10 @@ const TreffForm: React.FC<{
       gradeMax: gradeMax || undefined,
       boulderRef: boulderRef || undefined,
       note,
+      repeatWeekly,
+      beginnersWelcome,
+      withKids,
+      isGymEvent: canGymEvent ? isGymEvent : false,
     });
     setBusy(false);
     setError(err ? TREFF_ERROR_TEXT[err] : null);
@@ -322,6 +379,23 @@ const TreffForm: React.FC<{
           </label>
         </section>
 
+        <section data-testid="treff-form-options">
+          <CheckRow checked={repeatWeekly} onChange={setRepeatWeekly} testId="treff-form-weekly">
+            Jede Woche wiederholen
+          </CheckRow>
+          <CheckRow checked={beginnersWelcome} onChange={setBeginnersWelcome} testId="treff-form-beginners">
+            🌱 Anfänger willkommen
+          </CheckRow>
+          <CheckRow checked={withKids} onChange={setWithKids} testId="treff-form-kids">
+            👧 Mit Kind
+          </CheckRow>
+          {canGymEvent && (
+            <CheckRow checked={isGymEvent} onChange={setIsGymEvent} testId="treff-form-gym-event">
+              Als Termin der Halle
+            </CheckRow>
+          )}
+        </section>
+
         {error && (
           <p role="alert" className="text-[17px] font-semibold text-[var(--bm-danger)]" data-testid="treff-form-error">
             {error}
@@ -351,14 +425,16 @@ const TreffRow: React.FC<{ entry: TreffEntry; gymName?: string; isMine: boolean;
       <span className="block text-[15px] font-semibold text-[var(--bm-text-2)]">{formatTreffDay(entry.startsAt)}</span>
       <span className="block text-[20px] font-bold leading-tight">{formatTreffTime(entry).replace(' Uhr', '')}</span>
     </span>
-    <TreffAvatar name={entry.nickname} url={entry.avatarUrl} />
+    <TreffAvatar name={treffDisplayName(entry)} url={entry.isGymEvent ? undefined : entry.avatarUrl} />
     <span className="flex-1 min-w-0">
       <span className="flex items-center gap-2">
-        <span className="text-[17px] font-bold truncate">{isMine ? 'Du' : entry.nickname}</span>
+        <span className="text-[17px] font-bold truncate">{isMine && !entry.isGymEvent ? 'Du' : treffDisplayName(entry)}</span>
+        {entry.isGymEvent && <GymEventBadge />}
         <GradeBadge min={entry.gradeMin} max={entry.gradeMax} />
       </span>
       {gymName && <span className="block text-[15px] text-[var(--bm-text-2)] truncate">{gymName}</span>}
       {entry.note && <span className="block text-[15px] text-[var(--bm-text-2)] truncate">{entry.note}</span>}
+      <TreffChips entry={entry} />
     </span>
   </button>
 );
@@ -394,6 +470,8 @@ export const TreffView: React.FC<TreffViewProps> = ({ currentUser, activeGymId, 
   const reload = useCallback(async () => {
     cleanupLocalTreff();
     const res = await loadTreffEntries(currentUser.id);
+    // SPEC-036 AC-2: Folgetermine eigener Serien anlegen (löst selbst ein Neuladen aus)
+    if (!res.offline) void ensureWeeklyFollowUps(currentUser.id, res.entries);
     setEntries(res.entries);
     setOffline(res.offline);
     setLoaded(true);
@@ -460,6 +538,7 @@ export const TreffView: React.FC<TreffViewProps> = ({ currentUser, activeGymId, 
         gymName={gymName(activeGymId)}
         bestGrade={bestGrade}
         showGrade={settings.showGrade}
+        canGymEvent={canCreateGymEvent(activeGymId, currentUser.id)}
         onBack={() => setIsFormOpen(false)}
         onSubmit={async input => {
           const res = await createTreffEntry(user, input);
@@ -500,6 +579,13 @@ export const TreffView: React.FC<TreffViewProps> = ({ currentUser, activeGymId, 
         <p className="text-[17px] text-[var(--bm-text-2)]">Trag dich ein, wenn du Lust auf Austausch hast.</p>
       </div>
 
+      {/* SPEC-041: Auslastung oben in Treff (zählt «Jetzt da» mit) */}
+      <CrowdBadge
+        gymId={activeGymId}
+        extraUserIds={entries.filter(e => e.gymId === activeGymId && !e.isGymEvent && treffPhaseNow(e)).map(e => e.userId)}
+        testId="treff-crowd"
+      />
+
       <BigToggle value={scope} onChange={setScope} />
 
       {offline && (
@@ -534,6 +620,21 @@ export const TreffView: React.FC<TreffViewProps> = ({ currentUser, activeGymId, 
                     {formatTreffDay(e.startsAt)} · {gymName(e.gymId)}
                   </span>
                   <span className="block text-[20px] font-bold">{formatTreffTime(e)}</span>
+                  {e.isGymEvent && <GymEventBadge />}
+                  <TreffChips entry={e} withWeekly />
+                  {e.repeatWeekly && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await stopTreffRepeat(currentUser.id, e.id, entries);
+                        showToast({ message: ok ? 'Wiederholung beendet. Der nächste Termin bleibt.' : TREFF_ERROR_TEXT.failed });
+                      }}
+                      className="mt-2 min-h-[44px] px-3 rounded-xl border-2 border-[var(--bm-line)] text-[15px] font-semibold"
+                      data-testid={`treff-stop-repeat-${e.id}`}
+                    >
+                      Wiederholung beenden
+                    </button>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -557,10 +658,14 @@ export const TreffView: React.FC<TreffViewProps> = ({ currentUser, activeGymId, 
         {openEntry && (
           <div className="px-5 pt-2 space-y-4">
             <div className="flex items-center gap-3">
-              <TreffAvatar name={openEntry.nickname} url={openEntry.avatarUrl} size={56} />
+              <TreffAvatar name={treffDisplayName(openEntry)} url={openEntry.isGymEvent ? undefined : openEntry.avatarUrl} size={56} />
               <div className="min-w-0">
-                <h2 className="text-[24px] font-bold truncate">{openIsMine ? 'Du' : openEntry.nickname}</h2>
-                <GradeBadge min={openEntry.gradeMin} max={openEntry.gradeMax} />
+                <h2 className="text-[24px] font-bold truncate">{openIsMine && !openEntry.isGymEvent ? 'Du' : treffDisplayName(openEntry)}</h2>
+                <span className="flex items-center gap-2">
+                  {openEntry.isGymEvent && <GymEventBadge />}
+                  <GradeBadge min={openEntry.gradeMin} max={openEntry.gradeMax} />
+                </span>
+                <TreffChips entry={openEntry} withWeekly />
               </div>
             </div>
             <p className="text-[20px] font-bold" data-testid="treff-entry-time">

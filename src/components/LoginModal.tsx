@@ -26,6 +26,7 @@ import {
   AuthUser
 } from '../lib/authService';
 import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
+import { AppleSignInButton, useAppleLoginAvailable, useAppleSignIn } from './AppleSignInButton';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -60,6 +61,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   // SPEC-024 AC-1.2: ein Google-Knopf oben, für Anmelden und Registrieren gemeinsam
   const googleAvailable = useGoogleLoginAvailable();
   const google = useGoogleSignIn();
+  const appleAvailable = useAppleLoginAvailable();
+  const apple = useAppleSignIn();
 
   useEffect(() => {
     setCurrentUser(getCurrentAuthUser());
@@ -269,9 +272,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {googleAvailable && (
+          {(googleAvailable || appleAvailable) && (
             <div className="space-y-3">
-              <GoogleSignInButton onClick={google.start} busy={google.busy} />
+              {googleAvailable && <GoogleSignInButton onClick={google.start} busy={google.busy} />}
+              {appleAvailable && <AppleSignInButton onClick={apple.start} busy={apple.busy} />}
               <div className="flex items-center gap-3 text-[14px] text-[var(--bm-text-2)]">
                 <span className="flex-1 h-px bg-[var(--bm-line)]" />
                 <span>oder mit E-Mail</span>
@@ -280,12 +284,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {(errorMsg || google.error) && (
+          {(errorMsg || google.error || apple.error) && (
             <div 
               className="p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-danger)]/40 text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono"
               data-testid="register-error-msg"
             >
-              <span>{errorMsg || google.error}</span>
+              <span>{errorMsg || google.error || apple.error}</span>
             </div>
           )}
 

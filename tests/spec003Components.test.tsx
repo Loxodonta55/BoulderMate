@@ -240,6 +240,9 @@ describe('SPEC-003: UI Components Integration', () => {
 
       // Verify discussion section exists
       expect(screen.getByRole('heading', { name: /Beta/ })).toBeInTheDocument();
+      // SPEC-032 F11: Beta ist zugeklappt, erst nach Tippen sichtbar
+      expect(screen.queryByText(/Der Dyno geht super/i)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('beta-toggle'));
       // Seed comment is shown
       expect(screen.getByText(/Der Dyno geht super/i)).toBeInTheDocument();
 

@@ -14,6 +14,13 @@ export interface ToastOptions {
   durationMs?: number;
 }
 
+export const ACTION_TOAST_MIN_MS = 8000;
+
+export function toastDuration(t: Pick<ToastOptions, 'durationMs' | 'actionLabel' | 'onAction'>): number {
+  const base = t.durationMs ?? 4500;
+  return t.actionLabel && t.onAction ? Math.max(ACTION_TOAST_MIN_MS, base) : base;
+}
+
 type Listener = (t: (ToastOptions & { id: number }) | null) => void;
 const listeners = new Set<Listener>();
 let counter = 0;
@@ -41,7 +48,9 @@ export const ToastHost: React.FC = () => {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), toast.durationMs ?? 4500);
+    // SPEC-032 F6: mit Aktion («Rückgängig») mindestens 8 Sekunden
+    const duration = toastDuration(toast);
+    const timer = window.setTimeout(() => setToast(null), duration);
     return () => window.clearTimeout(timer);
   }, [toast]);
 

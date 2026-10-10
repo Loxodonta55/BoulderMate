@@ -1,4 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { readableTextOn } from '../lib/boulderNumbers';
+import { t } from '../lib/i18n';
 import { WallBoulder, GymGradeScale, Ascent, BoulderStatsAggregate } from '../types/boulder';
 import {
   ZoomIn,
@@ -43,6 +45,7 @@ export interface WallPhotoCanvasProps {
   statsMap?: Map<string, BoulderStatsAggregate>;
   userAscentMap?: Map<string, Ascent | null>;
   newBoulderIds?: Set<string>; // SPEC-021 AC-10: «Neu»-Badge
+  boulderNumbers?: Map<string, number>; // SPEC-032 F7: Nummer pro Wand im Pin
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onZoomChange?: (zoomLevel: number) => void;
@@ -70,6 +73,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
   statsMap,
   userAscentMap,
   newBoulderIds,
+  boulderNumbers,
   isFullscreen = false,
   onToggleFullscreen,
   onZoomChange,
@@ -587,7 +591,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             onClick={() => handleZoom(0.25)}
             disabled={zoomLevel >= 2.5}
             className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
-            title="Vergrößern"
+            title={t('Vergrößern')}
           >
             <ZoomIn className="w-4 h-4" />
           </button>
@@ -599,7 +603,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             onClick={() => handleZoom(-0.25)}
             disabled={zoomLevel <= 1}
             className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
-            title="Verkleinern"
+            title={t('Verkleinern')}
           >
             <ZoomOut className="w-4 h-4" />
           </button>
@@ -608,7 +612,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
               type="button"
               onClick={() => setZoomLevel(1)}
               className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
-              title="Zoom zurücksetzen"
+              title={t('Zoom zurücksetzen')}
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -621,11 +625,11 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                 type="button"
                 onClick={onToggleFullscreen}
                 className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:text-[var(--bm-strong)] hover:bg-[var(--bm-elevated)] transition flex items-center gap-1 text-xs font-mono cursor-pointer"
-                title="Sektor-Vollbildmodus"
+                title={t('Sektor-Vollbildmodus')}
                 data-testid="canvas-fullscreen-btn"
               >
                 <Maximize2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Vollbild</span>
+                <span className="hidden sm:inline">{t('Vollbild')}</span>
               </button>
             </>
           )}
@@ -656,8 +660,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             onClick={() => handleZoom(0.25)}
             disabled={zoomLevel >= 3.0}
             className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
-            title="Vergrößern"
-            aria-label="Vergrößern"
+            title={t('Vergrößern')}
+            aria-label={t('Vergrößern')}
           >
             <ZoomIn className="w-4 h-4 text-[var(--bm-accent)]" />
           </button>
@@ -669,8 +673,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
             onClick={() => handleZoom(-0.25)}
             disabled={zoomLevel <= 1}
             className="p-1.5 rounded-xl text-[var(--bm-text-2)] hover:text-[var(--bm-text)] hover:bg-[var(--bm-elevated)] disabled:opacity-30 transition cursor-pointer"
-            title="Verkleinern"
-            aria-label="Verkleinern"
+            title={t('Verkleinern')}
+            aria-label={t('Verkleinern')}
           >
             <ZoomOut className="w-4 h-4 text-[var(--bm-accent)]" />
           </button>
@@ -679,8 +683,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
               type="button"
               onClick={() => setZoomLevel(1)}
               className="p-1.5 rounded-xl text-[var(--bm-accent)] hover:bg-[var(--bm-elevated)] transition cursor-pointer"
-              title="Passend zurücksetzen (100%)"
-              aria-label="Zoom zurücksetzen"
+              title={t('Passend zurücksetzen (100%)')}
+              aria-label={t('Zoom zurücksetzen')}
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -717,7 +721,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
         >
           <img
             src={photoUrl}
-            alt={sectorName || 'Wandfoto des Sektors'}
+            alt={sectorName || t('Wandfoto des Sektors')}
             onLoad={(e) => {
               const img = e.currentTarget;
               if (img.naturalWidth && img.naturalHeight) {
@@ -792,7 +796,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                     }`}
                     title={`${boulder.name || scale?.colorName || 'Boulder'}${
                       stats && stats.totalRatings > 0 ? ` (${stats.avgStars.toFixed(1)} ★)` : ''
-                    } (Tippen für Details)`}
+                    } ${t('(Tippen für Details)')}`}
                   >
                     {/* Visual Scaled Pin Container: visually shrinks as user zooms in, keeping holds clearly visible */}
                     <div
@@ -827,17 +831,26 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                           <span
                             data-testid={`classic-badge-${boulder.id}`}
                             className="absolute -top-3.5 -right-3.5 z-30 w-6 h-6 rounded-full bg-[var(--bm-star)] border-2 border-[var(--bm-bg)] flex items-center justify-center shadow-md"
-                            title={`Hallen-Klassiker (${stats?.avgStars.toFixed(1)} ★)`}
+                            title={`${t('Hallen-Klassiker')} (${stats?.avgStars.toFixed(1)} ★)`}
                           >
                             <Star className="w-4 h-4 fill-[var(--bm-bg)] text-[var(--bm-bg)]" />
                           </span>
                         )}
 
-                        {/* SPEC-022 F19: Eigene Begehung als deutliches Abzeichen */}
+                        {/* SPEC-022 F19 / SPEC-032 F7: Eigene Begehung als deutliches Abzeichen (auch Projekt) */}
+                        {isProject && (
+                          <span
+                            data-testid={`pin-status-${boulder.id}`}
+                            aria-label={t('Projekt')}
+                            className="absolute -bottom-3 -right-3.5 z-30 w-6 h-6 rounded-full border-2 border-[var(--bm-bg)] bg-[var(--bm-surface)] flex items-center justify-center shadow-md"
+                          >
+                            <Clock className="w-4 h-4 text-[var(--bm-text)]" />
+                          </span>
+                        )}
                         {(isFlash || isTop) && (
                           <span
                             data-testid={`pin-status-${boulder.id}`}
-                            aria-label={isFlash ? 'Flash' : 'Top'}
+                            aria-label={isFlash ? t('Flash') : t('Top')}
                             className={`absolute -bottom-3 -right-3.5 z-30 w-6 h-6 rounded-full border-2 border-[var(--bm-bg)] flex items-center justify-center shadow-md ${
                               isFlash ? 'bg-[var(--bm-star)]' : 'bg-[var(--bm-success)]'
                             }`}
@@ -856,18 +869,29 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                             data-testid={`new-badge-${boulder.id}`}
                             className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-1 rounded-xl bg-[var(--bm-accent)] text-[var(--bm-on-accent)] border border-[var(--bm-bg)] text-[8px] font-mono font-black leading-tight shadow-md z-30"
                           >
-                            Neu
+                            {t('Neu')}
                           </span>
                         )}
 
-                        {/* Status Icon Indicator */}
-                        {isFlash && <Zap className="w-4 h-4 text-[var(--bm-bg)] fill-[var(--bm-bg)]" />}
-                        {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
-                        {isProject && <Clock className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
-                        {!userAscent && (
-                          <span className="text-[11px] font-mono font-bold text-[var(--bm-bg)]">
-                            {scale?.colorName?.[0] || '●'}
+                        {/* SPEC-032 F7: Nummer pro Wand statt Farb-Buchstabe; Status steht im Abzeichen */}
+                        {boulderNumbers?.has(boulder.id) ? (
+                          <span
+                            data-testid={`pin-number-${boulder.id}`}
+                            className="text-[15px] font-bold leading-none tabular-nums"
+                            style={{ color: readableTextOn(colorHex) }}
+                          >
+                            {boulderNumbers.get(boulder.id)}
                           </span>
+                        ) : (
+                          <>
+                            {isFlash && <Zap className="w-4 h-4 text-[var(--bm-bg)] fill-[var(--bm-bg)]" />}
+                            {isTop && !isFlash && <Trophy className="w-3.5 h-3.5 text-[var(--bm-bg)]" />}
+                            {!userAscent && (
+                              <span className="text-[11px] font-mono font-bold text-[var(--bm-bg)]">
+                                {scale?.colorName?.[0] || '●'}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

@@ -64,9 +64,9 @@ export const Chip: React.FC<ChipProps> = ({ active, onClick, children, testId })
 
 export const ListGroup: React.FC<{ title?: string; children: React.ReactNode; footer?: string }> = ({ title, children, footer }) => (
   <section className="space-y-1.5">
-    {title && <h3 className="px-4 text-[13px] font-medium text-[var(--bm-text-2)]">{title}</h3>}
+    {title && <h3 className="px-4 text-[14px] font-medium text-[var(--bm-text-2)]">{title}</h3>}
     <div className="rounded-2xl bg-[var(--bm-surface)] overflow-hidden divide-y divide-[var(--bm-line)]">{children}</div>
-    {footer && <p className="px-4 text-[12px] text-[var(--bm-text-2)]">{footer}</p>}
+    {footer && <p className="px-4 text-[14px] text-[var(--bm-text-2)]">{footer}</p>}
   </section>
 );
 
@@ -93,7 +93,7 @@ export const ListRow: React.FC<ListRowProps> = ({ icon, title, subtitle, value, 
       {icon && <span className="shrink-0 flex items-center justify-center">{icon}</span>}
       <span className="flex-1 min-w-0">
         <span className={`block text-[16px] truncate ${destructive ? 'text-[var(--bm-danger)]' : 'text-[var(--bm-text)]'}`}>{title}</span>
-        {subtitle && <span className="block text-[13px] text-[var(--bm-text-2)] truncate">{subtitle}</span>}
+        {subtitle && <span className="block text-[14px] text-[var(--bm-text-2)] truncate">{subtitle}</span>}
       </span>
       {value !== undefined && <span className="shrink-0 text-[15px] text-[var(--bm-text-2)]">{value}</span>}
       {chevron && <ChevronRight className="w-4 h-4 text-[var(--bm-text-3)] shrink-0" />}
