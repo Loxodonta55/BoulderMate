@@ -1,10 +1,11 @@
 # 🧗 BoulderMate — Constitution
 
 > **Projektname**: BoulderMate
-> **Version**: 2.0 — Aktualisiert am 04.10.2026
+> **Version**: 2.1 — Aktualisiert am 10.10.2026
 > **Status**: Genehmigt (UX-Overhaul v2)
 
 ### Changelog
+- **v2.1 (10.10.2026)**: §14 ergänzt: Jedes neue Feature durchläuft den Loop «FeatureDefinition» (Grill-me, 3–5 simulierte Feedback-Runden, dann Umsetzung).
 - **v2.0 (04.10.2026)**: UX-Komplettüberarbeitung (SPEC-020 «Chalk»). 2 Tabs («Wand» & «Ich»), PWA (React 19 + Vite), Entfall Pflicht-Role-Gateway zugunsten von Arbeitsbereich in Einstellungen («Fertig»-Button zum Verlassen), Gast-Modus read-only, 5-Achsen-Radar beibehalten, Schrauber-Schnellerfassung (nur Farbe Pflicht, Details eingeklappt, Auswählen-Modus statt Rechteck), Edge-to-Edge Wandfoto (≥ 70 % Viewport-Höhe), sofortiges Schließen mit Undo-Toast nach Logging, Ersetzung der kantigen Design-Prinzipien durch die 8 Leitprinzipien.
 - **v1.0 (04.09.2026)**: Initiale Genehmigung nach Grill-Me Interview.
 
@@ -314,3 +315,9 @@ Das Radar-Chart verwendet einheitlich **5 Achsen** (kein Aufsplitten von Kraft i
 
 
 
+
+---
+
+## 14. Feature-Prozess: Loop «FeatureDefinition»
+
+Seit 10.10.2026 durchläuft **jedes neue Feature** vor der Umsetzung den Loop **FeatureDefinition**: Grill-me mit Empfehlungen, Spec v1 mit Akzeptanzkriterien, mindestens 3 und höchstens 5 Runden «Feedback einholen» (30 simulierte Personen aus mindestens 6 Populationen, nicht nur MINT), Einarbeitung in die Spec mit Abschnitt «FeatureDefinition-Verlauf», dann Status READY. Erst danach wird umgesetzt (Tests nach §13). Verbindlicher Ablauf: [docs/prozesse/feature-definition.md](docs/prozesse/feature-definition.md) und [docs/prozesse/feedback-einholen.md](docs/prozesse/feedback-einholen.md).

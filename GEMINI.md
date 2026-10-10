@@ -42,6 +42,10 @@ Every feature starts as a specification that aligns user requirements before imp
 - **Transparenz vor Simulation**: Fehlen Credentials, Backend-Services, API-Keys oder OAuth-Konfigurationen (z. B. Supabase URL, Google Cloud OAuth Client ID), muss dies sofort und transparent offengelegt werden. Es darf niemals ein Fake-Login oder Fake-Backend vorgegaukelt werden.
 - **Echte Protokolle & echte Infrastruktur**: Features sind stets gegen echte Services (Supabase Auth, echte OAuth 2.0 PKCE-Flows, echte PostgreSQL-Tabellen) zu implementieren. Keine Mocks, keine Dummy-Personas, keine Fake-Logins ohne explizite Anweisung!
 
+### Neue Features: Loop «FeatureDefinition» (Pflicht seit 10.10.2026)
+
+Jedes neue Feature durchläuft vor der Umsetzung den Loop **FeatureDefinition**: Grill-me mit Empfehlungen → Spec v1 → 3 bis 5 Runden «Feedback einholen» (30 simulierte Personen, gemischte Populationen, nicht nur MINT) → Status READY → erst dann Umsetzung mit Unit- und Playwright-Tests. Details: [docs/prozesse/feature-definition.md](docs/prozesse/feature-definition.md) und [docs/prozesse/feedback-einholen.md](docs/prozesse/feedback-einholen.md); Workflows `/feature-definition` und `/feedback-einholen` in `.agent/workflows/`.
+
 ## Agent Configuration
 
 ### Primary Agents (Auto-routed via intelligent-routing)
