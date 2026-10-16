@@ -1,6 +1,6 @@
 # SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text
 
-## Status: IN PROGRESS (umgesetzt 2026-10-06/07, Nachtrag F19–F22 am 2026-10-08, F23 am 2026-10-09, uncommitted)
+## Status: IN PROGRESS (umgesetzt 2026-10-06/07, Nachtrag F19–F22 am 2026-10-08, F23 am 2026-10-09, F24 am 2026-10-10, uncommitted)
 
 > **Owner:** Hans · **Created:** 2026-10-06 · **Baut auf:** SPEC-020 (Design System v2 «Kreide»), SPEC-021 (Umschrauben)
 >
@@ -131,6 +131,15 @@ Tests (F21/F22): `tests/spec022ClimberUx.test.tsx` (kein «Pin antippen» beim K
 
 Tests (F23): `tests/spec022ClimberUx.test.tsx` («Bewerten-Knopf im halben Sheet»), `tests/e2e/climber-ux.spec.ts` («F23»).
 
+### Nachtrag 10.10.2026 (Hans: «es geht mir um den Schwierigkeitsgrad, ob es soft oder hard oder recht solide schwer ist»)
+
+**F24 – Wie gibt man nach dem Loggen schnell an, ob der Grad soft, fair oder stiff war?**
+→ Nach Flash oder Top zeigt der Toast «Grad?» mit drei großen Knöpfen **Soft** (leichter) · **Fair** (passt) · **Stiff** (schwerer), je ≥ 48 px hoch (`toast-feel-soft|fair|stiff`). Ein Tap speichert das Grad-Empfinden. Fehlen noch Sterne, folgt im nächsten Toast «Und wie war's? ★★★★★». Ist das Grad-Empfinden schon abgegeben, zeigt der Toast direkt die Sterne (wie bisher). Bei «Projekt» wird nichts gefragt. Es öffnet sich weiterhin **kein** Dialog; wer nichts antippt, verliert nichts.
+*Warum:* Seit F7 fragte der schnelle Weg nur noch nach Sternen; das Grad-Empfinden gab es nur im Bewertungsfenster, also kamen kaum noch Daten dazu. Der Toast-Tap kostet keinen zusätzlichen Schritt beim Loggen.
+*Daten:* Gespeichert wird im bestehenden Feld `gradeFeel` (`'soft' | 'fair' | 'stiff'`) der Bewertung, wie im Bewertungsfenster. Genau diese Werte und Begriffe (Soft/Fair/Stiff) wertet SPEC-044 «Meine Routen» für Schrauber aus.
+
+Tests (F24): `tests/spec022ClimberUx.test.tsx` («Grad-Empfinden im Toast»), `tests/mobileFirstExperience.test.tsx` (Test 6 angepasst), `tests/e2e/climber-ux.spec.ts` («F24»).
+
 **Fehlerbehebung 08.10.2026 – Person doppelt in «Wer war schon oben»:** Lagen für eine Person zwei Begehungen am selben Boulder vor (Demo-Seed hatte zwei; nach Sync auch Demo-ID plus Supabase-UUID möglich), erschien sie zweimal und wurde doppelt gezählt. Jetzt zählt pro Person nur die neueste Begehung (`computeBoulderStatsAggregate`); die doppelten Seed-Einträge sind entfernt. Tests: `tests/communityAscentDedupe.test.tsx`, `tests/e2e/climber-ux.spec.ts`.
 
 ---
@@ -155,6 +164,7 @@ Tests (F23): `tests/spec022ClimberUx.test.tsx` («Bewerten-Knopf im halben Sheet
 - **AC-16** (F22) `src/components/BoulderDetailModal.tsx` und `src/components/UserProfileView.tsx` existieren nicht mehr; kein Test importiert sie.
 - **AC-17** «Wer war schon oben» zeigt jede Person höchstens einmal; Summen zählen eine Begehung pro Person.
 - **AC-18** (F23) Das halbe Sheet zeigt `quick-rate-btn` (≥ 56 px hoch); ein Tap öffnet das Bewertungsfenster, ohne die Details aufzuziehen. Mit eigener Bewertung lautet der Text «Deine Bewertung: n Sterne · ändern». Nach Flash/Top/Projekt öffnet sich kein Bewertungsfenster von selbst.
+- **AC-19** (F24) Nach Flash/Top ohne eigenes Grad-Empfinden zeigt der Toast `toast-feel` mit Soft/Fair/Stiff (≥ 48 px); ein Tap speichert `gradeFeel` und bietet danach Sterne an. Mit vorhandenem Grad-Empfinden oder bei Projekt kein `toast-feel`. Kein Dialog öffnet sich von selbst.
 
 ## 4. Nicht Teil dieser Runde
 - Rollen-Gateway nach Login entfernen (SPEC-020 AC-8.3).

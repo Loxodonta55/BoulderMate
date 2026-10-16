@@ -7,6 +7,7 @@ import {
   CurrentUser,
   AscentType,
   RatingInput,
+  GradeFeel,
 } from '../types/boulder';
 import {
   getAscents,
@@ -154,11 +155,67 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
     .filter(Boolean)
     .join(' · ');
 
+  const starPicker = (label: string) => (
+    <div className="flex items-center gap-2" data-testid="toast-stars">
+      <span className="text-[13px] text-[var(--bm-text-2)]">{label}</span>
+      {[1, 2, 3, 4, 5].map(s => (
+        <button
+          key={s}
+          type="button"
+          aria-label={t('{n} Sterne', { n: s })}
+          data-testid={`toast-star-${s}`}
+          onClick={() => rateStars(s)}
+          className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center"
+        >
+          <Star className="w-6 h-6 text-[var(--bm-star)]" />
+        </button>
+      ))}
+    </div>
+  );
+
   const rateStars = (stars: number) => {
     saveRating(currentUser.id, currentUser.nickname, boulder.id, { qualityStars: stars });
     hideToast();
     showToast({ message: stars === 1 ? t('Danke! {n} Stern gespeichert', { n: stars }) : t('Danke! {n} Sterne gespeichert', { n: stars }), durationMs: 2000 });
   };
+
+  // SPEC-022 F24: Grad-Empfinden (soft/fair/stiff) mit einem Tap im Toast, danach optional Sterne
+  const rateFeel = (feel: GradeFeel) => {
+    saveRating(currentUser.id, currentUser.nickname, boulder.id, { gradeFeel: feel });
+    hideToast();
+    const label = t('Grad gespeichert: {feel}', { feel: FEEL_LABEL[feel] });
+    if (getUserRating(currentUser.id, boulder.id)?.qualityStars) {
+      showToast({ message: label, durationMs: 2000 });
+    } else {
+      showToast({ message: label, durationMs: 8000, content: starPicker(t("Und wie war's?")) });
+    }
+  };
+
+  const feelPicker = (
+    <div data-testid="toast-feel">
+      <span className="block text-[15px] font-semibold text-[var(--bm-text)] mb-1.5">{t('Grad?')}</span>
+      <div className="grid grid-cols-3 gap-2">
+        {(
+          [
+            { feel: 'soft' as GradeFeel, hint: t('leichter') },
+            { feel: 'fair' as GradeFeel, hint: t('passt') },
+            { feel: 'stiff' as GradeFeel, hint: t('schwerer') },
+          ]
+        ).map(({ feel, hint }) => (
+          <button
+            key={feel}
+            type="button"
+            data-testid={`toast-feel-${feel}`}
+            onClick={() => rateFeel(feel)}
+            className="min-h-[52px] rounded-xl bg-[var(--bm-elevated)] border-2 border-[var(--bm-line)] flex flex-col items-center justify-center active:scale-[0.97]"
+          >
+            <span className="text-[16px] font-bold text-[var(--bm-text)]">{FEEL_LABEL[feel]}</span>
+            <span className="text-[13px] text-[var(--bm-text-2)]">{hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   const handleLog = (type: AscentType) => {
     if (isGuest) {
@@ -169,29 +226,15 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
     if (previous?.type === type) return;
     const { ascent } = logAscent(currentUser.id, currentUser.nickname, boulder.id, type, currentUser.avatarUrl);
     vibrate();
-    const askForStars = type !== 'project' && !getUserRating(currentUser.id, boulder.id)?.qualityStars;
+    const existing = getUserRating(currentUser.id, boulder.id);
+    const askForFeel = type !== 'project' && !existing?.gradeFeel;
+    const askForStars = type !== 'project' && !existing?.qualityStars;
     showToast({
       message: logToastMessage(type, ascent.attempts, isDeviceOnline()),
       actionLabel: t('Rückgängig'),
       durationMs: 8000,
       onAction: () => restoreAscent(currentUser.id, boulder.id, previous ? { ...previous } : null),
-      content: askForStars ? (
-        <div className="flex items-center gap-2" data-testid="toast-stars">
-          <span className="text-[13px] text-[var(--bm-text-2)]">{t("Wie war's?")}</span>
-          {[1, 2, 3, 4, 5].map(s => (
-            <button
-              key={s}
-              type="button"
-              aria-label={t('{n} Sterne', { n: s })}
-              data-testid={`toast-star-${s}`}
-              onClick={() => rateStars(s)}
-              className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center"
-            >
-              <Star className="w-6 h-6 text-[var(--bm-star)]" />
-            </button>
-          ))}
-        </div>
-      ) : undefined,
+      content: askForFeel ? feelPicker : askForStars ? starPicker(t("Wie war's?")) : undefined,
     });
     onClose(); // CONSTITUTION §11.2: sofort zurück zur Wand
   };

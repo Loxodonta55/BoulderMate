@@ -47,3 +47,4 @@
 | [SPEC-041](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-041-wie-voll-ist-die-halle.md) | Wie voll ist die Halle? – «ruhig / normal / viel los» | IMPLEMENTED | Hans | 2026-10-09 |
 | [SPEC-042](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-042-trainer-gruppe.md) | Trainer-Gruppe – Jugendliche teilen ihre Tops mit Zustimmung | IMPLEMENTED | Hans | 2026-10-09 |
 | [SPEC-043](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-043-import-fremder-ticks.md) | Import alter Ticks (z. B. aus Tickboard) | IN PROGRESS | Hans | 2026-10-09 |
+| [SPEC-044](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-044-schrauber-statistik-meine-routen.md) | Schrauber-Statistik «Meine Routen» – wie die eigenen Routen ankommen | READY | Hans | 2026-10-10 |

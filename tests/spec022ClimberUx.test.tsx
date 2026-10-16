@@ -13,7 +13,7 @@ import {
   getGradeScales,
   getWallBoulders,
 } from '../src/lib/batchBoulderService';
-import { getUserAscent, logAscent, saveRating, resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
+import { getUserAscent, getUserRating, logAscent, saveRating, resetAscentAndRatingStorage } from '../src/lib/ratingAndAscentService';
 import {
   filterClimberBoulders,
   sortByDifficulty,
@@ -319,6 +319,50 @@ describe('SPEC-022: Kletterer-UX – Ordnung, Übersicht, wenig Text', () => {
       fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
       fireEvent.click(screen.getByTestId('log-top-btn'));
       expect(screen.queryByText('Wie fandest du den Grad / die Schwierigkeit?')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Grad-Empfinden im Toast nach dem Loggen (F24)', () => {
+    const renderWithToast = () =>
+      render(
+        <>
+          <ClimberSectorView currentUser={climber} activeGymId={GYM} />
+          <ToastHost />
+        </>
+      );
+
+    it('fragt nach Top «Grad?» mit Soft/Fair/Stiff und speichert mit einem Tap, danach Sterne', () => {
+      const { easy } = seedTwoBoulders();
+      renderWithToast();
+      fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
+      fireEvent.click(screen.getByTestId('log-top-btn'));
+
+      expect(screen.getByTestId('toast-feel')).toHaveTextContent('Grad?');
+      expect(screen.queryByText('Wie fandest du den Grad / die Schwierigkeit?')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('toast-feel-stiff'));
+      expect(getUserRating(climber.id, easy.id)?.gradeFeel).toBe('stiff');
+      expect(screen.getByText('Grad gespeichert: Stiff')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('toast-star-5'));
+      expect(getUserRating(climber.id, easy.id)?.qualityStars).toBe(5);
+      expect(getUserRating(climber.id, easy.id)?.gradeFeel).toBe('stiff');
+      act(() => hideToast());
+    });
+
+    it('fragt nicht erneut, wenn das Grad-Empfinden schon abgegeben ist, und nie bei Projekt', () => {
+      const { easy, hard } = seedTwoBoulders();
+      saveRating(climber.id, climber.nickname, easy.id, { gradeFeel: 'soft' });
+      renderWithToast();
+      fireEvent.click(screen.getByTestId(`route-row-${easy.id}`));
+      fireEvent.click(screen.getByTestId('log-flash-btn'));
+      expect(screen.queryByTestId('toast-feel')).not.toBeInTheDocument();
+      expect(screen.getByTestId('toast-stars')).toBeInTheDocument();
+      act(() => hideToast());
+
+      fireEvent.click(screen.getByTestId(`route-row-${hard.id}`));
+      fireEvent.click(screen.getByTestId('log-project-btn'));
+      expect(screen.queryByTestId('toast-feel')).not.toBeInTheDocument();
+      act(() => hideToast());
     });
   });
 

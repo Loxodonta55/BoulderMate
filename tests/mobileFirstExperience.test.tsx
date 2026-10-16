@@ -275,7 +275,9 @@ describe('Mobile-First Experience Test Suite', () => {
     expect(screen.getByTestId('toast')).toHaveTextContent('Top geloggt');
     expect(screen.getByTestId('toast-action')).toHaveTextContent('Rückgängig');
 
-    // Ein Tap auf die Sterne speichert die Bewertung, ohne weiteren Dialog
+    // SPEC-022 F24: Erst Grad-Empfinden mit einem Tap, danach optional Sterne – ohne Dialog
+    fireEvent.click(screen.getByTestId('toast-feel-fair'));
+    expect(getUserRating(user.id, sampleBoulder.id)?.gradeFeel).toBe('fair');
     fireEvent.click(screen.getByTestId('toast-star-4'));
     expect(getUserRating(user.id, sampleBoulder.id)?.qualityStars).toBe(4);
     expect(screen.getByTestId('toast')).toHaveTextContent('4 Sterne gespeichert');

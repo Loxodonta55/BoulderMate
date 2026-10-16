@@ -95,6 +95,27 @@ test.describe('SPEC-022: Kletterer-UX', () => {
     await expect(page.getByText('Wie fandest du den Grad / die Schwierigkeit?')).toBeVisible();
   });
 
+  test('F24: Nach Top fragt der Toast «Grad?» – Soft/Fair/Stiff mit einem Tap, gross genug', async ({ page }) => {
+    await loginAsHans(page);
+    const row = await firstOpenRoute(page);
+    const rowId = (await row.getAttribute('data-testid'))!.replace('route-row-', '');
+    await row.click();
+    await page.getByTestId('log-top-btn').click();
+
+    await expect(page.getByTestId('toast-feel')).toBeVisible();
+    const stiff = page.getByTestId('toast-feel-stiff');
+    const box = await stiff.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(48);
+    await stiff.click();
+    await expect(page.getByText('Grad gespeichert: Stiff')).toBeVisible();
+
+    const feel = await page.evaluate(id => {
+      const all = JSON.parse(localStorage.getItem('boulderapp_ratings_v3') || '[]');
+      return all.find((r: any) => r.boulderId === id && r.userId === 'hans-kletterer')?.gradeFeel;
+    }, rowId);
+    expect(feel).toBe('stiff');
+  });
+
   test('F19: Geschaffte Route zeigt grosses «Flash» in der Liste, Abzeichen am Pin und den Fortschritt', async ({ page }) => {
     await loginAsHans(page);
     const row = await firstOpenRoute(page);
