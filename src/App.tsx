@@ -18,7 +18,8 @@ import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
-import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED, canUseViewAs, getActiveViewAs } from './lib/authService';
+import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED, canUseViewAs, getActiveViewAs, readEmailLinkFromUrl, verifyEmailLink, AUTH_MSG } from './lib/authService';
+import { NewPasswordSheet } from './components/auth/NewPasswordSheet';
 import { onViewAsChange, setStoredViewAs, ViewAsMode } from './lib/viewAsService';
 import { ViewAsSwitcher } from './components/ViewAsSwitcher';
 import { syncFromSupabase, startRealtimeSync } from './lib/syncService';
@@ -31,7 +32,7 @@ import { getTreffSettings, TREFF_CHANGED_EVENT } from './lib/treffService';
 import { useBackHandler } from './hooks/useBackHandler';
 import { GymFinderSheet } from './components/GymFinderSheet';
 import { getGymFinderEntries } from './lib/gymFinder';
-import { useLang } from './lib/i18n';
+import { useLang, t } from './lib/i18n';
 import { getSectors } from './lib/batchBoulderService';
 import { readWallLinkFromUrl, clearWallLinkFromUrl, savePendingWallLink, getPendingWallLink, clearPendingWallLink, resolveWallLinkSector } from './lib/wallLink';
 import { showToast } from './components/ui/Toast';
@@ -86,6 +87,14 @@ export const App: React.FC = () => {
   // SPEC-024 AC-2.4 / AC-5.1: Rückkehr von Google (?code= oder ?error=) beim Start auswerten
   // SPEC-027: «Ansehen als …» (nur Plattform-Admins)
   const [viewAsMode, setViewAsMode] = useState<ViewAsMode>(() => getActiveViewAs());
+  // SPEC-049: Links aus Supabase-Mails (Passwort, Bestätigung) vor der Google-Auswertung lesen,
+  // damit ein abgelaufener Link nicht als «Google-Anmeldung abgebrochen» erscheint
+  const [emailLink] = useState(() => readEmailLinkFromUrl());
+  const [isVerifyingLink, setIsVerifyingLink] = useState(emailLink.kind === 'verify');
+  const [isNewPasswordOpen, setIsNewPasswordOpen] = useState(false);
+  const [loginModalMode, setLoginModalMode] = useState<'register' | 'forgot'>('register');
+  const [loginModalNotice, setLoginModalNotice] = useState<string | null>(null);
+  const [pendingToast, setPendingToast] = useState<string | null>(null);
   const [oauthReturn] = useState(() => readOAuthReturnFromUrl());
   const [isFinishingOAuth, setIsFinishingOAuth] = useState(oauthReturn.status === 'pending');
   const [authNotice, setAuthNotice] = useState<string | null>(oauthReturn.status === 'error' ? oauthReturn.message : null);
@@ -98,6 +107,10 @@ export const App: React.FC = () => {
       if (user) {
         setAuthSession(user);
         setClimberId(user.id);
+        // SPEC-049 AC-7: Rückfall-Link (?auth=recovery&code=) im selben Browser
+        if (emailLink.kind === 'recovery-code') setIsNewPasswordOpen(true);
+      } else if (emailLink.kind === 'recovery-code') {
+        openLoginForgot(AUTH_MSG.linkExpired);
       } else {
         setAuthNotice(OAUTH_ERROR_FAILED);
       }
@@ -107,6 +120,55 @@ export const App: React.FC = () => {
       active = false;
     };
   }, [oauthReturn]);
+
+  // SPEC-049 AC-9: Login-Fenster direkt bei «Passwort vergessen» öffnen, mit Meldung
+  function openLoginForgot(notice: string) {
+    setLoginModalMode('forgot');
+    setLoginModalNotice(notice);
+    setIsLoginModalOpen(true);
+  }
+
+  const closeLoginModal = () => {
+    setIsLoginModalOpen(false);
+    setLoginModalMode('register');
+    setLoginModalNotice(null);
+  };
+
+  // SPEC-049 AC-6/9/12: Link aus der Mail einlösen (token_hash, jedes Gerät)
+  useEffect(() => {
+    if (emailLink.kind === 'expired') {
+      openLoginForgot(AUTH_MSG.linkExpired);
+      return;
+    }
+    if (emailLink.kind !== 'verify') return;
+    let active = true;
+    verifyEmailLink(emailLink.tokenHash, emailLink.type)
+      .then(user => {
+        if (!active) return;
+        setIsLandingOpen(false);
+        setAuthSession(user);
+        setClimberId(user.id);
+        if (emailLink.type === 'recovery') setIsNewPasswordOpen(true);
+        else setPendingToast('E-Mail bestätigt. Willkommen bei BoulderMate!');
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        openLoginForgot(err instanceof Error ? err.message : AUTH_MSG.linkExpired);
+      })
+      .finally(() => {
+        if (active) setIsVerifyingLink(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [emailLink]);
+
+  // Toast erst, wenn die Wand (mit ToastHost) da ist
+  useEffect(() => {
+    if (!pendingToast || !authSession) return;
+    showToast({ message: t(pendingToast) });
+    setPendingToast(null);
+  }, [pendingToast, authSession]);
 
   const selectableClimbers = useMemo(() => {
     const list = [...AVAILABLE_CLIMBERS];
@@ -238,7 +300,7 @@ export const App: React.FC = () => {
   useBackHandler({
     id: 'modal-login',
     isOpen: isLoginModalOpen,
-    onBack: () => setIsLoginModalOpen(false),
+    onBack: closeLoginModal,
   });
 
   useBackHandler({
@@ -382,7 +444,7 @@ export const App: React.FC = () => {
       : 'Melde dich an, dann geht es direkt zur Wand.';
   }, [pendingWallLinkId, authSession, gyms, isFirstSyncDone]);
 
-  if (isFinishingOAuth && !authSession) {
+  if ((isFinishingOAuth || isVerifyingLink) && !authSession) {
     return (
       <div
         className="min-h-screen bg-[var(--bm-bg)] text-[var(--bm-text)] flex flex-col items-center justify-center gap-4 font-sans"
@@ -390,7 +452,7 @@ export const App: React.FC = () => {
         data-testid="oauth-finishing"
       >
         <Loader2 className="w-8 h-8 animate-spin" />
-        <p className="text-[18px] font-semibold">Anmeldung läuft …</p>
+        <p className="text-[18px] font-semibold">{isVerifyingLink ? t('Link wird geprüft …') : 'Anmeldung läuft …'}</p>
       </div>
     );
   }
@@ -420,7 +482,9 @@ export const App: React.FC = () => {
         {/* Login Modal (SPEC-000) */}
         <LoginModal
           isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
+          onClose={closeLoginModal}
+          initialMode={loginModalMode}
+          initialNotice={loginModalNotice}
           onUserChanged={(user) => {
             setIsLandingOpen(false);
             if (user) {
@@ -617,7 +681,9 @@ export const App: React.FC = () => {
       {/* Login Modal (SPEC-000) */}
       <LoginModal
         isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
+        onClose={closeLoginModal}
+        initialMode={loginModalMode}
+        initialNotice={loginModalNotice}
         onUserChanged={(user) => {
           if (user) {
             setAuthSession(user);
@@ -650,6 +716,17 @@ export const App: React.FC = () => {
           raised={appMode === 'climber'}
         />
       )}
+
+      {/* SPEC-049: nach dem Link aus der Mail «Passwort vergessen» */}
+      <NewPasswordSheet
+        open={isNewPasswordOpen && Boolean(authSession)}
+        email={authSession?.email || ''}
+        onClose={() => setIsNewPasswordOpen(false)}
+        onSaved={() => {
+          setIsNewPasswordOpen(false);
+          setPendingToast('Passwort geändert.');
+        }}
+      />
 
       {/* SPEC-022 AC-11: Toasts (Loggen · Rückgängig) */}
       <ToastHost />

@@ -10,6 +10,7 @@ import {
 import { getMembers, saveMembers } from './gymStorage';
 import { GymMember } from '../types/gym';
 import { getStoredViewAs, isViewAsFeatureEnabled, ViewAsMode } from './viewAsService';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AuthUser {
   id: string;
@@ -127,6 +128,91 @@ export function demoLoginsAllowedFor(env: { isTest: boolean; isDev: boolean; sup
 
 export function isDemoSession(user: AuthUser): boolean {
   return user.provider === 'simulation' || Boolean(DEMO_USERS[user.id]) || user.id.startsWith('user_email_');
+}
+
+// SPEC-049: Supabase-Auth für E-Mail-Abläufe. Im Test und ohne Supabase null (Offline-Fallback),
+// Unit-Tests setzen mit setAuthClientForTests() einen Ersatz.
+type AuthClient = Pick<SupabaseClient, 'auth'>;
+let authClientForTests: AuthClient | null | undefined;
+
+export function setAuthClientForTests(client: AuthClient | null | undefined): void {
+  authClientForTests = client;
+}
+
+function liveAuthClient(): AuthClient | null {
+  if (authClientForTests !== undefined) return authClientForTests;
+  if (isTestEnv || !supabase || !isSupabaseConfigured) return null;
+  return supabase;
+}
+
+/** SPEC-049 6.7: Texte sind zugleich die Schlüssel für t(). */
+export const AUTH_MSG = {
+  invalidEmail: 'Bitte eine gültige E-Mail-Adresse angeben.',
+  passwordTooShort: 'Das Passwort muss mindestens 6 Zeichen lang sein.',
+  invalidCredentials: 'E-Mail oder Passwort stimmt nicht.',
+  emailNotConfirmed: 'Bitte bestätige zuerst deine E-Mail-Adresse. Wir haben dir einen Link geschickt.',
+  accountExists: 'Mit dieser Adresse gibt es schon ein Konto. Melde dich an oder nutze «Passwort vergessen?».',
+  rateLimit: 'Zu viele Versuche. Bitte warte ein paar Minuten.',
+  network: 'Keine Verbindung. Bitte nochmal versuchen.',
+  linkExpired: 'Der Link ist abgelaufen oder wurde schon benutzt. Fordere einen neuen an.',
+  samePassword: 'Das ist dein bisheriges Passwort. Bitte nimm ein anderes.',
+  generic: 'Das hat nicht geklappt. Bitte nochmal versuchen.',
+} as const;
+
+export const PASSWORD_MIN_LENGTH = 6;
+
+export type AuthFlowCode =
+  | 'confirm_email'
+  | 'email_not_confirmed'
+  | 'account_exists'
+  | 'invalid_credentials'
+  | 'rate_limit'
+  | 'network'
+  | 'same_password'
+  | 'link_expired'
+  | 'unknown';
+
+/** SPEC-049: Fehler mit Grund, damit das Login-Fenster den passenden Weg anbieten kann. */
+export class AuthFlowError extends Error {
+  constructor(message: string, public readonly code: AuthFlowCode, public readonly email?: string) {
+    super(message);
+    this.name = 'AuthFlowError';
+  }
+}
+
+interface SupabaseLikeError {
+  message?: string;
+  status?: number;
+  code?: string;
+  name?: string;
+}
+
+function toAuthFlowError(err: SupabaseLikeError | null | undefined): AuthFlowError {
+  const message = err?.message || '';
+  const code = err?.code || '';
+  if (err?.status === 429 || code.includes('rate_limit') || /rate limit|too many/i.test(message)) {
+    return new AuthFlowError(AUTH_MSG.rateLimit, 'rate_limit');
+  }
+  if (err?.name === 'AuthRetryableFetchError' || /failed to fetch|network|load failed/i.test(message)) {
+    return new AuthFlowError(AUTH_MSG.network, 'network');
+  }
+  if (code === 'otp_expired' || /expired|invalid.*(link|token)/i.test(message)) {
+    return new AuthFlowError(AUTH_MSG.linkExpired, 'link_expired');
+  }
+  if (code === 'same_password' || /different from the old/i.test(message)) {
+    return new AuthFlowError(AUTH_MSG.samePassword, 'same_password');
+  }
+  return new AuthFlowError(AUTH_MSG.generic, 'unknown');
+}
+
+function appOrigin(): string {
+  return typeof window !== 'undefined' ? window.location.origin : 'https://bouldermate.ch';
+}
+
+function cleanEmailOrThrow(email: string): string {
+  const clean = (email || '').trim().toLowerCase();
+  if (!clean || !clean.includes('@')) throw new AuthFlowError(AUTH_MSG.invalidEmail, 'unknown');
+  return clean;
 }
 
 let currentSessionUser: AuthUser | null = null;
@@ -325,6 +411,8 @@ export function setSessionUser(userOrId: AuthUser | string): AuthUser {
 
 /**
  * Registriert einen echten neuen Kletterer mit E-Mail und Passwort bei Supabase.
+ * SPEC-049 AC-10/11: Ohne Session (Bestätigung nötig) wird niemand lokal angemeldet,
+ * sondern `AuthFlowError('confirm_email')` geworfen; eine vorhandene Adresse ergibt `account_exists`.
  */
 export async function signUpWithEmail(
   email: string,
@@ -333,16 +421,17 @@ export async function signUpWithEmail(
 ): Promise<AuthUser> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
-    throw new Error('Bitte eine gültige E-Mail-Adresse angeben.');
+    throw new Error(AUTH_MSG.invalidEmail);
   }
-  if (!password || password.length < 6) {
-    throw new Error('Das Passwort muss mindestens 6 Zeichen lang sein.');
+  if (!password || password.length < PASSWORD_MIN_LENGTH) {
+    throw new Error(AUTH_MSG.passwordTooShort);
   }
 
   const cleanNickname = nickname?.trim() || cleanEmail.split('@')[0];
 
   // In Testumgebungen sofortigen Benutzer erzeugen ohne Netzwerk-Latenz
-  if (isTestEnv || !supabase || !isSupabaseConfigured) {
+  const client = liveAuthClient();
+  if (!client) {
     const fallbackUser: AuthUser = {
       id: 'user_email_' + Math.random().toString(36).substring(2, 9),
       email: cleanEmail,
@@ -355,42 +444,42 @@ export async function signUpWithEmail(
   }
 
   // In realem Supabase registrieren
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  const { data: signUpData, error: signUpError } = await client.auth.signUp({
     email: cleanEmail,
     password,
     options: {
       data: {
         nickname: cleanNickname
-      }
+      },
+      emailRedirectTo: appOrigin(),
     }
   });
 
   if (signUpError) {
-    const msg = signUpError.message.toLowerCase();
-    if (msg.includes('already registered') || msg.includes('user already exists')) {
-      throw new Error('Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an.');
+    const msg = (signUpError.message || '').toLowerCase();
+    if (signUpError.code === 'user_already_exists' || msg.includes('already registered') || msg.includes('user already exists')) {
+      throw new AuthFlowError(AUTH_MSG.accountExists, 'account_exists', cleanEmail);
     }
-    throw new Error(`Fehler bei der Registrierung: ${signUpError.message}`);
+    if (signUpError.code === 'weak_password' || msg.includes('password should be')) {
+      throw new AuthFlowError(AUTH_MSG.passwordTooShort, 'unknown', cleanEmail);
+    }
+    throw toAuthFlowError(signUpError);
   }
 
-  if (signUpData.user) {
-    // Falls noch keine aktive Session vorliegt, direkt anmelden
-    if (!signUpData.session) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password
-      });
-      if (!signInError && signInData.user) {
-        const authUser = await mapSupabaseUserToAuthUser(signInData.user);
-        return setSessionUser(authUser);
-      }
-    }
+  const sbUser = signUpData.user;
+  if (!sbUser) throw new AuthFlowError(AUTH_MSG.generic, 'unknown');
 
-    const authUser = await mapSupabaseUserToAuthUser(signUpData.user);
-    return setSessionUser(authUser);
+  // Bei eingeschalteter Bestätigung meldet Supabase eine vorhandene Adresse nur über leere identities
+  if (Array.isArray(sbUser.identities) && sbUser.identities.length === 0) {
+    throw new AuthFlowError(AUTH_MSG.accountExists, 'account_exists', cleanEmail);
   }
 
-  throw new Error('Registrierung fehlgeschlagen.');
+  if (!signUpData.session) {
+    throw new AuthFlowError(AUTH_MSG.emailNotConfirmed, 'confirm_email', cleanEmail);
+  }
+
+  const authUser = await mapSupabaseUserToAuthUser(sbUser);
+  return setSessionUser(authUser);
 }
 
 /**
@@ -405,7 +494,8 @@ export async function signInWithPassword(email: string, password: string): Promi
     throw new Error('Bitte ein Passwort angeben.');
   }
 
-  if (isTestEnv || !supabase || !isSupabaseConfigured) {
+  const client = liveAuthClient();
+  if (!client) {
     const matchedDemo = Object.values(DEMO_USERS).find(u => u.email.toLowerCase() === cleanEmail);
     if (matchedDemo) {
       return setSessionUser(matchedDemo);
@@ -421,7 +511,7 @@ export async function signInWithPassword(email: string, password: string): Promi
     return setSessionUser(user);
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await client.auth.signInWithPassword({
     email: cleanEmail,
     password
   });
@@ -432,7 +522,14 @@ export async function signInWithPassword(email: string, password: string): Promi
     if (matchedDemo && password === 'bouldermate2026' && allowDemoLogins()) {
       return setSessionUser(matchedDemo);
     }
-    throw new Error('Ungültige Anmeldedaten. Bitte E-Mail und Passwort prüfen.');
+    // SPEC-049 AC-13/14: unbestätigt ≠ falsches Passwort; nie verraten, ob die Adresse ein Konto hat
+    if (error.code === 'email_not_confirmed' || /not confirmed/i.test(error.message || '')) {
+      throw new AuthFlowError(AUTH_MSG.emailNotConfirmed, 'email_not_confirmed', cleanEmail);
+    }
+    if (error.code === 'invalid_credentials' || error.status === 400 || /invalid login/i.test(error.message || '')) {
+      throw new AuthFlowError(AUTH_MSG.invalidCredentials, 'invalid_credentials', cleanEmail);
+    }
+    throw toAuthFlowError(error);
   }
 
   if (data.user) {
@@ -509,6 +606,115 @@ export async function signInWithOtp(email: string): Promise<void> {
   const matched = Object.values(DEMO_USERS).find(u => u.email.toLowerCase() === cleanEmail);
   if (matched) {
     setSessionUser(matched);
+  }
+}
+
+/**
+ * SPEC-049 AC-3: Schickt den Link zum Zurücksetzen. Verrät nie, ob es das Konto gibt:
+ * Fehler gibt es nur bei Sperre oder Netzwerk.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const cleanEmail = cleanEmailOrThrow(email);
+  const client = liveAuthClient();
+  if (!client) return;
+  const { error } = await client.auth.resetPasswordForEmail(cleanEmail, {
+    redirectTo: `${appOrigin()}/?auth=recovery`,
+  });
+  if (!error) return;
+  const flowError = toAuthFlowError(error);
+  if (flowError.code === 'rate_limit' || flowError.code === 'network') throw flowError;
+}
+
+/** SPEC-049 AC-10/13: Bestätigungsmail erneut senden. */
+export async function resendConfirmation(email: string): Promise<void> {
+  const cleanEmail = cleanEmailOrThrow(email);
+  const client = liveAuthClient();
+  if (!client) return;
+  const { error } = await client.auth.resend({
+    type: 'signup',
+    email: cleanEmail,
+    options: { emailRedirectTo: appOrigin() },
+  });
+  if (error) throw toAuthFlowError(error);
+}
+
+export type EmailLinkType = 'recovery' | 'email' | 'signup' | 'magiclink' | 'invite' | 'email_change';
+
+export type EmailLink =
+  | { kind: 'none' }
+  | { kind: 'verify'; tokenHash: string; type: EmailLinkType }
+  | { kind: 'recovery-code' }
+  | { kind: 'expired' };
+
+const EMAIL_LINK_TYPES: EmailLinkType[] = ['recovery', 'email', 'signup', 'magiclink', 'invite', 'email_change'];
+
+/**
+ * SPEC-049 AC-6/7/9: Liest Links aus Supabase-Mails beim Start.
+ * Muss vor readOAuthReturnFromUrl laufen, damit ein abgelaufener Link nicht als Google-Abbruch gilt.
+ * Entfernt die eigenen Parameter aus der Adresse; `?code=` bleibt für den Supabase-Client.
+ */
+export function readEmailLinkFromUrl(
+  href: string = typeof window !== 'undefined' ? window.location.href : ''
+): EmailLink {
+  if (!href) return { kind: 'none' };
+  const url = new URL(href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const errorCode = url.searchParams.get('error_code') || hash.get('error_code');
+  const tokenHash = url.searchParams.get('token_hash');
+  const type = url.searchParams.get('type') as EmailLinkType | null;
+  const isRecovery = url.searchParams.get('auth') === 'recovery';
+
+  let result: EmailLink = { kind: 'none' };
+  if (errorCode === 'otp_expired' || (isRecovery && (url.searchParams.has('error') || hash.has('error')))) {
+    result = { kind: 'expired' };
+    for (const key of ['error', 'error_code', 'error_description']) url.searchParams.delete(key);
+    if (hash.has('error')) url.hash = '';
+  } else if (tokenHash && type && EMAIL_LINK_TYPES.includes(type)) {
+    result = { kind: 'verify', tokenHash, type };
+  } else if (isRecovery && url.searchParams.has('code')) {
+    result = { kind: 'recovery-code' };
+  }
+
+  if (result.kind === 'none') return result;
+  url.searchParams.delete('token_hash');
+  url.searchParams.delete('type');
+  url.searchParams.delete('auth');
+  if (typeof window !== 'undefined' && window.location.href === href) {
+    window.history.replaceState(window.history.state, '', url.toString());
+  }
+  return result;
+}
+
+/** SPEC-049 AC-6/12: Löst den Link aus der Mail ein (funktioniert auf jedem Gerät). */
+export async function verifyEmailLink(tokenHash: string, type: EmailLinkType): Promise<AuthUser> {
+  const client = liveAuthClient();
+  if (!client) throw new AuthFlowError(AUTH_MSG.linkExpired, 'link_expired');
+  const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type } as any);
+  if (error || !data?.user) {
+    const flowError = toAuthFlowError(error);
+    throw flowError.code === 'network' ? flowError : new AuthFlowError(AUTH_MSG.linkExpired, 'link_expired');
+  }
+  return setSessionUser(await mapSupabaseUserToAuthUser(data.user));
+}
+
+/**
+ * SPEC-049 AC-8: Neues Passwort speichern, danach alle anderen Geräte abmelden.
+ */
+export async function updatePassword(password: string): Promise<void> {
+  if (!password || password.length < PASSWORD_MIN_LENGTH) {
+    throw new AuthFlowError(AUTH_MSG.passwordTooShort, 'unknown');
+  }
+  const client = liveAuthClient();
+  if (!client) return;
+  const { error } = await client.auth.updateUser({ password });
+  if (error) {
+    if (error.code === 'weak_password') throw new AuthFlowError(AUTH_MSG.passwordTooShort, 'unknown');
+    throw toAuthFlowError(error);
+  }
+  try {
+    await client.auth.signOut({ scope: 'others' });
+  } catch (err) {
+    console.warn('[Auth] Andere Geräte abmelden fehlgeschlagen:', err);
   }
 }
 

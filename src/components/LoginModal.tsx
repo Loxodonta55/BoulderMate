@@ -9,11 +9,10 @@ import {
   Mountain, 
   UserPlus, 
   LogIn, 
-  Lock, 
   Mail, 
-  KeyRound, 
-  Send,
-  Loader2
+  Loader2,
+  KeyRound,
+  RotateCw
 } from 'lucide-react';
 import {
   getCurrentAuthUser,
@@ -22,9 +21,19 @@ import {
   getAvailableTestUsers,
   signInWithPassword,
   signUpWithEmail,
-  signInWithOtp,
+  resendConfirmation,
+  requestPasswordReset,
+  AuthFlowError,
+  AuthFlowCode,
   AuthUser
 } from '../lib/authService';
+import { t } from '../lib/i18n';
+import { useBackHandler } from '../hooks/useBackHandler';
+import { ForgotPasswordPanel } from './auth/ForgotPasswordPanel';
+import { CheckEmailPanel } from './auth/CheckEmailPanel';
+import { PasswordField } from './auth/PasswordField';
+import { AuthAlert, SecondaryButton } from './auth/authUi';
+import { useCooldown } from './auth/useCooldown';
 import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
 import { AppleSignInButton, useAppleLoginAvailable, useAppleSignIn } from './AppleSignInButton';
 
@@ -32,22 +41,32 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUserChanged?: (user: AuthUser | null) => void;
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'forgot';
+  /** SPEC-049 AC-9: Meldung beim Öffnen, z. B. «Der Link ist abgelaufen …» */
+  initialNotice?: string | null;
 }
+
+/** SPEC-049: Ansichten im Login-Fenster neben den beiden Tabs */
+type LoginView = 'tabs' | 'forgot' | 'check-reset' | 'check-confirm';
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
   onUserChanged,
-  initialMode = 'register'
+  initialMode = 'register',
+  initialNotice = null
 }) => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialMode);
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialMode === 'forgot' ? 'login' : initialMode);
+  const [view, setView] = useState<LoginView>(initialMode === 'forgot' ? 'forgot' : 'tabs');
+  const [checkEmail, setCheckEmail] = useState('');
+  const [errorCode, setErrorCode] = useState<AuthFlowCode | null>(null);
+  const [errorEmail, setErrorEmail] = useState('');
+  const [resendInfo, setResendInfo] = useState<string | null>(null);
+  const resendCooldown = useCooldown();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(getCurrentAuthUser());
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [showMagicLinkInput, setShowMagicLinkInput] = useState(false);
 
   // Form Fields
   const [loginEmail, setLoginEmail] = useState('');
@@ -67,7 +86,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   useEffect(() => {
     setCurrentUser(getCurrentAuthUser());
     setErrorMsg(null);
+    setErrorCode(null);
+    setResendInfo(null);
     setMessage(null);
+    if (isOpen) {
+      // SPEC-049: Jedes Öffnen beginnt bei den Tabs, ausser es soll direkt «Passwort vergessen» zeigen
+      setView(initialMode === 'forgot' ? 'forgot' : 'tabs');
+      if (initialMode === 'forgot') setActiveTab('login');
+    }
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -75,7 +101,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     };
   }, [isOpen]);
 
+  // SPEC-049 AC-2: Android-Zurück führt von «Passwort vergessen» zum Anmelden
+  useBackHandler({
+    id: 'login-forgot-password',
+    isOpen: isOpen && view !== 'tabs',
+    onBack: () => setView('tabs'),
+  });
+
   if (!isOpen) return null;
+
+  const showError = (err: unknown, fallback: string) => {
+    if (err instanceof AuthFlowError) {
+      setErrorMsg(err.message);
+      setErrorCode(err.code);
+      setErrorEmail(err.email || '');
+    } else {
+      setErrorMsg(err instanceof Error ? err.message : fallback);
+      setErrorCode(null);
+    }
+  };
+
+  const openForgot = () => {
+    setErrorMsg(null);
+    setErrorCode(null);
+    setActiveTab('login');
+    setView('forgot');
+  };
+
+  const handleResendConfirmation = async () => {
+    setResendInfo(null);
+    try {
+      await resendConfirmation(errorEmail || loginEmail);
+      setResendInfo('Mail ist nochmal unterwegs.');
+      resendCooldown.start();
+    } catch (err: unknown) {
+      showError(err, 'Das hat nicht geklappt. Bitte nochmal versuchen.');
+    }
+  };
 
   const testUsers = getAvailableTestUsers();
 
@@ -111,6 +173,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     setIsSubmitting(true);
     setErrorMsg(null);
+    setErrorCode(null);
+    setResendInfo(null);
     try {
       const user = await signInWithPassword(loginEmail, loginPassword);
       setCurrentUser(user);
@@ -120,8 +184,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         onClose();
       }, 500);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Fehler bei der Anmeldung';
-      setErrorMsg(msg);
+      showError(err, 'Fehler bei der Anmeldung');
     } finally {
       setIsSubmitting(false);
     }
@@ -143,6 +206,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     setIsSubmitting(true);
     setErrorMsg(null);
+    setErrorCode(null);
     try {
       const user = await signUpWithEmail(registerEmail, passwordToUse, registerNickname);
       setCurrentUser(user);
@@ -150,30 +214,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       onUserChanged?.(user);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Fehler beim Erstellen des Kontos';
-      setErrorMsg(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Magic Link anfordern
-  const handleSendMagicLink = async () => {
-    const targetEmail = activeTab === 'login' ? loginEmail : registerEmail;
-    if (!targetEmail || !targetEmail.includes('@')) {
-      setErrorMsg('Bitte gib zuerst eine gültige E-Mail-Adresse ein.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMsg(null);
-    try {
-      await signInWithOtp(targetEmail);
-      setMagicLinkSent(true);
-      setMessage(`Login-Link wurde an ${targetEmail} gesendet! Bitte prüfe dein Postfach.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Fehler beim Senden des Login-Links';
-      setErrorMsg(msg);
+      // SPEC-049 AC-10: Bestätigung nötig → «Fast geschafft», niemand ist angemeldet
+      if (err instanceof AuthFlowError && err.code === 'confirm_email') {
+        setCheckEmail(err.email || registerEmail.trim().toLowerCase());
+        setView('check-confirm');
+      } else {
+        showError(err, 'Fehler beim Erstellen des Kontos');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -233,6 +280,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         </div>
 
         {/* Tab Navigation between Register & Login */}
+        {view === 'tabs' && (
         <div className="flex border-b border-[var(--bm-line)] bg-[var(--bm-bg)]">
           <button
             type="button"
@@ -262,6 +310,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <span>Anmelden</span>
           </button>
         </div>
+        )}
 
         {/* Body */}
         <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
@@ -284,13 +333,79 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {(errorMsg || google.error || apple.error) && (
-            <div 
-              className="p-3 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-danger)]/40 text-[var(--bm-danger)] text-xs flex items-center gap-2 font-mono"
-              data-testid="register-error-msg"
-            >
-              <span>{errorMsg || google.error || apple.error}</span>
-            </div>
+          {view === 'tabs' && (errorMsg || google.error || apple.error) && (
+            <AuthAlert testId="register-error-msg">
+              <span>{t(errorMsg || google.error || apple.error || '')}</span>
+              {/* SPEC-049 AC-14 / AC-11: direkter Weg aus der Meldung */}
+              {(errorCode === 'invalid_credentials' || errorCode === 'account_exists') && (
+                <SecondaryButton type="button" onClick={openForgot} data-testid="error-forgot-password">
+                  <KeyRound className="w-5 h-5" aria-hidden="true" />
+                  <span>{t('Passwort vergessen?')}</span>
+                </SecondaryButton>
+              )}
+              {errorCode === 'account_exists' && activeTab === 'register' && (
+                <SecondaryButton
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail(errorEmail || registerEmail);
+                    setErrorMsg(null);
+                    setErrorCode(null);
+                    setActiveTab('login');
+                  }}
+                  data-testid="error-go-login"
+                >
+                  <LogIn className="w-5 h-5" aria-hidden="true" />
+                  <span>{t('Anmelden')}</span>
+                </SecondaryButton>
+              )}
+              {/* SPEC-049 AC-13 */}
+              {errorCode === 'email_not_confirmed' && (
+                <SecondaryButton
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendCooldown.remaining > 0}
+                  data-testid="btn-resend-confirmation"
+                >
+                  <RotateCw className="w-5 h-5" aria-hidden="true" />
+                  <span>
+                    {resendCooldown.remaining > 0
+                      ? t('Nochmal senden in {n} s', { n: resendCooldown.remaining })
+                      : t('Bestätigungsmail nochmal senden')}
+                  </span>
+                </SecondaryButton>
+              )}
+              {resendInfo && (
+                <p role="status" data-testid="resend-confirmation-info">{t(resendInfo)}</p>
+              )}
+            </AuthAlert>
+          )}
+
+          {/* SPEC-049: Passwort vergessen / Postfach prüfen */}
+          {view === 'forgot' && (
+            <ForgotPasswordPanel
+              initialEmail={loginEmail}
+              notice={initialMode === 'forgot' ? initialNotice : null}
+              onBack={() => setView('tabs')}
+              onSent={(email) => {
+                setCheckEmail(email);
+                setView('check-reset');
+              }}
+            />
+          )}
+          {(view === 'check-reset' || view === 'check-confirm') && (
+            <CheckEmailPanel
+              mode={view === 'check-reset' ? 'reset' : 'confirm'}
+              email={checkEmail}
+              onResend={() =>
+                view === 'check-reset'
+                  ? requestPasswordReset(checkEmail)
+                  : resendConfirmation(checkEmail)
+              }
+              onBack={() => {
+                setActiveTab(view === 'check-reset' ? 'login' : 'register');
+                setView('tabs');
+              }}
+            />
           )}
 
           {/* Current Active User Status */}
@@ -331,7 +446,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           ) : null}
 
           {/* TAB 1: REGISTRIERUNG */}
-          {activeTab === 'register' && (
+          {view === 'tabs' && activeTab === 'register' && (
             <div className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-1.5">
@@ -364,6 +479,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       placeholder="deine.email@beispiel.ch"
                       value={registerEmail}
                       onChange={e => setRegisterEmail(e.target.value)}
+                      autoComplete="email"
                       required
                       className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-register-email"
@@ -372,20 +488,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[var(--bm-text-2)]">Passwort (mind. 6 Zeichen)</label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={registerPassword}
-                      onChange={e => setRegisterPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
-                      data-testid="input-register-password"
-                    />
-                    <Lock className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
-                  </div>
-                </div>
+                <PasswordField
+                  label={t('Passwort (mind. 6 Zeichen)')}
+                  value={registerPassword}
+                  onChange={setRegisterPassword}
+                  testId="input-register-password"
+                  autoComplete="new-password"
+                />
 
                 <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
                   <button
@@ -412,7 +521,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           )}
 
           {/* TAB 2: ANMELDUNG (LOGIN) */}
-          {activeTab === 'login' && (
+          {view === 'tabs' && activeTab === 'login' && (
             <div className="p-4 bg-[var(--bm-bg)] border border-[var(--bm-line)] rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-headline font-bold text-[var(--bm-text)] flex items-center gap-1.5">
@@ -433,6 +542,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       placeholder="deine.email@beispiel.ch"
                       value={loginEmail}
                       onChange={e => setLoginEmail(e.target.value)}
+                      autoComplete="email"
                       required
                       className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
                       data-testid="input-login-email"
@@ -441,57 +551,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-mono text-[var(--bm-text-2)]">Passwort</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowMagicLinkInput(!showMagicLinkInput)}
-                      className="text-[10px] font-mono text-[var(--bm-accent)] hover:underline"
-                    >
-                      Passwort vergessen? / Magic Link
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={e => setLoginPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[var(--bm-text)] placeholder-[var(--bm-text-3)] text-xs font-mono focus:outline-none focus:border-[var(--bm-accent)]"
-                      data-testid="input-login-password"
-                    />
-                    <Lock className="w-4 h-4 text-[var(--bm-text-3)] absolute left-2.5 top-2.5" />
-                  </div>
-                </div>
-
-                {showMagicLinkInput && (
-                  <div className="p-3 bg-[var(--bm-surface)] border border-[var(--bm-accent)]/30 rounded-xl space-y-2">
-                    <div className="text-[11px] font-mono text-[var(--bm-text)] flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-[var(--bm-accent)]" />
-                      <span>Passwortloser Login via Magic Link:</span>
-                    </div>
-                    <p className="text-[10px] text-[var(--bm-text-2)]">
-                      Wir senden einen sofortigen Einlogg-Link an deine E-Mail-Adresse.
-                    </p>
-                    {magicLinkSent ? (
-                      <div className="p-2 bg-[var(--bm-success)]/20 border border-[var(--bm-success)]/40 text-[var(--bm-success)] text-xs font-mono flex items-center gap-1.5">
-                        <Check className="w-3.5 h-3.5 text-[var(--bm-success)]" />
-                        <span>Link wurde verschickt! Bitte Postfach prüfen.</span>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendMagicLink}
-                        disabled={isSubmitting || !loginEmail}
-                        className="px-3 py-1.5 bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] text-xs font-mono text-[var(--bm-accent)] border border-[var(--bm-line)] flex items-center gap-1.5 transition disabled:opacity-50"
-                      >
-                        <Send className="w-3 h-3" />
-                        <span>Magic Link jetzt senden</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                <PasswordField
+                  label={t('Passwort')}
+                  value={loginPassword}
+                  onChange={setLoginPassword}
+                  testId="input-login-password"
+                  autoComplete="current-password"
+                />
 
                 <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
                   <button
@@ -514,6 +580,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </button>
                 </div>
               </form>
+
+              {/* SPEC-049 AC-1: gut sichtbar, volle Breite, kein «Magic Link» mehr */}
+              <SecondaryButton type="button" onClick={openForgot} data-testid="btn-forgot-password">
+                <KeyRound className="w-5 h-5" aria-hidden="true" />
+                <span>{t('Passwort vergessen?')}</span>
+              </SecondaryButton>
             </div>
           )}
 

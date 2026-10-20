@@ -4,7 +4,7 @@
 
 ## Summary
 Definiert das fundamentale Authentifizierungs-, Identitäts- und Autorisierungs-System für BoulderApp ("Feature 0"). 
-Es ermöglicht Nutzern einen barrierefreien Login via **Social Login (Google Sign-In, Apple)** sowie optional über E-Mail/Passwort oder Magic Link.
+Es ermöglicht Nutzern einen barrierefreien Login via **Social Login (Google Sign-In, Apple)** sowie optional über E-Mail/Passwort (seit SPEC-049 mit «Passwort vergessen?»; der Magic-Link-Knopf im Login-Fenster ist entfallen).
 Das Berechtigungssystem folgt einem strikten, hybriden **Role-Based Access Control (RBAC)**-Modell mit lokaler **Hallen-Isolierung (Gym Scoping)**:
 1. **Universeller Kletterer (Base Role)**: Jeder registrierte Nutzer ist **immer und ausnahmslos** ein Kletterer mit vollem Zugriff auf das Kletterer-Panel (Sektoren, Routen, Bewertungen, Logbuch, Statistiken).
 2. **Hallenbezogener Schrauber (Gym Setter)**: Ein Nutzer kann Schrauber für eine spezifische Halle (z. B. "Minimum Zürich") sein – **jedoch ausschließlich für genau diese Halle**. Nur für diese Halle kann er das Schrauber-Studio betreten und Routen erfassen/veröffentlichen. In fremden Hallen ist er ein normaler Kletterer.
