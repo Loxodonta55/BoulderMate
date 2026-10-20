@@ -71,7 +71,7 @@ Reihenfolge von oben nach unten (Handy zuerst, eine Spalte):
    - Ø Sterne – oder «noch 2 Bewertungen» (v2), solange unter 3
    - Grad-Gefühl als Wort mit Zahl, z. B. «hart · 7 von 10» (v4); unter 3 Bewertungen nichts
    - im Zeitraum «Alle»: abgeschraubte Routen mit Vermerk «abgeschraubt am 3.10.» und gedämpfter Zeile (Kontrast trotzdem ≥ 4,5 : 1) (v4)
-7. **Transparenz-Zeile** `setter-stats-transparency` ganz unten (v3): «Was sieht die Hallenleitung? Im Tab ‹Zahlen› deine Kennzahlen im Vergleich zur Halle und jede deiner Routen mit Sternen, Grad-Gefühl und Beta-Kommentaren, ohne Namen der Kletterer. Keine Versuche, keine Hinweise, kein Export.» (Stand SPEC-050, 2026-10-20)
+7. **Transparenz-Zeile** `setter-stats-transparency` ganz unten (v3): «Was sieht die Hallenleitung? Im Tab ‹Zahlen› deine Kennzahlen im Vergleich zu den anderen Schraubern und jede deiner Routen mit Sternen, Grad-Gefühl und Beta-Kommentaren, ohne Namen der Kletterer. Keine Versuche, keine Hinweise, kein Export.» (Stand SPEC-050, 2026-10-20)
 
 **Route öffnen** → Sheet `setter-route-sheet` (halbe Höhe, zum Vollbild ziehbar):
 - Kopf: Farbpunkt + Farbname, Name, Sektor, «hängt seit 12 Tagen»
