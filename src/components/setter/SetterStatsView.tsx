@@ -299,8 +299,8 @@ export const SetterStatsView: React.FC<SetterStatsViewProps> = ({ gymId, setterI
       )}
 
       <p className="px-1 text-[15px] text-[var(--bm-text-2)]" data-testid="setter-stats-transparency">
-        Was sieht die Hallenleitung? Im Tab «Zahlen»: deine Anzahl Routen, Top-Routen, Ø Sterne, Begehungen und Stiff/Soft. Hinweise und diese
-        Liste sieht nur du. Namen von Kletterern siehst du hier nie.
+        Was sieht die Hallenleitung? Im Tab «Zahlen» deine Kennzahlen im Vergleich zur Halle und jede deiner Routen mit Sternen, Grad-Gefühl und
+        Beta-Kommentaren, ohne Namen der Kletterer. Keine Versuche, keine Hinweise, kein Export.
       </p>
 
       <SetterRouteStatsSheet
