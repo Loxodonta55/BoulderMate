@@ -685,8 +685,22 @@ export function readEmailLinkFromUrl(
   return result;
 }
 
+// Der Link gilt nur einmal: doppelte Aufrufe (z. B. React StrictMode) teilen sich dieselbe Einlösung.
+const pendingEmailLinks = new Map<string, Promise<AuthUser>>();
+
 /** SPEC-049 AC-6/12: Löst den Link aus der Mail ein (funktioniert auf jedem Gerät). */
-export async function verifyEmailLink(tokenHash: string, type: EmailLinkType): Promise<AuthUser> {
+export function verifyEmailLink(tokenHash: string, type: EmailLinkType): Promise<AuthUser> {
+  const key = `${type}:${tokenHash}`;
+  let pending = pendingEmailLinks.get(key);
+  if (!pending) {
+    pending = redeemEmailLink(tokenHash, type);
+    pendingEmailLinks.set(key, pending);
+    pending.catch(() => pendingEmailLinks.delete(key));
+  }
+  return pending;
+}
+
+async function redeemEmailLink(tokenHash: string, type: EmailLinkType): Promise<AuthUser> {
   const client = liveAuthClient();
   if (!client) throw new AuthFlowError(AUTH_MSG.linkExpired, 'link_expired');
   const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type } as any);

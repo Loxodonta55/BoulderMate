@@ -160,6 +160,13 @@ describe('SPEC-049 verifyEmailLink und updatePassword', () => {
     expect(getCurrentAuthUser()?.id).toBe(USER.id);
   });
 
+  it('AC-6/12: derselbe Link wird nur einmal eingelöst, auch bei doppeltem Aufruf', async () => {
+    auth.verifyOtp.mockClear();
+    const [a, b] = await Promise.all([verifyEmailLink('einmal', 'email'), verifyEmailLink('einmal', 'email')]);
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1);
+    expect(a).toBe(b);
+  });
+
   it('AC-9: ungültiger Link ergibt «abgelaufen», niemand ist angemeldet', async () => {
     auth.verifyOtp.mockResolvedValueOnce({ data: { user: null, session: null } as any, error: { message: 'Token has expired or is invalid', status: 403, code: 'otp_expired' } });
     await expect(verifyEmailLink('alt', 'recovery')).rejects.toThrow(AUTH_MSG.linkExpired);
