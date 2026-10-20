@@ -3,6 +3,7 @@ import { EN_BASE } from './i18n/en-base';
 import { EN_WALL } from './i18n/en-wall';
 import { EN_SHEET } from './i18n/en-sheet';
 import { EN_ME } from './i18n/en-me';
+import { EN_CHALLENGE_TODAY } from './i18n/en-challenge-today';
 import { EN_AUTH } from './i18n/en-auth';
 
 /**
@@ -20,7 +21,7 @@ export const LANG_OPTIONS: { value: Lang; label: string }[] = [
   { value: 'en', label: 'English' },
 ];
 
-export const EN: Record<string, string> = { ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH };
+export const EN: Record<string, string> = { ...EN_CHALLENGE_TODAY, ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH };
 
 const isTest = typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE === 'test';
 

@@ -17,6 +17,7 @@ import { getCurrentAuthUser } from '../lib/authService';
 import { TreffSettingsGroup } from './treff/TreffSettingsGroup';
 import { MyProjectsSection, ForYouSection, WeeklySection, PerGymTable, VisibilityGroup } from './me/MeSections';
 import { ChallengeCards } from './challenge/ChallengeCard';
+import { ChallengeTodayRow, ChallengeBannerSetting } from './challenge/ChallengeToday';
 import { GroupsSettings } from './me/GroupsSettings';
 import { ImportRows, useImportedTicks } from './me/ImportTicks';
 import { LanguageGroup } from './me/LanguageGroup';
@@ -311,6 +312,8 @@ export const MeView: React.FC<MeViewProps> = ({
           {/* SPEC-033: Sichtbarkeit in «Wer war schon oben» */}
           <VisibilityGroup userId={currentUser.id} onChanged={() => setVersion(v => v + 1)} />
 
+          <ChallengeBannerSetting />
+
           <ListGroup title={t('Daten')}>
             <ListRow
               testId="settings-export-csv"
@@ -480,6 +483,15 @@ export const MeView: React.FC<MeViewProps> = ({
           onOpen={b => setSelectedBoulder(b)}
         />
       )}
+
+      {/* SPEC-051 F3: Deine Challenge heute (eingeklappt) */}
+      <ChallengeTodayRow
+        userId={currentUser.id}
+        gymId={activeGymId}
+        gymName={gymName}
+        version={version}
+        onOpen={b => setSelectedBoulder(b)}
+      />
 
       {/* Grad-Pyramide */}
       <section className="space-y-2.5">

@@ -39,6 +39,8 @@ import { RadarChart } from './RadarChart';
 import { RatingModal } from './RatingModal';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { t, useLang } from '../lib/i18n';
+import { ChallengeTodaySheetLine } from './challenge/ChallengeToday';
+import { isTodaysChallenge } from '../lib/challengeToday';
 
 /**
  * SPEC-020 §5.2 · Ein einziges Boulder-Sheet (ersetzt Detail-Modal + separate Flows).
@@ -229,8 +231,11 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
     const existing = getUserRating(currentUser.id, boulder.id);
     const askForFeel = type !== 'project' && !existing?.gradeFeel;
     const askForStars = type !== 'project' && !existing?.qualityStars;
+    // SPEC-051 F6: «Challenge geschafft!» im selben Hinweis, kein zweiter
+    const logMessage = logToastMessage(type, ascent.attempts, isDeviceOnline());
+    const challengeDone = type !== 'project' && isTodaysChallenge(currentUser.id, boulder.id);
     showToast({
-      message: logToastMessage(type, ascent.attempts, isDeviceOnline()),
+      message: challengeDone ? `${t('Challenge geschafft!')} ${logMessage}` : logMessage,
       actionLabel: t('Rückgängig'),
       durationMs: 8000,
       onAction: () => restoreAscent(currentUser.id, boulder.id, previous ? { ...previous } : null),
@@ -333,6 +338,8 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
         ariaLabel={t('Boulder {name}', { name: title })}
       >
         <div className="px-5">
+          {/* SPEC-051 F6: Deine Challenge heute */}
+          {!isGuest && <ChallengeTodaySheetLine userId={currentUser.id} boulderId={boulder.id} />}
           {/* Kopf */}
           <div className="flex items-start gap-3 pt-1">
             <span

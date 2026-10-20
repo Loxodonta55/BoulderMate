@@ -50,3 +50,4 @@
 | [SPEC-044](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-044-schrauber-statistik-meine-routen.md) | Schrauber-Statistik «Meine Routen» – wie die eigenen Routen ankommen | READY | Hans | 2026-10-10 |
 | [SPEC-050](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-050-schrauber-auswertung-admin.md) | Schrauber-Auswertung für die Hallenleitung (Zahlen → Schrauber) | IMPLEMENTED | Hans | 2026-10-20 |
 | [SPEC-049](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-049-passwort-vergessen-und-anmelden-mit-email.md) | Passwort vergessen und Anmelden mit E-Mail (Bestätigung, abgelaufene Links) | IMPLEMENTED | Hans | 2026-10-20 |
+| [SPEC-051](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-051-challenge-today.md) | «Challenge Today» – deine persönliche Challenge (über deinem Grad, passt zu deinen Stärken) | IMPLEMENTED | Hans | 2026-10-20 |

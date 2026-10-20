@@ -27,6 +27,14 @@ import {
 } from '../lib/climberWallFilters';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { WallNewsBanner } from './WallNewsBanner';
+import { ChallengeTodayBanner } from './challenge/ChallengeToday';
+import {
+  ChallengeCandidate,
+  getChallengeToday,
+  shouldShowBannerToday,
+  markBannerSeen,
+  closeBannerToday,
+} from '../lib/challengeToday';
 import {
   registerWallVisit,
   newCountsBySector,
@@ -428,6 +436,34 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     if (!isGuest && gym?.id) dismissWallNews(currentUser.id, gym.id);
   };
 
+  // SPEC-051 F5: «Deine Challenge heute» – selten, höchstens 1× am Tag, nie im selben Besuch wie «Neu an der Wand»
+  const newsSeenForGym = React.useRef<string | null>(null);
+  if (showNewsBanner && gym?.id) newsSeenForGym.current = gym.id;
+  const [challengeBanner, setChallengeBanner] = useState<ChallengeCandidate | null>(null);
+  useEffect(() => {
+    setChallengeBanner(null);
+    if (isGuest || !gym?.id || showNewsBanner || newsSeenForGym.current === gym.id) return;
+    const gymId = gym.id;
+    // kurz warten, bis «Neu an der Wand» für diesen Besuch feststeht
+    const timer = window.setTimeout(() => {
+      if (newsSeenForGym.current === gymId || !shouldShowBannerToday(currentUser.id)) return;
+      const today = getChallengeToday(currentUser.id, gymId);
+      if (!today.candidate || today.done) return;
+      setChallengeBanner(today.candidate);
+      markBannerSeen(currentUser.id);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [isGuest, currentUser.id, gym?.id, showNewsBanner]);
+  const closeChallengeBanner = (opened: boolean) => {
+    const c = challengeBanner;
+    setChallengeBanner(null);
+    closeBannerToday(currentUser.id, opened);
+    if (opened && c) {
+      setSelectedSectorId(c.boulder.sectorId);
+      setSelectedBoulder(c.boulder);
+    }
+  };
+
   // SPEC-031 AC-5: Angekündigter Umbau an dieser Wand + eigene offene Projekte
   const plannedForSelected = !isSectorInRebuild(selectedSector) && isRebuildAnnounced(selectedSector)
     ? selectedSector!.rebuildPlannedFor!
@@ -611,6 +647,15 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                   setIsSectorListOpen(true);
                 }}
                 onDismiss={handleDismissNews}
+              />
+            )}
+
+            {/* SPEC-051 F4: Deine Challenge heute */}
+            {challengeBanner && !showNewsBanner && (
+              <ChallengeTodayBanner
+                candidate={challengeBanner}
+                onShow={() => closeChallengeBanner(true)}
+                onDismiss={() => closeChallengeBanner(false)}
               />
             )}
 
