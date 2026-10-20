@@ -114,12 +114,14 @@ describe('SPEC-050 computeSetterReport', () => {
     expect(byId(rows, 'neu').topRoutes).toBe(0);
   });
 
-  it('Hallenwert gewichtet nach der Farbverteilung des Schraubers', () => {
+  it('Vergleich nur mit den anderen Schraubern gleicher Farben, gewichtet nach Farbverteilung', () => {
     const rows = computeSetterReport(input());
-    // Gelb in der Halle: a1 5,5,4 + a2 3 = 4,25; Schwarz: 3,2,3,4 = 3,0
-    expect(byId(rows, 'anna').hallStars).toBe(4.3);
-    // Ben: 2× Schwarz + 1× Gelb → (3,0 + 3,0 + 4,25) / 3 = 3,4
-    expect(byId(rows, 'ben').hallStars).toBe(3.4);
+    // Anna (nur Gelb): Gelb der anderen (b3, u1) hat keine Bewertungen → kein Vergleichswert
+    expect(byId(rows, 'anna').hallStars).toBeNull();
+    // Ben: Schwarz hat keine anderen Schrauber, Gelb der anderen = Anna 5,5,4,3 = 4,25 → nur Gelb zählt
+    expect(byId(rows, 'ben').hallStars).toBe(4.3);
+    // Begehungen pro Woche: Gelb der anderen für Anna = b3 (2 in 1 Woche) und u1 (0) → 1,0
+    expect(byId(rows, 'anna').hallWeekly).toBe(1);
   });
 
   it('Begehungen pro Woche hängen von der Zeit an der Wand ab (v3)', () => {
@@ -139,7 +141,7 @@ describe('SPEC-050 computeSetterReport', () => {
     expect(rows.map(r => r.setterId).slice(0, 2)).toEqual(['ben', 'anna']);
 
     const stars = sortSetterReport(rows, 'stars');
-    // Anna 4,3 vs Halle 4,3 = 0; Ben 3,0 vs 3,4 = −0,4; Neu ohne Daten
+    // Anna 4,3 ohne Vergleichswert = 0; Ben 3,0 vs 4,3 = −1,3; Neu ohne Daten
     expect(stars.map(r => r.setterId)).toEqual(['anna', 'ben', 'neu', UNKNOWN_SETTER_ID]);
 
     const grade = sortSetterReport(rows, 'grade');
@@ -164,7 +166,7 @@ describe('SPEC-050 computeSetterDetail', () => {
     expect(schwarz.feel).toEqual({ soft: 0, fair: 1, stiff: 3 });
     expect(schwarz.tendency).toBe('stiff');
     expect(schwarz.avgStars).toBe(3);
-    expect(schwarz.hallStars).toBe(3);
+    expect(schwarz.hallStars).toBeNull(); // niemand sonst schraubt Schwarz
     const anna = computeSetterDetail('anna', input())!;
     expect(anna.colors[0].tendency).toBeNull(); // 2 von 4 leicht = 50 %
   });

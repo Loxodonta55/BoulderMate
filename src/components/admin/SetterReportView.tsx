@@ -58,7 +58,7 @@ const StarsWithHall: React.FC<{ value: number | null; hall: number | null; testI
     <span className="inline-flex items-center gap-1 tabular-nums" data-testid={testId}>
       {fmt1(value)}
       <Star className="w-4 h-4 fill-[var(--bm-star)] text-[var(--bm-star)]" aria-label="Sterne" />
-      {hall !== null && <span>· Halle {fmt1(hall)}</span>}
+      {hall !== null && <span>· andere {fmt1(hall)}</span>}
     </span>
   );
 
@@ -97,7 +97,7 @@ const SetterCard: React.FC<{ row: SetterReportRow; onOpen: () => void }> = ({ ro
             )}
             {row.weekly !== null && (
               <span className="tabular-nums" data-testid={`insights-setter-${row.setterId}-weekly`}>
-                {fmt1(row.weekly)} pro Woche{row.hallWeekly !== null ? ` · Halle ${fmt1(row.hallWeekly)}` : ''}
+                {fmt1(row.weekly)} pro Woche{row.hallWeekly !== null ? ` · andere ${fmt1(row.hallWeekly)}` : ''}
               </span>
             )}
             {tooFew && <span data-testid={`insights-setter-${row.setterId}-toofew`}>noch zu wenige Bewertungen</span>}
@@ -208,10 +208,10 @@ const SetterDetailView: React.FC<{ gymId: string; scope: InsightsScope; setterId
               id="stars"
               label="Ø Sterne"
               value={detail.summary.avgStars === null ? '–' : fmt1(detail.summary.avgStars)}
-              sub={detail.summary.hallStars === null ? undefined : `Halle, gleiche Farben: ${fmt1(detail.summary.hallStars)}`}
+              sub={detail.summary.hallStars === null ? undefined : `Andere Schrauber, gleiche Farben: ${fmt1(detail.summary.hallStars)}`}
               aria={detail.summary.avgStars === null
                 ? 'Durchschnitt Sterne: noch zu wenige Bewertungen'
-                : `Durchschnitt ${fmt1(detail.summary.avgStars)} Sterne${detail.summary.hallStars !== null ? `, Halle mit gleichen Farben ${fmt1(detail.summary.hallStars)}` : ''}`}
+                : `Durchschnitt ${fmt1(detail.summary.avgStars)} Sterne${detail.summary.hallStars !== null ? `, andere Schrauber in gleichen Farben ${fmt1(detail.summary.hallStars)}` : ''}`}
             />
             <Kpi
               id="grade"
@@ -225,7 +225,7 @@ const SetterDetailView: React.FC<{ gymId: string; scope: InsightsScope; setterId
               id="firsttry"
               label="Im 1. Versuch"
               value={detail.summary.firstTryRate === null ? '–' : `${detail.summary.flashes} von ${detail.summary.ascents}`}
-              sub={detail.summary.hallFirstTryRate === null ? undefined : `Halle: ${pct(detail.summary.hallFirstTryRate)}`}
+              sub={detail.summary.hallFirstTryRate === null ? undefined : `Andere: ${pct(detail.summary.hallFirstTryRate)}`}
               aria={detail.summary.firstTryRate === null
                 ? 'Im ersten Versuch: noch zu wenige Begehungen'
                 : `${detail.summary.flashes} von ${detail.summary.ascents} Begehungen im ersten Versuch`}
@@ -234,7 +234,7 @@ const SetterDetailView: React.FC<{ gymId: string; scope: InsightsScope; setterId
               id="weekly"
               label="Pro Woche"
               value={detail.summary.weekly === null ? '–' : fmt1(detail.summary.weekly)}
-              sub={detail.summary.hallWeekly === null ? undefined : `Halle: ${fmt1(detail.summary.hallWeekly)}`}
+              sub={detail.summary.hallWeekly === null ? undefined : `Andere: ${fmt1(detail.summary.hallWeekly)}`}
               aria={`${detail.summary.weekly === null ? 'keine' : fmt1(detail.summary.weekly)} Begehungen pro Route und Woche`}
             />
           </div>

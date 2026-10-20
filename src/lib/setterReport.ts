@@ -8,7 +8,8 @@ import { INSIGHTS_TOP_MIN_RATINGS, InsightsScope, normalizeSetterId, setterDispl
 /**
  * SPEC-050 · Schrauber-Auswertung für die Hallenleitung (Admin-Tab «Zahlen» → «Schrauber»).
  * Reine Berechnung aus dem lokalen Speicher. Keine Kletterer-Namen, keine Versuche (§7).
- * Gleiche Regeln wie SPEC-044: Mindestzahl 3, Top-Route = Ø ≥ 4,0, Hallenwert gewichtet nach Farbverteilung.
+ * Gleiche Regeln wie SPEC-044: Mindestzahl 3, Top-Route = Ø ≥ 4,0, Vergleich mit den ANDEREN Schraubern
+ * in denselben Farben (ohne eigene Routen), gewichtet nach der Farbverteilung.
  */
 
 export const REPORT_MIN_RATINGS = INSIGHTS_TOP_MIN_RATINGS;
@@ -168,31 +169,33 @@ function prepare(input: SetterReportInput) {
     };
   });
 
-  // Hallenwerte pro Farbe über alle Routen des Zeitraums
-  const hallByColor = new Map<string, { stars: number | null; firstTry: number | null; weekly: number | null }>();
-  for (const scale of gradeScales) {
-    const inColor = routes.filter(r => r.boulder.gradeScaleId === scale.id);
-    const stars = inColor.flatMap(r => r.stars);
-    const flashes = inColor.reduce((s, r) => s + r.flashes, 0);
-    const climbs = inColor.reduce((s, r) => s + r.flashes + r.tops, 0);
-    hallByColor.set(scale.id, {
-      stars: stars.length >= REPORT_MIN_RATINGS ? mean(stars) : null,
-      firstTry: climbs >= REPORT_MIN_ASCENTS_FIRST_TRY ? flashes / climbs : null,
-      weekly: mean(inColor.map(r => r.weekly)),
-    });
-  }
-
-  return { scope, now, sectorById, gradeScales, scaleById, profiles, routes, hallByColor };
+  return { scope, now, sectorById, gradeScales, scaleById, profiles, routes };
 }
 
 type Prepared = ReturnType<typeof prepare>;
+type BaselineKey = 'stars' | 'firstTry' | 'weekly';
 
-/** Hallenwert gewichtet nach der Farbverteilung der Routen; Farben ohne Hallenwert fallen heraus */
-function weightedHall(list: RouteCalc[], prepared: Prepared, key: 'stars' | 'firstTry' | 'weekly'): number | null {
+/** Vergleichswert einer Farbe aus den Routen der anderen Schrauber im Zeitraum */
+function colorBaseline(prepared: Prepared, scaleId: string, excludeSetterId: string, key: BaselineKey): number | null {
+  const others = prepared.routes.filter(r => r.boulder.gradeScaleId === scaleId && r.setterId !== excludeSetterId);
+  if (key === 'stars') {
+    const stars = others.flatMap(r => r.stars);
+    return stars.length >= REPORT_MIN_RATINGS ? mean(stars) : null;
+  }
+  if (key === 'firstTry') {
+    const flashes = others.reduce((s, r) => s + r.flashes, 0);
+    const climbs = others.reduce((s, r) => s + r.flashes + r.tops, 0);
+    return climbs >= REPORT_MIN_ASCENTS_FIRST_TRY ? flashes / climbs : null;
+  }
+  return mean(others.map(r => r.weekly));
+}
+
+/** Vergleichswert gewichtet nach der Farbverteilung der Routen; Farben ohne Vergleichswert fallen heraus */
+function weightedHall(setterId: string, list: RouteCalc[], prepared: Prepared, key: BaselineKey): number | null {
   let sum = 0;
   let weight = 0;
   for (const r of list) {
-    const v = prepared.hallByColor.get(r.boulder.gradeScaleId)?.[key];
+    const v = colorBaseline(prepared, r.boulder.gradeScaleId, setterId, key);
     if (v === null || v === undefined) continue;
     sum += v;
     weight += 1;
@@ -207,9 +210,9 @@ function summarize(setterId: string, list: RouteCalc[], prepared: Prepared): Set
   const flashes = list.reduce((s, r) => s + r.flashes, 0);
   const ascents = list.reduce((s, r) => s + r.flashes + r.tops, 0);
   const weekly = mean(list.map(r => r.weekly));
-  const hallStars = weightedHall(list, prepared, 'stars');
-  const hallFirstTry = weightedHall(list, prepared, 'firstTry');
-  const hallWeekly = weightedHall(list, prepared, 'weekly');
+  const hallStars = weightedHall(setterId, list, prepared, 'stars');
+  const hallFirstTry = weightedHall(setterId, list, prepared, 'firstTry');
+  const hallWeekly = weightedHall(setterId, list, prepared, 'weekly');
   return {
     setterId,
     name: setterDisplayName(setterId, prepared.profiles),
@@ -335,7 +338,7 @@ export function computeSetterDetail(setterId: string, input: SetterReportInput):
         if (feel.stiff / total >= REPORT_TENDENCY_SHARE) tendency = 'stiff';
         else if (feel.soft / total >= REPORT_TENDENCY_SHARE) tendency = 'soft';
       }
-      const hall = prepared.hallByColor.get(scale.id)?.stars ?? null;
+      const hall = colorBaseline(prepared, scale.id, id, 'stars');
       return {
         scaleId: scale.id,
         colorName: scale.colorName,

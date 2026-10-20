@@ -29,10 +29,10 @@ Die Zahlen sind ein **Gesprächsanlass im Team, keine Note**: «Blau von Jonas w
 |---|---|---|---|
 | Wer | Hallen-/Plattform-Admin | jeder Schrauber, nur eigene Routen | **Hallen-/Plattform-Admin** |
 | Was | Farben, Sektoren, Beliebteste, Kaum geklettert | eigene Routen, Hinweise, Versuche (Median) | **alle Schrauber: Übersicht + Detail pro Schrauber** |
-| Vergleich | – | nur Hallenschnitt gleicher Farben | Hallenschnitt gleicher Farben; Sortierung, **keine Plätze** |
+| Vergleich | – | andere Schrauber, gleiche Farben | andere Schrauber, gleiche Farben; Sortierung, **keine Plätze** |
 | Versuche | – | Median ab 3 Tops | **gar nicht** |
 
-Gleiche Rechenregeln wie SPEC-044: Mindestzahl 3 Bewertungen, Top-Route = Ø ≥ 4,0 Sterne bei ≥ 3 Bewertungen, Hallenvergleich **gewichtet nach der Farbverteilung der Routen des Schraubers**.
+Gleiche Rechenregeln wie SPEC-044 (v5): Mindestzahl 3 Bewertungen, Top-Route = Ø ≥ 4,0 Sterne bei ≥ 3 Bewertungen, Vergleich mit den **anderen Schraubern in denselben Farben** (ohne die eigenen Routen), **gewichtet nach der Farbverteilung der Routen des Schraubers**.
 
 ## 4. Grill-me: Fragen und Entscheidungen (alle nach Empfehlung)
 
@@ -62,7 +62,7 @@ Gleiche Rechenregeln wie SPEC-044: Mindestzahl 3 Bewertungen, Top-Route = Ø ≥
    - Wer bei «Sterne» bzw. «Grad passt» zu wenige Bewertungen hat, steht **unten, ohne Zahl** (v2). «Unbekannt» steht immer ganz unten.
 3. **Liste** `insights-setters`, eine Karte `insights-setter-<setterId>` pro Schrauber (antippbar, ganze Karte ≥ 56 px):
    - Zeile 1: **Name** (17 px, fett) · `insights-setter-<id>-routes` «n Routen» · `insights-setter-<id>-top` «n Top»
-   - Zeile 2 (16 px): `-stars` «3,9 ★ · Halle 3,6» (v4: kein Vorzeichen, keine Ampelfarbe) · `-grade` «Grad passt: 7 von 10» · `-weekly` «2,1 pro Woche · Halle 1,8» (v3)
+   - Zeile 2 (16 px): `-stars` «3,9 ★ · andere 3,6» (v4: kein Vorzeichen, keine Ampelfarbe) · `-grade` «Grad passt: 7 von 10» · `-weekly` «2,1 pro Woche · andere 1,8» (v3)
    - Bei zu wenigen Bewertungen statt Sternen/Grad: «noch zu wenige Bewertungen».
    - Bei «An der Wand» erscheinen nur Schrauber mit mindestens einer aktiven Route (v3).
    - «Unbekannt» (`insights-setter-unknown`) mit Satz «Routen ohne Schrauber. Im Studio unter ‹Geschraubt von› nachtragen.» (v2)
@@ -72,14 +72,14 @@ Gleiche Rechenregeln wie SPEC-044: Mindestzahl 3 Bewertungen, Top-Route = Ø ≥
 Ersetzt die Übersicht im Tab (kein Overlay), oben **«‹ Zurück zur Übersicht»** `setter-report-back` (≥ 48 px, v2).
 1. **Kopf**: Name, «n Routen · m an der Wand».
 2. **Vier Kacheln** (Zahl ≥ 28 px, Beschriftung ≥ 15 px, je `aria-label` als ganzer Satz):
-   - `setter-detail-kpi-stars` **Ø Sterne**, darunter «Halle, gleiche Farben: 3,6»
+   - `setter-detail-kpi-stars` **Ø Sterne**, darunter «Andere Schrauber, gleiche Farben: 3,6»
    - `setter-detail-kpi-grade` **Grad passt**, «7 von 10»
-   - `setter-detail-kpi-firsttry` **Im 1. Versuch**, «4 von 10», darunter «Halle: 38 %» (v3, statt «Flash-Quote»)
-   - `setter-detail-kpi-weekly` **Pro Woche**, Begehungen pro Route und Woche, darunter «Halle: 1,8»
+   - `setter-detail-kpi-firsttry` **Im 1. Versuch**, «4 von 10», darunter «Andere: 38 %» (v3, statt «Flash-Quote»)
+   - `setter-detail-kpi-weekly` **Pro Woche**, Begehungen pro Route und Woche, darunter «Andere: 1,8»
 3. **Lieblingsroute** `setter-detail-favorite` (v2): beste Route mit ≥ 3 Bewertungen und Ø ≥ 4,0: Farbpunkt + Farbname, Name, «4,6 ★ aus 9 Bewertungen», Satz «Diese Route mögen die Leute besonders.» (v3). Entfällt ohne solche Route.
 4. **Pro Farbe** `setter-detail-colors` (v2), eine Zeile `setter-detail-color-<scaleId>` pro Farbe, in der dieser Schrauber Routen hat (Hallen-Reihenfolge):
    - Farbpunkt **mit Farbname**, «n Routen»
-   - «3,9 ★ · Halle 3,6» (ab 3 Bewertungen in dieser Farbe)
+   - «3,9 ★ · andere 3,6» (ab 3 Bewertungen in dieser Farbe)
    - Grad-Gefühl als Wörter mit Zahl: «zu leicht 1 · passt 2 · zu hart 7» (ab 3 Stimmen) und Tendenz `-tendency` «wirkt eher hart» bzw. «wirkt eher leicht», wenn ≥ 60 % der Stimmen hart bzw. leicht sind
 5. **Routen** `setter-detail-routes`, neueste zuerst, Zeile `setter-detail-route-<boulderId>` (≥ 56 px): Farbpunkt + Farbname, Name oder «Ohne Name», Sektor, Begehungen, Ø Sterne oder «noch n Bewertungen», Grad-Gefühl als Wort («meist zu hart») ab 3 Stimmen; abgeschraubte Routen (Zeitraum «Alle») mit «abgeschraubt am 3.10.».
    - **Antippen klappt auf** `setter-detail-route-<id>-more` (v3): «im 1. Versuch n · Top n · Projekt n», Grad-Gefühl «zu leicht · passt · zu hart» mit Zahlen, die **5 neuesten Beta-Kommentare** `setter-detail-comment` **ohne Namen**, Datum als «vor 3 Tagen».
@@ -93,7 +93,7 @@ Ersetzt die Übersicht im Tab (kein Overlay), oben **«‹ Zurück zur Übersich
 - **Grad passt** = Stimmen «fair» / alle Grad-Stimmen; angezeigt ab **3 Stimmen**.
 - **Im 1. Versuch** = Flash / (Flash + Top); angezeigt ab **5 Begehungen**.
 - **Pro Woche**: je Route Begehungen ÷ max(1, Tage an der Wand ÷ 7); Tage von `publishedAt` (sonst `createdAt`) bis `archivedAt` bzw. heute. Wert des Schraubers = Mittel über seine Routen.
-- **Hallenwert gleicher Farben**: pro Farbe der Hallenwert über **alle** Routen dieser Farbe im Zeitraum; gewichtet mit der Anzahl Routen des Schraubers in dieser Farbe; Farben ohne Hallenwert fallen aus der Gewichtung.
+- **Vergleichswert «andere»**: pro Farbe der Wert über die Routen **aller anderen Schrauber** dieser Farbe im Zeitraum (ohne die eigenen, wie SPEC-044 v5); gewichtet mit der Anzahl Routen des Schraubers in dieser Farbe; Farben ohne Vergleichswert fallen aus der Gewichtung.
 - **Top-Route**: ≥ 3 Bewertungen und Ø ≥ 4,0.
 - **Tendenz** einer Farbe: ≥ 3 Stimmen und ≥ 60 % «stiff» → «wirkt eher hart», ≥ 60 % «soft» → «wirkt eher leicht».
 
@@ -112,7 +112,7 @@ Fließtext ≥ 16 px, Tap-Flächen ≥ 48 px, Kontrast ≥ 4,5 : 1 hell und dunk
 ## 9. Folgeänderungen
 
 - **SPEC-030:** Abschnitt «Schrauber» (F7, AC-7) zieht in die Ansicht «Schrauber» um; die Ansicht «Halle» zeigt Kacheln, Farben, Beliebteste, Kaum geklettert, Sektoren. `computeGymInsights().setters` bleibt unverändert bestehen.
-- **SPEC-044 Transparenz-Zeile** (an den Thread «Schrauber-Statistik» gegeben, dessen Datei): «Was sieht die Hallenleitung? Im Tab ‹Zahlen› deine Kennzahlen im Vergleich zur Halle und jede deiner Routen mit Sternen, Grad-Gefühl und Beta-Kommentaren, ohne Namen der Kletterer. Keine Versuche, keine Hinweise, kein Export.» (v3/v4)
+- **SPEC-044 Transparenz-Zeile** (an den Thread «Schrauber-Statistik» gegeben, dessen Datei): «Was sieht die Hallenleitung? Im Tab ‹Zahlen› deine Kennzahlen im Vergleich zu den anderen Schraubern und jede deiner Routen mit Sternen, Grad-Gefühl und Beta-Kommentaren, ohne Namen der Kletterer. Keine Versuche, keine Hinweise, kein Export.» (v3/v4)
 
 ## 10. Umsetzung
 
@@ -163,5 +163,7 @@ Export/Druck, Verlaufsdiagramme, Benachrichtigungen an Admins, Sprung ins Studio
 | 3 | 2026-10-20 | mittel: «+0,3» schwer lesbar und wertend; sonst niedrig | «3,9 ★ · Halle 3,6» ohne Vorzeichen/Ampel; leerer Zustand; Transparenz-Satz «kein Export» (→ v4) | Sprung ins Studio (Aufgabe der Schrauber über SPEC-044, überlädt) |
 
 **Abbruch nach Loop 3:** keine Kritik «hoch» mehr, Änderungen nur Feinschliff → Status **READY**.
+
+**Nachtrag 2026-10-20 (Abstimmung mit SPEC-044 v5, Wunsch Hans):** Vergleich nicht mit der ganzen Halle, sondern mit den anderen Schraubern gleicher Farben; Beschriftung «andere» statt «Halle».
 
 **Umsetzung 2026-10-20:** Vitest 663/663 grün (davon `spec050SetterReport` 11, `spec050SetterReportView` 5), Playwright `setter-report.spec.ts` + angepasstes `gym-insights.spec.ts` grün in Desktop und Mobile Chrome. Mobile Safari ungetestet (WebKit fehlt in der Testumgebung). Screenshots: Projektordner `schrauber-auswertung-admin/screens/`.
