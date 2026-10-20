@@ -49,6 +49,8 @@ Jede Zeile: Farbpunkt, Name oder Farbe, Sektor, Zahl.
 ✔ *Entschieden (Empfehlung):* Abschnitt **«Sektoren»**: pro Sektor Boulder, Begehungen, Ø Sterne und **Alter der Wand** («seit 42 Tagen»). Alter = Tage seit `rebuiltAt`; ohne Umbau seit dem ältesten aktiven Boulder.
 *Warum:* Zeigt, welche Wand als nächste umgeschraubt werden sollte.
 
+> **Seit SPEC-050 (2026-10-20):** Der Abschnitt «Schrauber» steht im Tab «Zahlen» unter dem Umschalter «Schrauber» und ist dort erweitert (Hallenvergleich nach Farben, Detailseite pro Schrauber). Siehe [SPEC-050](SPEC-050-schrauber-auswertung-admin.md).
+
 **F7 – Pro Schrauber (Wunsch Hans)?**
 ✔ *Entschieden (Hans + Empfehlung):* Abschnitt **«Schrauber»**: pro Person Anzahl Routen, Ø Sterne, Anzahl **Top-Routen** (Ø ≥ 4 Sterne, wie der Filter «★ Top» in SPEC-022), Begehungen und das Grad-Gefühl als Anteil «Stiff» und «Soft». Sortiert nach Anzahl Top-Routen. Unbekannte Schrauber (alte Daten ohne Konto) stehen als «Unbekannt».
 

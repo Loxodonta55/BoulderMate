@@ -23,7 +23,10 @@ test.describe('SPEC-030: Hallen-Auswertung', () => {
     await expect(page.getByTestId('insights-kpi-boulders')).toContainText('Boulder');
     await expect(page.getByTestId('insights-grades').locator('[data-testid^="insights-grade-"][data-testid$="-count"]').first()).toBeVisible();
     await expect(page.getByTestId('insights-sectors').locator('li').first()).toBeVisible();
+    // SPEC-050: Schrauber über den Umschalter
+    await page.getByTestId('insights-mode-setters').click();
     await expect(page.getByTestId('insights-setters')).toBeVisible();
+    await page.getByTestId('insights-mode-hall').click();
 
     const activeCount = Number(await page.getByTestId('insights-kpi-boulders-value').textContent());
     await page.getByTestId('insights-scope-all').click();
@@ -37,6 +40,7 @@ test.describe('SPEC-030: Hallen-Auswertung', () => {
     await page.getByTestId('quick-login-boris').click();
     await page.getByTestId('role-gateway-admin-btn').click();
     await openAdminInsights(page);
+    await page.getByTestId('insights-mode-setters').click();
     const setterRoutes = page.getByTestId('insights-setter-schrauber-6aplus-routes');
     const before = (await setterRoutes.count()) > 0 ? parseInt((await setterRoutes.textContent())!, 10) : 0;
 
@@ -58,6 +62,7 @@ test.describe('SPEC-030: Hallen-Auswertung', () => {
     await page.getByTestId('climber-switch-workspace-btn').click();
     await page.getByTestId('role-gateway-admin-btn').click();
     await openAdminInsights(page);
-    await expect(page.getByTestId('insights-setter-schrauber-6aplus-routes')).toHaveText(`${before + 1} Routen`);
+    await page.getByTestId('insights-mode-setters').click();
+    await expect(page.getByTestId('insights-setter-schrauber-6aplus-routes')).toHaveText(`${before + 1} ${before + 1 === 1 ? 'Route' : 'Routen'}`);
   });
 });

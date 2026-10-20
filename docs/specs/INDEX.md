@@ -48,3 +48,4 @@
 | [SPEC-042](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-042-trainer-gruppe.md) | Trainer-Gruppe – Jugendliche teilen ihre Tops mit Zustimmung | IMPLEMENTED | Hans | 2026-10-09 |
 | [SPEC-043](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-043-import-fremder-ticks.md) | Import alter Ticks (z. B. aus Tickboard) | IN PROGRESS | Hans | 2026-10-09 |
 | [SPEC-044](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-044-schrauber-statistik-meine-routen.md) | Schrauber-Statistik «Meine Routen» – wie die eigenen Routen ankommen | READY | Hans | 2026-10-10 |
+| [SPEC-050](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-050-schrauber-auswertung-admin.md) | Schrauber-Auswertung für die Hallenleitung (Zahlen → Schrauber) | IMPLEMENTED | Hans | 2026-10-20 |

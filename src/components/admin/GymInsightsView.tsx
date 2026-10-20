@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Star } from 'lucide-react';
 import { computeGymInsights, InsightsBoulderRow, InsightsScope } from '../../lib/gymInsights';
 import { GradeFeel } from '../../types/boulder';
+import { SetterReportView } from './SetterReportView';
 
 /**
  * SPEC-030 · Admin-Tab «Zahlen»: Hallen-Auswertung für Betreiber.
  * Nur Summen, keine Kletterer-Namen.
+ * SPEC-050: Umschalter «Halle · Schrauber»; die Schrauber-Auswertung lebt in SetterReportView.
  */
 
 interface GymInsightsViewProps {
@@ -52,6 +54,7 @@ const BoulderList: React.FC<{ rows: InsightsBoulderRow[]; value: (r: InsightsBou
 
 export const GymInsightsView: React.FC<GymInsightsViewProps> = ({ gymId }) => {
   const [scope, setScope] = useState<InsightsScope>('active');
+  const [mode, setMode] = useState<'hall' | 'setters'>('hall');
   const [version, setVersion] = useState(0);
 
   // Live-Updates (neue Begehungen, Bewertungen, Boulder)
@@ -74,6 +77,28 @@ export const GymInsightsView: React.FC<GymInsightsViewProps> = ({ gymId }) => {
 
   return (
     <div className="space-y-5 pb-4" data-testid="gym-insights">
+      <div role="group" aria-label="Ansicht" className="grid grid-cols-2 gap-2">
+        {([
+          { id: 'hall', label: 'Halle' },
+          { id: 'setters', label: 'Schrauber' },
+        ] as { id: 'hall' | 'setters'; label: string }[]).map(m => (
+          <button
+            key={m.id}
+            type="button"
+            aria-pressed={mode === m.id}
+            onClick={() => setMode(m.id)}
+            data-testid={`insights-mode-${m.id}`}
+            className={`min-h-[52px] rounded-xl text-[17px] font-bold border ${
+              mode === m.id
+                ? 'bg-[var(--bm-text)] text-[var(--bm-bg)] border-[var(--bm-text)]'
+                : 'bg-[var(--bm-surface)] text-[var(--bm-text)] border-[var(--bm-line)]'
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
       <div role="group" aria-label="Zeitraum" className="flex p-0.5 rounded-[12px] bg-[var(--bm-elevated)]">
         {([
           { id: 'active', label: 'An der Wand' },
@@ -94,6 +119,10 @@ export const GymInsightsView: React.FC<GymInsightsViewProps> = ({ gymId }) => {
         ))}
       </div>
 
+      {mode === 'setters' ? (
+        <SetterReportView gymId={gymId} scope={scope} version={version} />
+      ) : (
+      <>
       <div className="grid grid-cols-2 gap-2">
         {kpis.map(k => (
           <div key={k.id} className="rounded-2xl bg-[var(--bm-surface)] px-4 py-3" data-testid={`insights-kpi-${k.id}`}>
@@ -165,32 +194,8 @@ export const GymInsightsView: React.FC<GymInsightsViewProps> = ({ gymId }) => {
         </ul>
       </Section>
 
-      <Section title="Schrauber" testId="insights-setters">
-        {insights.setters.length === 0 ? (
-          <p className="rounded-2xl bg-[var(--bm-surface)] px-4 py-4 text-[16px] text-[var(--bm-text-2)]">Noch keine Routen.</p>
-        ) : (
-          <ul className="rounded-2xl bg-[var(--bm-surface)] divide-y divide-[var(--bm-line)] overflow-hidden">
-            {insights.setters.map(s => (
-              <li key={s.setterId} className="px-4 py-3" data-testid={`insights-setter-${s.setterId}`}>
-                <div className="flex items-center gap-3">
-                  <span className="flex-1 min-w-0 text-[17px] font-semibold truncate">{s.name}</span>
-                  <span className="text-[15px] font-semibold tabular-nums" data-testid={`insights-setter-${s.setterId}-top`}>
-                    {s.topRoutes} Top
-                  </span>
-                </div>
-                <div className="text-[14px] text-[var(--bm-text-2)] flex flex-wrap gap-x-3">
-                  <span data-testid={`insights-setter-${s.setterId}-routes`}>{s.routes} Routen</span>
-                  <StarValue value={s.avgStars} />
-                  <span>{s.ascents} Begehungen</span>
-                  {(s.stiffPercent > 0 || s.softPercent > 0) && (
-                    <span>{s.stiffPercent} % Stiff · {s.softPercent} % Soft</span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+      </>
+      )}
     </div>
   );
 };

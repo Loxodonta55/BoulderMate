@@ -43,8 +43,10 @@ describe('AC-1 bis AC-7 Tab «Zahlen»', () => {
     }
     expect(screen.getByTestId('insights-top')).toBeInTheDocument();
     expect(screen.getByTestId('insights-unloved')).toBeInTheDocument();
+    // SPEC-050: Schrauber stehen in der Ansicht «Schrauber»
+    fireEvent.click(screen.getByTestId('insights-mode-setters'));
     for (const s of expected.setters) {
-      expect(screen.getByTestId(`insights-setter-${s.setterId}-routes`)).toHaveTextContent(`${s.routes} Routen`);
+      expect(screen.getByTestId(`insights-setter-${s.setterId}-routes`)).toHaveTextContent(`${s.routes} ${s.routes === 1 ? 'Route' : 'Routen'}`);
     }
   });
 
