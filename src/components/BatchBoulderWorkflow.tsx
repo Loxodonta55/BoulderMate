@@ -32,6 +32,7 @@ import { BoulderBottomSheet } from './BoulderBottomSheet';
 import { BatchSummaryModal } from './BatchSummaryModal';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
 import { useBackHandler } from '../hooks/useBackHandler';
+import { SetterStatsView } from './setter/SetterStatsView';
 import {
   Camera,
   Layers,
@@ -48,6 +49,7 @@ import {
   Archive,
   RefreshCw,
   CalendarClock,
+  BarChart3,
 } from 'lucide-react';
 
 interface BatchBoulderWorkflowProps {
@@ -104,6 +106,23 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     const last = gym?.id ? getLastSelectedSetterId(gym.id) : null;
     if (last && setterOptions.some(o => o.id === last)) return last;
     return setterOptions.find(o => isUserMatch(o.id, currentUserId))?.id || currentUserId;
+  };
+
+  // SPEC-044: Umschalter «Wände» · «Meine Routen»; «Im Studio öffnen» springt mit einer Route zurück
+  const [studioMode, setStudioMode] = useState<'walls' | 'stats'>('walls');
+  const [pendingOpenBoulderId, setPendingOpenBoulderId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingOpenBoulderId) return;
+    const target = boulders.find(b => b.id === pendingOpenBoulderId);
+    if (!target) return;
+    setSelectedBoulder(target);
+    setIsSheetOpen(true);
+    setPendingOpenBoulderId(null);
+  }, [boulders, pendingOpenBoulderId]);
+  const handleOpenInStudio = (boulderId: string, sectorId: string) => {
+    setStudioMode('walls');
+    setSelectedSectorId(sectorId);
+    setPendingOpenBoulderId(boulderId);
   };
 
   // SPEC-015: Mobile-First Android Back-Button Handling in Setter Studio
@@ -464,8 +483,48 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     );
   }
 
+  // SPEC-044 AC-1: Umschalter ganz oben im Studio
+  const studioModeSwitch = (
+    <div role="group" aria-label="Bereich im Studio" className="flex p-1 rounded-[14px] bg-[var(--bm-elevated)] border border-[var(--bm-line)]">
+      {([
+        { id: 'walls', label: 'Wände', Icon: Layers },
+        { id: 'stats', label: 'Meine Routen', Icon: BarChart3 },
+      ] as const).map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={studioMode === id}
+          onClick={() => setStudioMode(id)}
+          data-testid={`setter-mode-${id}`}
+          className={`flex-1 min-h-[48px] rounded-[10px] text-[17px] font-semibold inline-flex items-center justify-center gap-2 ${
+            studioMode === id ? 'bg-[var(--bm-surface)] text-[var(--bm-text)] shadow-sm' : 'text-[var(--bm-text-2)]'
+          }`}
+        >
+          <Icon className="w-5 h-5" aria-hidden />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (studioMode === 'stats') {
+    return (
+      <div className="space-y-4 pb-10">
+        {studioModeSwitch}
+        <SetterStatsView
+          key={gym?.id || selectedGymId}
+          gymId={gym?.id || selectedGymId}
+          setterId={currentUserId}
+          onOpenInStudio={handleOpenInStudio}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-28">
+      {studioModeSwitch}
+
       {/* Toast notification */}
       {successToast && (
         <div className="fixed top-5 right-5 z-50 p-4 rounded-xl bg-[var(--bm-surface)] border border-[var(--bm-accent)] text-[var(--bm-text)] font-mono text-xs flex items-center gap-2 animate-in slide-in-from-top-4 duration-200">

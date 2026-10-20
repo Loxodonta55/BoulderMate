@@ -33,6 +33,7 @@
 
 **F4 – Sieht man Versuche anderer?**
 ✔ *Entschieden (Empfehlung):* Nein. Versuche sind privat und erscheinen nur in «Ich», im Sheet und im CSV-Export.
+*Ergänzt 2026-10-20 (SPEC-044):* Zusammengefasst erscheinen Versuche zusätzlich in der Schrauber-Statistik «Meine Routen»: nur als **Median** über **mindestens 3 Tops**, ohne Namen, nur für die Person, die die Route geschraubt hat.
 
 **F5 – Sync?**
 ✔ *Entschieden (Empfehlung):* `Ascent.attempts?: number`, geschrieben in `ascents.attempts`; beim Abgleich gelesen. Keine Migration nötig.

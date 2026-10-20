@@ -1,8 +1,8 @@
 # SPEC-044: Schrauber-Statistik «Meine Routen»
 
-## Status: READY (v4, 2026-10-10)
+## Status: IMPLEMENTED (v5, 2026-10-20)
 
-> **Owner:** Hans · **Created:** 2026-10-10 · **Version:** v4 (nach 3 Loops «FeatureDefinition»)
+> **Owner:** Hans · **Created:** 2026-10-10 · **Version:** v5 (nach 3 Loops «FeatureDefinition», Nachtrag Hans 2026-10-20)
 > **Baut auf:** SPEC-003 (Bewertungen, Grad-Gefühl, Beta), SPEC-021 (Umschrauben), SPEC-027 («Ansehen als …»), SPEC-030 (Hallen-Auswertung, «Geschraubt von»), SPEC-032 (Lesbarkeit), SPEC-035 (Versuche)
 > **Prozess:** [Loop «FeatureDefinition»](../prozesse/feature-definition.md). Grill-me am 2026-10-10, Hans: «geh immer mit der Empfehlung». Feedback-Runden: [`docs/feedback-runden/2026-10-10-schrauber-statistik/`](../feedback-runden/2026-10-10-schrauber-statistik/) (simuliert, kein echtes Nutzerfeedback).
 
@@ -31,7 +31,7 @@ Es ist ein **Werkzeug für die eigene Arbeit**, keine Leistungskontrolle und kei
 |---|---|---|
 | Wer | Hallen-Admin, Plattform-Admin | jede Person mit Zugang zum Schrauber-Studio |
 | Was | ganze Halle: Farben, Sektoren, alle Schrauber im Vergleich | **nur die eigenen Routen**, jede einzeln |
-| Vergleich | Schrauber untereinander (sortiert nach Top-Routen) | **nur mit dem Hallen-Durchschnitt in denselben Farben**, keine Rangliste |
+| Vergleich | Schrauber untereinander (sortiert nach Top-Routen) | **nur mit dem Schnitt der anderen Schrauber in denselben Farben** (v5), keine Rangliste |
 | Tiefe | Summen | pro Route: Grad-Gefühl, Flash-Quote, Versuche, Merkmale, Beta-Kommentare |
 | Handlung | Wand umschrauben planen | einzelne Route im Studio nachbessern |
 
@@ -41,7 +41,7 @@ Beide nutzen dieselben Rechenregeln (Top-Route = Ø ≥ 4,0 Sterne, Mindestzahl 
 
 **F1 – Wer sieht was?** ✔ Jeder Schrauber sieht **nur seine eigenen Routen** (`setterId` = eigenes Konto). Admins, die selbst schrauben, sehen ihre eigenen; fremde Schrauber-Ansichten gibt es nur über «Ansehen als …» (SPEC-027, Plattform-Admin).
 **F2 – Wo?** ✔ Im Schrauber-Studio, als Umschalter ganz oben: **«Wände» · «Meine Routen»**.
-**F3 – Vergleich mit Kollegen?** ✔ Nur mit dem **Hallen-Durchschnitt**, keine Rangliste. Die Rangliste bleibt im Admin-Tab «Zahlen».
+**F3 – Vergleich mit Kollegen?** ✔ Nur mit dem **Durchschnitt der anderen Schrauber** (ohne die eigenen Routen, v5), keine Rangliste. Die Rangliste bleibt im Admin-Tab «Zahlen».
 **F4 – Zahlen pro Route?** ✔ Begehungen, Flash-Quote, Ø Sterne, Grad-Gefühl (soft/fair/stiff), Versuche bis zum Top.
 **F5 – Beta-Kommentare zeigen?** ✔ Ja, **ohne Namen**.
 **F6 – Zeitraum?** ✔ Umschalter **«An der Wand»** (Standard) / **«Alle»** wie in SPEC-030.
@@ -60,23 +60,23 @@ Reihenfolge von oben nach unten (Handy zuerst, eine Spalte):
 4. **Vier Kacheln** (Zahl ≥ 32 px, Beschriftung ≥ 16 px):
    - `setter-kpi-routes` **Routen**
    - `setter-kpi-ascents` **Begehungen** (Flash + Top, ohne Projekte)
-   - `setter-kpi-stars` **Ø Sterne**, darunter «Halle, gleiche Farben: 3,6» (v3)
-   - `setter-kpi-flash` **Flash-Quote**, darunter «Halle, gleiche Farben: 41 %»
-   Jede Kachel hat einen Vorlese-Satz (`aria-label`), z. B. «Durchschnitt 3,9 Sterne, Halle mit gleichen Farben 3,6» (v3).
-   Der Hallenwert ist der **Durchschnitt aller Hallen-Boulder in denselben Farben, gewichtet nach der Farbverteilung der eigenen Routen** (v2). Wer viel Schwarz schraubt, wird mit Schwarz verglichen, nicht mit Gelb.
+   - `setter-kpi-stars` **Ø Sterne**, darunter «Andere, gleiche Farben: 3,6» (v5)
+   - `setter-kpi-flash` **Flash-Quote**, darunter «Andere, gleiche Farben: 41 %»
+   Jede Kachel hat einen Vorlese-Satz (`aria-label`), z. B. «Durchschnitt 3,9 Sterne, andere Schrauber mit gleichen Farben 3,6» (v3).
+   Der Vergleichswert ist der **Durchschnitt der Routen aller anderen Schrauber dieser Halle in denselben Farben und im selben Zeitraum, gewichtet nach der Farbverteilung der eigenen Routen** (v2, v5: ohne die eigenen Routen). Wer viel Schwarz schraubt, wird mit dem Schwarz der Kollegen verglichen, nicht mit Gelb. Farben, die nur man selbst schraubt, fallen aus dem Vergleich; gibt es keinen Vergleich, steht «–».
 5. **Hinweise** `setter-stats-hints`, höchstens 3 Karten (siehe §6). Tippen öffnet die Route. Karten ruhig und neutral; nur die positive Karte ist grün betont, keine roten Warnkarten (v3).
 6. **Liste «Meine Routen»** `setter-stats-list` mit drei Sortier-Knöpfen (v3): **«Neueste»** (Standard) · **«Beliebteste»** · **«Wenig geklettert»**. Eine Zeile `setter-route-<boulderId>` pro Route:
-   - Farbpunkt **mit Farbname als Text** (nie Farbe allein), Name oder «Ohne Name», Sektor
+   - Farbpunkt **mit Farbname als Text** (nie Farbe allein), Name oder «Ohne Name» (auch für den alten Platzhalter «Unbenannter Boulder»), Sektor
    - Begehungen
    - Ø Sterne – oder «noch 2 Bewertungen» (v2), solange unter 3
    - Grad-Gefühl als Wort mit Zahl, z. B. «hart · 7 von 10» (v4); unter 3 Bewertungen nichts
    - im Zeitraum «Alle»: abgeschraubte Routen mit Vermerk «abgeschraubt am 3.10.» und gedämpfter Zeile (Kontrast trotzdem ≥ 4,5 : 1) (v4)
-7. **Transparenz-Zeile** `setter-stats-transparency` ganz unten (v3): «Was sieht die Hallenleitung? Im Tab ‹Zahlen›: deine Anzahl Routen, Top-Routen, Ø Sterne, Begehungen und Stiff/Soft. Hinweise und diese Liste sieht nur du.»
+7. **Transparenz-Zeile** `setter-stats-transparency` ganz unten (v3): «Was sieht die Hallenleitung? Im Tab ‹Zahlen›: deine Anzahl Routen, Top-Routen, Ø Sterne, Begehungen und Stiff/Soft. Hinweise und diese Liste sieht nur du. Namen von Kletterern siehst du hier nie.» Wird angepasst, sobald SPEC-050 (Admin-Detail pro Schrauber) feststeht.
 
 **Route öffnen** → Sheet `setter-route-sheet` (halbe Höhe, zum Vollbild ziehbar):
 - Kopf: Farbpunkt + Farbname, Name, Sektor, «hängt seit 12 Tagen»
 - Zahlen: Begehungen (Flash / Top / Projekt getrennt), Flash-Quote, Ø Sterne mit Anzahl Bewertungen
-- **Grad-Gefühl**: drei Balken mit Wort und Zahl («leicht 1 · passt 2 · hart 7»), Vergleich «Farbe Blau in der Halle: meist ‹passt›»
+- **Grad-Gefühl**: drei Balken mit Wort und Zahl («leicht 1 · passt 2 · hart 7»), Vergleich «Blau bei den anderen Schraubern: meist ‹passt›» (ab 3 Angaben)
 - **Versuche bis zum Top**: **Median** «meist im 3. Versuch», nur wenn mindestens 3 Tops mit gezählten Versuchen vorliegen (v2); sonst entfällt die Zeile
 - **Merkmale** (v3): die zwei am stärksten bewerteten Radar-Merkmale («Technik, Balance»), ab 3 Bewertungen
 - **Beta-Kommentare** ohne Namen und ohne Profilbild, neueste zuerst, höchstens 20, Datum als «vor 3 Tagen»
@@ -96,9 +96,9 @@ Geprüft werden nur eigene Routen im gewählten Zeitraum. Formulierung **sachlic
 | Wirkt hart | ≥ 3 Bewertungen und ≥ 60 % «hart» | «‹Blauer Dachquergang›: 7 von 10 finden ihn hart für Blau» | prüfen |
 | Wirkt leicht | ≥ 3 Bewertungen und ≥ 60 % «leicht» | «‹Gelbe Kante›: 5 von 6 finden sie leicht für Gelb» | prüfen |
 | Fast alle flashen | ≥ 5 Begehungen und Flash-Quote ≥ 80 % | «‹Grüner Riss›: 9 von 10 Begehungen im ersten Versuch» | prüfen |
-| Kaum geklettert | aktiv, hängt ≥ 7 Tage, Begehungen < ⅓ des Hallenschnitts derselben Farbe (v2) | «‹Schwarzer Leisten›: 2 Begehungen in 14 Tagen, Schwarz im Schnitt 8» | prüfen |
+| Kaum geklettert | aktiv, hängt ≥ 7 Tage, Begehungen < ⅓ des Schnitts der anderen Schrauber derselben Farbe, und dieser Schnitt ist ≥ 3 (v5) | «‹Schwarzer Leisten›: 2 Begehungen in 14 Tagen, Schwarz der anderen im Schnitt 8» | prüfen |
 
-Auswahl: **höchstens 3**, davon **mindestens 1 positiver**, sofern es eine Lieblingsroute gibt (v2). Unter den «prüfen»-Hinweisen gilt die Reihenfolge der Tabelle, bei Gleichstand die Route mit den meisten Bewertungen.
+Auswahl: **höchstens 3**, davon **mindestens 1 positiver**, sofern es eine Lieblingsroute gibt (v2). Unter den «prüfen»-Hinweisen gilt die Reihenfolge der Tabelle, bei Gleichstand die Route mit den meisten Bewertungen. **Pro Route höchstens ein Hinweis** (v5). Routen ohne Namen erscheinen als «Farbe · Sektor».
 **Ausblenden** (v4): Jede Karte hat «Erledigt» `setter-hint-dismiss`; der Hinweis zu dieser Route und dieser Art bleibt 14 Tage aus (lokaler Speicher), danach erscheint er wieder, falls die Bedingung noch gilt.
 
 ## 7. Datenschutz und Fairness
@@ -117,24 +117,26 @@ Auswahl: **höchstens 3**, davon **mindestens 1 positiver**, sofern es eine Lieb
 - Keine Töne und keine Vibration in «Meine Routen» (v4).
 - Sprache Deutsch (das Studio ist noch nicht übersetzt; Englisch kommt mit dem Studio, siehe §11).
 
-## 9. Umsetzung (Plan)
+## 9. Umsetzung (2026-10-20)
 
 - `src/lib/setterStats.ts` – reine Funktionen:
-  - `computeSetterStats(setterId, gymId, scope, now, lastViewedAt?)` → Kacheln mit Hallenvergleich (farbgewichtet), Liste, «seit letztem Blick».
-  - `computeSetterHints(stats, now, dismissed)` → höchstens 3 Hinweise nach §6.
-  - `computeRouteDetail(boulderId)` → Grad-Gefühl, Flash/Top/Projekt, Median Versuche (≥ 3), Top-2-Merkmale (≥ 3), Beta ohne Namen.
-  - nutzt `computeBoulderStatsAggregate`, `TOP_RATED_MIN_STARS`, `INSIGHTS_TOP_MIN_RATINGS` aus SPEC-030/SPEC-003.
+  - `computeSetterStats({ setterId, gymId, scope, now, lastViewedAt })` → Kacheln, Vergleich «andere, gleiche Farben», Liste, «seit letztem Blick».
+  - `colorWeightedBaseline(ownRoutes, otherRoutes, ratings, ascents)` → farbgewichteter Vergleichswert; wird auch von SPEC-050 genutzt.
+  - `computeSetterHints(stats, { now, dismissed })` → höchstens 3 Hinweise nach §6.
+  - `computeSetterRouteDetail(stats, boulderId)` → Grad-Gefühl, Flash/Top/Projekt, Median Versuche (≥ 3), Top-2-Merkmale (≥ 3), Beta ohne Namen.
+  - `sortSetterRoutes`, lokaler Speicher (`bm_setter_stats_last_viewed_<gymId>`, `bm_setter_hints_dismissed_<gymId>`).
+  - Regeln wie SPEC-030: Top-Route = Ø ≥ 4,0 (`TOP_RATED_MIN_STARS`), pro Person zählt nur die neueste Begehung.
 - `src/components/setter/SetterStatsView.tsx`, `src/components/setter/SetterRouteStatsSheet.tsx`.
-- `src/components/BatchBoulderWorkflow.tsx`: Umschalter «Wände» · «Meine Routen»; Sprung «Im Studio öffnen».
-- Lokaler Speicher: `bm_setter_stats_last_viewed_<gymId>`, `bm_setter_hints_dismissed_<gymId>`.
+- `src/components/BatchBoulderWorkflow.tsx`: Umschalter `setter-mode-walls` / `setter-mode-stats` oben im Studio; «Im Studio öffnen» wechselt zu «Wände», wählt die Wand und öffnet das Boulder-Sheet.
 - Keine Migration, keine neue Supabase-Abfrage.
+- Folgeänderungen: SPEC-035 F4 ergänzt; `public/datenschutz.html` (Abschnitt Klettern) ergänzt.
 
 ## 10. Akzeptanzkriterien
 
 - **AC-1** Wer das Schrauber-Studio öffnen darf, sieht oben `setter-mode-walls` und `setter-mode-stats`; «Meine Routen» zeigt `setter-stats`. Kletterer sehen nichts davon.
-- **AC-2** Es erscheinen nur Routen mit `setterId` = eigenes Konto in der aktuellen Halle; mit «Ansehen als …» die der angesehenen Person.
+- **AC-2** Es erscheinen nur Routen mit `setterId` = eigenes Konto in der aktuellen Halle (Demo-Schlüssel und Supabase-UUID gelten als gleich). «Ansehen als …» nimmt nur Rechte weg, es bleiben die eigenen Routen.
 - **AC-3** Zeitraum `setter-stats-scope-active` (Standard, nur aktive) und `setter-stats-scope-all` (auch abgeschraubte, mit «abgeschraubt am …»).
-- **AC-4** Kacheln `setter-kpi-routes`, `setter-kpi-ascents` (Flash + Top), `setter-kpi-stars`, `setter-kpi-flash`; Stern- und Flash-Kachel zeigen den farbgewichteten Hallenwert. Ohne Bewertungen «–».
+- **AC-4** Kacheln `setter-kpi-routes`, `setter-kpi-ascents` (Flash + Top), `setter-kpi-stars`, `setter-kpi-flash`; Stern- und Flash-Kachel zeigen den farbgewichteten Wert der anderen Schrauber («Andere, gleiche Farben»). Ohne Bewertungen «–».
 - **AC-5** `setter-stats-since` zeigt die Zuwächse seit dem letzten Öffnen; beim ersten Öffnen oder ohne Neues fehlt die Zeile.
 - **AC-6** `setter-stats-hints` zeigt höchstens 3 Hinweise nach §6, mindestens einen positiven, falls vorhanden; «Erledigt» blendet ihn 14 Tage aus.
 - **AC-7** `setter-stats-list` mit Sortierung Neueste/Beliebteste/Wenig geklettert; unter 3 Bewertungen «noch n Bewertungen» statt Sternen und kein Grad-Gefühl.
@@ -155,15 +157,16 @@ Auswahl: **höchstens 3**, davon **mindestens 1 positiver**, sofern es eine Lieb
 - Vermerk «Grad geändert am …» an Bewertungen nach einer Grad-Änderung (später; Bewertungen bleiben an der Route).
 - Frei einstellbare Hinweis-Schwellen, Teilen-Knopf, Bewertungsfeld «gefährlich» (Sicherheit läuft über SPEC-026).
 
-## 12. Tests (CONSTITUTION §13, bei Umsetzung)
+## 12. Tests (CONSTITUTION §13)
 
 **Unit (Vitest)**
-- `tests/spec044SetterStats.test.ts`: nur eigene Routen, Zeitraum, farbgewichteter Hallenvergleich, Mindestzahl 3, Median Versuche (≥ 3 Tops), Top-2-Merkmale, Hinweis-Regeln und Auswahl (max. 3, ≥ 1 positiv), Ausblenden 14 Tage, «seit letztem Blick».
-- `tests/spec044SetterStatsView.test.tsx`: Umschalter, Kacheln, Sortierung, Sheet ohne Namen, leere Zustände, «Im Studio öffnen».
+- `tests/spec044SetterStats.test.ts`: nur eigene Routen, Zeitraum, Vergleich mit anderen Schraubern (farbgewichtet), Mindestzahl 3, Median Versuche (≥ 3 Tops), Top-2-Merkmale, Hinweis-Regeln und Auswahl (max. 3, ≥ 1 positiv, einer pro Route), «Kaum geklettert» erst ab Schnitt 3, Ausblenden 14 Tage, «seit letztem Blick», keine Namen.
+- `tests/spec044SetterStatsView.test.tsx`: Umschalter, Kletterer ohne Umschalter, Kacheln, Sortierung, «Alle» mit «abgeschraubt am», leerer Zustand, «seit letztem Blick», Sheet ohne Namen, Lieblingsroute + «Erledigt», «Im Studio öffnen» bis ins Boulder-Sheet.
 
 **Playwright (`tests/e2e/setter-stats.spec.ts`, Desktop und Mobile Chrome)**
-- Schrauber: «Meine Routen» öffnen → Kacheln, Hinweise, Liste; Route öffnen → Grad-Gefühl, Beta ohne Namen; «Im Studio öffnen» landet im Boulder-Sheet.
-- Kletterer (über «Ansehen als») sieht den Umschalter nicht.
+- Schrauber: «Meine Routen» → Kacheln mit «Andere, gleiche Farben», Sortierung, Route öffnen → Grad-Gefühl, Beta ohne Namen; «Im Studio öffnen» landet im Boulder-Sheet.
+- «Alle» zählt abgeschraubte Routen mit; im Kletterer-Bereich gibt es den Umschalter nicht.
+- Mobile Safari im Container nicht getestet (WebKit fehlt).
 
 ## 13. FeatureDefinition-Verlauf
 
@@ -174,4 +177,6 @@ Auswahl: **höchstens 3**, davon **mindestens 1 positiver**, sofern es eine Lieb
 | 2 | 2026-10-10 | **hoch:** Unklar, was der Chef sieht (Angst vor Kontrolle); mittel: lange Liste ohne Sortierung; «Was ist neu?» fehlt; Grad-Gefühl sagt nicht, *warum* | Transparenz-Zeile; Sortierung Neueste/Beliebteste/Wenig geklettert; «Seit deinem letzten Blick»; Top-2-Merkmale aus Radar; Vorlese-Sätze und Kontrast; ruhige Hinweis-Karten; «Halle, gleiche Farben» (→ v3) | Englisch jetzt (Studio noch nicht übersetzt); Antworten auf Beta (eigenes Feature, Moderation); mehrere Schrauber pro Route (Datenmodell) |
 | 3 | 2026-10-10 | mittel: Hinweis-Texte klingen wertend; gleiche Hinweise nerven; abgeschraubte Routen schwer erkennbar; sonst niedrig | Texte sachlich mit Zahlen («7 von 10 finden ihn hart»); «Erledigt» blendet 14 Tage aus; «abgeschraubt am …» mit Kontrast ≥ 4,5 : 1; keine Töne/Vibration (→ v4) | Hinweis-Schwellen einstellbar (überlädt); Wochenvergleich-Pfeile (= Verlauf, F10) |
 
-**Abbruch nach Loop 3:** keine Kritik «hoch» mehr, Änderungen in Loop 3 nur Feinschliff → Status **READY**.
+| Nachtrag | 2026-10-20 | Hans: «Vergleich zu allgemeinem Feedback der anderen Schrauber» | Vergleichswert ohne die eigenen Routen («Andere, gleiche Farben»); «Kaum geklettert» erst ab Schnitt 3 der anderen; ein Hinweis pro Route; Platzhalter-Namen als «ohne Name» (→ v5) | – |
+
+**Abbruch nach Loop 3:** keine Kritik «hoch» mehr, Änderungen in Loop 3 nur Feinschliff → Status **READY**. Umgesetzt am 2026-10-20 (v5).
