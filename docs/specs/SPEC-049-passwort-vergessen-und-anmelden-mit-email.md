@@ -1,6 +1,6 @@
 # SPEC-049: Passwort vergessen und Anmelden mit E-Mail
 
-## Status: IMPLEMENTED (v4 READY 2026-10-20, Code 2026-10-20) – live erst nach den Dashboard-Einstellungen in Abschnitt 9
+## Status: DONE (v4 READY 2026-10-20, Code 2026-10-20, Supabase-Dashboard & SMTP 2026-10-22 live)
 
 > **Owner:** Hans · **Created:** 2026-10-20 · **Baut auf:** SPEC-000, SPEC-014 (echte Anmeldung), SPEC-024 (Google), SPEC-027 (keine Test-Logins live), SPEC-039 (Englisch)
 >
