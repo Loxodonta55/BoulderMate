@@ -7,8 +7,10 @@ import { loginHans, openMe, openSettings, tab } from './_basis';
  */
 async function setupChallenge(page: Page): Promise<string[]> {
   return page.evaluate(async () => {
-    const bs: any = await import('/src/lib/batchBoulderService.ts');
-    const rs: any = await import('/src/lib/ratingAndAscentService.ts');
+    const bsPath = '/src/lib/batchBoulderService.ts';
+    const rsPath = '/src/lib/ratingAndAscentService.ts';
+    const bs: any = await import(/* @vite-ignore */ bsPath);
+    const rs: any = await import(/* @vite-ignore */ rsPath);
     const sectorIds = new Set(bs.getSectors('gym-6a-plus').map((s: any) => s.id));
     const active = bs.getWallBoulders().filter((b: any) => b.status === 'active' && sectorIds.has(b.sectorId));
     const power = { maximalkraft: 5, kraft: 5, kraftausdauer: 3, technik: 2, balance: 2, koordination: 4, flexibilitaet: 2 };
