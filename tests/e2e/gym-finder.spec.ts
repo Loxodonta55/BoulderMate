@@ -41,7 +41,7 @@ test.describe('SPEC-025: Halle suchen', () => {
     await expect(page.getByTestId('header-gym-select')).toContainText('6a plus');
 
     await openFinder(page);
-    await expect(page.locator('[data-testid^="gym-pin-"]')).toHaveCount(2);
+    await expect(page.locator('[data-testid^="gym-pin-gym-"]')).toHaveCount(2);
     await expect(page.getByTestId('gym-row-gym-6a-plus')).toHaveAttribute('aria-current', 'true');
     await expect(page.getByText('OpenStreetMap')).toBeVisible();
 
@@ -94,7 +94,7 @@ test.describe('SPEC-025: Halle suchen', () => {
     await page.goto('/');
     await page.getByTestId('landing-show-gyms').click();
     await expect(page.getByTestId('gym-finder-sheet')).toBeVisible();
-    await expect(page.locator('[data-testid^="gym-pin-"]')).toHaveCount(2);
+    await expect(page.locator('[data-testid^="gym-pin-gym-"]')).toHaveCount(2);
     await page.getByTestId('gym-row-gym-6a-plus').click();
     await page.getByTestId('gym-card-select').click();
     await expect(page.getByTestId('gym-finder-sheet')).toHaveCount(0);

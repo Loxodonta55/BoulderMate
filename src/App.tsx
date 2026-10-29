@@ -34,6 +34,8 @@ import { GymFinderSheet } from './components/GymFinderSheet';
 import { getGymFinderEntries } from './lib/gymFinder';
 import { useLang, t } from './lib/i18n';
 import { getSectors } from './lib/batchBoulderService';
+import { readHallenLinkFromUrl, clearHallenLinkFromUrl, savePendingRef } from './lib/hallenVerzeichnis';
+import { FuerHallenPage } from './components/hallen/FuerHallenPage';
 import { readWallLinkFromUrl, clearWallLinkFromUrl, savePendingWallLink, getPendingWallLink, clearPendingWallLink, resolveWallLinkSector } from './lib/wallLink';
 import { showToast } from './components/ui/Toast';
 
@@ -79,6 +81,15 @@ export const App: React.FC = () => {
       return fromUrl;
     }
     return getPendingWallLink();
+  });
+  // SPEC-053 F4: geteilter Link `?halle=<id>&ref=<code>` öffnet die Seite «Für Hallen»
+  const [hallenLink, setHallenLink] = useState(() => {
+    const link = readHallenLinkFromUrl();
+    if (link) {
+      if (link.ref) savePendingRef(link.ref);
+      clearHallenLinkFromUrl();
+    }
+    return link;
   });
   const [focusSectorId, setFocusSectorId] = useState<string | null>(null);
   const [isFirstSyncDone, setIsFirstSyncDone] = useState<boolean>(false);
@@ -457,6 +468,24 @@ export const App: React.FC = () => {
     );
   }
 
+  const fuerHallenPage = hallenLink && (
+    <FuerHallenPage
+      halleId={hallenLink.halleId}
+      refCode={hallenLink.ref}
+      onClose={() => setHallenLink(null)}
+      onDemo={() => {
+        setHallenLink(null);
+        setActiveGymId('gym-6a-plus');
+        if (authSession) {
+          setIsLandingOpen(false);
+          setActiveTab('wall');
+        } else {
+          setIsGymFinderOpen(true);
+        }
+      }}
+    />
+  );
+
   // Dedicated Standalone Landing Page for unauthenticated visitors
   if (!authSession || isLandingOpen) {
     return (
@@ -503,6 +532,8 @@ export const App: React.FC = () => {
           onClose={() => setIsGymFinderOpen(false)}
           entries={gymFinderEntries}
           activeGymId={activeGymId}
+          userId={authSession?.id ?? null}
+          onRequestLogin={() => setIsLoginModalOpen(true)}
           onSelectGym={(id) => {
             setActiveGymId(id);
             if (authSession) {
@@ -543,6 +574,7 @@ export const App: React.FC = () => {
             onClose={handleCloseRoleGateway}
           />
         )}
+        {fuerHallenPage}
       </div>
     );
   }
@@ -630,6 +662,7 @@ export const App: React.FC = () => {
             activeGymId={activeGymId}
             roleInfo={roleInfo}
             onSwitchMode={handleSelectMode}
+            onOpenGymFinder={() => setIsGymFinderOpen(true)}
             onProfileUpdated={(newNickname, newAvatar) => {
               if (climberId) {
                 setClimberNicknames(prev => ({
@@ -701,6 +734,8 @@ export const App: React.FC = () => {
         onClose={() => setIsGymFinderOpen(false)}
         entries={gymFinderEntries}
         activeGymId={activeGymId}
+        userId={authSession?.id ?? null}
+        onRequestLogin={() => setIsLoginModalOpen(true)}
         onSelectGym={(id) => {
           setActiveGymId(id);
           setActiveTab('wall');
@@ -729,6 +764,7 @@ export const App: React.FC = () => {
       />
 
       {/* SPEC-022 AC-11: Toasts (Loggen · Rückgängig) */}
+      {fuerHallenPage}
       <ToastHost />
     </div>
   );

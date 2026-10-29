@@ -52,3 +52,4 @@
 | [SPEC-049](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-049-passwort-vergessen-und-anmelden-mit-email.md) | Passwort vergessen und Anmelden mit E-Mail (Bestätigung, abgelaufene Links) | DONE | Hans | 2026-10-20 |
 | [SPEC-050](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-050-schrauber-auswertung-admin.md) | Schrauber-Auswertung für die Hallenleitung (Zahlen → Schrauber) | IMPLEMENTED | Hans | 2026-10-20 |
 | [SPEC-051](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-051-challenge-today.md) | «Challenge Today» – deine persönliche Challenge (über deinem Grad, passt zu deinen Stärken) | IMPLEMENTED | Hans | 2026-10-20 |
+| [SPEC-053](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-053-noch-nicht-dabei-hallen-empfehlen.md) | «Noch nicht dabei» – alle Hallen zeigen, Wunsch-Knopf, Halle empfehlen (30 % Dankeschön) | UMGESETZT (Migration + Betrag offen) | Hans | 2026-10-29 |

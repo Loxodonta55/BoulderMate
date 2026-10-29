@@ -15,6 +15,8 @@ export interface GymMapPoint {
   name: string;
   lat?: number;
   lng?: number;
+  /** SPEC-053: false = «Noch nicht dabei» (Verzeichnis-Halle) */
+  registered?: boolean;
 }
 
 interface GymMapProps {
@@ -30,13 +32,33 @@ interface GymMapProps {
   draggable?: boolean;
   onDragEnd?: (pos: LatLng) => void;
   testId?: string;
+  /** SPEC-053: Wechsel = Ausschnitt einmal neu an alle Pins anpassen (nach dem Laden des Verzeichnisses) */
+  refitKey?: string;
 }
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 }
 
+/** SPEC-053 F1: Verzeichnis-Halle = weiß gefüllt mit dickem gestricheltem Rand (Form statt nur Farbe) */
+function directoryPinIcon(p: GymMapPoint, highlighted: boolean): L.DivIcon {
+  const size = 44;
+  const dot = highlighted ? 26 : 20;
+  return L.divIcon({
+    className: 'bm-gym-pin bm-gym-pin-directory',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html:
+      `<span data-testid="gym-pin-${escapeHtml(p.id)}" data-registered="false" role="button" aria-label="${escapeHtml(p.name)}" ` +
+      `data-highlighted="${highlighted}" ` +
+      `style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;cursor:pointer">` +
+      `<span style="display:block;width:${dot}px;height:${dot}px;border-radius:9999px;background:#FFFFFF;` +
+      `border:3px dashed #4A4744;box-shadow:0 1px 4px rgba(0,0,0,.35)"></span></span>`,
+  });
+}
+
 function pinIcon(p: GymMapPoint, highlighted: boolean): L.DivIcon {
+  if (p.registered === false) return directoryPinIcon(p, highlighted);
   const size = highlighted ? 52 : 44;
   const dot = highlighted ? 30 : 24;
   const color = highlighted ? '#8C6A2A' : '#1A1918';
@@ -72,6 +94,7 @@ export const GymMap: React.FC<GymMapProps> = ({
   draggable = false,
   onDragEnd,
   testId = 'gym-finder-map',
+  refitKey,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -124,6 +147,10 @@ export const GymMap: React.FC<GymMapProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    fittedRef.current = false;
+  }, [refitKey]);
+
   // Pins aktualisieren
   useEffect(() => {
     const map = mapRef.current;
@@ -137,7 +164,8 @@ export const GymMap: React.FC<GymMapProps> = ({
         icon: pinIcon(p, highlighted),
         title: p.name,
         keyboard: true,
-        zIndexOffset: highlighted ? 1000 : 0,
+        // SPEC-053: aktive Hallen liegen immer über den Verzeichnis-Hallen
+        zIndexOffset: (highlighted ? 1000 : 0) + (p.registered === false ? 0 : 500),
         draggable,
       });
       marker.on('click', () => onSelectRef.current(p.id));
@@ -158,7 +186,7 @@ export const GymMap: React.FC<GymMapProps> = ({
         map.fitBounds(L.latLngBounds(located.map(p => [p.lat, p.lng] as L.LatLngTuple)), { padding: [40, 40], maxZoom: 13 });
       }
     }
-  }, [points, selectedId, activeGymId, draggable]);
+  }, [points, selectedId, activeGymId, draggable, refitKey]);
 
   // Admin: verschobene Koordinaten von außen (z. B. nach Adresssuche) neu zentrieren
   useEffect(() => {

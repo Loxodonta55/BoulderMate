@@ -12,6 +12,17 @@ import {
 } from '../lib/gymFinder';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { CrowdBadge } from './basis/CrowdBadge';
+import {
+  DirectoryEntry,
+  HALLEN_CONTACT_EMAIL,
+  getOnlyActive,
+  isDirectoryEntry,
+  setOnlyActive as saveOnlyActive,
+  toDirectoryEntries,
+  useHallenVerzeichnis,
+} from '../lib/hallenVerzeichnis';
+import { t } from '../lib/i18n';
+import { DirectoryGymCard, NotYetBadge } from './hallen/DirectoryGymCard';
 
 /**
  * SPEC-025: «Halle wählen» – Karte (oben) und Liste (unten) aller eingetragenen Hallen.
@@ -25,6 +36,10 @@ interface GymFinderSheetProps {
   onSelectGym: (gymId: string) => void;
   /** Ersetzbar in Tests */
   geolocation?: Geolocation | null;
+  /** SPEC-053: angemeldetes Konto (Wünsche, Empfehlungscode); null = Gast */
+  userId?: string | null;
+  /** SPEC-053: Gast tippt «Anmelden und wünschen» */
+  onRequestLogin?: () => void;
 }
 
 /** «Flüelastrasse 31, 8048 Zürich» statt «…, 8048 Zürich, Zürich» */
@@ -42,8 +57,21 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
   activeGymId,
   onSelectGym,
   geolocation = typeof navigator !== 'undefined' ? navigator.geolocation : null,
+  userId = null,
+  onRequestLogin,
 }) => {
   const [query, setQuery] = useState('');
+  // SPEC-053 F1: Verzeichnis-Hallen «Noch nicht dabei»
+  const directory = useHallenVerzeichnis(open, userId);
+  const [onlyActive, setOnlyActiveState] = useState<boolean>(() => getOnlyActive());
+  const toggleOnlyActive = (on: boolean) => {
+    setOnlyActiveState(on);
+    saveOnlyActive(on);
+  };
+  const directoryEntries = useMemo<DirectoryEntry[]>(
+    () => toDirectoryEntries(directory.rows, entries, directory.wishCounts),
+    [directory.rows, directory.wishCounts, entries]
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userPos, setUserPos] = useState<LatLng | null>(null);
   const [locateState, setLocateState] = useState<LocateState>('idle');
@@ -61,11 +89,23 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
     onBack: () => (selectedId ? setSelectedId(null) : onClose()),
   });
 
-  const visible = useMemo(
+  const visibleActive = useMemo(
     () => sortGymEntries(entries.filter(e => matchesGymSearch(e, query)), userPos),
     [entries, query, userPos]
   );
+  const matchingDirectory = useMemo(
+    () => sortGymEntries(directoryEntries.filter(e => matchesGymSearch(e, query)), userPos),
+    [directoryEntries, query, userPos]
+  );
+  const visibleDirectory = onlyActive ? [] : matchingDirectory;
+  // AC-2: mit Standort eine gemeinsame Liste nach Entfernung, sonst aktive zuerst
+  const visible = useMemo<GymFinderEntry[]>(
+    () => (userPos ? sortGymEntries([...visibleActive, ...visibleDirectory], userPos) : [...visibleActive, ...visibleDirectory]),
+    [visibleActive, visibleDirectory, userPos]
+  );
+  const mapPoints = useMemo(() => visible.map(e => ({ ...e, registered: !isDirectoryEntry(e) })), [visible]);
   const selected = visible.find(e => e.id === selectedId) || null;
+  const hiddenByToggle = onlyActive && query.trim() ? matchingDirectory.length : 0;
 
   const locate = () => {
     if (!geolocation) {
@@ -130,7 +170,8 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
 
       <div className="relative mx-4">
       <GymMap
-        points={visible}
+        points={mapPoints}
+        refitKey={directory.loaded ? 'mit-verzeichnis' : 'ohne'}
         activeGymId={activeGymId}
         selectedId={selectedId}
         userPos={userPos}
@@ -154,7 +195,15 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
       </button>
       </div>
 
-      {selected ? (
+      {selected && isDirectoryEntry(selected) ? (
+        <DirectoryGymCard
+          entry={selected}
+          userId={userId}
+          wished={directory.myWishes.includes(selected.id)}
+          onClose={() => setSelectedId(null)}
+          onRequestLogin={onRequestLogin}
+        />
+      ) : selected ? (
         <div className="mx-4 mt-3 rounded-2xl bg-[var(--bm-elevated)] p-4 space-y-4" data-testid={`gym-card-${selected.id}`}>
           <div className="flex items-start gap-3">
             <div className="w-14 h-14 rounded-xl bg-[var(--bm-surface)] flex items-center justify-center overflow-hidden shrink-0">
@@ -215,11 +264,46 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
         </div>
       ) : null}
 
+      {directoryEntries.length > 0 && (
+        <label className="mt-3 mx-4 flex items-center justify-between gap-3 min-h-[48px]">
+          <span className="text-[17px] font-semibold">{t('Nur aktive Hallen')}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={onlyActive}
+            onChange={e => toggleOnlyActive(e.target.checked)}
+            className="w-6 h-6 accent-[var(--bm-accent)]"
+            data-testid="gym-finder-only-active"
+          />
+        </label>
+      )}
+
+      {hiddenByToggle > 0 && (
+        <button
+          type="button"
+          onClick={() => toggleOnlyActive(false)}
+          className="mx-4 mt-1 min-h-[44px] text-left text-[16px] font-semibold underline"
+          data-testid="gym-finder-show-directory"
+        >
+          {t('+ {n} Hallen noch nicht dabei – zeigen', { n: hiddenByToggle })}
+        </button>
+      )}
+
       <ul className="mt-3 px-4 divide-y divide-[var(--bm-line)]" data-testid="gym-finder-list">
-        {visible.map(e => {
+        {visible.map((e, i) => {
           const isActive = e.id === activeGymId;
+          const notYet = isDirectoryEntry(e);
+          // Ohne Standort: Überschrift vor der ersten Verzeichnis-Halle (AC-1)
+          const sectionStart = !userPos && notYet && (i === 0 || !isDirectoryEntry(visible[i - 1]));
           return (
-            <li key={e.id}>
+            <React.Fragment key={e.id}>
+            {sectionStart && (
+              <li className="pt-5 pb-2" data-testid="gym-finder-directory-heading">
+                <h3 className="text-[19px] font-bold">{t('Noch nicht bei BoulderMate')}</h3>
+                <p className="text-[15px] text-[var(--bm-text-2)]">{t('Hier gibt es noch keine Routen. Du kannst sie dir wünschen.')}</p>
+              </li>
+            )}
+            <li>
               <button
                 type="button"
                 onClick={() => setSelectedId(e.id)}
@@ -228,7 +312,9 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                 data-testid={`gym-row-${e.id}`}
               >
                 <span
-                  className={`w-3.5 h-3.5 rounded-full shrink-0 ${isActive ? 'bg-[var(--bm-star)]' : 'bg-[var(--bm-line)]'}`}
+                  className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    notYet ? 'bg-white border-2 border-dashed border-[#4A4744]' : isActive ? 'bg-[var(--bm-star)]' : 'bg-[var(--bm-line)]'
+                  }`}
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1">
@@ -237,7 +323,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                     {e.city || e.address || 'Ort fehlt'}
                     {isActive && ' · gewählt'}
                   </span>
-                  <CrowdBadge gymId={e.id} compact testId={`gym-row-crowd-${e.id}`} />
+                  {notYet ? <NotYetBadge testId={`gym-row-not-yet-${e.id}`} /> : <CrowdBadge gymId={e.id} compact testId={`gym-row-crowd-${e.id}`} />}
                 </span>
                 {e.distanceKm !== undefined && (
                   <span className="text-[15px] font-semibold text-[var(--bm-text-2)] shrink-0" data-testid={`gym-row-distance-${e.id}`}>
@@ -247,14 +333,27 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                 <ChevronRight className="w-5 h-5 text-[var(--bm-text-2)] shrink-0" aria-hidden />
               </button>
             </li>
+            </React.Fragment>
           );
         })}
-        {visible.length === 0 && (
+        {visible.length === 0 && hiddenByToggle === 0 && (
           <li className="py-6 text-center text-[16px] text-[var(--bm-text-2)]" data-testid="gym-finder-empty">
             Keine Halle gefunden
           </li>
         )}
       </ul>
+
+      {directoryEntries.length > 0 && (
+        <p className="px-4 py-5 text-[15px] text-[var(--bm-text-2)]" data-testid="gym-finder-missing">
+          {t('Bisher Deutschschweiz.')}{' '}
+          <a
+            className="underline font-semibold text-[var(--bm-text)]"
+            href={`mailto:${HALLEN_CONTACT_EMAIL}?subject=${encodeURIComponent(t('Halle fehlt in BoulderMate'))}`}
+          >
+            {t('Halle fehlt? Melden')}
+          </a>
+        </p>
+      )}
     </Sheet>
   );
 };

@@ -27,6 +27,7 @@ import { selectMyProjects, flashShare, recommendBoulders, buildLogbookCsv } from
 import { getUserAscent } from '../lib/ratingAndAscentService';
 import { getBoulderNumber } from '../lib/boulderNumbers';
 import { DEEP_DIVE_AXES, DeepDiveAxis, axisLabel } from '../lib/deepDiveService';
+import { HalleEmpfehlenSection } from './hallen/HalleEmpfehlenSection';
 
 /**
  * SPEC-020 §5.3/§5.4 · «Ich» – eine Seite ohne Sub-Tabs + Einstellungen (iOS-Settings-Stil).
@@ -39,6 +40,8 @@ export interface MeViewProps {
   onSwitchMode: (mode: AppMode) => void;
   onProfileUpdated?: (nickname: string, avatarUrl?: string) => void;
   onLogout: () => void;
+  /** SPEC-053 F5: «Halle auf der Karte suchen» */
+  onOpenGymFinder?: () => void;
 }
 
 const typeIcon = (): Record<AscentType, React.ReactNode> => ({
@@ -66,6 +69,7 @@ export const MeView: React.FC<MeViewProps> = ({
   onSwitchMode,
   onProfileUpdated,
   onLogout,
+  onOpenGymFinder,
 }) => {
   const [scope, setScope] = useState<'gym' | 'all'>('all');
   const [version, setVersion] = useState(0);
@@ -602,6 +606,9 @@ export const MeView: React.FC<MeViewProps> = ({
           onClick={() => setIsDeepDiveOpen(true)}
         />
       </ListGroup>
+
+      {/* SPEC-053 F5: Halle empfehlen */}
+      <HalleEmpfehlenSection userId={currentUser.id} onOpenFinder={() => onOpenGymFinder?.()} />
 
       {/* Verlauf */}
       <section className="space-y-2.5" data-testid="private-logbook-section">
