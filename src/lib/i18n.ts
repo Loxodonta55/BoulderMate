@@ -9,6 +9,7 @@ import { EN_APP } from './i18n/en-app';
 import { EN_MODERATION } from './i18n/en-moderation';
 import { EN_AI_CAPTURE } from './i18n/en-ai-capture';
 import { EN_HALLEN } from './i18n/en-hallen';
+import { EN_PARTNER } from './i18n/en-partner';
 
 /**
  * SPEC-039 · Englisch (Runde 1: was Kletterer sehen).
@@ -25,7 +26,7 @@ export const LANG_OPTIONS: { value: Lang; label: string }[] = [
   { value: 'en', label: 'English' },
 ];
 
-export const EN: Record<string, string> = { ...EN_CHALLENGE_TODAY, ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH, ...EN_APP, ...EN_MODERATION, ...EN_AI_CAPTURE, ...EN_HALLEN };
+export const EN: Record<string, string> = { ...EN_CHALLENGE_TODAY, ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH, ...EN_APP, ...EN_MODERATION, ...EN_AI_CAPTURE, ...EN_HALLEN, ...EN_PARTNER };
 
 const isTest = typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE === 'test';
 

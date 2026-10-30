@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **READY** → Umsetzung (Migration offen, Hallen-Preis offen, Rechtstexte vor Start prüfen lassen) |
+| Status | **UMGESETZT** (nach READY; Migration offen, Hallen-Preis offen, Rechtstexte vor Start prüfen lassen) |
 | Version | v4 (nach 3 FeatureDefinition-Loops) |
 | Auftraggeber | Hans |
 | Datum | 2026-10-30 |
@@ -127,6 +127,8 @@ Mehrstufen-Provision, Provision nach Jahr 1, Rangliste/Ziele, Exklusivgebiete, P
 - Unit: `tests/spec054Vertriebspartner.test.ts` (Staffel, Provision, Betreuung, Ablauf, Verlängerung, Limit, Texte mit Offenlegung, Link, Summen, Partner anlegen/beenden), `tests/spec054PartnerUi.test.tsx` (Seite «Partner werden», Partner-Bereich, Hallen-Blatt-Zeile, Kit, Admin-Blatt).
 - E2E: `tests/e2e/spec054-vertriebspartner.spec.ts` (Link `?partner`, Partner werden, Halle betreuen, Texte, `?ref=` ohne Halle).
 - SPEC-053-Tests auf die neue Dankeschön-Regel angepasst.
+- Stand 2026-10-30: 16 + 7 Unit-Tests grün; E2E 4 Tests × Desktop/Mobile Chrome grün (einzelne Läufe brachen ab, wenn Vite wegen parallel geschriebener Doku-Dateien die Seite neu lud). Die E2E-Tests legen die Beispiel-Hallen als «letzten Stand» in den Speicher, weil das Verzeichnis seit 2026-10-30 auch in der Entwicklung aus Supabase kommt.
+- Migration nicht lokal gegen Postgres getestet (kein Postgres auf dem Rechner); vor dem Einspielen in einer Testdatenbank oder per Supabase-Branch prüfen.
 
 ## 8. Aufgaben für Hans (offen)
 1. Migration `20261030_spec054_vertriebspartner.sql` einspielen (nach SPEC-053), z. B. über Antigravity/Gemini.
