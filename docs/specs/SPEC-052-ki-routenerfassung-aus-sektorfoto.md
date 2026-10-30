@@ -1,6 +1,6 @@
 # SPEC-052: KI erfasst Routen aus dem Sektorfoto
 
-## Status: UMGESETZT (v6, 2026-10-30: Schrauber hat das letzte Wort, Schrauber = wer die KI-Route zuerst ändert; v5, 2026-10-29: Grad-Markierung je Halle mit drei Arten; v4.2, 2026-10-27 – gebaut mit lokalem Gemini-Worker; offen: Migration, Worker-Konto, Datenschutzseite, echter Blindtest mit Gemini-CLI, siehe Abschnitt 13)
+## Status: UMGESETZT (v6, 2026-10-30: Schrauber hat das letzte Wort, Schrauber = wer die KI-Route zuerst ändert; v5, 2026-10-29: Grad-Markierung je Halle mit drei Arten; v4.2, 2026-10-27 – gebaut mit lokalem Gemini-Worker; offen: Migration, Worker-Konto, echter Blindtest mit Gemini-CLI, siehe Abschnitt 13)
 
 > **Owner:** Hans · **Created:** 2026-10-27 · **Version:** v4 (nach 3 Loops «FeatureDefinition»)
 > **Anlass:** Erster Praxistest. Die Halle will ihren Schraubern keine Handyzeit zumuten; die heutigen 1–3 Minuten pro Sektor sind zu viel.
@@ -239,7 +239,7 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 **Unit (Vitest)**
 - `tests/spec052AiCaptureSchema.test.ts` – Validierung des KI-Ergebnisses, Farbe nur aus Farbsystem, Merkmale 1–5, Sicherheit, «Grad folgt».
 - `tests/spec052AiCaptureMatch.test.ts` – Zuordnung bei Teil-Umbau (gleich/neu/weg/unsicher), Erhalt von Name/Pin/Merkmalen.
-- `tests/spec052AiCaptureApply.test.ts` – Anwenden (neu, ganze Wand, teil; direkt/prüfen), Zurücknehmen, Namens-Eindeutigkeit und Stile, Obergrenze, «Kurz prüfen»-Ablauf nach 7 Tagen, F12 (Schrauber offen, erster Bearbeiter, Auswahl von Hand).
+- `tests/spec052AiCaptureApply.test.ts` – Anwenden (neu, ganze Wand, teil; direkt/prüfen), Zurücknehmen, Namens-Eindeutigkeit und Stile, Obergrenze, «Kurz prüfen»-Ablauf nach 7 Tagen, F12 (Schrauber offen, erster Bearbeiter, Auswahl von Hand), AC-18 (Datenschutzseite).
 - `tests/spec052AiCaptureColorCheck.test.ts` – zweiter Blick (Kontaktbogen), Zeichen am Start: Zuordnung, Auftrag, «Grad folgt» bei unbekanntem Zeichen.
 - `tests/spec052AiCaptureUi.test.tsx` – Kamera-Knopf, Modusfrage, Status-Zeile, «Kurz prüfen», Admin-Schalter, «Stimmt was nicht?», «geschätzt», F12 im Routen-Blatt (Hinweis, Griff-Farbe, «Geschraubt von»).
 
@@ -261,7 +261,7 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 - `src/components/admin/AiCaptureSettings.tsx` (Admin → Halle, in `GymManagement.tsx`)
 - `src/components/RouteIssueSheet.tsx`, Ergänzungen `BoulderSheet.tsx`, `ClimberSectorView.tsx`, `WallPhotoCanvas.tsx`
 - Ergänzungen `src/types/boulder.ts`, `src/types/gym.ts`, `src/lib/syncService.ts`, `src/lib/batchBoulderService.ts` (F12: `isSetterOpen`, erster Bearbeiter), `src/components/BoulderBottomSheet.tsx` (F12: Griff-Farbe, Hinweis)
-- `src/lib/i18n/en-ai-capture.ts`; offen: `public/datenschutz.html`
+- `src/lib/i18n/en-ai-capture.ts`, `public/datenschutz.html` (Abschnitt «Routen per Foto erkennen (KI)», 2026-10-30, von Hans prüfen lassen)
 - Stufe 2 (Edge Function) noch nicht gebaut.
 
 ## 10. Aufgaben für Hans (nicht von Claude machbar)

@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { applyPlan } from '../scripts/ai-capture/worker';
 import { processCaptureResponse, type CaptureContext } from '../src/lib/aiCapture';
 import { aiFieldsFromRow, aiFieldsToRow, isRadarEstimated } from '../src/lib/aiCapture/boulderFields';
@@ -257,5 +259,15 @@ describe('SPEC-052 App-Service', () => {
     expect(getReviewItems(SECTOR)[0]).toMatchObject({ reasons: ['issue'], issues: 1 });
     resolveReview(b.id, 'ok');
     expect(getOpenIssues()).toHaveLength(0);
+  });
+});
+
+describe('SPEC-052 F9: Datenschutzseite', () => {
+  it('AC-18: Abschnitt KI-Erkennung mit Anbieter, ohne Training, ohne Personen', () => {
+    const html = fs.readFileSync(path.resolve(__dirname, '../public/datenschutz.html'), 'utf8');
+    expect(html).toContain('Routen per Foto erkennen (KI)');
+    expect(html).toContain('Google Gemini');
+    expect(html).toContain('nicht zum Training');
+    expect(html).toContain('Personen zu ignorieren');
   });
 });
