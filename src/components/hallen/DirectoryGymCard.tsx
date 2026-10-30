@@ -5,6 +5,7 @@ import { buildNavigationUrl, formatDistance } from '../../lib/gymFinder';
 import { showToast } from '../ui/Toast';
 import { t } from '../../lib/i18n';
 import { HalleRedenSheet } from './HalleRedenSheet';
+import { PartnerHallenZeile } from '../partner/PartnerHallenZeile';
 
 /** SPEC-053 F1: Schild «Noch nicht dabei» – dunkler Text, heller Grund, Rahmen (nicht nur Farbe) */
 export const NotYetBadge: React.FC<{ testId?: string }> = ({ testId }) => (
@@ -119,6 +120,9 @@ export const DirectoryGymCard: React.FC<DirectoryGymCardProps> = ({ entry, userI
           {t('Mit der Halle reden')}
         </button>
       </div>
+
+      {/* SPEC-054 F3: nur für Partner (bzw. Hinweis «schon im Gespräch») */}
+      <PartnerHallenZeile entry={entry} userId={userId} />
 
       <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[16px] font-semibold">
         {entry.website && (

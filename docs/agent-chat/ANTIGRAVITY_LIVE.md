@@ -5,11 +5,27 @@
 
 ---
 
-### Sitzung `4f248a54-c68f-49b7-a561-be3d0ce4c539`
+### Sitzung `4146d119-e52f-4641-a574-4f607c3cafa6`
 
-#### [2026-10-30 19:43:06 UTC] 👤 Boris (in Antigravity)
+#### [2026-10-30 19:40:33 UTC] 👤 Boris (in Antigravity)
 
-bitte führe das aus: Nein, noch nichts zurückgekommen. Im Agent-Chat liegen AC-012 (Hallen) und AC-013 (andere Migrationen) unbeantwortet, Gemini hat sie also noch nicht bearbeitet. Bitte stoss in Antigravity den Agent-Chat an (/agent-chat). Sobald dort eine Antwort steht, prüfe ich sie.
+Du hast einen Auftrag von Claude, wird sder schon abearbeitet?
+
+---
+
+#### [2026-10-30 19:52:30 UTC] 🚀 Antigravity
+
+**Ja, die Aufträge werden aktiv abgearbeitet bzw. sind bereits abgeschlossen:**
+
+1. **`AC-012` (SPEC-053: Hallen-Verzeichnis Migration + Seed in Prod):**
+   - **ERLEDIGT**: Migration und alle 88 Hallen wurden erfolgreich per Supabase in Prod eingespielt.
+   - Prüfabfrage bestätigt exakt die Soll-Zahlen: **88 Zeilen** (davon **75 sichtbar** mit Pin). RLS und Spaltenrechte sind aktiv und geprüft.
+
+2. **`AC-013` (Offene Migrationen SPEC-031 bis SPEC-042):**
+   - **ERLEDIGT**: Alle 7 Migrationen (Umbau-Ankündigung, Sichtbarkeit, Treff+, Schreibrechte/Sicherheit, Challenges, Auslastung, Trainings-Gruppen) wurden in Prod eingespielt und validiert. Supabase Advisors melden 0 Sicherheitswarnungen.
+
+3. **`AC-014` (Code-Review zu SPEC-053 «Noch nicht dabei»):**
+   - **IN ARBEIT**: Die Prüfung des Commits `19244a2` (RLS, Kontraste/Design System v2, Teilnahmebedingungen) sowie der Test-Lauf (`vitest`) laufen aktuell.
 
 ===
 

@@ -28,8 +28,8 @@ export const EN_HALLEN: Record<string, string> = {
   'Dankeschön': 'Thank-you',
   'Eine Stufe, kein Schneeballsystem: Du bekommst nur etwas für die Halle, die du selbst vermittelst.':
     'One level, no pyramid scheme: you only get something for the gym you bring in yourself.',
-  'Dein Dankeschön: {betrag} ({pct} %)': 'Your thank-you: {betrag} ({pct} %)',
-  '{pct} % der Einführungsgebühr (Betrag folgt)': '{pct} % of the setup fee (amount to follow)',
+  'Dein Dankeschön: {pct} % von dem, was die Halle im ersten Jahr an BoulderMate zahlt.':
+    'Your thank-you: {pct} % of what the gym pays BoulderMate in their first year.',
   'Teilnahmebedingungen': 'Terms of the programme',
   'Einmal freundlich fragen reicht.': 'Asking once, nicely, is enough.',
   'Am besten an die Hallenleitung, nicht ans Thekenteam.': 'Best to the gym management, not the front desk.',
@@ -60,8 +60,12 @@ export const EN_HALLEN: Record<string, string> = {
   'Routen mit Foto an der Wand – immer aktuell': 'Routes on a photo of the wall – always up to date',
   'Kletterer loggen und bewerten eure Routen': 'Climbers log and rate your routes',
   'Schrauber sehen, wie ihre Routen ankommen': 'Setters see how their routes are received',
-  'Diese Empfehlung kommt von einem eurer Kletterer. Er oder sie bekommt von BoulderMate ein Dankeschön; euch kostet das nichts extra.':
-    'This recommendation comes from one of your climbers. They get a thank-you from BoulderMate; it costs you nothing extra.',
+  'Diese Empfehlung kommt von einem BoulderMate-Partner. Er oder sie bekommt von BoulderMate eine Provision; euch kostet das nichts extra.':
+    'This recommendation comes from a BoulderMate partner. They receive a commission from BoulderMate; it costs you nothing extra.',
+  'Ihr braucht eine Offerte (Gemeinde, Verein)? Schreibt uns.':
+    'Need a formal quote (municipality, club)? Drop us a line.',
+  'Ich klettere – Halle suchen': 'I climb – find gym',
+  'Von dir betreut': 'Managed by you',
   'Kontakt aufnehmen': 'Get in touch',
   'Empfehlungscode': 'Referral code',
   'Empfehlungscode: {code}': 'Referral code: {code}',

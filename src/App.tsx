@@ -40,6 +40,8 @@ import { useLang, t } from './lib/i18n';
 import { getSectors } from './lib/batchBoulderService';
 import { readHallenLinkFromUrl, clearHallenLinkFromUrl, savePendingRef } from './lib/hallenVerzeichnis';
 import { FuerHallenPage } from './components/hallen/FuerHallenPage';
+import { PartnerPage } from './components/partner/PartnerPage';
+import { readPartnerPageFromUrl, clearPartnerPageFromUrl } from './lib/vertriebspartner';
 import { readWallLinkFromUrl, clearWallLinkFromUrl, savePendingWallLink, getPendingWallLink, clearPendingWallLink, resolveWallLinkSector } from './lib/wallLink';
 import { showToast } from './components/ui/Toast';
 
@@ -94,6 +96,12 @@ export const App: React.FC = () => {
       clearHallenLinkFromUrl();
     }
     return link;
+  });
+  // SPEC-054 F1: Link `?partner` öffnet die Seite «Partner werden»
+  const [isPartnerPageOpen, setIsPartnerPageOpen] = useState(() => {
+    const open = readPartnerPageFromUrl();
+    if (open) clearPartnerPageFromUrl();
+    return open;
   });
   const [focusSectorId, setFocusSectorId] = useState<string | null>(null);
   const [isFirstSyncDone, setIsFirstSyncDone] = useState<boolean>(false);
@@ -501,6 +509,10 @@ export const App: React.FC = () => {
       halleId={hallenLink.halleId}
       refCode={hallenLink.ref}
       onClose={() => setHallenLink(null)}
+      onFindGym={() => {
+        setHallenLink(null);
+        setIsGymFinderOpen(true);
+      }}
       onDemo={() => {
         setHallenLink(null);
         setActiveGymId('gym-6a-plus');
@@ -510,6 +522,34 @@ export const App: React.FC = () => {
         } else {
           setIsGymFinderOpen(true);
         }
+      }}
+    />
+  );
+
+  const partnerPage = isPartnerPageOpen && (
+    <PartnerPage
+      isLoggedIn={Boolean(authSession)}
+      onClose={() => setIsPartnerPageOpen(false)}
+      onDemo={() => {
+        setIsPartnerPageOpen(false);
+        setActiveGymId('gym-6a-plus');
+        if (authSession) {
+          setIsLandingOpen(false);
+          setActiveTab('wall');
+        } else {
+          setIsGymFinderOpen(true);
+        }
+      }}
+      onBecomePartner={() => {
+        setIsPartnerPageOpen(false);
+        if (!authSession) {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        setIsLandingOpen(false);
+        setAppMode('climber');
+        setActiveTab('stats');
+        window.setTimeout(() => document.getElementById('partner-section')?.scrollIntoView({ block: 'start' }), 300);
       }}
     />
   );
@@ -603,6 +643,7 @@ export const App: React.FC = () => {
           />
         )}
         {fuerHallenPage}
+        {partnerPage}
         <ToastHost />
       </div>
     );
@@ -692,6 +733,7 @@ export const App: React.FC = () => {
             roleInfo={roleInfo}
             onSwitchMode={handleSelectMode}
             onOpenGymFinder={() => setIsGymFinderOpen(true)}
+            onOpenPartnerPage={() => setIsPartnerPageOpen(true)}
             onProfileUpdated={(newNickname, newAvatar) => {
               if (climberId) {
                 setClimberNicknames(prev => ({
@@ -794,6 +836,7 @@ export const App: React.FC = () => {
 
       {/* SPEC-022 AC-11: Toasts (Loggen · Rückgängig) */}
       {fuerHallenPage}
+      {partnerPage}
       <ToastHost />
     </div>
   );

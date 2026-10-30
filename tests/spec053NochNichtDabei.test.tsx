@@ -127,7 +127,7 @@ describe('SPEC-053 · «Mit der Halle reden» (AC-7)', () => {
     fireEvent.click(screen.getByTestId('gym-card-talk'));
     const sheet = await screen.findByTestId('halle-reden-sheet');
     expect(within(sheet).getByTestId('halle-reden-dankeschoen')).toHaveTextContent('kein Schneeballsystem');
-    expect(within(sheet).getByTestId('halle-reden-betrag')).toHaveTextContent('30 % der Einführungsgebühr (Betrag folgt)');
+    expect(within(sheet).getByTestId('halle-reden-betrag')).toHaveTextContent('30 % von dem, was die Halle im ersten Jahr an BoulderMate zahlt');
     expect(within(sheet).getByTestId('halle-reden-text')).toHaveTextContent('?halle=vz-demo-winterthur');
     expect(within(sheet).getByTestId('halle-reden-text')).not.toHaveTextContent('ref=');
     expect(within(sheet).getByTestId('halle-reden-mail')).toHaveAttribute('href', expect.stringMatching(/^mailto:info@example\.com/));

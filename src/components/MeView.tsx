@@ -37,6 +37,8 @@ import { getUserAscent } from '../lib/ratingAndAscentService';
 import { getBoulderNumber } from '../lib/boulderNumbers';
 import { DEEP_DIVE_AXES, DeepDiveAxis, axisLabel } from '../lib/deepDiveService';
 import { HalleEmpfehlenSection } from './hallen/HalleEmpfehlenSection';
+import { PartnerSection } from './partner/PartnerSection';
+import { VertriebSettingsGroup } from './partner/VertriebSettingsGroup';
 
 /**
  * SPEC-020 §5.3/§5.4 · «Ich» – eine Seite ohne Sub-Tabs + Einstellungen (iOS-Settings-Stil).
@@ -51,6 +53,8 @@ export interface MeViewProps {
   onLogout: () => void;
   /** SPEC-053 F5: «Halle auf der Karte suchen» */
   onOpenGymFinder?: () => void;
+  /** SPEC-054: Seite «Partner werden» */
+  onOpenPartnerPage?: () => void;
 }
 
 const typeIcon = (): Record<AscentType, React.ReactNode> => ({
@@ -79,6 +83,7 @@ export const MeView: React.FC<MeViewProps> = ({
   onProfileUpdated,
   onLogout,
   onOpenGymFinder,
+  onOpenPartnerPage,
 }) => {
   const [scope, setScope] = useState<'gym' | 'all'>('all');
   const [version, setVersion] = useState(0);
@@ -396,6 +401,9 @@ export const MeView: React.FC<MeViewProps> = ({
           {/* SPEC-046: Ausgeblendete Personen, Regeln, Meldungen prüfen */}
           <SafetySettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} openReportsCount={openReports} />
 
+          {/* SPEC-054 F6: Vertrieb (nur Plattform-Admin) */}
+          <VertriebSettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} />
+
           {/* SPEC-045 §4.7: nur in der App */}
           <AppSettingsGroup update={appUpdate} />
 
@@ -692,6 +700,9 @@ export const MeView: React.FC<MeViewProps> = ({
 
       {/* SPEC-053 F5: Halle empfehlen */}
       <HalleEmpfehlenSection userId={currentUser.id} onOpenFinder={() => onOpenGymFinder?.()} />
+
+      {/* SPEC-054: Vertriebspartner */}
+      <PartnerSection userId={currentUser.id} onOpenFinder={() => onOpenGymFinder?.()} onOpenPartnerPage={onOpenPartnerPage} />
 
       {/* Verlauf */}
       <section className="space-y-2.5" data-testid="private-logbook-section">

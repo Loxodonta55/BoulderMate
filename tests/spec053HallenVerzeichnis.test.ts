@@ -156,6 +156,9 @@ describe('SPEC-053 · Link, Text, Dankeschön', () => {
     expect(readHallenLinkFromUrl('https://bouldermate.ch/?halle=vz-1&ref=BM-K7Q4AC')).toEqual({ halleId: 'vz-1', ref: 'BM-K7Q4AC' });
     expect(readHallenLinkFromUrl('https://bouldermate.ch/?halle=vz-1&ref=quatsch')).toEqual({ halleId: 'vz-1', ref: null });
     expect(readHallenLinkFromUrl('https://bouldermate.ch/?wand=x')).toBeNull();
+    // SPEC-054 F5: allgemeiner Partner-Link ohne Halle
+    expect(readHallenLinkFromUrl('https://bouldermate.ch/?ref=BM-K7Q4AC')).toEqual({ halleId: null, ref: 'BM-K7Q4AC' });
+    expect(readHallenLinkFromUrl('https://bouldermate.ch/?ref=quatsch')).toBeNull();
   });
 
   it('Teilen-Text per Du, Zahl erst ab 3', () => {
@@ -168,8 +171,8 @@ describe('SPEC-053 · Link, Text, Dankeschön', () => {
   });
 
   it('Dankeschön: «Betrag folgt» ohne Gebühr, sonst 30 % in CHF', () => {
-    expect(dankeschoenText(null)).toBe('30 % der Einführungsgebühr (Betrag folgt)');
-    expect(dankeschoenText(500)).toBe('Dein Dankeschön: CHF 150 (30 %)');
+    // SPEC-054 §1.2: gleiche Regel wie die Partner-Provision
+    expect(dankeschoenText()).toBe('Dein Dankeschön: 30 % von dem, was die Halle im ersten Jahr an BoulderMate zahlt.');
     expect(formatChf(1500)).toBe('CHF 1’500');
   });
 

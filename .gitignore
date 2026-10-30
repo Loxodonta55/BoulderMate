@@ -13,3 +13,4 @@ test-results/
 
 # SPEC-052 KI-Test: Fotos und Ergebnisse lokal
 /ai-capture/
+.claude/.last_insta_notified.json

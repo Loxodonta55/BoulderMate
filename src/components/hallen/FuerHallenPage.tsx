@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Copy, Mail, X } from 'lucide-react';
+import { Copy, Mail, Search, X } from 'lucide-react';
 import {
   HALLEN_CONTACT_EMAIL,
   VerzeichnisHalle,
@@ -14,21 +14,25 @@ import { showToast } from '../ui/Toast';
 import { t } from '../../lib/i18n';
 
 interface FuerHallenPageProps {
-  halleId: string;
+  /** null = allgemeiner Partner-Link `?ref=<code>` ohne Halle (SPEC-054 F5) */
+  halleId: string | null;
   refCode: string | null;
   onClose: () => void;
   /** «Demo: 6a plus Zürich» – Seite schließen, Wand von 6a plus als Gast zeigen */
   onDemo: () => void;
+  /** SPEC-054 F5: «Ich klettere – Halle suchen» – Seite schließen, «Halle wählen» öffnen */
+  onFindGym?: () => void;
 }
 
 /**
  * SPEC-053 F4: Seite «Für Hallen» – öffnet sich über den geteilten Link `?halle=<id>&ref=<code>` ohne Login.
  */
-export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode, onClose, onDemo }) => {
+export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode, onClose, onDemo, onFindGym }) => {
   const [halle, setHalle] = useState<VerzeichnisHalle | null>(null);
   const [wishes, setWishes] = useState(0);
 
   useEffect(() => {
+    if (!halleId) return;
     let cancelled = false;
     Promise.all([loadDirectory(), loadWishCounts()]).then(([rows, counts]) => {
       if (cancelled) return;
@@ -94,7 +98,7 @@ export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode
 
         {refCode && (
           <p className="rounded-xl bg-[var(--bm-elevated)] p-4 text-[17px]" data-testid="fuer-hallen-ref-note">
-            {t('Diese Empfehlung kommt von einem eurer Kletterer. Er oder sie bekommt von BoulderMate ein Dankeschön; euch kostet das nichts extra.')}
+            {t('Diese Empfehlung kommt von einem BoulderMate-Partner. Er oder sie bekommt von BoulderMate eine Provision; euch kostet das nichts extra.')}
           </p>
         )}
 
@@ -141,6 +145,10 @@ export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode
           </a>
         </section>
 
+        <p className="text-[16px]" data-testid="fuer-hallen-offerte">
+          {t('Ihr braucht eine Offerte (Gemeinde, Verein)? Schreibt uns.')}
+        </p>
+
         <button
           type="button"
           onClick={onDemo}
@@ -149,6 +157,18 @@ export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode
         >
           {t('Demo: 6a plus Zürich')}
         </button>
+
+        {onFindGym && (
+          <button
+            type="button"
+            onClick={onFindGym}
+            className="w-full min-h-[52px] rounded-xl bg-[var(--bm-surface)] border-2 border-[var(--bm-line)] text-[17px] font-semibold flex items-center justify-center gap-2"
+            data-testid="fuer-hallen-find-gym"
+          >
+            <Search className="w-5 h-5" aria-hidden />
+            {t('Ich klettere – Halle suchen')}
+          </button>
+        )}
 
         <p className="text-[15px] text-[var(--bm-text-2)]">
           {t('Ihr wollt hier nicht erscheinen? Kurze Mail genügt.')}{' '}

@@ -17,6 +17,7 @@ import {
   loadMyWishes,
   markNowActiveSeen,
 } from '../../lib/hallenVerzeichnis';
+import { loadPartner } from '../../lib/vertriebspartner';
 import { t } from '../../lib/i18n';
 
 interface HalleEmpfehlenSectionProps {
@@ -32,6 +33,8 @@ export const HalleEmpfehlenSection: React.FC<HalleEmpfehlenSectionProps> = ({ us
   const [nowActive, setNowActive] = useState<VerzeichnisHalle[]>([]);
   const [referrals, setReferrals] = useState<Empfehlung[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // SPEC-054: Partner sehen Code und Hallen im Abschnitt «Partner»
+  const [isPartner, setIsPartner] = useState(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -43,11 +46,12 @@ export const HalleEmpfehlenSection: React.FC<HalleEmpfehlenSectionProps> = ({ us
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    Promise.all([loadMyCode(userId), loadMyWishes(userId), loadDirectory(), loadMyReferrals(userId)]).then(
-      ([c, wishIds, rows, refs]) => {
+    Promise.all([loadMyCode(userId), loadMyWishes(userId), loadDirectory(), loadMyReferrals(userId), loadPartner(userId)]).then(
+      ([c, wishIds, rows, refs, partner]) => {
         if (cancelled) return;
-        setCode(c);
-        setReferrals(refs);
+        setIsPartner(Boolean(partner));
+        setCode(partner ? null : c);
+        setReferrals(partner ? [] : refs);
         const ids = new Set(wishIds);
         setWished(rows.filter(r => ids.has(r.id) && !r.gymId));
         const fresh = findNowActive(wishIds, rows);
@@ -62,7 +66,7 @@ export const HalleEmpfehlenSection: React.FC<HalleEmpfehlenSectionProps> = ({ us
 
   if (!userId) return null;
 
-  const empty = !code && wished.length === 0 && referrals.length === 0;
+  const empty = !isPartner && !code && wished.length === 0 && referrals.length === 0;
 
   return (
     <section className="space-y-2.5" data-testid="halle-empfehlen-section">
@@ -116,7 +120,7 @@ export const HalleEmpfehlenSection: React.FC<HalleEmpfehlenSectionProps> = ({ us
               {referrals.map(r => (
                 <li key={r.id} className="flex items-center justify-between gap-2 text-[17px]">
                   <span className="font-semibold">{r.halleName}</span>
-                  <span className="text-[15px] font-bold" aria-label={t('Schritt {n} von {m}', { n: EMPFEHLUNG_STATUS_ORDER.indexOf(r.status) + 1, m: 4 })}>
+                  <span className="text-[15px] font-bold" aria-label={t('Schritt {n} von {m}', { n: EMPFEHLUNG_STATUS_ORDER.indexOf(r.status) + 1, m: EMPFEHLUNG_STATUS_ORDER.length })}>
                     {t(EMPFEHLUNG_STATUS_LABEL[r.status])}
                     {typeof r.betragChf === 'number' && r.betragChf > 0 && ` · ${formatChf(r.betragChf)}`}
                   </span>

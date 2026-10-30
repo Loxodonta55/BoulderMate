@@ -15,7 +15,7 @@ import { t } from './i18n';
 // Einstellungen (Hans)
 // ---------------------------------------------------------------------------
 
-/** Einmalige Einführungsgebühr der Halle in CHF. null = Betrag folgt (§8, Aufgabe 2 für Hans). */
+/** Einmalige Einführungsgebühr der Halle in CHF. null = Betrag folgt (§8, Aufgabe 2 für Hans). Jahrespreis: SPEC-054 `HALLEN_JAHRESPREIS_CHF`. */
 export const EINFUEHRUNGSGEBUEHR_CHF: number | null = null;
 export const DANKESCHOEN_ANTEIL = 0.3;
 /** Wunsch-Zahl erst ab 3 zeigen (Runde 2, V3) */
@@ -332,9 +332,11 @@ export async function deleteMyCode(userId: string): Promise<boolean> {
 // Empfehlungen (Status setzt der Plattform-Admin)
 // ---------------------------------------------------------------------------
 
-export type EmpfehlungStatus = 'im_gespraech' | 'registriert' | 'bezahlt' | 'ausgezahlt';
-export const EMPFEHLUNG_STATUS_ORDER: EmpfehlungStatus[] = ['im_gespraech', 'registriert', 'bezahlt', 'ausgezahlt'];
+/** SPEC-054: «betreut» = ein Partner kümmert sich (Schritt 1 von 5) */
+export type EmpfehlungStatus = 'betreut' | 'im_gespraech' | 'registriert' | 'bezahlt' | 'ausgezahlt';
+export const EMPFEHLUNG_STATUS_ORDER: EmpfehlungStatus[] = ['betreut', 'im_gespraech', 'registriert', 'bezahlt', 'ausgezahlt'];
 export const EMPFEHLUNG_STATUS_LABEL: Record<EmpfehlungStatus, string> = {
+  betreut: 'Von dir betreut',
   im_gespraech: 'Im Gespräch',
   registriert: 'Registriert',
   bezahlt: 'Bezahlt',
@@ -382,13 +384,9 @@ export function formatChf(amount: number): string {
   return `CHF ${String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, '’')}`;
 }
 
-/** «Dein Dankeschön: CHF 150 (30 %)» oder «30 % der Einführungsgebühr (Betrag folgt)» */
-export function dankeschoenText(fee: number | null = EINFUEHRUNGSGEBUEHR_CHF): string {
-  const pct = Math.round(DANKESCHOEN_ANTEIL * 100);
-  if (typeof fee === 'number' && fee > 0) {
-    return t('Dein Dankeschön: {betrag} ({pct} %)', { betrag: formatChf(fee * DANKESCHOEN_ANTEIL), pct });
-  }
-  return t('{pct} % der Einführungsgebühr (Betrag folgt)', { pct });
+/** SPEC-054 §1.2: dieselbe Regel wie die Partner-Provision (Anteil am ersten Jahr, nicht nur an der Einführungsgebühr) */
+export function dankeschoenText(): string {
+  return t('Dein Dankeschön: {pct} % von dem, was die Halle im ersten Jahr an BoulderMate zahlt.', { pct: Math.round(DANKESCHOEN_ANTEIL * 100) });
 }
 
 export function buildHallenLink(verzeichnisId: string, code?: string | null, baseUrl: string = HALLEN_LINK_BASE_URL): string {
@@ -412,7 +410,8 @@ export function buildMailto(to: string, subject: string, body: string): string {
 }
 
 export interface HallenLink {
-  halleId: string;
+  /** null = allgemeiner Partner-Link `?ref=<code>` ohne Halle (SPEC-054 F5) */
+  halleId: string | null;
   ref: string | null;
 }
 
@@ -421,9 +420,10 @@ export function readHallenLinkFromUrl(href?: string): HallenLink | null {
   if (!source) return null;
   try {
     const url = new URL(source);
-    const halleId = url.searchParams.get(HALLEN_LINK_PARAM)?.trim();
-    if (!halleId) return null;
-    return { halleId, ref: normalizeCode(url.searchParams.get(REF_PARAM)) };
+    const halleId = url.searchParams.get(HALLEN_LINK_PARAM)?.trim() || null;
+    const ref = normalizeCode(url.searchParams.get(REF_PARAM));
+    if (!halleId && !ref) return null;
+    return { halleId, ref };
   } catch {
     return null;
   }
