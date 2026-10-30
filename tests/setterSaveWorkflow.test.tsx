@@ -146,12 +146,14 @@ describe('Schrauber-Bereich: Änderungen speichern & Veröffentlichen (SPEC-002 
       expect.objectContaining({
         gradeScaleId: sampleActiveBoulder.gradeScaleId,
         name: sampleActiveBoulder.name,
-      })
+      }),
+      expect.any(String) // SPEC-052 F11: wer ändert (für KI-Routen ohne Schrauber)
     );
     expect(updateBoulderPositionSpy).toHaveBeenCalledWith(
       sampleActiveBoulder.id,
       sampleActiveBoulder.positionX,
-      sampleActiveBoulder.positionY
+      sampleActiveBoulder.positionY,
+      expect.any(String)
     );
     expect(publishBatchSpy).toHaveBeenCalledWith('sec-1', '', []);
   });

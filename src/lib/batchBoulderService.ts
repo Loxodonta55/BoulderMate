@@ -32,6 +32,7 @@ import {
 import { deleteBoulderInteractions, clearGradeFeels } from './ratingAndAscentService';
 import { deleteBoulder } from './storage';
 import { syncBridge } from './syncBridge';
+import { getCurrentAuthUser } from './authService';
 
 // Re-export seed constants for backward compatibility
 export {
@@ -715,10 +716,23 @@ export function createDraftBoulder(
 }
 
 // AC-7: Update Boulder Position (Drag & Drop / Reposition)
+/** SPEC-052 F11: KI-Route, bei der noch kein Schrauber eingetragen ist */
+export function isSetterOpen(b: Pick<WallBoulder, 'captureSource' | 'setterId'> | null | undefined): boolean {
+  return !!b && b.captureSource === 'ai' && (!b.setterId || b.setterId === 'system');
+}
+
+/** SPEC-052 F11: Wer eine offene KI-Route als Erster ändert, wird als Schrauber eingetragen. */
+function claimSetter(previous: WallBoulder, actorId?: string): Partial<WallBoulder> {
+  if (!isSetterOpen(previous)) return {};
+  const id = actorId ?? getCurrentAuthUser()?.id;
+  return id ? { setterId: id } : {};
+}
+
 export function updateBoulderPosition(
   boulderId: string,
   positionX: number,
-  positionY: number
+  positionY: number,
+  actorId?: string
 ): WallBoulder {
   if (positionX < 0 || positionX > 1 || positionY < 0 || positionY > 1) {
     throw new Error('Koordinaten müssen zwischen 0.0 und 1.0 liegen.');
@@ -730,8 +744,10 @@ export function updateBoulderPosition(
     throw new Error(`Boulder mit ID "${boulderId}" existiert nicht.`);
   }
 
+  const moved = all[idx].positionX !== Number(positionX.toFixed(4)) || all[idx].positionY !== Number(positionY.toFixed(4));
   all[idx] = {
     ...all[idx],
+    ...(moved ? claimSetter(all[idx], actorId) : {}),
     positionX: Number(positionX.toFixed(4)),
     positionY: Number(positionY.toFixed(4)),
   };
@@ -744,7 +760,8 @@ export function updateBoulderPosition(
 // Update Boulder Details (e.g. changing color or radar in edit modal - AC-14, AC-15)
 export function updateBoulderDetails(
   boulderId: string,
-  updates: Partial<Omit<WallBoulder, 'id' | 'sectorId' | 'status' | 'createdAt'>>
+  updates: Partial<Omit<WallBoulder, 'id' | 'sectorId' | 'status' | 'createdAt'>>,
+  actorId?: string
 ): WallBoulder {
   const all = getWallBoulders();
   let idx = all.findIndex(b => b.id === boulderId);
@@ -823,6 +840,9 @@ export function updateBoulderDetails(
     if (aiPatch.gradePending === false && previous.aiReview?.includes('grade')) {
       aiPatch.aiReview = previous.aiReview.filter(r => r !== 'grade');
     }
+    // F11: nur echte Änderungen an der Route zählen (nicht «Passt» / Prüf-Hinweis wegklicken)
+    const changesRoute = Object.keys(updates).some(k => k !== 'aiReview' && k !== 'setterId');
+    if (updates.setterId === undefined && changesRoute) Object.assign(aiPatch, claimSetter(previous, actorId));
   }
 
   all[idx] = {

@@ -86,6 +86,30 @@ test.describe('SPEC-052: KI-Routenerfassung', () => {
     await expect(page.getByTestId(`pin-grade-pending-${SEED_BOULDER}`)).toHaveCount(0);
   });
 
+  test('F11: Schrauber überschreibt KI-Werte; wer zuerst ändert, wird als Schrauber eingetragen', async ({ page }) => {
+    await login(page);
+    await page.evaluate(id => {
+      const key = 'boulderapp_wall_boulders_v2';
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      for (const b of list) if (b.id === id) Object.assign(b, { captureSource: 'ai', holdColor: 'Türkis', radarSource: 'ai', setterId: 'system' });
+      localStorage.setItem(key, JSON.stringify(list));
+    }, SEED_BOULDER);
+    await toStudio(page);
+    await page.getByTestId(`pin-${SEED_BOULDER}`).first().click();
+    await expect(page.getByTestId('setter-open-hint')).toContainText('Wer die Route zuerst ändert, wird eingetragen');
+    await expect(page.getByTestId('hold-color-select')).toHaveValue('Türkis');
+    await page.getByTestId('hold-color-select').selectOption('Rot');
+    await page.getByTestId('save-boulder-sheet-btn').click();
+
+    const saved = await page.evaluate(id => JSON.parse(localStorage.getItem('boulderapp_wall_boulders_v2') || '[]').find((b: { id: string }) => b.id === id), SEED_BOULDER);
+    expect(saved.holdColor).toBe('Rot');
+    expect(saved.setterId).toBeTruthy();
+    expect(saved.setterId).not.toBe('system');
+
+    await page.getByTestId(`pin-${SEED_BOULDER}`).first().click();
+    await expect(page.getByTestId('setter-open-hint')).toHaveCount(0);
+  });
+
   test('Admin stellt «Zeichen am Start» ein, Zeichen je Farbe und Hinweis bleiben; Studio zeigt die Art', async ({ page }) => {
     await login(page);
     await enableAiAsAdmin(page);

@@ -1,6 +1,6 @@
 # SPEC-052: KI erfasst Routen aus dem Sektorfoto
 
-## Status: UMGESETZT (v5, 2026-10-29: Grad-Markierung je Halle mit drei Arten; v4.2, 2026-10-27 – gebaut mit lokalem Gemini-Worker; offen: Migration, Worker-Konto, Datenschutzseite, echter Blindtest mit Gemini-CLI, siehe Abschnitt 13)
+## Status: UMGESETZT (v6, 2026-10-30: Schrauber hat das letzte Wort, Schrauber = wer die KI-Route zuerst ändert; v5, 2026-10-29: Grad-Markierung je Halle mit drei Arten; v4.2, 2026-10-27 – gebaut mit lokalem Gemini-Worker; offen: Migration, Worker-Konto, Datenschutzseite, echter Blindtest mit Gemini-CLI, siehe Abschnitt 13)
 
 > **Owner:** Hans · **Created:** 2026-10-27 · **Version:** v4 (nach 3 Loops «FeatureDefinition»)
 > **Anlass:** Erster Praxistest. Die Halle will ihren Schraubern keine Handyzeit zumuten; die heutigen 1–3 Minuten pro Sektor sind zu viel.
@@ -170,10 +170,20 @@ Hallen zeigen den Schwierigkeitsgrad unterschiedlich an. Der Hallen-Admin stellt
 - **Nur Blindtests zählen** (`--backend cli` oder `api`): Das Modell sieht nur Foto und Auftrag. Läufe mit `manual` oder `--from` heißen im Bericht «Blindtest: nein». Liegen die KI-Punkte im Median näher als 0.012 an Hans' Pins, ist der Lauf **ungültig** (sieht abgeschrieben aus; echte Bilderkennung liegt bei 0.015–0.04).
 - «Zusätzlich» ist nur ein Hinweis, solange die Vergleichsdaten unvollständig sind (Hans hat nicht alle Routen jeder Wand eingetragen); im `overlay.jpg` prüfen.
 
+### F12 Schrauber hat das letzte Wort (v6, 2026-10-30)
+
+Nachtrag Hans: «Der Schrauber muss nach wie vor in der Lage sein, alles, was automatisch gesetzt wurde, zu überschreiben. Weiter kann der Schrauber eingetragen werden; als Standard wird der Schrauber gesetzt, der als Erster Daten an der Route ändert.»
+
+- **Alles überschreibbar** im gewohnten Routen-Blatt des Studios: Grad-Farbe, Name, Notiz, Merkmale, Pin (verschieben) und neu die **Farbe der Griffe** (Auswahl «Farbe der Griffe», erste Wahl «Wie der Grad» = keine eigene Griff-Farbe). Von Hand gesetzte Werte gelten nicht mehr als KI-Werte (Name → Schrauber-Name, Merkmale nicht mehr «geschätzt», «Grad folgt» weg).
+- **Schrauber offen:** Der Worker trägt bei KI-Routen **keinen** Schrauber ein (`setter_id = null`, nicht mehr der Fotograf). Kletterer sehen dann «Geschraubt von Hallenteam».
+- **Standard = erster Bearbeiter:** Ändert jemand eine offene KI-Route zum ersten Mal (Wert im Routen-Blatt, Pin verschieben, Farbe in «Kurz prüfen»), wird diese Person als Schrauber eingetragen. «Passt» oder ein Prüf-Hinweis wegklicken zählt nicht als Änderung. Spätere Änderungen anderer ändern den Schrauber nicht.
+- **Von Hand eintragen:** «Geschraubt von» (SPEC-030 F8) ist auch bei KI-Routen wählbar und gilt immer vor dem Standard. Solange niemand eingetragen ist, steht darunter: «Von der KI erfasst, noch kein Schrauber eingetragen. Wer die Route zuerst ändert, wird eingetragen.»
+
 ## 5. Datenmodell (Migration `supabase/migrations/20261027_spec052_ki_routenerfassung.sql`, braucht SPEC-034)
 
 - `gyms`: `ai_capture_enabled boolean default false`, `grade_marker text default 'holds'` (`holds|tape|symbol`), `grade_symbols jsonb default '{}'` (Zeichen je Farbe), `ai_grade_hint text` (≤ 300 Zeichen), `route_name_style text default 'fun'` (`fun|plain|none`), `ai_publish_mode text default 'direct'` (`direct|review`).
 - `boulders`: `capture_source text default 'manual'` (`manual|ai`), `ai_confidence real`, `hold_color text`, `name_source text default 'setter'` (`setter|ai`), `radar_source text default 'setter'` (`setter|ai`), `ai_run_id uuid`, `grade_pending boolean default false` («Grad folgt»), `ai_review text[]` (Prüfgründe, bei bestehenden Routen mit Datum, z. B. `old_not_seen:2026-10-27`; die Liste «Kurz prüfen» zeigt sie 7 Tage). `name_source` kennt zusätzlich `tape`.
+- KI-Routen entstehen mit `setter_id = null` (F12); keine neue Spalte nötig, «offen» = KI-Route ohne Schrauber.
 - Die App schickt die KI-Spalten nur für KI-Routen; fehlen die Spalten noch (Migration nicht eingespielt), synchronisiert sie ohne sie weiter (`spec052ColumnsMissing`).
 - Neu `ai_capture_jobs`: `id, gym_id, sector_id, mode (new|full|partial), photo_path, photo_hash, status (queued|running|done|failed|undone), result jsonb, error text, created_by, created_at, finished_at, archived_boulder_ids uuid[], previous_photo_url text`. Eindeutig je Foto-Hash; Trigger begrenzt auf 30 Aufträge pro Halle und Tag (Fehler `ai_capture_daily_limit`); RPC `ai_capture_month_count(gym)` für den Zähler. Anlegen nur, wenn `ai_capture_enabled` und `created_by = auth.uid()`.
 - Neu `route_issue_reports`: `id, gym_id, sector_id, boulder_id null, kind (wrong_grade|not_exists|wrong_pin|missing), position_x, position_y, color text, user_id, created_at`; eindeutig je (`boulder_id`, `user_id`, `kind`).
@@ -220,6 +230,7 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 - **AC-20** Admin → Halle bietet drei Arten der Grad-Markierung; die gewählte ist `aria-pressed`. Bei «Zeichen am Start» gibt es je Farbe ein Zeichen-Feld; leere Felder zeigen den Hinweis «Grad folgt». Das Hinweis-Feld nimmt höchstens 300 Zeichen.
 - **AC-21** Der KI-Auftrag enthält die gewählte Art, bei «Zeichen» die Zuordnung Zeichen → Farbe, und den Hinweis der Halle. Ein erkanntes Zeichen wird dem richtigen Eintrag zugeordnet (auch bei mehreren Schreibweisen, ohne Groß/Klein); ein unbekanntes ergibt «Grad folgt».
 - **AC-22** Das Studio zeigt unter dem Kamera-Knopf, woran die KI den Grad liest.
+- **AC-23** (F12) Eine KI-Route ohne Schrauber zeigt im Routen-Blatt den Hinweis `setter-open-hint`; Griff-Farbe (`hold-color-select`), Grad, Name, Merkmale und Pin lassen sich ändern. Die erste echte Änderung trägt die ändernde Person als Schrauber ein, «Passt» nicht; eine Auswahl unter «Geschraubt von» gilt immer; spätere Änderungen anderer lassen den Schrauber stehen. Der Worker legt KI-Routen mit `setter_id = null` an.
 - **AC-18** Datenschutzseite enthält den Abschnitt KI-Erkennung; der Einschalt-Schalter zeigt den Hinweissatz.
 - **AC-19** Alle Bedienelemente groß und kontrastreich (Design System «Chalk», Hell und Dunkel); Status-Zeile `aria-live`.
 
@@ -228,12 +239,12 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 **Unit (Vitest)**
 - `tests/spec052AiCaptureSchema.test.ts` – Validierung des KI-Ergebnisses, Farbe nur aus Farbsystem, Merkmale 1–5, Sicherheit, «Grad folgt».
 - `tests/spec052AiCaptureMatch.test.ts` – Zuordnung bei Teil-Umbau (gleich/neu/weg/unsicher), Erhalt von Name/Pin/Merkmalen.
-- `tests/spec052AiCaptureApply.test.ts` – Anwenden (neu, ganze Wand, teil; direkt/prüfen), Zurücknehmen, Namens-Eindeutigkeit und Stile, Obergrenze, «Kurz prüfen»-Ablauf nach 7 Tagen.
+- `tests/spec052AiCaptureApply.test.ts` – Anwenden (neu, ganze Wand, teil; direkt/prüfen), Zurücknehmen, Namens-Eindeutigkeit und Stile, Obergrenze, «Kurz prüfen»-Ablauf nach 7 Tagen, F12 (Schrauber offen, erster Bearbeiter, Auswahl von Hand).
 - `tests/spec052AiCaptureColorCheck.test.ts` – zweiter Blick (Kontaktbogen), Zeichen am Start: Zuordnung, Auftrag, «Grad folgt» bei unbekanntem Zeichen.
-- `tests/spec052AiCaptureUi.test.tsx` – Kamera-Knopf, Modusfrage, Status-Zeile, «Kurz prüfen», Admin-Schalter, «Stimmt was nicht?», «geschätzt».
+- `tests/spec052AiCaptureUi.test.tsx` – Kamera-Knopf, Modusfrage, Status-Zeile, «Kurz prüfen», Admin-Schalter, «Stimmt was nicht?», «geschätzt», F12 im Routen-Blatt (Hinweis, Griff-Farbe, «Geschraubt von»).
 
 **Playwright (Supabase blockiert, Worker-Ergebnis als lokale KI-Route)**
-- `tests/e2e/spec052-ki-routenerfassung.spec.ts` – Admin schaltet ein (Datenschutz-Satz, Tape); Studio: Kamera-Knopf ≥ 56 px mit `aria-label`, Modusfrage, «Wartet auf Netz …», «Grad folgt» am Pin, «Kurz prüfen» mit Farbe setzen; Admin stellt «Zeichen am Start» mit Zeichen je Farbe und Hinweis ein, Studio zeigt die Art; Kletterer: «?», «Griffe: Türkis», «geschätzt», «Stimmt was nicht?», «Hier fehlt eine Route».
+- `tests/e2e/spec052-ki-routenerfassung.spec.ts` – Admin schaltet ein (Datenschutz-Satz, Tape); Studio: Kamera-Knopf ≥ 56 px mit `aria-label`, Modusfrage, «Wartet auf Netz …», «Grad folgt» am Pin, «Kurz prüfen» mit Farbe setzen; Admin stellt «Zeichen am Start» mit Zeichen je Farbe und Hinweis ein, Studio zeigt die Art; F12: Griff-Farbe einer offenen KI-Route ändern trägt die Person als Schrauber ein; Kletterer: «?», «Griffe: Türkis», «geschätzt», «Stimmt was nicht?», «Hier fehlt eine Route».
 
 **Datenbank**
 - `tests/db/spec052_ki.sql` mit `scripts/test-db-spec052.sh` – RLS, Tageslimit, Hash, Monatszähler (29 Prüfungen).
@@ -249,7 +260,7 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 - `src/components/setter/AiCapturePanel.tsx`, `AiReviewList.tsx` (eingebunden in `BatchBoulderWorkflow.tsx`)
 - `src/components/admin/AiCaptureSettings.tsx` (Admin → Halle, in `GymManagement.tsx`)
 - `src/components/RouteIssueSheet.tsx`, Ergänzungen `BoulderSheet.tsx`, `ClimberSectorView.tsx`, `WallPhotoCanvas.tsx`
-- Ergänzungen `src/types/boulder.ts`, `src/types/gym.ts`, `src/lib/syncService.ts`, `src/lib/batchBoulderService.ts`
+- Ergänzungen `src/types/boulder.ts`, `src/types/gym.ts`, `src/lib/syncService.ts`, `src/lib/batchBoulderService.ts` (F12: `isSetterOpen`, erster Bearbeiter), `src/components/BoulderBottomSheet.tsx` (F12: Griff-Farbe, Hinweis)
 - `src/lib/i18n/en-ai-capture.ts`; offen: `public/datenschutz.html`
 - Stufe 2 (Edge Function) noch nicht gebaut.
 
@@ -276,6 +287,9 @@ Ein Skript `scripts/ai-capture/worker.ts` mit drei Schritten (`fetch`, `run`, `p
 | 4 | 2026-10-29 | Nachtrag Hans: Hallen zeigen den Grad verschieden (Zettel am Start, Griff-Farbe, Zeichen). Runde: Zeichen-Hallen ohne Farbsystem (hoch), mehrere Schreibweisen (mittel), ältere Admins verstehen «Tape/Symbol» nicht (mittel) | dritte Art «Zeichen am Start», Zeichen je Farbe mit Komma, Klartext-Knöpfe mit Beispielsatz untereinander, Hinweis-Feld an die KI (→ v5-Entwurf) | Art je Sektor (selten, Hinweis-Feld genügt), Foto-Beispiel je Art hochladen (später) |
 | 5 | 2026-10-29 | Falsch eingestellte Art fällt erst spät auf (hoch), leere Zeichen-Felder (mittel), Hinweis-Feld als Hintertür in die KI (mittel) | Studio zeigt «KI liest den Grad an: …», Hinweis bei fehlendem Zeichen + «Grad folgt», Hinweis nur Admin, ≤ 300 Zeichen, im Auftrag als Information markiert (→ v5) | Fb-Grad automatisch aus Zeichen ableiten (Fehlerquelle, Zuordnung genügt) |
 | 6 | 2026-10-29 | keine «hoch»; Englisch-Texte, Wechsel der Art | Wechsel gilt nur für neue Fotos (→ v5, READY) | Admin-Texte auf Englisch (Admin und Studio bleiben deutsch, siehe O2) |
+| 7 | 2026-10-30 | Nachtrag Hans: Schrauber überschreibt alles, Schrauber eintragbar, Standard = erster Bearbeiter. Runde: Fotograf wird fälschlich als Schrauber gezählt (hoch), Griff-Farbe nicht änderbar (hoch) | Worker setzt keinen Schrauber, erster Bearbeiter wird eingetragen, Griff-Farbe im Routen-Blatt (→ v6-Entwurf) | Schrauber per Pflichtfeld vor dem Veröffentlichen (bremst, widerspricht dem Ziel) |
+| 8 | 2026-10-30 | «Passt» drücken macht mich zum Schrauber? (mittel), Admin-Statistik zählt KI-Routen beim Fotografen (mittel) | «Passt»/Hinweis wegklicken zählt nicht; Statistik folgt automatisch dem eingetragenen Schrauber (→ v6) | Verlauf aller Bearbeiter (später, falls gewünscht) |
+| 9 | 2026-10-30 | keine «hoch»; Hinweistext verständlich auch für Ältere | Klartext-Hinweis unter «Geschraubt von» (→ v6, READY) | – |
 
 ## 13. Stand der Qualitätsmessung (2026-10-27)
 

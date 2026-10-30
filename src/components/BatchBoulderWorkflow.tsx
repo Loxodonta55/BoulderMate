@@ -108,6 +108,8 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     if (last && setterOptions.some(o => o.id === last)) return last;
     return setterOptions.find(o => isUserMatch(o.id, currentUserId))?.id || currentUserId;
   };
+  // SPEC-052 F11: Wer eine KI-Route als Erster ändert, wird Schrauber (nicht die letzte Wahl)
+  const actorSetterId = setterOptions.find(o => isUserMatch(o.id, currentUserId))?.id || currentUserId;
 
   // SPEC-044: Umschalter «Wände» · «Meine Routen»; «Im Studio öffnen» springt mit einer Route zurück
   const [studioMode, setStudioMode] = useState<'walls' | 'stats'>('walls');
@@ -209,7 +211,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     if (target && target.status !== 'draft') {
       setPendingModifiedIds(prev => prev.includes(boulderId) ? prev : [...prev, boulderId]);
     } else {
-      updateBoulderPosition(boulderId, newX, newY);
+      updateBoulderPosition(boulderId, newX, newY, actorSetterId);
     }
   };
 
@@ -220,13 +222,15 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     notes?: string;
     radar: RadarAttributes;
     setterId?: string;
+    holdColor?: string;
   }) => {
     if (!selectedBoulder) return;
     if (data.setterId && gym?.id) setLastSelectedSetterId(gym.id, data.setterId);
 
     // AC-14 & AC-15: Immediately persist to storage & cloud (works for both draft and active boulders!)
+    let saved: WallBoulder | null = null;
     try {
-      updateBoulderDetails(selectedBoulder.id, data);
+      saved = updateBoulderDetails(selectedBoulder.id, data, actorSetterId);
     } catch (err) {
       console.warn('Fehler beim Aktualisieren der Boulder-Details:', err);
     }
@@ -236,7 +240,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     setLastSelectedGradeScaleId(targetGymId, data.gradeScaleId);
 
     setBoulders(prev =>
-      prev.map(b => (b.id === selectedBoulder.id ? { ...b, ...data } : b))
+      prev.map(b => (b.id === selectedBoulder.id ? { ...b, ...data, ...(saved ? { setterId: saved.setterId } : {}) } : b))
     );
     if (selectedBoulder.status !== 'draft') {
       setPendingModifiedIds(prev => prev.includes(selectedBoulder.id) ? prev : [...prev, selectedBoulder.id]);
@@ -427,8 +431,8 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
           name: b.name,
           notes: b.notes,
           radar: b.radar,
-        });
-        updateBoulderPosition(b.id, b.positionX, b.positionY);
+        }, actorSetterId);
+        updateBoulderPosition(b.id, b.positionX, b.positionY, actorSetterId);
       }
     }
 

@@ -67,7 +67,7 @@ export interface BoulderSheetProps {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
 
 export function resolveSetterName(setterId?: string): string {
-  if (!setterId) return t('Hallenteam');
+  if (!setterId || setterId === 'system') return t('Hallenteam');
   try {
     const p = getProfile(setterId);
     if (p?.nickname && !UUID_RE.test(p.nickname) && p.nickname !== setterId) return p.nickname;

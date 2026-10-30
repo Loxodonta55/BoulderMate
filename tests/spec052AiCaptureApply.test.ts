@@ -21,7 +21,7 @@ import {
   countAscentsForJob,
   type CaptureJob,
 } from '../src/lib/aiCapture/aiCaptureService';
-import { getWallBoulders, updateBoulderDetails } from '../src/lib/batchBoulderService';
+import { getWallBoulders, isSetterOpen, updateBoulderDetails, updateBoulderPosition } from '../src/lib/batchBoulderService';
 import { STORAGE_KEY_ASCENTS, STORAGE_KEY_RATINGS } from '../src/lib/ratingAndAscentService';
 import * as gymStorage from '../src/lib/gymStorage';
 import { clearMemoryStore } from '../src/lib/storageUtils';
@@ -67,7 +67,7 @@ describe('SPEC-052 Worker: Ergebnis anwenden', () => {
     const insert = calls.find(c => c.table === 'boulders' && c.op === 'insert')!;
     const rows = insert.payload as Record<string, unknown>[];
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ grade_scale_id: 'g-blau', hold_color: 'Türkis', name: 'Faultier', name_source: 'ai', capture_source: 'ai', radar_source: 'ai', radar_balance: 5, setter_id: 'setter-uuid', status: 'active', ai_run_id: 'job-1', grade_pending: false });
+    expect(rows[0]).toMatchObject({ grade_scale_id: 'g-blau', hold_color: 'Türkis', name: 'Faultier', name_source: 'ai', capture_source: 'ai', radar_source: 'ai', radar_balance: 5, setter_id: null, status: 'active', ai_run_id: 'job-1', grade_pending: false });
     // «Grad folgt»: vorläufige Farbe in der Pflichtspalte, aber grade_pending + Kurz prüfen
     expect(rows[1]).toMatchObject({ grade_scale_id: 'g-gelb', grade_pending: true, ai_review: ['grade', 'unsure'] });
 
@@ -215,6 +215,28 @@ describe('SPEC-052 App-Service', () => {
     const after = updateBoulderDetails('r3', { gradeScaleId: 'g-blau', name: 'Mein Name' });
     expect(after).toMatchObject({ gradePending: false, aiReview: ['unsure'], nameSource: 'setter', radarSource: 'ai' });
     expect(updateBoulderDetails('r3', { radar: { technik: 5 } as any }).radarSource).toBe('setter');
+  });
+
+  it('F11: KI-Route ohne Schrauber; wer sie zuerst ändert, wird eingetragen; «Passt» zählt nicht', () => {
+    seedBoulder({ id: 'r5', captureSource: 'ai', setterId: 'system', aiReview: ['unsure'] });
+    seedBoulder({ id: 'r6', captureSource: 'ai', setterId: '' });
+    expect(isSetterOpen(getWallBoulders(SECTOR).find(b => b.id === 'r5'))).toBe(true);
+    // Prüf-Hinweis wegklicken ändert die Route nicht
+    expect(updateBoulderDetails('r5', { aiReview: [] }, 'anna').setterId).toBe('system');
+    // erste echte Änderung trägt die Person ein
+    expect(updateBoulderDetails('r5', { holdColor: 'Rot' }, 'anna')).toMatchObject({ setterId: 'anna', holdColor: 'Rot' });
+    // spätere Änderungen anderer ändern den Schrauber nicht
+    expect(updateBoulderDetails('r5', { name: 'X' }, 'ben').setterId).toBe('anna');
+    // Pin verschieben zählt auch
+    expect(updateBoulderPosition('r6', 0.3, 0.4, 'ben').setterId).toBe('ben');
+  });
+
+  it('F11: Schrauber von Hand gewählt gilt immer, auch bei offener KI-Route; manuelle Routen bleiben unberührt', () => {
+    seedBoulder({ id: 'r7', captureSource: 'ai', setterId: 'system' });
+    expect(updateBoulderDetails('r7', { setterId: 'carla', name: 'Y' }, 'anna').setterId).toBe('carla');
+    seedBoulder({ id: 'r8', setterId: 'dora' });
+    expect(updateBoulderDetails('r8', { name: 'Z' }, 'anna').setterId).toBe('dora');
+    expect(isSetterOpen({ captureSource: 'manual', setterId: '' })).toBe(false);
   });
 
   it('«geschätzt» bis 3 Kletterer Merkmale bewertet haben', () => {

@@ -4,6 +4,8 @@ import { WallBoulder, GymGradeScale, RadarAttributes, DEFAULT_RADAR, RADAR_AXIS_
 import { X, Check, Trash2, Archive, Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { SEED_GRADE_SCALES } from '../lib/seedData';
 import * as gymStorage from '../lib/gymStorage';
+import { HOLD_COLORS } from '../lib/aiCapture/colors';
+import { isSetterOpen } from '../lib/batchBoulderService';
 
 export function resolveScaleId(
   boulder: WallBoulder | null,
@@ -93,6 +95,7 @@ interface BoulderBottomSheetProps {
     notes?: string;
     radar: RadarAttributes;
     setterId?: string;
+    holdColor?: string;
   }) => void;
   onDeleteDraft?: (boulderId: string) => void;
   onToggleArchive?: (boulderId: string) => void;
@@ -121,6 +124,7 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [radar, setRadar] = useState<RadarAttributes>(DEFAULT_RADAR);
   const [setterId, setSetterId] = useState<string>('');
+  const [holdColor, setHoldColor] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -147,7 +151,9 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
       const resolvedId = resolveScaleId(boulder, gradeScales, defaultGradeScaleId);
       setSelectedScaleId(resolvedId);
       setName(boulder.name || '');
-      setSetterId(setterOptions?.find(o => isUserMatch(o.id, boulder.setterId))?.id || boulder.setterId || '');
+      const knownSetter = boulder.setterId && boulder.setterId !== 'system' ? boulder.setterId : '';
+      setSetterId(setterOptions?.find(o => isUserMatch(o.id, knownSetter))?.id || knownSetter);
+      setHoldColor(boulder.holdColor || '');
       const initialRadar: RadarAttributes = {
         maximalkraft: boulder.radar?.maximalkraft ?? (boulder as any).radar_maximalkraft ?? boulder.radar?.kraft ?? (boulder as any).radar_kraft ?? DEFAULT_RADAR.maximalkraft,
         kraftausdauer: boulder.radar?.kraftausdauer ?? (boulder as any).radar_kraftausdauer ?? DEFAULT_RADAR.kraftausdauer,
@@ -179,6 +185,8 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
       notes: notes.trim() || undefined,
       radar,
       ...(setterOptions && setterOptions.length > 0 && setterId && !isUserMatch(setterId, boulder.setterId) ? { setterId } : {}),
+      // SPEC-052 F11: Griff-Farbe der KI lässt sich überschreiben
+      ...(holdColor !== (boulder.holdColor || '') ? { holdColor: holdColor || undefined } : {}),
     });
   };
 
@@ -361,6 +369,31 @@ export const BoulderBottomSheet: React.FC<BoulderBottomSheetProps> = ({
                 {setterOptions.map(o => (
                   <option key={o.id} value={o.id}>{o.name}</option>
                 ))}
+              </select>
+            </div>
+          )}
+          {isSetterOpen(boulder) && !setterId && (
+            <p className="text-[15px] text-[var(--bm-text-2)] -mt-2" data-testid="setter-open-hint">
+              Von der KI erfasst, noch kein Schrauber eingetragen. Wer die Route zuerst ändert, wird eingetragen.
+            </p>
+          )}
+
+          {/* SPEC-052 F11: Griff-Farbe (von der KI gesetzt) überschreiben */}
+          {(boulder.captureSource === 'ai' || boulder.holdColor) && (
+            <div className="flex items-center gap-3">
+              <label htmlFor="hold-color-select" className="text-[15px] font-semibold text-[var(--bm-text)] shrink-0">
+                Farbe der Griffe
+              </label>
+              <select
+                id="hold-color-select"
+                data-testid="hold-color-select"
+                value={holdColor}
+                onChange={e => setHoldColor(e.target.value)}
+                className="flex-1 min-w-0 min-h-[44px] px-3 rounded-xl bg-[var(--bm-bg)] border border-[var(--bm-line)] text-[16px] text-[var(--bm-text)]"
+              >
+                <option value="">Wie der Grad</option>
+                {holdColor && !(HOLD_COLORS as readonly string[]).includes(holdColor) && <option value={holdColor}>{holdColor}</option>}
+                {HOLD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           )}

@@ -188,7 +188,8 @@ export async function applyPlan(supabase: SupabaseClient, jc: JobContext, plan: 
     position_y: c.route.y,
     name: c.name || '',
     notes: '',
-    setter_id: job.created_by,
+    // SPEC-052 F11: Schrauber bleibt offen, bis jemand die Route zum ersten Mal ändert
+    setter_id: null,
     status: c.status,
     radar_maximalkraft: c.route.radar.maximalkraft,
     radar_kraftausdauer: c.route.radar.kraftausdauer,

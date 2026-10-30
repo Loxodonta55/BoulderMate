@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { AiCapturePanel } from '../src/components/setter/AiCapturePanel';
 import { AiCaptureSettings } from '../src/components/admin/AiCaptureSettings';
 import { BoulderSheet } from '../src/components/BoulderSheet';
+import { BoulderBottomSheet } from '../src/components/BoulderBottomSheet';
 import { ToastHost } from '../src/components/ui/Toast';
 import { rememberCaptureJob, setGymAiSettings, getOpenIssues } from '../src/lib/aiCapture/aiCaptureService';
 import * as gymStorage from '../src/lib/gymStorage';
@@ -226,5 +227,33 @@ describe('SPEC-052 Kletterer: BoulderSheet', () => {
     await act(async () => { fireEvent.click(screen.getByTestId('route-issue-wrong_pin')); });
     expect(getOpenIssues()).toMatchObject([{ kind: 'wrong_pin', boulderId: 'b1', userId: 'u-kletterer' }]);
     await waitFor(() => expect(screen.getByText('Danke! Die Schrauber schauen es sich an.')).toBeInTheDocument());
+  });
+});
+
+describe('SPEC-052 F11 Studio: Schrauber überschreibt die KI', () => {
+  const OPTIONS = [{ id: 'anna', name: 'Anna' }, { id: 'ben', name: 'Ben' }];
+  const sheet = (b: WallBoulder, onSave = vi.fn()) =>
+    render(<BoulderBottomSheet isOpen boulder={b} gradeScales={SCALES} defaultGradeScaleId="g-gelb" isMarkedForArchive={false} onClose={vi.fn()} onSave={onSave} setterOptions={OPTIONS} />);
+
+  it('AC-23: KI-Route ohne Schrauber: Hinweis, Auswahl leer, Griff-Farbe änderbar', () => {
+    const onSave = vi.fn();
+    sheet(boulder({ captureSource: 'ai', setterId: 'system', holdColor: 'Türkis' }), onSave);
+    expect(screen.getByTestId('setter-open-hint')).toHaveTextContent('Wer die Route zuerst ändert, wird eingetragen');
+    expect((screen.getByTestId('setter-select') as HTMLSelectElement).value).toBe('');
+    const hold = screen.getByTestId('hold-color-select') as HTMLSelectElement;
+    expect(hold.value).toBe('Türkis');
+    fireEvent.change(hold, { target: { value: 'Rot' } });
+    fireEvent.change(screen.getByTestId('setter-select'), { target: { value: 'ben' } });
+    fireEvent.click(screen.getByTestId('save-boulder-sheet-btn'));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ holdColor: 'Rot', setterId: 'ben' }));
+  });
+
+  it('AC-23: eingetragener Schrauber → kein Hinweis; manuelle Route ohne Griff-Farbe → kein Griff-Feld', () => {
+    const { unmount } = sheet(boulder({ captureSource: 'ai', setterId: 'anna' }));
+    expect(screen.queryByTestId('setter-open-hint')).toBeNull();
+    expect((screen.getByTestId('setter-select') as HTMLSelectElement).value).toBe('anna');
+    unmount();
+    sheet(boulder({ setterId: 'anna' }));
+    expect(screen.queryByTestId('hold-color-select')).toBeNull();
   });
 });
