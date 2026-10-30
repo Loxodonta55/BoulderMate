@@ -18,6 +18,7 @@ import { hasPendingSync } from './pendingSync';
 import { SECTOR_ALIAS_MAP } from './batchBoulderService';
 import { DEMO_USERS, SUPABASE_UUID_TO_DEMO_KEY, isTestEnv, getCurrentAuthUser } from './authService';
 import { getProfiles, STORAGE_KEY_PROFILES } from './profileService';
+import { aiFieldsFromRow, aiFieldsToRow } from './aiCapture/boulderFields';
 
 const STORAGE_KEY_SECTORS = 'boulderapp_sectors_v2';
 const STORAGE_KEY_WALL_BOULDERS = 'boulderapp_wall_boulders_v2';
@@ -56,6 +57,21 @@ let currentSyncStatus: SyncStatus = {
 // nicht eingespielt ist, fehlen die Spalten: dann ohne sie synchronisieren und lokale Werte behalten.
 // ==========================================
 let spec021ColumnsMissing = false;
+// SPEC-052: KI-Spalten (Migration 20261027_spec052_ki_routenerfassung.sql); fehlen sie, ohne sie synchronisieren
+let spec052ColumnsMissing = false;
+const SPEC052_BOULDER_COLUMNS = ['capture_source', 'ai_confidence', 'hold_color', 'grade_pending', 'name_source', 'radar_source', 'ai_run_id', 'ai_review'];
+
+// SPEC-052: Hallen-Einstellungen der KI-Erfassung (Supabase gewinnt, sonst lokale behalten)
+function gymAiSettings(g: any, local: any) {
+  return {
+    ai_capture_enabled: typeof g.ai_capture_enabled === 'boolean' ? g.ai_capture_enabled : local.ai_capture_enabled,
+    grade_marker: ['holds', 'tape', 'symbol'].includes(g.grade_marker) ? g.grade_marker : local.grade_marker,
+    grade_symbols: g.grade_symbols && typeof g.grade_symbols === 'object' && !Array.isArray(g.grade_symbols) ? g.grade_symbols : local.grade_symbols,
+    ai_grade_hint: typeof g.ai_grade_hint === 'string' ? g.ai_grade_hint : local.ai_grade_hint,
+    route_name_style: ['fun', 'plain', 'none'].includes(g.route_name_style) ? g.route_name_style : local.route_name_style,
+    ai_publish_mode: g.ai_publish_mode === 'review' || g.ai_publish_mode === 'direct' ? g.ai_publish_mode : local.ai_publish_mode,
+  };
+}
 
 function isMissingColumnError(error: any): boolean {
   const msg = `${error?.message || ''} ${error?.details || ''}`;
@@ -181,6 +197,8 @@ export async function syncFromSupabase(): Promise<boolean> {
               lng: typeof g.lng === 'number' ? g.lng : localG.lng,
               // SPEC-028 F16: Treff erlaubt?
               treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : localG.treff_enabled,
+              // SPEC-052: KI-Routenerfassung
+              ...gymAiSettings(g, localG),
               // SPEC-041: Meldung der Halle (neuere gewinnt)
               ...newerCrowd(g, localG),
             });
@@ -201,6 +219,7 @@ export async function syncFromSupabase(): Promise<boolean> {
             lat: typeof g.lat === 'number' ? g.lat : undefined,
             lng: typeof g.lng === 'number' ? g.lng : undefined,
             treff_enabled: typeof g.treff_enabled === 'boolean' ? g.treff_enabled : undefined,
+            ...gymAiSettings(g, {}),
             ...newerCrowd(g, {}),
           });
         }
@@ -455,6 +474,7 @@ export async function syncFromSupabase(): Promise<boolean> {
           publishedAt: b.published_at || undefined,
           archivedAt: b.archived_at || undefined,
           wallPhotoUrl: b.wall_photo_url || existingLocal?.wallPhotoUrl || undefined,
+          ...aiFieldsFromRow(b, existingLocal),
         };
 
         // Do NOT deduplicate by generic name ("Unbenannter Boulder")!
@@ -1364,6 +1384,7 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
         published_at: b.publishedAt || null,
         archived_at: b.archivedAt || null,
         ...(spec021ColumnsMissing ? {} : { wall_photo_url: b.wallPhotoUrl || null }),
+        ...(spec052ColumnsMissing ? {} : aiFieldsToRow(b)),
       });
     }
 
@@ -1374,6 +1395,12 @@ export async function syncBouldersToSupabase(boulders: WallBoulder[]): Promise<b
       spec021ColumnsMissing = true;
       console.warn('[Sync] SPEC-021-Spalte boulders.wall_photo_url fehlt, synchronisiere ohne sie.');
       upsertRows.forEach(row => delete row.wall_photo_url);
+      ({ error } = await supabase.from('boulders').upsert(upsertRows));
+    }
+    if (error && !spec052ColumnsMissing && isMissingColumnError(error) && upsertRows.some(row => 'capture_source' in row)) {
+      spec052ColumnsMissing = true;
+      console.warn('[Sync] SPEC-052-Spalten (KI) fehlen in boulders, synchronisiere ohne sie.');
+      upsertRows.forEach(row => SPEC052_BOULDER_COLUMNS.forEach(col => delete row[col]));
       ({ error } = await supabase.from('boulders').upsert(upsertRows));
     }
     if (error) {
@@ -2011,6 +2038,7 @@ export function handleRealtimeBoulderChange(payload: any): void {
       publishedAt: newRow.published_at || undefined,
       archivedAt: newRow.archived_at || undefined,
       wallPhotoUrl: newRow.wall_photo_url || existing?.wallPhotoUrl || undefined,
+      ...aiFieldsFromRow(newRow, existing),
     };
 
     let found = false;

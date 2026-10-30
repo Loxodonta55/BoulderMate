@@ -8,6 +8,7 @@ import { navigationHistory } from '../src/lib/navigationHistory';
 import * as gymStorage from '../src/lib/gymStorage';
 import { MobileBottomNav } from '../src/components/MobileBottomNav';
 import { TreffSettingsGroup } from '../src/components/treff/TreffSettingsGroup';
+import { SafetySettingsGroup } from '../src/components/moderation/SafetySettingsGroup';
 import { GymTreffToggle } from '../src/components/treff/GymTreffToggle';
 import { hideToast } from '../src/components/ui/Toast';
 import { getWallBoulders, getSectors } from '../src/lib/batchBoulderService';
@@ -208,7 +209,13 @@ describe('SPEC-028 Treff – Oberfläche', () => {
         banned: [],
       })
     );
-    render(<TreffSettingsGroup userId="hans-kletterer" isPlatformAdmin={false} />);
+    // SPEC-046: «Ausgeblendete Personen» liegt jetzt unter «Sicherheit»
+    render(
+      <>
+        <TreffSettingsGroup userId="hans-kletterer" />
+        <SafetySettingsGroup userId="hans-kletterer" isPlatformAdmin={false} />
+      </>
+    );
     expect(await screen.findByText('1')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('settings-treff-blocks'));
     fireEvent.click(await screen.findByTestId('treff-unblock-treff-mia'));
@@ -222,7 +229,7 @@ describe('SPEC-028 Treff – Oberfläche', () => {
   it('AC-9: Plattform-Admin prüft Meldungen und löscht den Eintrag', async () => {
     seedStore([foreignEntry()]);
     await reportTreffEntry('hans-kletterer', foreignEntry(), 'belaestigung');
-    render(<TreffSettingsGroup userId="user-boris" isPlatformAdmin />);
+    render(<SafetySettingsGroup userId="user-boris" isPlatformAdmin />);
     fireEvent.click(screen.getByTestId('settings-treff-reports'));
     const sheet = await screen.findByTestId('treff-reports-sheet');
     expect(await within(sheet).findByText(/Belästigung/)).toBeInTheDocument();

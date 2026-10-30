@@ -26,6 +26,8 @@ import {
   CLASSIC_MIN_STARS,
 } from '../lib/climberWallFilters';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
+import { showToast } from './ui/Toast';
+import { getGymAiSettings, reportRouteIssue } from '../lib/aiCapture/aiCaptureService';
 import { WallNewsBanner } from './WallNewsBanner';
 import { ChallengeTodayBanner } from './challenge/ChallengeToday';
 import {
@@ -46,6 +48,10 @@ import {
 } from '../lib/wallNews';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { t, useLang } from '../lib/i18n';
+import { cacheWallPhotos, cachedPhotoSrc } from '../lib/app/photoCache';
+import { useIsOffline } from '../hooks/useIsOffline';
+import { WebAppHint } from './app/WebAppHint';
+import { OPEN_WALL_LIST_EVENT } from './app/QrScanButton';
 import {
   Zap,
   Check,
@@ -56,6 +62,7 @@ import {
   ChevronDown,
   Building2,
   Maximize2,
+  CloudOff,
   Minimize2,
 } from 'lucide-react';
 
@@ -87,12 +94,28 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
     refreshGymData,
   } = useGymSectorData(activeGymId, onSelectGym);
 
+  // SPEC-045 §4.1: Wandfotos der Halle fürs Offline-Klettern auf dem Gerät behalten (nur App)
+  const wallPhotoKey = sectors.map(s => s.wallPhotoUrl).join('|');
+  useEffect(() => {
+    if (gym?.id) cacheWallPhotos(gym.id, wallPhotoKey.split('|'));
+  }, [gym?.id, wallPhotoKey]);
+  // SPEC-045 §4.2: Ausweg, wenn der Scanner nicht geht → Wandliste öffnen
+  useEffect(() => {
+    const open = () => setIsSectorListOpen(true);
+    window.addEventListener(OPEN_WALL_LIST_EVENT, open);
+    return () => window.removeEventListener(OPEN_WALL_LIST_EVENT, open);
+  }, []);
+  // SPEC-045 AC-2: erster Start ohne Netz und ohne Daten
+  const isOffline = useIsOffline();
+
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [dataVersion, setDataVersion] = useState<number>(0);
   const [filterMode, setFilterMode] = useState<ClimberWallFilter>('all');
   const [isSectorListOpen, setIsSectorListOpen] = useState<boolean>(false);
   const [isSectorFullscreen, setIsSectorFullscreen] = useState<boolean>(false);
+  // SPEC-052 F8: «Hier fehlt eine Route» – nächster Tipp aufs Foto setzt die Meldung
+  const [isMarkingMissing, setIsMarkingMissing] = useState<boolean>(false);
   const [isWallZoomed, setIsWallZoomed] = useState<boolean>(false);
 
   // SPEC-031 F2/F3: Besuch dieser Halle merken; Vergleichspunkt für «neu seit deinem letzten Besuch»
@@ -552,7 +575,16 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto w-full overflow-hidden" data-testid="climber-wall-view">
-      {sectors.length === 0 && (
+      {/* SPEC-045 §5: «Auch als App» (nur Handy-Browser, nur wenn es den Store-Eintrag gibt) */}
+      <WebAppHint />
+      {sectors.length === 0 && isOffline && (
+        <div className="px-6 py-16 text-center" data-testid="app-offline-empty">
+          <CloudOff className="w-10 h-10 text-[var(--bm-text-3)] mx-auto mb-3" />
+          <p className="text-[17px] font-semibold text-[var(--bm-text)]">{t('Noch keine Daten')}</p>
+          <p className="text-[16px] text-[var(--bm-text-2)] mt-1">{t('Verbinde dich einmal mit dem Netz, danach geht es auch offline.')}</p>
+        </div>
+      )}
+      {sectors.length === 0 && !isOffline && (
         <div className="px-6 py-16 text-center" data-testid="climber-empty-gym">
           <Building2 className="w-10 h-10 text-[var(--bm-text-3)] mx-auto mb-3" />
           <p className="text-[17px] font-semibold text-[var(--bm-text)]">{t('Noch keine Wände')}</p>
@@ -585,6 +617,13 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
               isFullscreen={isSectorFullscreen}
               onToggleFullscreen={() => setIsSectorFullscreen(true)}
               onZoomChange={(zoom) => setIsWallZoomed(zoom > 1.05)}
+              isAddingEnabled={isMarkingMissing}
+              onPhotoClick={isMarkingMissing ? (x, y) => {
+                setIsMarkingMissing(false);
+                if (!gym?.id) return;
+                reportRouteIssue({ gymId: gym.id, sectorId: selectedSector.id, kind: 'missing', x, y, userId: currentUser.id });
+                showToast({ message: t('Danke! Die Schrauber schauen es sich an.') });
+              } : undefined}
             />
           </div>
 
@@ -665,6 +704,27 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                 Wird am {formatPlannedDate(plannedForSelected)} abgeschraubt
                 {openProjectsHere > 0 && ` · ${openProjectsHere} ${openProjectsHere === 1 ? 'Projekt' : 'Projekte'} offen`}
               </p>
+            )}
+
+            {/* SPEC-052 F8: Fehlende Route melden (nur angemeldet, nur in Hallen mit KI-Erfassung) */}
+            {!isGuest && gym && getGymAiSettings(gym.id).enabled && (
+              isMarkingMissing ? (
+                <div className="flex items-center gap-2 rounded-2xl bg-[var(--bm-elevated)] border-2 border-[var(--bm-accent)] px-4 py-3" data-testid="route-missing-hint" role="status">
+                  <span className="flex-1 text-[16px] font-semibold">{t('Tippe aufs Foto, wo die Route startet.')}</span>
+                  <button type="button" onClick={() => setIsMarkingMissing(false)} className="min-h-[44px] px-3 text-[16px] font-semibold text-[var(--bm-accent)]" data-testid="route-missing-cancel">
+                    {t('Abbrechen')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsMarkingMissing(true)}
+                  data-testid="route-missing-btn"
+                  className="w-full min-h-[44px] text-[15px] font-medium text-[var(--bm-text-2)] underline underline-offset-4"
+                >
+                  {t('Hier fehlt eine Route')}
+                </button>
+              )
             )}
 
             {/* SPEC-021 AC-5: Wand wird gerade neu geschraubt */}
@@ -827,7 +887,7 @@ export const ClimberSectorView: React.FC<ClimberSectorViewProps> = ({
                       className="w-full min-h-[56px] px-4 flex items-center gap-3 text-left"
                     >
                       {sector.wallPhotoUrl ? (
-                        <img src={sector.wallPhotoUrl} alt="" className="w-12 h-9 rounded-md object-cover shrink-0 bg-[var(--bm-line)]" />
+                        <img src={cachedPhotoSrc(sector.wallPhotoUrl)} alt="" className="w-12 h-9 rounded-md object-cover shrink-0 bg-[var(--bm-line)]" />
                       ) : (
                         <span className="w-12 h-9 rounded-md shrink-0 bg-[var(--bm-line)]" />
                       )}

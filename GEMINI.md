@@ -46,6 +46,10 @@ Every feature starts as a specification that aligns user requirements before imp
 
 Jedes neue Feature durchläuft vor der Umsetzung den Loop **FeatureDefinition**: Grill-me mit Empfehlungen → Spec v1 → 3 bis 5 Runden «Feedback einholen» (30 simulierte Personen, gemischte Populationen, nicht nur MINT) → Status READY → erst dann Umsetzung mit Unit- und Playwright-Tests. Details: [docs/prozesse/feature-definition.md](docs/prozesse/feature-definition.md) und [docs/prozesse/feedback-einholen.md](docs/prozesse/feedback-einholen.md); Workflows `/feature-definition` und `/feedback-einholen` in `.agent/workflows/`.
 
+### Gemeinsamer Agenten-Chat: Claude Code ⇄ Antigravity (`AgentChat`)
+
+Claude Code (Desktop App) und Antigravity arbeiten gemeinsam am Projekt und tauschen über **[docs/agent-chat/CHAT.md](docs/agent-chat/CHAT.md)** direkt Aufträge, Code-Reviews, Empfehlungen und Status-Übergaben aus. Verbindlicher Ablauf: [docs/prozesse/agent-chat.md](docs/prozesse/agent-chat.md) (Skill/Workflow `/agent-chat`, CLI `node scripts/agent-chat.mjs status` bzw. `node scripts/agent-chat.mjs ping-claude`).
+
 ## Agent Configuration
 
 ### Primary Agents (Auto-routed via intelligent-routing)

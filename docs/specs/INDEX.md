@@ -48,8 +48,10 @@
 | [SPEC-042](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-042-trainer-gruppe.md) | Trainer-Gruppe – Jugendliche teilen ihre Tops mit Zustimmung | IMPLEMENTED | Hans | 2026-10-09 |
 | [SPEC-043](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-043-import-fremder-ticks.md) | Import alter Ticks (z. B. aus Tickboard) | IN PROGRESS | Hans | 2026-10-09 |
 | [SPEC-044](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-044-schrauber-statistik-meine-routen.md) | Schrauber-Statistik «Meine Routen» – wie die eigenen Routen ankommen | IMPLEMENTED | Hans | 2026-10-10 |
-| [SPEC-045](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-045-bouldermate-app.md) | BoulderMate als App (iPhone und Android, Capacitor) | READY | Hans | 2026-10-10 |
+| [SPEC-045](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-045-bouldermate-app.md) | BoulderMate als App (iPhone und Android, Capacitor) | IMPLEMENTED | Hans | 2026-10-20 |
+| [SPEC-046](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-046-melden-und-ausblenden.md) | Person melden und ausblenden (Store-Pflicht für Nutzerinhalte) | IMPLEMENTED | Hans | 2026-10-22 |
 | [SPEC-049](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-049-passwort-vergessen-und-anmelden-mit-email.md) | Passwort vergessen und Anmelden mit E-Mail (Bestätigung, abgelaufene Links) | DONE | Hans | 2026-10-20 |
 | [SPEC-050](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-050-schrauber-auswertung-admin.md) | Schrauber-Auswertung für die Hallenleitung (Zahlen → Schrauber) | IMPLEMENTED | Hans | 2026-10-20 |
 | [SPEC-051](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-051-challenge-today.md) | «Challenge Today» – deine persönliche Challenge (über deinem Grad, passt zu deinen Stärken) | IMPLEMENTED | Hans | 2026-10-20 |
+| [SPEC-052](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-052-ki-routenerfassung-aus-sektorfoto.md) | KI erfasst Routen aus dem Sektorfoto (Grad aus Farbe/Tape, Name, Merkmale, Neu- und Umschrauben) | UMGESETZT (Migration + Blindtest offen) | Hans | 2026-10-27 |
 | [SPEC-053](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-053-noch-nicht-dabei-hallen-empfehlen.md) | «Noch nicht dabei» – alle Hallen zeigen, Wunsch-Knopf, Halle empfehlen (30 % Dankeschön) | UMGESETZT (Migration + Betrag offen) | Hans | 2026-10-29 |

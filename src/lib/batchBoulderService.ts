@@ -814,9 +814,21 @@ export function updateBoulderDetails(
     (updates.fontGrade !== undefined && (updates.fontGrade || '') !== (previous.fontGrade || ''))
   );
 
+  // SPEC-052: Von Hand geänderte Werte gelten nicht mehr als KI-Werte
+  const aiPatch: Partial<WallBoulder> = {};
+  if (previous.captureSource === 'ai') {
+    if (updates.gradeScaleId !== undefined && updates.gradePending === undefined) aiPatch.gradePending = false;
+    if (updates.name !== undefined && updates.nameSource === undefined && (updates.name || '') !== (previous.name || '')) aiPatch.nameSource = 'setter';
+    if (updates.radar !== undefined && updates.radarSource === undefined) aiPatch.radarSource = 'setter';
+    if (aiPatch.gradePending === false && previous.aiReview?.includes('grade')) {
+      aiPatch.aiReview = previous.aiReview.filter(r => r !== 'grade');
+    }
+  }
+
   all[idx] = {
     ...all[idx],
     ...updates,
+    ...aiPatch,
     radar: updatedRadar,
   };
 
@@ -850,6 +862,31 @@ export function updateBoulderDetails(
   }
 
   return all[idx];
+}
+
+// SPEC-052: Routen abschrauben (archivieren) bzw. zurückholen, z. B. «Kurz prüfen» oder «Ergebnis zurücknehmen»
+export function setBouldersArchived(boulderIds: string[], archived: boolean): WallBoulder[] {
+  if (boulderIds.length === 0) return [];
+  const ids = new Set(boulderIds);
+  const now = new Date().toISOString();
+  const changed: WallBoulder[] = [];
+  const all = getWallBoulders().map(b => {
+    if (!ids.has(b.id)) return b;
+    const sector = getSectorById(b.sectorId);
+    const next: WallBoulder = archived
+      ? { ...b, status: 'archived', archivedAt: now, wallPhotoUrl: b.wallPhotoUrl || sector?.wallPhotoUrl, aiReview: undefined }
+      : { ...b, status: 'active', archivedAt: undefined };
+    changed.push(next);
+    return next;
+  });
+  saveWallBoulders(all);
+  if (changed.length > 0) syncBridge.syncBoulders(changed);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bouldermate:boulders_updated', {
+      detail: { action: archived ? 'archived' : 'restored', count: changed.length }
+    }));
+  }
+  return changed;
 }
 
 // Delete Draft Boulder

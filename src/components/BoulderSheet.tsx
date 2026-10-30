@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Zap, Check, Target, X, Star, MessageCircle, Trash2, Send, UserRound } from 'lucide-react';
+import { Zap, Check, Target, X, Star, MessageCircle, Trash2, Send, UserRound, Share2, AlertTriangle } from 'lucide-react';
 import {
   WallBoulder,
   Sector,
@@ -29,6 +29,7 @@ import {
 import { syncBridge } from '../lib/syncBridge';
 import { PublicProfileModal } from './PublicProfileModal';
 import { getProfile, isShownInLists } from '../lib/profileService';
+import { ANONYMOUS_NAME, isAnonymousFor, useModerationVersion } from '../lib/moderation/moderationService';
 import { isDeviceOnline } from '../lib/pendingSync';
 import { readableTextOn } from '../lib/boulderNumbers';
 import { FirstStepsCard } from './basis/FirstStepsCard';
@@ -41,6 +42,10 @@ import { useBackHandler } from '../hooks/useBackHandler';
 import { t, useLang } from '../lib/i18n';
 import { ChallengeTodaySheetLine } from './challenge/ChallengeToday';
 import { isTodaysChallenge } from '../lib/challengeToday';
+import { shareLink } from '../lib/app/share';
+import { buildWallLink } from '../lib/wallLink';
+import { RouteIssueSheet } from './RouteIssueSheet';
+import { getGymAiSettings, isRadarStillEstimated } from '../lib/aiCapture/aiCaptureService';
 
 /**
  * SPEC-020 §5.2 · Ein einziges Boulder-Sheet (ersetzt Detail-Modal + separate Flows).
@@ -84,7 +89,8 @@ const ascentIcon = (type: AscentType): React.ReactNode =>
 const FEEL_LABEL: Record<string, string> = { soft: 'Soft', fair: 'Fair', stiff: 'Stiff' };
 
 /** SPEC-033 F2: so heissen Personen, die ihren Namen verbergen */
-export const ANONYMOUS_NAME = 'Jemand';
+// SPEC-033/046: «Jemand» – auch für Ausgeblendete und Gesperrte
+export { ANONYMOUS_NAME };
 
 /** SPEC-032 F4 / SPEC-035 F3: Toast-Text nach dem Loggen */
 export function logToastMessage(type: AscentType, attempts: number | undefined, online: boolean): string {
@@ -118,6 +124,7 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
   const [detent, setDetent] = useState<'half' | 'full'>('half');
   const [version, setVersion] = useState(0);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [isIssueOpen, setIsIssueOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
@@ -153,7 +160,9 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
       ? `${gradeScale.fontRangeMin}–${gradeScale.fontRangeMax}`
       : gradeScale.difficultyLabel
     : boulder.fontGrade || '';
-  const subtitle = [gradeText, gradeScale?.difficultyLabel && gradeScale.difficultyLabel !== gradeText ? gradeScale.difficultyLabel : null, sector?.name]
+  // SPEC-052 F2: «Grad folgt», solange die KI die Farbe nicht sicher lesen konnte
+  const gradePending = boulder.gradePending === true;
+  const subtitle = gradePending ? [t('Grad folgt'), sector?.name].filter(Boolean).join(' · ') : [gradeText, gradeScale?.difficultyLabel && gradeScale.difficultyLabel !== gradeText ? gradeScale.difficultyLabel : null, sector?.name]
     .filter(Boolean)
     .join(' · ');
 
@@ -308,7 +317,10 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
     setVersion(v => v + 1);
   };
 
-  const commentAnonymous = (userId: string) => !isUserMatch(userId, currentUser.id) && !isShownInLists(userId);
+  // SPEC-046: Ausgeblendete (beide Richtungen) und Gesperrte erscheinen wie verborgene Personen
+  useModerationVersion();
+  const viewerId = isGuest ? undefined : currentUser.id;
+  const commentAnonymous = (userId: string) => isAnonymousFor(viewerId, userId);
 
   const feel = stats.gradeFeelPercentages;
   const hasFeel = stats.gradeFeelCounts.soft + stats.gradeFeelCounts.fair + stats.gradeFeelCounts.stiff > 0;
@@ -344,11 +356,13 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
           <div className="flex items-start gap-3 pt-1">
             <span
               className="mt-0.5 w-9 h-9 rounded-full shrink-0 ring-1 ring-black/10 flex items-center justify-center text-[17px] font-bold tabular-nums"
-              style={{ backgroundColor: gradeScale?.colorHex || 'var(--bm-text-3)', color: readableTextOn(gradeScale?.colorHex) }}
+              style={gradePending
+                ? { backgroundColor: '#ffffff', color: '#000000', border: '2px solid #000000' }
+                : { backgroundColor: gradeScale?.colorHex || 'var(--bm-text-3)', color: readableTextOn(gradeScale?.colorHex) }}
               data-testid="boulder-sheet-number"
-              aria-label={number ? t('Nummer {n}', { n: number }) : undefined}
+              aria-label={gradePending ? t('Grad folgt') : number ? t('Nummer {n}', { n: number }) : undefined}
             >
-              {number ?? ''}
+              {gradePending ? '?' : number ?? ''}
             </span>
             <div className="flex-1 min-w-0">
               <h2 className="text-[20px] font-semibold leading-tight truncate" data-testid="boulder-sheet-title">
@@ -356,8 +370,13 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
               </h2>
               <p className="text-[15px] text-[var(--bm-text-2)] flex flex-wrap items-center gap-x-2">
                 <span className="truncate max-w-full">{subtitle}</span>
-                {gradeText && <InfoTip text={FONT_HELP} label={t('Was heisst Font?')} testId="info-font" />}
+                {gradeText && !gradePending && <InfoTip text={FONT_HELP} label={t('Was heisst Font?')} testId="info-font" />}
               </p>
+              {boulder.holdColor && (
+                <p className="text-[15px] text-[var(--bm-text)]" data-testid="boulder-sheet-hold-color">
+                  {t('Griffe: {color}', { color: t(boulder.holdColor) })}
+                </p>
+              )}
               <p className="text-[14px] text-[var(--bm-text-2)] flex items-center gap-1 mt-0.5">
                 {stats.totalRatings > 0 ? (
                   <>
@@ -372,6 +391,25 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
                 <span>{t('{n} Tops', { n: stats.totalTops + stats.totalFlashes })}</span>
               </p>
             </div>
+            {sector && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const result = await shareLink({
+                    title: title,
+                    text: t('«{name}» an der Wand {wall} – auf BoulderMate', { name: title, wall: sector.name }),
+                    url: buildWallLink(sector.id),
+                  });
+                  if (result === 'copied') showToast({ message: t('Link kopiert') });
+                  else if (result === 'failed') showToast({ message: t('Teilen geht gerade nicht.') });
+                }}
+                aria-label={t('Boulder teilen')}
+                data-testid="boulder-sheet-share"
+                className="w-11 h-11 rounded-full bg-[var(--bm-elevated)] flex items-center justify-center shrink-0"
+              >
+                <Share2 className="w-5 h-5 text-[var(--bm-text-2)]" />
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -548,7 +586,12 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
 
               {/* Charakter */}
               <section className="space-y-3">
-                <h3 className="text-[17px] font-semibold">{t('Charakter')}</h3>
+                <h3 className="text-[17px] font-semibold flex items-center gap-2">
+                  {t('Charakter')}
+                  {isRadarStillEstimated(boulder) && (
+                    <span className="text-[15px] font-normal text-[var(--bm-text-2)]" data-testid="radar-estimated">({t('geschätzt')})</span>
+                  )}
+                </h3>
                 <div className="rounded-2xl bg-[var(--bm-elevated)] p-4 flex justify-center">
                   <RadarChart data={stats.radarAggregate} size={220} showLabels accentColor="var(--bm-accent)" />
                 </div>
@@ -569,7 +612,7 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
                       // SPEC-033 F2/F3: verborgene Personen als «Jemand», ohne Buchstabe und Profil-Link
                       const isMe = isUserMatch(c.userId, currentUser.id);
                       const hidden = !isShownInLists(c.userId);
-                      const anonymous = hidden && !isMe;
+                      const anonymous = !isMe && isAnonymousFor(viewerId, c.userId);
                       return (
                       <li key={c.userId}>
                         <button
@@ -678,6 +721,19 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
                 )}
               </section>
 
+              {/* SPEC-052 F8: Fehler an der Route melden (nur angemeldet, nur in Hallen mit KI-Erfassung) */}
+              {!isGuest && sector && getGymAiSettings(sector.gymId).enabled && (
+                <button
+                  type="button"
+                  data-testid="route-issue-btn"
+                  onClick={() => setIsIssueOpen(true)}
+                  className="w-full min-h-[48px] px-4 rounded-2xl bg-[var(--bm-elevated)] flex items-center gap-2 text-[16px] font-medium text-[var(--bm-text)]"
+                >
+                  <AlertTriangle className="w-5 h-5 text-[var(--bm-warning)]" aria-hidden />
+                  {t('Stimmt was nicht?')}
+                </button>
+              )}
+
               {/* Eigene Einträge – destruktiv, aber mit Undo */}
               {!isGuest && (myAscent || myRating) && (
                 <section className="rounded-2xl bg-[var(--bm-elevated)] divide-y divide-[var(--bm-line)] overflow-hidden">
@@ -711,7 +767,11 @@ export const BoulderSheet: React.FC<BoulderSheetProps> = ({
       {/* Über dem Sheet (z-60) anzeigen */}
       <div className="relative z-[70]">
       {profileUserId && (
-        <PublicProfileModal userId={profileUserId} isOpen onClose={() => setProfileUserId(null)} />
+        <PublicProfileModal userId={profileUserId} isOpen onClose={() => setProfileUserId(null)} viewerId={viewerId} />
+      )}
+
+      {isIssueOpen && sector && (
+        <RouteIssueSheet open onClose={() => setIsIssueOpen(false)} boulder={boulder} gymId={sector.gymId} userId={currentUser.id} />
       )}
 
       {isRatingOpen && (

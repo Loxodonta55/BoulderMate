@@ -18,6 +18,10 @@ import { AppMode, getUserRoleInfo, UserRoleInfo } from './lib/roleService';
 import { RoleGatewayModal } from './components/RoleGatewayModal';
 import { LoginModal } from './components/LoginModal';
 import { LandingPage } from './components/LandingPage';
+import { UpdateRequiredScreen } from './components/app/UpdateRequiredScreen';
+import { useAppUpdateStatus } from './lib/app/appVersion';
+import { WALL_LINK_EVENT } from './lib/app/appLinks';
+import { refreshModeration, startModerationSync } from './lib/moderation/moderationService';
 import { initAuthSession, getCurrentAuthUser, signOut, setSessionUser, onAuthStateChange, AuthUser, readOAuthReturnFromUrl, finishOAuthRedirect, OAUTH_ERROR_FAILED, canUseViewAs, getActiveViewAs, readEmailLinkFromUrl, verifyEmailLink, AUTH_MSG } from './lib/authService';
 import { NewPasswordSheet } from './components/auth/NewPasswordSheet';
 import { onViewAsChange, setStoredViewAs, ViewAsMode } from './lib/viewAsService';
@@ -260,6 +264,13 @@ export const App: React.FC = () => {
     };
   }, [climberId, authSession, currentClimber, activeNickname, roleInfo]);
 
+  // SPEC-046: Ausblenden-Liste, Sperren und eigenen Hinweis laden; ohne Netz Liegengebliebenes später senden
+  useEffect(() => {
+    const viewer = currentUser.id === 'guest' ? undefined : currentUser.id;
+    startModerationSync(() => viewer);
+    void refreshModeration(viewer);
+  }, [currentUser.id]);
+
   // Step 1: Detect user privileges on login, user switch, or gym switch
   useEffect(() => {
     if (!climberId) {
@@ -447,6 +458,19 @@ export const App: React.FC = () => {
     setFocusSectorId(sector.id);
   }, [pendingWallLinkId, authSession, isFinishingOAuth, isFirstSyncDone, gyms]);
 
+  // SPEC-045 §4.2: Wand-Link aus der App (QR mit der Kamera, Scanner, geteilter Link)
+  useEffect(() => {
+    const onWallLink = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (id) setPendingWallLinkId(id);
+    };
+    window.addEventListener(WALL_LINK_EVENT, onWallLink);
+    return () => window.removeEventListener(WALL_LINK_EVENT, onWallLink);
+  }, []);
+
+  // SPEC-045 §4.6: zu alte App → «Bitte aktualisieren» (im Web immer «ok»)
+  const appUpdate = useAppUpdateStatus();
+
   const wallLinkNotice = useMemo(() => {
     if (!pendingWallLinkId || authSession) return null;
     const sector = resolveWallLinkSector(pendingWallLinkId, getSectors());
@@ -454,6 +478,10 @@ export const App: React.FC = () => {
       ? `Melde dich an, dann geht es direkt zur Wand «${sector.name}».`
       : 'Melde dich an, dann geht es direkt zur Wand.';
   }, [pendingWallLinkId, authSession, gyms, isFirstSyncDone]);
+
+  if (appUpdate.state === 'required') {
+    return <UpdateRequiredScreen storeUrl={appUpdate.storeUrl} />;
+  }
 
   if ((isFinishingOAuth || isVerifyingLink) && !authSession) {
     return (
@@ -575,6 +603,7 @@ export const App: React.FC = () => {
           />
         )}
         {fuerHallenPage}
+        <ToastHost />
       </div>
     );
   }

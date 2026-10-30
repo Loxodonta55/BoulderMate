@@ -20,7 +20,6 @@ export const EN_ME: Record<string, string> = {
   'Fehler, Ideen, Lob': 'Bugs, ideas, praise',
   'Abmelden': 'Log out',
   'Konto löschen': 'Delete account',
-  'Konto und alle Einträge endgültig löschen?': 'Delete your account and all entries for good?',
   'Dabei seit {date}': 'Member since {date}',
   'Tops': 'Tops',
   'Flash-Quote': 'Flash rate',

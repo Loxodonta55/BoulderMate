@@ -17,6 +17,8 @@ import {
   leaveChallenge,
 } from '../../lib/challengeService';
 import { t } from '../../lib/i18n';
+import { PublicProfileModal } from '../PublicProfileModal';
+import { ANONYMOUS_NAME, isAnonymousFor, useModerationVersion } from '../../lib/moderation/moderationService';
 
 /** daysLeftText liefert Deutsch; hier zur Anzeige übersetzt (SPEC-039). */
 const daysLeft = (c: Challenge): string => {
@@ -58,6 +60,10 @@ export const ChallengeCards: React.FC<{ currentUser: CurrentUser; gymId: string;
     const ids = new Set(challengeBoulders(c).map(b => b.id));
     return [c.id, { total: ids.size, ...countDone(c, currentUser.id, ids) }];
   })), [running, currentUser.id, version, tick]);
+
+  // SPEC-046: Zeilen öffnen das Profil; Ausgeblendete und Gesperrte stehen als «Jemand» mit ihrem Platz da
+  useModerationVersion();
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   if (running.length === 0 || currentUser.id === 'guest') return null;
 
@@ -132,17 +138,38 @@ export const ChallengeCards: React.FC<{ currentUser: CurrentUser; gymId: string;
             <ol className="rounded-2xl bg-[var(--bm-elevated)] divide-y divide-[var(--bm-line)]">
               {buildLeaderboard(boardFor, participants).map(r => {
                 const total = stats.get(boardFor.id)?.total ?? 0;
-                return (
-                  <li
-                    key={r.userId}
-                    className={`flex items-center gap-3 px-4 min-h-[52px] ${r.userId === currentUser.id ? 'font-bold' : ''}`}
-                    data-testid={`challenge-row-${r.userId}`}
-                  >
+                const isMe = r.userId === currentUser.id;
+                const anonymous = !isMe && isAnonymousFor(currentUser.id, r.userId);
+                const content = (
+                  <>
                     <span className="w-8 text-[17px] tabular-nums">{r.rank}.</span>
-                    <span className="flex-1 text-[17px] truncate">{r.userId === currentUser.id ? t('{name} (du)', { name: r.nickname }) : r.nickname}</span>
+                    <span className="flex-1 text-[17px] truncate">
+                      {isMe ? t('{name} (du)', { name: r.nickname }) : anonymous ? t(ANONYMOUS_NAME) : r.nickname}
+                    </span>
                     <span className="text-[17px] tabular-nums">
                       {t('{n} von {m}', { n: r.done, m: total })}
                     </span>
+                  </>
+                );
+                return (
+                  <li
+                    key={r.userId}
+                    className={isMe ? 'font-bold' : ''}
+                    data-testid={`challenge-row-${r.userId}`}
+                    data-anonymous={anonymous ? 'true' : undefined}
+                  >
+                    {isMe || anonymous ? (
+                      <div className="flex items-center gap-3 px-4 min-h-[52px]">{content}</div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setProfileUserId(r.userId)}
+                        className="w-full text-left flex items-center gap-3 px-4 min-h-[52px]"
+                        data-testid={`challenge-row-open-${r.userId}`}
+                      >
+                        {content}
+                      </button>
+                    )}
                   </li>
                 );
               })}
@@ -151,6 +178,9 @@ export const ChallengeCards: React.FC<{ currentUser: CurrentUser; gymId: string;
           </div>
         )}
       </Sheet>
+      {profileUserId && (
+        <PublicProfileModal userId={profileUserId} isOpen onClose={() => setProfileUserId(null)} viewerId={currentUser.id} />
+      )}
     </>
   );
 };

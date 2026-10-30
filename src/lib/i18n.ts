@@ -5,6 +5,9 @@ import { EN_SHEET } from './i18n/en-sheet';
 import { EN_ME } from './i18n/en-me';
 import { EN_CHALLENGE_TODAY } from './i18n/en-challenge-today';
 import { EN_AUTH } from './i18n/en-auth';
+import { EN_APP } from './i18n/en-app';
+import { EN_MODERATION } from './i18n/en-moderation';
+import { EN_AI_CAPTURE } from './i18n/en-ai-capture';
 import { EN_HALLEN } from './i18n/en-hallen';
 
 /**
@@ -22,7 +25,7 @@ export const LANG_OPTIONS: { value: Lang; label: string }[] = [
   { value: 'en', label: 'English' },
 ];
 
-export const EN: Record<string, string> = { ...EN_CHALLENGE_TODAY, ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH, ...EN_HALLEN };
+export const EN: Record<string, string> = { ...EN_CHALLENGE_TODAY, ...EN_BASE, ...EN_WALL, ...EN_SHEET, ...EN_ME, ...EN_AUTH, ...EN_APP, ...EN_MODERATION, ...EN_AI_CAPTURE, ...EN_HALLEN };
 
 const isTest = typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE === 'test';
 

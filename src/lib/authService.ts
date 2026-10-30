@@ -11,6 +11,8 @@ import { getMembers, saveMembers } from './gymStorage';
 import { GymMember } from '../types/gym';
 import { getStoredViewAs, isViewAsFeatureEnabled, ViewAsMode } from './viewAsService';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isNativeApp } from './app/platform';
+import { APP_AUTH_REDIRECT_URL } from './app/appLinks';
 
 export interface AuthUser {
   id: string;
@@ -103,6 +105,7 @@ export const DEMO_USERS: Record<string, AuthUser> = {
 // UUID-Mapping für Seed-Accounts in Supabase
 export const SUPABASE_UUID_TO_DEMO_KEY: Record<string, string> = {
   '00000000-1d0e-4000-8000-e92d69136f33': 'user-boris',
+  'b4777506-20b1-4033-8c68-5954e1c8ff8b': 'user-boris',
   '00000000-37e7-4000-8000-0743462b539d': 'admin-6aplus',
   '00000000-08ca-4000-8000-6e6f5bce818f': 'schrauber-6aplus',
   '00000000-4553-4000-8000-3dd13fac9e0f': 'hans-kletterer',
@@ -206,6 +209,8 @@ function toAuthFlowError(err: SupabaseLikeError | null | undefined): AuthFlowErr
 }
 
 function appOrigin(): string {
+  // SPEC-045: In der App ist window.location.origin «https://localhost»; E-Mail-Links führen per App-Link zurück
+  if (isNativeApp()) return APP_AUTH_REDIRECT_URL.replace(/\/$/, '');
   return typeof window !== 'undefined' ? window.location.origin : 'https://bouldermate.ch';
 }
 
@@ -588,7 +593,8 @@ export async function signInWithOtp(email: string): Promise<void> {
   }
 
   if (!isTestEnv && supabase && isSupabaseConfigured) {
-    const redirectUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bouldermate.ch';
+    // SPEC-045: In der App ist window.location.origin «https://localhost»; der Link muss per App-Link zurückführen
+    const redirectUrl = isNativeApp() ? APP_AUTH_REDIRECT_URL : typeof window !== 'undefined' ? window.location.origin : 'https://bouldermate.ch';
     const { error } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
       options: {
@@ -742,6 +748,11 @@ export async function signInWithGoogle(): Promise<void> {
     throw new Error('Google-Anmeldung ist gerade nicht verfügbar.');
   }
 
+  if (isNativeApp()) {
+    await signInWithOAuthInApp('google');
+    return;
+  }
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -751,6 +762,41 @@ export async function signInWithGoogle(): Promise<void> {
 
   if (error) {
     throw new Error(`Google-Anmeldung fehlgeschlagen: ${error.message}`);
+  }
+}
+
+/**
+ * SPEC-045 F5: In der App blockiert Google die Anmeldung in der eingebetteten Ansicht.
+ * Deshalb öffnet sich das sichere Anmeldefenster des Systems (SFSafariViewController / Custom Tabs);
+ * der Rücksprung kommt als App-Link `https://bouldermate.ch/?code=…` zurück (siehe nativeShell → finishNativeOAuth).
+ */
+async function signInWithOAuthInApp(provider: 'google' | 'apple'): Promise<void> {
+  if (!supabase) throw new Error('Anmeldung ist gerade nicht verfügbar.');
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: APP_AUTH_REDIRECT_URL, skipBrowserRedirect: true },
+  });
+  if (error || !data?.url) {
+    const name = provider === 'google' ? 'Google' : 'Apple';
+    throw new Error(`${name}-Anmeldung fehlgeschlagen: ${error?.message ?? 'keine Adresse'}`);
+  }
+  const { Browser } = await import('@capacitor/browser');
+  await Browser.open({ url: data.url, presentationStyle: 'popover' });
+}
+
+/** SPEC-045: Rücksprung in die App mit `?code=` einlösen (PKCE-Prüfwert liegt im App-Speicher). */
+export async function finishNativeOAuth(code: string): Promise<AuthUser | null> {
+  if (!supabase || !isSupabaseConfigured) return null;
+  try {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data.session?.user) {
+      console.warn('[Auth] App-Rücksprung fehlgeschlagen:', error?.message);
+      return null;
+    }
+    return setSessionUser(await mapSupabaseUserToAuthUser(data.session.user));
+  } catch (err) {
+    console.warn('[Auth] App-Rücksprung fehlgeschlagen:', err);
+    return null;
   }
 }
 
@@ -812,6 +858,10 @@ export function resetGoogleLoginAvailabilityCache(): void {
 export async function signInWithApple(): Promise<void> {
   if (!supabase || !isSupabaseConfigured || typeof window === 'undefined') {
     throw new Error('Apple-Anmeldung ist gerade nicht verfügbar.');
+  }
+  if (isNativeApp()) {
+    await signInWithOAuthInApp('apple');
+    return;
   }
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'apple',

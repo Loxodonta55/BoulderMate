@@ -22,6 +22,7 @@ import {
   memberDetail,
 } from '../../lib/groupService';
 import { t } from '../../lib/i18n';
+import { ReportPersonButton } from '../moderation/ProfileSafetyButtons';
 
 const inputCls =
   'w-full min-h-[52px] rounded-xl bg-[var(--bm-bg)] border-2 border-[var(--bm-line)] px-3 text-[17px] text-[var(--bm-text)]';
@@ -241,12 +242,23 @@ export const GroupsSettings: React.FC<{ currentUser: CurrentUser }> = ({ current
               </>
             ) : (
               <>
-                <p className="text-[17px]">{t('Trainer: {name}', { name: openGroup.ownerNickname })}</p>
+                {/* SPEC-046 §4.1: in der Gruppe kein Ausblenden, aber Melden – auch den Trainer */}
+                <div className="flex items-center gap-2">
+                  <p className="flex-1 text-[17px]">{t('Trainer: {name}', { name: openGroup.ownerNickname })}</p>
+                  <ReportPersonButton
+                    viewerId={currentUser.id}
+                    target={{ userId: openGroup.ownerId, nickname: openGroup.ownerNickname }}
+                    testId="group-report-owner"
+                  />
+                </div>
                 <p className="text-[15px] text-[var(--bm-text-2)]">{consentSentence(openGroup.ownerNickname)}</p>
                 <ul className="rounded-2xl bg-[var(--bm-elevated)] divide-y divide-[var(--bm-line)]" data-testid="group-member-names">
                   {membersOf(openGroup).map(m => (
-                    <li key={m.userId} className="px-4 min-h-[48px] flex items-center text-[17px]">
-                      {m.userId === currentUser.id ? t('{name} (du)', { name: m.nickname }) : m.nickname}
+                    <li key={m.userId} className="pl-4 pr-1 min-h-[48px] flex items-center text-[17px]">
+                      <span className="flex-1 min-w-0 truncate">{m.userId === currentUser.id ? t('{name} (du)', { name: m.nickname }) : m.nickname}</span>
+                      {m.userId !== currentUser.id && (
+                        <ReportPersonButton viewerId={currentUser.id} target={{ userId: m.userId, nickname: m.nickname }} testId={`group-report-${m.userId}`} />
+                      )}
                     </li>
                   ))}
                 </ul>

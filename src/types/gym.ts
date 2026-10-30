@@ -23,6 +23,15 @@ export interface Gym {
   /** SPEC-041: Meldung der Halle «ruhig/normal/voll», gilt 90 Minuten ab crowd_updated_at */
   crowd_level?: 'ruhig' | 'normal' | 'voll';
   crowd_updated_at?: string;
+  /** SPEC-052: KI-Routenerfassung */
+  ai_capture_enabled?: boolean;
+  grade_marker?: 'holds' | 'tape' | 'symbol';
+  /** Zeichen am Start je Farbe (Art «symbol»), z. B. { "<scaleId>": "★★, 2 Sterne" } */
+  grade_symbols?: Record<string, string>;
+  /** Hinweis der Halle an die KI (≤ 300 Zeichen) */
+  ai_grade_hint?: string;
+  route_name_style?: 'fun' | 'plain' | 'none';
+  ai_publish_mode?: 'direct' | 'review';
   created_by: string;
   created_at: string;
 }

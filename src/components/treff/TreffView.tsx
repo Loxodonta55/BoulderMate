@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RULES_URL } from '../../lib/contact';
 import { ChevronLeft, MapPin, Clock, Plus, UserPlus, EyeOff, Flag, Trash2, WifiOff, Users } from 'lucide-react';
 import { CurrentUser, Gym, WallBoulder } from '../../types/boulder';
 import { Sheet } from '../ui/Sheet';
@@ -211,6 +212,13 @@ export const TreffConsentSheet: React.FC<{ open: boolean; onClose: () => void; o
           />
           Ich bin mindestens 16 Jahre alt.
         </label>
+        {/* SPEC-046 §4.7: Zustimmung zu den Regeln beim ersten Treff-Eintrag */}
+        <p className="text-[15px] text-[var(--bm-text-2)]" data-testid="treff-consent-rules">
+          Mit «Verstanden» stimmst du den Regeln zu:{' '}
+          <a href={RULES_URL} target="_blank" rel="noopener" className="underline text-[var(--bm-accent)]">
+            Fair bleiben
+          </a>
+        </p>
         <button type="button" className={primaryBtn} disabled={!age} onClick={onConfirm} data-testid="treff-consent-ok">
           Verstanden
         </button>

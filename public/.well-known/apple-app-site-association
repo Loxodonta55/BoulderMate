@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.ch.bouldermate.app"],
+        "components": [
+          { "/": "/", "?": { "wand": "?*" }, "comment": "SPEC-029/045: QR-Code an der Wand" },
+          { "/": "/", "?": { "code": "?*" }, "comment": "SPEC-045: Login-Rücksprung" },
+          { "/": "/", "?": { "token_hash": "?*" }, "comment": "SPEC-049: E-Mail bestätigen" },
+          { "/": "/", "?": { "auth": "recovery" }, "comment": "SPEC-049: Passwort vergessen" }
+        ]
+      }
+    ]
+  }
+}

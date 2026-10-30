@@ -16,4 +16,16 @@ Ablauf im Detail:
 
 Feedback-Runden liegen unter `docs/feedback-runden/<datum>-<thema>/`.
 
-Werkzeug-Anbindung: Claude Code `.claude/skills/`, Antigravity `.agent/skills/` und `.agent/workflows/` (je `feedback-einholen` und `feature-definition`). Die Dateien unter `docs/prozesse/` sind die Quelle; bei Änderungen dort die Kurzfassungen mitziehen.
+Werkzeug-Anbindung: Claude Code `.claude/skills/`, Antigravity `.agent/skills/` und `.agent/workflows/` (je `feedback-einholen`, `feature-definition` und `agent-chat`). Die Dateien unter `docs/prozesse/` sind die Quelle; bei Änderungen dort die Kurzfassungen mitziehen.
+
+## Gemeinsamer Agenten-Chat & Gegenseitige Live-Sichtbarkeit (Claude Code ⇄ Antigravity)
+
+Beide Agenten können jederzeit gegenseitig lesen, was der jeweils andere im Chat mit dem Nutzer geschrieben hat, und sich direkt Aufträge und Empfehlungen geben:
+
+1. **[docs/agent-chat/ANTIGRAVITY_LIVE.md](docs/agent-chat/ANTIGRAVITY_LIVE.md)** – Live-Wortlaut-Spiegel aller Nachrichten zwischen Nutzer und **Antigravity** (damit **Claude** jederzeit nachlesen kann, was Antigravity geschrieben hat).
+2. **[docs/agent-chat/CLAUDE_LIVE.md](docs/agent-chat/CLAUDE_LIVE.md)** – Live-Protokoll aller Nachrichten zwischen Nutzer und **Claude Code** (damit **Antigravity** jederzeit nachlesen kann, was Claude geschrieben hat).
+3. **[docs/agent-chat/CHAT.md](docs/agent-chat/CHAT.md)** – Gemeinsames Auftrags- & Empfehlungs-Board (`AC-001`, `AC-002`, …) für direkte Aufgaben, Code-Reviews und Übergaben zwischen Claude und Antigravity.
+
+- **Verbindlicher Prozess**: [docs/prozesse/agent-chat.md](docs/prozesse/agent-chat.md)
+- **Skill / Workflow**: `/agent-chat` (`.claude/skills/agent-chat/` bzw. `.agent/skills/agent-chat/` & `.agent/workflows/agent-chat.md`)
+- **Live-Sync & Status**: `node scripts/agent-chat-sync.mjs` (oder `--watch`) und `node scripts/agent-chat.mjs status`

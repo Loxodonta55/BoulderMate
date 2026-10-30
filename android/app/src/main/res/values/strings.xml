@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BoulderMate</string>
+    <string name="title_activity_main">BoulderMate</string>
+    <string name="package_name">ch.bouldermate.app</string>
+    <string name="custom_url_scheme">ch.bouldermate.app</string>
+</resources>

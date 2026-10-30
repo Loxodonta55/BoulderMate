@@ -33,6 +33,7 @@ import { BatchSummaryModal } from './BatchSummaryModal';
 import { WallPhotoUploadModal } from './WallPhotoUploadModal';
 import { useBackHandler } from '../hooks/useBackHandler';
 import { SetterStatsView } from './setter/SetterStatsView';
+import { AiCapturePanel } from './setter/AiCapturePanel';
 import {
   Camera,
   Layers,
@@ -655,6 +656,22 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
           </div>
         )}
       </div>
+
+      {/* SPEC-052: Foto → KI trägt die Routen ein */}
+      {selectedSector && gym?.id && (
+        <AiCapturePanel
+          gymId={gym.id}
+          sector={selectedSector}
+          boulders={boulders}
+          gradeScales={gradeScales}
+          userId={currentUserId}
+          inRebuild={inRebuild}
+          onOpenBoulder={b => {
+            setSelectedBoulder(b);
+            setIsSheetOpen(true);
+          }}
+        />
+      )}
 
       {/* When no sectors exist in this gym */}
       {sectors.length === 0 ? (

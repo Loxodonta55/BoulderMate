@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope, MessageSquareText } from 'lucide-react';
+import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope, MessageSquareText, LifeBuoy } from 'lucide-react';
 import { CurrentUser, WallBoulder, LogbookEntry, AscentType } from '../types/boulder';
-import { getProfileData, updateProfile, deleteAccount } from '../lib/profileService';
+import { getProfileData, updateProfile } from '../lib/profileService';
+import { DeleteAccountSheet } from './app/DeleteAccountSheet';
+import { AppSettingsGroup } from './app/AppSettingsGroup';
+import { useAppUpdateStatus } from '../lib/app/appVersion';
 import { getAthletePerformanceReport } from '../lib/performanceService';
 import { getGyms, getWallBoulders, getSectors, getGradeScales } from '../lib/batchBoulderService';
 import { UserRoleInfo, AppMode } from '../lib/roleService';
@@ -15,6 +18,12 @@ import { useBackHandler } from '../hooks/useBackHandler';
 import { FeedbackSheet } from './FeedbackSheet';
 import { getCurrentAuthUser } from '../lib/authService';
 import { TreffSettingsGroup } from './treff/TreffSettingsGroup';
+import { SafetySettingsGroup } from './moderation/SafetySettingsGroup';
+import { ModerationNotice } from './moderation/ModerationNotice';
+import { SafetyHelpSheet } from './moderation/SafetyHelpSheet';
+import { isNicknameAllowed } from '../lib/moderation/nicknameFilter';
+import { countOpenReports, getMyModeration, MODERATION_CHANGED_EVENT, useModerationVersion } from '../lib/moderation/moderationService';
+import { CONTACT_EMAIL, CONTACT_MAILTO, RULES_URL } from '../lib/contact';
 import { MyProjectsSection, ForYouSection, WeeklySection, PerGymTable, VisibilityGroup } from './me/MeSections';
 import { ChallengeCards } from './challenge/ChallengeCard';
 import { ChallengeTodayRow, ChallengeBannerSetting } from './challenge/ChallengeToday';
@@ -74,6 +83,22 @@ export const MeView: React.FC<MeViewProps> = ({
   const [scope, setScope] = useState<'gym' | 'all'>('all');
   const [version, setVersion] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // SPEC-045 §4.6: Punkt am Zahnrad, wenn eine neue App-Version im Store ist
+  const appUpdate = useAppUpdateStatus();
+  // SPEC-046: Namensprüfung, Sperre, Hilfe, offene Meldungen (Plattform-Admin)
+  useModerationVersion();
+  const [nameError, setNameError] = useState(false);
+  const [isSafetyHelpOpen, setIsSafetyHelpOpen] = useState(false);
+  const [openReports, setOpenReports] = useState(0);
+  const isBanned = getMyModeration(currentUser.id).banned;
+  useEffect(() => {
+    if (!roleInfo.isPlatformAdmin) return;
+    const load = () => void countOpenReports(currentUser.id).then(setOpenReports);
+    load();
+    window.addEventListener(MODERATION_CHANGED_EVENT, load);
+    return () => window.removeEventListener(MODERATION_CHANGED_EVENT, load);
+  }, [currentUser.id, roleInfo.isPlatformAdmin, isSettingsOpen]);
   const [selectedBoulder, setSelectedBoulder] = useState<WallBoulder | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
@@ -243,7 +268,12 @@ export const MeView: React.FC<MeViewProps> = ({
 
   const saveName = () => {
     const name = nameDraft.trim();
-    if (!name || name === profile.nickname) return;
+    if (!name || name === profile.nickname || isBanned) return;
+    if (!isNicknameAllowed(name)) {
+      setNameError(true);
+      return;
+    }
+    setNameError(false);
     updateProfile(currentUser.id, { nickname: name });
     onProfileUpdated?.(name);
     setVersion(v => v + 1);
@@ -277,6 +307,8 @@ export const MeView: React.FC<MeViewProps> = ({
                 aria-label={t('Name')}
                 data-testid="settings-name-input"
                 defaultValue={profile.nickname}
+                disabled={isBanned}
+                aria-invalid={nameError || undefined}
                 onChange={e => setNameDraft(e.target.value)}
                 onBlur={saveName}
                 onKeyDown={e => {
@@ -286,6 +318,24 @@ export const MeView: React.FC<MeViewProps> = ({
               />
             </div>
           </ListGroup>
+          {nameError && (
+            <p role="alert" className="-mt-5 px-4 text-[16px] text-[var(--bm-danger)]" data-testid="settings-name-error">
+              {t('Bitte wähle einen anderen Namen. Ist das dein echter Name? Schreib uns:')}{' '}
+              <a href={CONTACT_MAILTO} className="underline">{CONTACT_EMAIL}</a>
+            </p>
+          )}
+          <p className="-mt-5 px-4 text-[14px] text-[var(--bm-text-2)]" data-testid="settings-rules-consent">
+            {isBanned ? (
+              t('Dein Profil ist gesperrt. Name und Bild lassen sich nicht ändern.')
+            ) : (
+              <>
+                {t('Mit dem Speichern stimmst du den Regeln zu:')}{' '}
+                <a href={RULES_URL} target="_blank" rel="noopener" className="underline text-[var(--bm-accent)]">
+                  {t('Fair bleiben')}
+                </a>
+              </>
+            )}
+          </p>
 
           {(roleInfo.canAccessSetterStudio || roleInfo.canAccessAdminConsole) && (
             <ListGroup title="Arbeitsbereich" footer={`Gilt für ${gymName}.`}>
@@ -341,7 +391,13 @@ export const MeView: React.FC<MeViewProps> = ({
           <GroupsSettings currentUser={currentUser} />
 
           {/* SPEC-028: Treff – Niveau, Ausblenden, Löschen, Meldungen */}
-          <TreffSettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} />
+          <TreffSettingsGroup userId={currentUser.id} />
+
+          {/* SPEC-046: Ausgeblendete Personen, Regeln, Meldungen prüfen */}
+          <SafetySettingsGroup userId={currentUser.id} isPlatformAdmin={Boolean(roleInfo.isPlatformAdmin)} openReportsCount={openReports} />
+
+          {/* SPEC-045 §4.7: nur in der App */}
+          <AppSettingsGroup update={appUpdate} />
 
           {/* SPEC-026: Feedback an das App-Team */}
           <ListGroup title={t('Hilfe')}>
@@ -352,7 +408,14 @@ export const MeView: React.FC<MeViewProps> = ({
               subtitle={t('Fehler, Ideen, Lob')}
               onClick={() => setIsFeedbackOpen(true)}
             />
+            <ListRow
+              testId="settings-safety-help"
+              icon={<LifeBuoy className="w-5 h-5 text-[var(--bm-text-2)]" />}
+              title={t('Jemand stört dich?')}
+              onClick={() => setIsSafetyHelpOpen(true)}
+            />
           </ListGroup>
+          <SafetyHelpSheet open={isSafetyHelpOpen} onClose={() => setIsSafetyHelpOpen(false)} />
 
           <ListGroup>
             <ListRow
@@ -368,14 +431,19 @@ export const MeView: React.FC<MeViewProps> = ({
               title={t('Konto löschen')}
               destructive
               chevron={false}
-              onClick={() => {
-                if (window.confirm(t('Konto und alle Einträge endgültig löschen?'))) {
-                  deleteAccount(currentUser.id);
-                  onLogout();
-                }
-              }}
+              onClick={() => setIsDeleteOpen(true)}
             />
           </ListGroup>
+          {/* SPEC-045 AC-12: Erklärung + «LÖSCHEN» eintippen, löscht auch auf dem Server */}
+          <DeleteAccountSheet
+            open={isDeleteOpen}
+            userId={currentUser.id}
+            onClose={() => setIsDeleteOpen(false)}
+            onDeleted={() => {
+              setIsDeleteOpen(false);
+              onLogout();
+            }}
+          />
         </div>
         <FeedbackSheet
           open={isFeedbackOpen}
@@ -422,13 +490,28 @@ export const MeView: React.FC<MeViewProps> = ({
             setNameDraft(profile.nickname);
             setIsSettingsOpen(true);
           }}
-          aria-label={t('Einstellungen')}
+          aria-label={appUpdate.state === 'available' ? t('Einstellungen, neue App-Version verfügbar') : t('Einstellungen')}
           data-testid="open-settings-btn"
-          className="w-10 h-10 rounded-full bg-[var(--bm-surface)] flex items-center justify-center"
+          className="relative w-12 h-12 rounded-full bg-[var(--bm-surface)] flex items-center justify-center"
         >
           <Settings className="w-5 h-5 text-[var(--bm-text-2)]" />
+          {appUpdate.state === 'available' && (
+            <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-[var(--bm-accent)] ring-2 ring-[var(--bm-bg)]" data-testid="app-update-dot" aria-hidden />
+          )}
+          {openReports > 0 && (
+            <span
+              className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-[var(--bm-danger)] text-white text-[13px] font-bold flex items-center justify-center"
+              data-testid="moderation-open-count"
+              aria-label={t('{n} offene Meldungen', { n: openReports })}
+            >
+              {openReports}
+            </span>
+          )}
         </button>
       </div>
+
+      {/* SPEC-046 §4.4: Hinweis an die betroffene Person */}
+      <ModerationNotice userId={currentUser.id} />
 
       {/* Profil-Kopf */}
       <div className="flex items-center gap-4">

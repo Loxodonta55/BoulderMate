@@ -593,6 +593,11 @@ function readLocal(): LocalTreffStore {
   return { entries: s.entries || [], blocks: s.blocks || [], reports: s.reports || [], banned: s.banned || [] };
 }
 
+/** SPEC-046: lokale Ausblenden-Liste (beide Richtungen) für die ganze App */
+export function listLocalTreffBlocks(): TreffBlock[] {
+  return readLocal().blocks;
+}
+
 function writeLocal(s: LocalTreffStore): void {
   writeJson(TREFF_STORE_KEY, s);
 }
@@ -1020,7 +1025,8 @@ export async function listOpenTreffReports(adminId: string): Promise<TreffReport
   if (!useRemote(adminId)) return readLocal().reports.filter(r => !r.handledAt);
   try {
     const { data } = await supabase!.from('treff_reports').select('*').is('handled_at', null).order('created_at', { ascending: false });
-    return (data || []).map((r: any) => ({
+    // SPEC-046: Profil-Meldungen liegen in derselben Tabelle und kommen über admin_profile_reports()
+    return (data || []).filter((r: any) => (r.context ?? 'treff') === 'treff').map((r: any) => ({
       id: r.id,
       reporterId: r.reporter_id,
       entryId: r.entry_id,

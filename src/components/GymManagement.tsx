@@ -9,6 +9,7 @@ import { SectorManager } from './SectorManager';
 import { TeamManager } from './admin/TeamManager';
 import { GymLocationEditor } from './GymLocationEditor';
 import { GymTreffToggle } from './treff/GymTreffToggle';
+import { AiCaptureSettings } from './admin/AiCaptureSettings';
 import { GymCrowdControl } from './basis/CrowdBadge';
 import { GymChallengeAdmin } from './challenge/GymChallengeAdmin';
 import { WallQrCodes } from './admin/WallQrCodes';
@@ -157,6 +158,7 @@ export const GymManagement: React.FC<GymManagementProps> = ({ activeGymId, onSel
           <GymLocationEditor key={selectedGym.id} gymId={selectedGym.id} userId={effectiveUserId} onSaved={refreshData} />
           {/* SPEC-028 F16 */}
           <GymTreffToggle key={`treff-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
+          <AiCaptureSettings key={`ai-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
           {/* SPEC-041 */}
           <GymCrowdControl key={`crowd-${selectedGym.id}`} gymId={selectedGym.id} userId={effectiveUserId} />
           {/* SPEC-038 */}

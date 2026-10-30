@@ -11,3 +11,5 @@ src/data/*.json
 playwright-report/
 test-results/
 
+# SPEC-052 KI-Test: Fotos und Ergebnisse lokal
+/ai-capture/

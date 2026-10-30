@@ -247,6 +247,15 @@ export interface WallBoulder {
   publishedAt?: string;
   archivedAt?: string;
   wallPhotoUrl?: string; // SPEC-021: Wandfoto zum Zeitpunkt des Abschraubens
+  // SPEC-052: KI-Routenerfassung (nur gesetzt, wenn die KI die Route angelegt hat)
+  captureSource?: 'manual' | 'ai';
+  aiConfidence?: number;
+  holdColor?: string; // Griff-Farbe, wenn sie vom Grad (Tape) abweicht
+  gradePending?: boolean; // «Grad folgt»: Farbe noch nicht sicher gelesen
+  nameSource?: 'setter' | 'ai' | 'tape' | 'plain';
+  radarSource?: 'setter' | 'ai';
+  aiRunId?: string;
+  aiReview?: string[]; // Gründe für «Kurz prüfen»
 }
 
 export interface DraftBoulderInput {

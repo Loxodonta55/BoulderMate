@@ -19,6 +19,9 @@ import {
   Smartphone,
   Crosshair
 } from 'lucide-react';
+import { isNativeApp } from '../lib/app/platform';
+import { takeWallPhoto } from '../lib/app/nativeCamera';
+import { RESTORED_PHOTO_EVENT, takeRestoredPhoto } from '../lib/app/nativeShell';
 
 interface WallPhotoUploadModalProps {
   isOpen: boolean;
@@ -237,9 +240,40 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
     }
   }, [isOpen, initialTab, currentPhotoUrl]);
 
+  // SPEC-045 §4.5: Foto, das Android nach einem Neustart der App zurückgibt, übernehmen
+  useEffect(() => {
+    if (!isOpen || !isNativeApp()) return;
+    const apply = () => {
+      const restored = takeRestoredPhoto();
+      if (restored) {
+        setActiveTab('camera');
+        setSelectedPhoto(restored);
+        setIsNewCapture(true);
+        setFileName('Kameraaufnahme.jpg');
+      }
+    };
+    apply();
+    window.addEventListener(RESTORED_PHOTO_EVENT, apply);
+    return () => window.removeEventListener(RESTORED_PHOTO_EVENT, apply);
+  }, [isOpen]);
+
+  // SPEC-045 §4.5: In der App die Kamera des Handys statt Live-Sucher im Browser
+  const handleNativeCamera = async () => {
+    setErrorMessage(null);
+    try {
+      const dataUrl = await takeWallPhoto();
+      if (!dataUrl) return;
+      setSelectedPhoto(dataUrl);
+      setIsNewCapture(true);
+      setFileName('Kameraaufnahme.jpg');
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Kamera konnte nicht geöffnet werden.');
+    }
+  };
+
   // Lifecycle for camera stream
   useEffect(() => {
-    if (isOpen && activeTab === 'camera') {
+    if (isOpen && activeTab === 'camera' && !isNativeApp()) {
       startCamera(cameraFacingMode);
     } else {
       stopCamera();
@@ -568,6 +602,17 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                   )}
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                    {isNativeApp() ? (
+                    <button
+                      type="button"
+                      onClick={handleNativeCamera}
+                      className="w-full sm:w-auto min-h-[48px] px-5 py-3 bg-[var(--bm-accent)] text-[var(--bm-on-accent)] rounded-xl font-bold text-[16px] flex items-center justify-center gap-2"
+                      data-testid="native-camera-button"
+                    >
+                      <Camera className="w-5 h-5" />
+                      <span>Kamera öffnen</span>
+                    </button>
+                    ) : (<>
                     <button
                       type="button"
                       onClick={() => startCamera(cameraFacingMode)}
@@ -588,6 +633,7 @@ export const WallPhotoUploadModal: React.FC<WallPhotoUploadModalProps> = ({
                       <Smartphone className="w-4 h-4 text-[var(--bm-accent)]" />
                       <span>System-Kamera öffnen</span>
                     </button>
+                    </>)}
                   </div>
                 </div>
               )}

@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Preferences } from '@capacitor/preferences';
+import { isNativeApp } from './app/platform';
 
 const DEFAULT_SUPABASE_URL = 'https://vuladpswvflfwwgdjejr.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bGFkcHN3dmZsZnd3Z2RqZWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NjExMzcsImV4cCI6MjEwNDIzNzEzN30.55_ouHyzW_ALlTc45HJCHQgEn50T0xXm1d5jTTUPr1o';
@@ -14,6 +16,12 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey.length > 20
 );
 
+const nativeAuthStorage = {
+  getItem: async (key: string) => (await Preferences.get({ key })).value,
+  setItem: (key: string, value: string) => Preferences.set({ key, value }),
+  removeItem: (key: string) => Preferences.remove({ key }),
+};
+
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -22,6 +30,8 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         // SPEC-024 AC-2.3: PKCE statt Token im URL-Hash; der Client tauscht ?code= beim Start selbst ein
         detectSessionInUrl: true,
         flowType: 'pkce',
+        // SPEC-045 §4.3: In der App liegt die Anmeldung im App-Speicher (bleibt nach Neustart erhalten)
+        ...(isNativeApp() ? { storage: nativeAuthStorage } : {}),
       },
     })
   : null;

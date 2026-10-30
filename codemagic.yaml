@@ -1,0 +1,85 @@
+# SPEC-045 §8: Codemagic baut die App aus diesem Repo (kein Mac nötig).
+# Einmalig in Codemagic (Hans, Checkliste §9):
+#   - Team-Integration «App Store Connect» mit API-Schlüssel, Name: bouldermate_asc
+#   - Android-Signierschlüssel hochladen, Name: bouldermate_upload
+#   - später: Google-Play-Dienstkonto (JSON) als Variable GCLOUD_SERVICE_ACCOUNT_CREDENTIALS in der Gruppe google_play
+# Versionsnummer: package.json → "version"; Build-Nummer zählt Codemagic hoch.
+
+workflows:
+  android:
+    name: Android → Google Play (interner Test)
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      node: 22
+      java: 21
+      android_signing:
+        - bouldermate_upload
+      # groups:
+      #   - google_play
+      vars:
+        PACKAGE_NAME: ch.bouldermate.app
+    triggering:
+      events: []
+    scripts:
+      - name: Abhängigkeiten
+        script: npm ci
+      - name: Tests (CONSTITUTION §13, Unit)
+        script: npm test
+      - name: Web bauen und in die App kopieren
+        script: npm run app:sync
+      - name: Android-App bauen
+        script: |
+          VERSION=$(node -p "require('./package.json').version")
+          cd android
+          ./gradlew bundleRelease \
+            -PversionName="$VERSION" \
+            -PversionCode="$BUILD_NUMBER"
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+    # Erst einschalten, wenn das Google-Play-Dienstkonto eingerichtet ist (docs/app/einrichtung-hans.md, Schritt 9).
+    # Bis dahin die .aab-Datei unter «Artifacts» herunterladen und in der Play Console hochladen.
+    # publishing:
+    #   google_play:
+    #     credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #     track: internal
+    #     submit_as_draft: true
+
+  ios:
+    name: iPhone → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: bouldermate_asc
+    environment:
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: ch.bouldermate.app
+      vars:
+        BUNDLE_ID: ch.bouldermate.app
+    triggering:
+      events: []
+    scripts:
+      - name: Abhängigkeiten
+        script: npm ci
+      - name: Web bauen und in die App kopieren
+        script: npm run app:sync
+      - name: Signierung einrichten
+        script: xcode-project use-profiles
+      - name: Versionsnummer setzen
+        script: |
+          VERSION=$(node -p "require('./package.json').version")
+          sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $VERSION;/; s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" ios/App/App.xcodeproj/project.pbxproj
+      - name: iPhone-App bauen
+        script: |
+          xcode-project build-ipa \
+            --project "ios/App/App.xcodeproj" \
+            --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

@@ -4,6 +4,7 @@ import { Gym, GymMemberRole } from '../types/boulder';
 import { AppMode, UserRoleInfo } from '../lib/roleService';
 import { HeaderFeedbackButton } from './HeaderFeedbackButton';
 import { OfflineChip } from './basis/OfflineChip';
+import { QrScanButton } from './app/QrScanButton';
 import { Mountain, Wrench, Layers, ArrowLeft, User, Users, Building2, ChevronDown } from 'lucide-react';
 import type { ClimberTab } from './MobileBottomNav';
 import { t, useLang } from '../lib/i18n';
@@ -257,6 +258,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </button>
           )}
         </nav>
+
+        {/* SPEC-045 §4.2: QR-Code an der Wand scannen (nur App) */}
+        <QrScanButton />
 
         {/* SPEC-032 F4: offline / wartende Einträge */}
         {isLoggedIn && <OfflineChip />}

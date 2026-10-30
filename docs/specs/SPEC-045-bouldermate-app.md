@@ -1,10 +1,10 @@
 # SPEC-045: BoulderMate als App (iPhone und Android)
 
-## Status: READY (v4, 2026-10-10)
+## Status: IMPLEMENTED (Code, 2026-10-20) · Store-Freigabe offen (Konten bei Hans, SPEC-046)
 
 > **Owner:** Hans · **Created:** 2026-10-10 · **Version:** v4 (nach 3 Loops «FeatureDefinition»)
 > **Baut auf:** SPEC-024 (Google-Login), SPEC-026 (Feedback), SPEC-027 (Test-Konten), SPEC-028 (Treff), SPEC-029 (QR-Codes), SPEC-032 (Manifest, Offline-Warteschlange, Lesbarkeit), SPEC-033 (Sichtbarkeit, Meine Daten), SPEC-039 (Englisch), SPEC-040 (Login mit Apple)
-> **Voraussetzung vor dem Einreichen:** SPEC-046 «Melden und Blockieren» (neu, eigener Loop), Datenschutzseite fertig (offen aus SPEC-024)
+> **Voraussetzung vor dem Einreichen:** [SPEC-046](SPEC-046-melden-und-ausblenden.md) «Person melden und ausblenden» (READY seit 2026-10-20, noch zu bauen), Datenschutzseite fertig (offen aus SPEC-024)
 > **Prozess:** [Loop «FeatureDefinition»](../prozesse/feature-definition.md). Grill-me am 2026-10-10, Hans: «geh immer mit der Empfehlung». Feedback-Runden: [`docs/feedback-runden/2026-10-10-app/`](../feedback-runden/2026-10-10-app/) (simuliert, kein echtes Nutzerfeedback).
 
 ---
@@ -95,7 +95,7 @@ Version · «Neue Version im Store» (falls vorhanden) · Wandfotos offline · *
 - **Datenschutzseite fertig** (Anschrift, Auftragsverarbeiter Supabase und Vercel, Abschnitt App: Kamera, Speicher, keine Weitergabe).
 - **Datenschutz-Angaben** im App Store und **Datensicherheit** bei Google: E-Mail, Name, Begehungen/Bewertungen, Fotos (nur Schrauber) – an das Konto gebunden, **kein Tracking**. Claude entwirft die Antworten, Hans trägt sie ein.
 - **Kein Tracking**: keine Analyse- oder Absturzdienste Dritter, keine Werbe-ID, daher kein «Erlauben, dass die App dich verfolgt?» (v3).
-- **Melden und Blockieren** (SPEC-046) muss live sein, bevor eingereicht wird (Beta, Treff, Anzeigenamen) (v3).
+- **Melden und Blockieren** (SPEC-046) muss live sein, bevor eingereicht wird (Treff, Anzeigenamen, Profilbilder; Beta-Kommentare sind nur lokal und nicht öffentlich) (v3, 2026-10-20).
 - **Altersfreigabe**: Fragebogen ehrlich ausfüllen (Nutzerinhalte ja, Chat nein). Sichtbarkeit von Kindern regelt SPEC-033, kein zusätzlicher Dialog (v4).
 - **Prüfer-Zugang**: `test-kletterer@bouldermate.ch` (SPEC-027) in einer Demo-Halle mit echten Wandfotos und ≥ 20 Bouldern (v3).
 
@@ -182,3 +182,31 @@ Capacitor einrichten, Code für §4–5, Erweiterungen, `.well-known`-Dateien, S
 | 3 | 2026-10-10 | mittel: Konto löschen technisch unklar; Tests für 200 % und Sprachsteuerung benennen; Name im Store evtl. belegt; sonst niedrig | `delete_my_account()` + LÖSCHEN-Bestätigung + Erklärtext; benannte Ansichten und zugängliche Namen; Ersatzname und Untertitel; iPad-Hinweis im Store; Flyer/Schild; Screenshots; Scanner/Querformat-Tests; Startbild nur Logo (→ v4) | Zwei Hallen offline (Speicher); Studio auf Englisch (kein App-Thema); Sichtbarkeit erneut abfragen (SPEC-033 regelt) |
 
 **Abbruch nach Loop 3:** keine Kritik «hoch» mehr, Änderungen in Loop 3 nur Präzisierung und Feinschliff → Status **READY**. Grundsatzfragen am 2026-10-20 nach Empfehlung entschieden.
+
+## 16. Umsetzung (2026-10-20)
+
+Code, Hülle und Tests stehen; was nur mit Hans' Konten geht, steht in [docs/app/einrichtung-hans.md](../app/einrichtung-hans.md).
+
+**Neu**
+- Hülle: `capacitor.config.ts` (`ch.bouldermate.app`, `webDir: dist`, Zoom an, Startbild bis die Wand steht), `android/`, `ios/` (Capacitor 8, Swift Package Manager, iOS 15+, Android 7+ / API 24), Symbole und Startbilder hell/dunkel aus `assets/` (`npx capacitor-assets generate`), `codemagic.yaml`, Skripte `npm run app:sync | app:android | app:ios`.
+- Plattform-Schicht `src/lib/app/`: `platform.ts`, `appLinks.ts`, `appVersion.ts`, `nativeShell.ts` (Statusleiste, Systemschrift ≤ 200 %, Zurück, App-Links, Foto nach Android-Neustart), `photoCache.ts`, `nativeCamera.ts`, `share.ts`, `openExternal.ts`.
+- Oberfläche `src/components/app/`: `QrScanButton`, `AppSettingsGroup`, `DeleteAccountSheet`, `UpdateRequiredScreen`, `WebAppHint`, `StoreLinks`; englische Texte `src/lib/i18n/en-app.ts`.
+- Web: `public/app-version.json`, `public/.well-known/apple-app-site-association` (Platzhalter `TEAMID`), `public/.well-known/assetlinks.json` (Platzhalter SHA-256), `vercel.json` (Content-Type, CORS für app-version.json).
+- Migration `supabase/migrations/20261020_spec045_konto_loeschen.sql` (`delete_my_account()`).
+- Doku: [Geräte-Checkliste](../app/geraete-checkliste.md), [Einrichtung Hans](../app/einrichtung-hans.md), [Store-Eintrag](../app/store-eintrag.md).
+
+**Abweichungen von v4 (begründet)**
+- F5 Login: Google und Apple laufen in der App über das **sichere Anmeldefenster des Systems** (SFSafariViewController / Custom Tabs) mit Rücksprung per App-Link. Das native Konto-Fenster (Face ID / Google-Kontoauswahl) braucht eigene OAuth-Client-IDs von Hans und ein weiteres Plugin; es folgt, sobald die Konten stehen.
+- §4.2 «Code eintippen»: Wände haben keinen Kurzcode. Ausweg ist **«Wand aus Liste wählen»**, wenn der Scanner nicht geht.
+- §4.5 Erlaubnis-Texte auf dem iPhone deutsch und englisch in einem Satz (eigene Sprachdateien bräuchten Xcode).
+- Zusätzlich: Schrift **Inter liegt jetzt bei uns** (`@fontsource/inter`) statt bei Google Fonts. Grund: AC-13 (keine Dritt-Dienste), App offline, Datenschutz auch im Web.
+- Zusätzlich: Zoom mit zwei Fingern ist auch im Web nicht mehr gesperrt (`index.html`), «Konto löschen» mit «LÖSCHEN» gilt auch im Web und löscht auf dem Server, «Boulder teilen» gibt es auch im Web (Teilen-Menü oder Link kopieren).
+- Startzeit < 2 s (§4.1) und App-Größe < 30 MB werden erst auf dem Gerät gemessen (Geräte-Checkliste).
+
+**Nachtrag 2026-10-22 (SPEC-049)**
+- Links aus Mails («Passwort vergessen», «Anmelden mit E-Mail») öffnen die App, wenn sie installiert ist: `appLinks.ts` erkennt `token_hash` und `auth=recovery`, `nativeShell.ts` reicht sie an die Anmeldung weiter, `apple-app-site-association` kennt beide Muster. In der App zeigen die Mail-Links auf `https://bouldermate.ch/`.
+
+**Tests**
+- Unit: `tests/spec045App.test.tsx`, `tests/spec045OfflineLeer.test.tsx`
+- Playwright: `tests/e2e/spec045-app.spec.ts` (App simuliert über `window.__BM_PLATFORM__`)
+- Gerät (manuell): `docs/app/geraete-checkliste.md`

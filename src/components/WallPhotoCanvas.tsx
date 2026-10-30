@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { readableTextOn } from '../lib/boulderNumbers';
 import { t } from '../lib/i18n';
+import { cachedPhotoSrc } from '../lib/app/photoCache';
 import { WallBoulder, GymGradeScale, Ascent, BoulderStatsAggregate } from '../types/boulder';
 import {
   ZoomIn,
@@ -130,7 +131,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
   // Compute click coordinates relative to image (0.0 to 1.0)
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (mode !== 'setter') return;
+    // Kletterer-Modus nur, wenn ausdrücklich ein Klick erwartet wird (SPEC-052 «Hier fehlt eine Route»)
+    if (mode !== 'setter' && !(isAddingEnabled && onPhotoClick)) return;
     // If just finished dragging or box selecting, prevent click
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
@@ -720,7 +722,7 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
           }`}
         >
           <img
-            src={photoUrl}
+            src={cachedPhotoSrc(photoUrl)}
             alt={sectorName || t('Wandfoto des Sektors')}
             onLoad={(e) => {
               const img = e.currentTarget;
@@ -762,7 +764,8 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
 
             return boulders.map(boulder => {
               const scale = resolveScale(boulder);
-              const colorHex = scale?.colorHex || (gradeScales[0]?.colorHex ?? '#22c55e');
+              // SPEC-052: «Grad folgt» – neutrales Grau plus Fragezeichen statt einer vorläufigen Farbe
+              const colorHex = boulder.gradePending ? '#9ca3af' : (scale?.colorHex || (gradeScales[0]?.colorHex ?? '#22c55e'));
 
               if (mode === 'climber') {
                 const userAscent = userAscentMap?.get(boulder.id);
@@ -860,6 +863,17 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                             ) : (
                               <Check className="w-4 h-4 stroke-[3] text-[var(--bm-on-accent)]" />
                             )}
+                          </span>
+                        )}
+
+{/* SPEC-052 F2: «Grad folgt» als Fragezeichen, nicht als Farbe */}
+                        {boulder.gradePending && (
+                          <span
+                            data-testid={`pin-grade-pending-${boulder.id}`}
+                            aria-label={t('Grad folgt')}
+                            className="absolute -top-3.5 -left-3.5 z-30 w-6 h-6 rounded-full bg-white text-black border-2 border-black flex items-center justify-center text-[15px] font-black leading-none shadow-md"
+                          >
+                            ?
                           </span>
                         )}
 
@@ -966,6 +980,24 @@ export const WallPhotoCanvas: React.FC<WallPhotoCanvasProps> = ({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-full h-0.5 bg-[var(--bm-danger)] rotate-45" />
                     </div>
+                  )}
+
+                  {/* SPEC-052: Grad folgt / Kurz prüfen */}
+                  {boulder.gradePending && (
+                    <span
+                      data-testid={`pin-grade-pending-${boulder.id}`}
+                      aria-label="Grad folgt"
+                      className="absolute -top-3 -left-3 z-40 w-5 h-5 rounded-full bg-white text-black border-2 border-black flex items-center justify-center text-[13px] font-black leading-none shadow-md"
+                    >
+                      ?
+                    </span>
+                  )}
+                  {!boulder.gradePending && (boulder.aiReview?.length ?? 0) > 0 && (
+                    <span
+                      data-testid={`pin-ai-review-${boulder.id}`}
+                      aria-label="Kurz prüfen"
+                      className="absolute -top-2.5 -left-2.5 z-40 w-4 h-4 rounded-full bg-[var(--bm-warning)] border-2 border-black shadow-md"
+                    />
                   )}
 
                   {/* Multi-Selection Checkmark Badge */}

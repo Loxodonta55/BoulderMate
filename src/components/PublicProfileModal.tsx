@@ -6,19 +6,26 @@ import { ProfileKPIsBar } from './ProfileKPIsBar';
 import { GradeDistributionChart } from './GradeDistributionChart';
 import { AthletePerformanceView } from './AthletePerformanceView';
 import { X, Calendar, MapPin } from 'lucide-react';
+import { ProfileSafetyButtons } from './moderation/ProfileSafetyButtons';
+import { useModerationVersion, visibleAvatar } from '../lib/moderation/moderationService';
+import { isUserMatch } from '../lib/ratingAndAscentService';
 
 interface PublicProfileModalProps {
   userId: string;
   isOpen: boolean;
   onClose: () => void;
+  /** SPEC-046: wer schaut (leer = Gast) – für «Ausblenden» und «Melden» */
+  viewerId?: string;
 }
 
 export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   userId,
   isOpen,
   onClose,
+  viewerId,
 }) => {
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
+  useModerationVersion();
 
   if (!isOpen) return null;
 
@@ -26,6 +33,8 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
   const profileData = getProfileData(userId, selectedGymId);
   const performanceReport = getAthletePerformanceReport(userId, selectedGymId);
   const { profile, kpis, gradeDistribution } = profileData;
+  const avatarUrl = visibleAvatar(userId, profile.avatarUrl);
+  const isSelf = Boolean(viewerId && isUserMatch(viewerId, userId));
 
   const formattedDate = new Date(profile.createdAt).toLocaleDateString('de-DE', {
     month: 'long',
@@ -40,8 +49,8 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
           <div className="flex items-center gap-4">
             {/* Avatar - SPEC-005: 0px square avatar */}
             <div className="w-14 h-14 rounded-xl bg-[var(--bm-elevated)] border border-[var(--bm-line)] flex items-center justify-center overflow-hidden shrink-0">
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.nickname} className="w-full h-full object-cover" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={profile.nickname} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xl font-mono font-bold text-[var(--bm-strong)]">
                   {profile.nickname.charAt(0).toUpperCase()}
@@ -76,6 +85,17 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* SPEC-046 §4.1: ruhige Zeile direkt unter dem Namen */}
+        {!isSelf && (
+          <div className="px-5 sm:px-6 py-3 border-b border-[var(--bm-line)]">
+            <ProfileSafetyButtons
+              viewerId={viewerId}
+              target={{ userId, nickname: profile.nickname, avatarUrl: profile.avatarUrl }}
+              onHidden={onClose}
+            />
+          </div>
+        )}
 
         {/* Scrollable Content */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6">

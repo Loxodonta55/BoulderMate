@@ -4,6 +4,8 @@ import { AuthUser, DEMO_USERS } from '../lib/authService';
 import { GoogleSignInButton, useGoogleLoginAvailable, useGoogleSignIn } from './GoogleSignInButton';
 import { AppleSignInButton, useAppleLoginAvailable, useAppleSignIn } from './AppleSignInButton';
 import { t, useLang } from '../lib/i18n';
+import { isNativeApp } from '../lib/app/platform';
+import { StoreLinks } from './app/StoreLinks';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -112,6 +114,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
               {alert}
             </p>
           )}
+          {/* SPEC-045 §4.3: Konto von bouldermate.ch gilt in der App */}
+          {isNativeApp() && !onContinue && (
+            <p className="rounded-xl bg-[var(--bm-surface)] px-4 py-3 text-[16px] text-[var(--bm-text)]" data-testid="app-account-notice">
+              {t('Schon ein Konto auf bouldermate.ch? Es gilt auch hier.')}
+            </p>
+          )}
           {showGoogle && <GoogleSignInButton onClick={google.start} busy={google.busy} />}
           {showApple && <AppleSignInButton onClick={apple.start} busy={apple.busy} />}
           <button
@@ -197,7 +205,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin, onQuickLo
       </main>
 
       <footer className="pb-safe">
-        <div className="max-w-xl mx-auto px-4 pb-4 text-center">
+        <div className="max-w-xl mx-auto px-4 pb-4 text-center space-y-3">
+          {/* SPEC-045 §5: Store-Knöpfe, sobald die Apps live sind (app-version.json → stores) */}
+          <StoreLinks />
           <a href="/datenschutz.html" className="text-[14px] text-[var(--bm-text-2)] underline" data-testid="link-datenschutz">
             {t('Datenschutz')}
           </a>

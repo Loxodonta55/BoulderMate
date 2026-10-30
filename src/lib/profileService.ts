@@ -27,6 +27,7 @@ import {
 } from './storageUtils';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isTestEnv } from './authService';
+import { isNicknameAllowed } from './moderation/nicknameFilter';
 
 export { SEED_PROFILES };
 
@@ -73,6 +74,10 @@ export function updateProfile(
   userId: string,
   updates: { nickname?: string; avatarUrl?: string }
 ): UserProfile {
+  // SPEC-046 §4.6: grobe Namen nicht speichern (die Datenbank prüft noch einmal)
+  if (updates.nickname !== undefined && !isNicknameAllowed(updates.nickname)) {
+    updates = { ...updates, nickname: undefined };
+  }
   const profiles = getProfiles();
   const idx = profiles.findIndex(p => p.id === userId);
   const now = new Date().toISOString();
@@ -156,6 +161,27 @@ export function setShowInLists(userId: string, show: boolean): UserProfile {
     }
   }
   return updated;
+}
+
+/** SPEC-045 AC-12: Wort, das zum Löschen eingetippt werden muss (Groß-/Kleinschreibung egal) */
+export const DELETE_CONFIRM_WORD = 'LÖSCHEN';
+
+export function isDeleteConfirmed(input: string, word: string = DELETE_CONFIRM_WORD): boolean {
+  return input.trim().toLocaleUpperCase('de-DE') === word.toLocaleUpperCase('de-DE');
+}
+
+/**
+ * SPEC-045 §6 / AC-12: Konto auf dem Server löschen (Funktion `delete_my_account`, Migration 20261020),
+ * danach die Daten auf diesem Gerät. Ohne Supabase-Konto (Test-Personas) nur lokal.
+ * Wirft, wenn der Server nicht erreichbar ist – dann bleibt alles, wie es war.
+ */
+export async function deleteAccountEverywhere(userId: string): Promise<void> {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+  if (isUuid && supabase && isSupabaseConfigured && !isTestEnv) {
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) throw new Error(error.message);
+  }
+  deleteAccount(userId);
 }
 
 /**
