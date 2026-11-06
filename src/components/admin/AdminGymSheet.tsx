@@ -3,12 +3,12 @@ import { Gym } from '../../types/boulder';
 import { createGym, isGymAdmin } from '../../lib/gymStorage';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
-import { Check, Plus } from 'lucide-react';
+import { Check, MapPin, Plus } from 'lucide-react';
+import { t } from '../../lib/i18n';
 
 /**
- * SPEC-023 F7/F8 · «Halle wählen» im Admin-Header.
- * Zeigt nur Hallen, die man verwalten darf; Plattform-Admins können eine neue Halle anlegen (nur Name + Stadt).
- * Bewusst ohne Karte: die Karte aller Hallen gehört zum Kletterer-Header (SPEC-025).
+ * SPEC-023 F7/F8 & SPEC-025 F4 · «Halle wählen» im Admin-Header.
+ * Zeigt Hallen, die man verwalten darf, und bietet zusätzlich den direkten Einstieg «Alle Hallen auf der Karte».
  */
 
 interface Props {
@@ -20,6 +20,8 @@ interface Props {
   isPlatformAdmin: boolean;
   onSelectGym: (id: string) => void;
   onGymsChanged?: () => void;
+  /** SPEC-025 AC-13: Öffnet die Gesamtkarte aller Hallen */
+  onOpenGymFinder?: () => void;
 }
 
 export function getManageableGyms(gyms: Gym[], userId: string, platformAdmin: boolean): Gym[] {
@@ -38,6 +40,7 @@ export const AdminGymSheet: React.FC<Props> = ({
   isPlatformAdmin,
   onSelectGym,
   onGymsChanged,
+  onOpenGymFinder,
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
@@ -141,6 +144,20 @@ export const AdminGymSheet: React.FC<Props> = ({
               className="w-full min-h-[48px] rounded-xl bg-[var(--bm-elevated)] text-[16px] font-semibold flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" /> Neue Halle
+            </button>
+          )}
+          {onOpenGymFinder && (
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                onOpenGymFinder();
+              }}
+              data-testid="admin-open-gym-map"
+              className="w-full min-h-[48px] rounded-xl bg-[var(--bm-elevated)] text-[16px] font-semibold flex items-center justify-center gap-2"
+            >
+              <MapPin className="w-4 h-4 text-[var(--bm-accent)]" aria-hidden />
+              <span>{t('Alle Hallen auf der Karte')}</span>
             </button>
           )}
         </div>

@@ -5,7 +5,7 @@ import { AppMode, UserRoleInfo } from '../lib/roleService';
 import { HeaderFeedbackButton } from './HeaderFeedbackButton';
 import { OfflineChip } from './basis/OfflineChip';
 import { QrScanButton } from './app/QrScanButton';
-import { Mountain, Wrench, Layers, ArrowLeft, User, Users, Building2, ChevronDown } from 'lucide-react';
+import { Mountain, Wrench, Layers, ArrowLeft, User, Users, Building2, ChevronDown, MapPin } from 'lucide-react';
 import type { ClimberTab } from './MobileBottomNav';
 import { t, useLang } from '../lib/i18n';
 
@@ -32,7 +32,7 @@ export interface AppHeaderProps {
   onOpenRoleGateway: () => void;
   onOpenLoginModal: () => void;
   onSwitchToClimber: () => void;
-  /** SPEC-025: Tipp auf den Hallennamen öffnet «Halle wählen» (Karte + Liste) */
+  /** SPEC-025: Tipp auf den Hallennamen oder «Karte» öffnet «Halle wählen» (Karte + Liste) */
   onOpenGymFinder?: () => void;
   /** Tipp aufs BoulderMate-Logo öffnet die Landing Page (SPEC-011 AC-8) */
   onOpenLanding?: () => void;
@@ -104,6 +104,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               Schrauber: <strong className="text-[var(--bm-text)]">{currentUser.nickname}</strong>
             </span>
 
+            {onOpenGymFinder && (
+              <button
+                type="button"
+                onClick={onOpenGymFinder}
+                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-mono text-[var(--bm-text)] bg-[var(--bm-elevated)] hover:bg-[var(--bm-line)] border border-[var(--bm-line)] transition flex items-center gap-1"
+                data-testid="studio-map-btn"
+                title={t('Hallen-Karte')}
+                aria-label={t('Hallen-Karte')}
+              >
+                <MapPin className="w-3.5 h-3.5 text-[var(--bm-accent)]" aria-hidden />
+                <span>{t('Karte')}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onOpenRoleGateway}
@@ -133,7 +147,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   if (appMode === 'admin') {
-    // SPEC-023 F7: Hallenname ▾ (Sheet «Halle wählen») und genau ein Knopf «Bereich»
+    // SPEC-023 F7 & SPEC-025 AC-13: Hallenname ▾ (Sheet «Halle wählen»), «Karte» und «Bereich»
     const activeGym = gyms.find(g => g.id === activeGymId);
     return (
       <header className="border-b border-[var(--bm-line)] bg-[var(--bm-surface)] sticky top-0 z-40 w-full overflow-hidden">
@@ -157,16 +171,31 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <ChevronDown className="w-4 h-4 shrink-0 text-[var(--bm-text-2)]" />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onOpenRoleGateway}
-            className="min-h-[40px] px-3 rounded-full text-[14px] font-semibold bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center gap-1.5 shrink-0"
-            data-testid="admin-switch-workspace-btn"
-            title="Bereich wechseln"
-          >
-            <Layers className="w-4 h-4" />
-            <span>Bereich</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenGymFinder && (
+              <button
+                type="button"
+                onClick={onOpenGymFinder}
+                className="min-h-[40px] px-3 rounded-full text-[14px] font-semibold bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center gap-1.5 shrink-0"
+                data-testid="admin-map-btn"
+                title={t('Hallen-Karte')}
+                aria-label={t('Hallen-Karte')}
+              >
+                <MapPin className="w-4 h-4 text-[var(--bm-accent)]" aria-hidden />
+                <span>{t('Karte')}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onOpenRoleGateway}
+              className="min-h-[40px] px-3 rounded-full text-[14px] font-semibold bg-[var(--bm-elevated)] text-[var(--bm-text)] flex items-center gap-1.5 shrink-0"
+              data-testid="admin-switch-workspace-btn"
+              title="Bereich wechseln"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Bereich</span>
+            </button>
+          </div>
         </div>
         <AdminGymSheet
           open={isAdminGymSheetOpen}
@@ -177,17 +206,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           isPlatformAdmin={currentUser.isPlatformAdmin}
           onSelectGym={onSelectGym}
           onGymsChanged={onGymsChanged}
+          onOpenGymFinder={onOpenGymFinder}
         />
       </header>
     );
   }
 
-  // Kletterer-Header (SPEC-022 F2/F12): Hallenwahl als einziges Element auf dem Handy
+  // Kletterer-Header (SPEC-022 F2/F12 & SPEC-025 AC-11): Hallenwahl mit MapPin + expliziter Karten-Knopf
   const showPersonaSwitcher = import.meta.env.DEV;
+  const activeGymName = gyms.find(g => g.id === activeGymId)?.name || gyms[0]?.name || t('Halle wählen');
   return (
     <header className="bg-[var(--bm-surface)]/95 backdrop-blur-md sticky top-0 z-40 w-full overflow-hidden" data-testid="climber-header">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-4 w-full">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <button
             type="button"
             onClick={onOpenLanding}
@@ -201,20 +232,31 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </span>
             <span className="hidden md:inline text-base font-semibold text-[var(--bm-text)] shrink-0">BoulderMate</span>
           </button>
-          {gyms.length > 0 && (
-            <button
-              type="button"
-              onClick={onOpenGymFinder}
-              className="flex items-center gap-1 min-w-0 min-h-[44px] text-[17px] font-semibold text-[var(--bm-text)] max-w-[70vw] md:max-w-[320px]"
-              title={t('Halle wählen')}
-              aria-label={t('Halle wählen, gewählt: {name}', { name: gyms.find(g => g.id === activeGymId)?.name || '' })}
-              aria-haspopup="dialog"
-              data-testid="header-gym-select"
-            >
-              <span className="truncate">{gyms.find(g => g.id === activeGymId)?.name || gyms[0].name}</span>
-              <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] shrink-0" aria-hidden />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onOpenGymFinder}
+            className="flex items-center gap-1 min-w-0 min-h-[44px] text-[17px] font-semibold text-[var(--bm-text)] max-w-[54vw] sm:max-w-[65vw] md:max-w-[300px]"
+            title={t('Halle wählen')}
+            aria-label={t('Halle wählen, gewählt: {name}', { name: activeGymName })}
+            aria-haspopup="dialog"
+            data-testid="header-gym-select"
+          >
+            <MapPin className="w-4 h-4 text-[var(--bm-accent)] shrink-0" aria-hidden />
+            <span className="truncate">{activeGymName}</span>
+            <ChevronDown className="w-4 h-4 text-[var(--bm-text-2)] shrink-0" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenGymFinder}
+            className="min-h-[38px] px-2.5 rounded-full bg-[var(--bm-elevated)] text-[var(--bm-text)] text-[14px] font-semibold flex items-center gap-1 shrink-0"
+            title={t('Hallen-Karte')}
+            aria-label={t('Hallen-Karte')}
+            aria-haspopup="dialog"
+            data-testid="header-map-btn"
+          >
+            <MapPin className="w-3.5 h-3.5 text-[var(--bm-accent)] shrink-0" aria-hidden />
+            <span>{t('Karte')}</span>
+          </button>
         </div>
 
         {/* Desktop: zwei Tabs wie die untere Leiste auf dem Handy */}

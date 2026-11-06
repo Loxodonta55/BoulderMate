@@ -21,7 +21,7 @@ import {
   toDirectoryEntries,
   useHallenVerzeichnis,
 } from '../lib/hallenVerzeichnis';
-import { t } from '../lib/i18n';
+import { t, useLang } from '../lib/i18n';
 import { DirectoryGymCard, NotYetBadge } from './hallen/DirectoryGymCard';
 
 /**
@@ -60,6 +60,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
   userId = null,
   onRequestLogin,
 }) => {
+  useLang();
   const [query, setQuery] = useState('');
   // SPEC-053 F1: Verzeichnis-Hallen «Noch nicht dabei»
   const directory = useHallenVerzeichnis(open, userId);
@@ -130,14 +131,14 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} detent="full" testId="gym-finder-sheet" ariaLabel="Halle wählen">
+    <Sheet open={open} onClose={onClose} detent="full" testId="gym-finder-sheet" ariaLabel={t('Halle wählen')}>
       <div className="px-4 pb-2 flex items-center justify-between gap-2">
-        <h2 className="text-[22px] font-bold">Halle wählen</h2>
+        <h2 className="text-[22px] font-bold">{t('Halle wählen')}</h2>
         <button
           type="button"
           onClick={onClose}
           className="w-11 h-11 rounded-full bg-[var(--bm-elevated)] flex items-center justify-center"
-          aria-label="Schließen"
+          aria-label={t('Schließen')}
           data-testid="gym-finder-close"
         >
           <X className="w-5 h-5" />
@@ -154,8 +155,8 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
               setQuery(e.target.value);
               setSelectedId(null);
             }}
-            placeholder="Halle oder Ort"
-            aria-label="Halle oder Ort suchen"
+            placeholder={t('Halle oder Ort')}
+            aria-label={t('Halle oder Ort suchen')}
             className="flex-1 min-w-0 bg-transparent text-[17px] focus:outline-none placeholder:text-[var(--bm-text-2)]"
             data-testid="gym-finder-search"
           />
@@ -164,7 +165,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
 
       {locateState === 'denied' && (
         <p className="px-4 pb-2 text-[15px] text-[var(--bm-warning)]" role="status" data-testid="gym-finder-locate-denied">
-          Standort nicht freigegeben. Die Liste ist nach Namen sortiert.
+          {t('Standort nicht freigegeben. Die Liste ist nach Namen sortiert.')}
         </p>
       )}
 
@@ -191,7 +192,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
         data-testid="gym-finder-locate"
       >
         <LocateFixed className="w-5 h-5" aria-hidden />
-        <span>{locateState === 'locating' ? 'Suche …' : 'In meiner Nähe'}</span>
+        <span>{locateState === 'locating' ? t('Suche …') : t('In meiner Nähe')}</span>
       </button>
       </div>
 
@@ -223,10 +224,10 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                 <CrowdBadge gymId={selected.id} testId="gym-card-crowd" />
               </div>
               <p className="text-[16px] mt-1" data-testid="gym-card-stats">
-                <span className="font-semibold">{selected.activeBoulders} Boulder</span>
+                <span className="font-semibold">{t('{n} Boulder', { n: selected.activeBoulders })}</span>
                 {selected.newBoulders > 0 && (
                   <span className="ml-2 px-1.5 rounded-md text-[13px] font-bold bg-[var(--bm-accent)] text-[var(--bm-on-accent)]">
-                    {selected.newBoulders} neu
+                    {t('{n} neu', { n: selected.newBoulders })}
                   </span>
                 )}
               </p>
@@ -235,7 +236,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
               type="button"
               onClick={() => setSelectedId(null)}
               className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              aria-label="Zurück zur Liste"
+              aria-label={t('Zurück zur Liste')}
               data-testid="gym-card-close"
             >
               <X className="w-5 h-5" />
@@ -248,7 +249,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
               className="min-h-[52px] rounded-xl bg-[var(--bm-accent)] text-[var(--bm-on-accent)] text-[17px] font-semibold"
               data-testid="gym-card-select"
             >
-              Zur Wand
+              {t('Zur Wand')}
             </button>
             <a
               href={buildNavigationUrl(selected)}
@@ -258,7 +259,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
               data-testid="gym-card-navigate"
             >
               <Navigation className="w-5 h-5" aria-hidden />
-              Navigation starten
+              {t('Navigation starten')}
             </a>
           </div>
         </div>
@@ -320,8 +321,8 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
                 <span className="min-w-0 flex-1">
                   <span className={`block text-[17px] truncate ${isActive ? 'font-bold' : 'font-semibold'}`}>{e.name}</span>
                   <span className="block text-[15px] text-[var(--bm-text-2)] truncate">
-                    {e.city || e.address || 'Ort fehlt'}
-                    {isActive && ' · gewählt'}
+                    {e.city || e.address || t('Ort fehlt')}
+                    {isActive && t(' · gewählt')}
                   </span>
                   {notYet ? <NotYetBadge testId={`gym-row-not-yet-${e.id}`} /> : <CrowdBadge gymId={e.id} compact testId={`gym-row-crowd-${e.id}`} />}
                 </span>
@@ -338,7 +339,7 @@ export const GymFinderSheet: React.FC<GymFinderSheetProps> = ({
         })}
         {visible.length === 0 && hiddenByToggle === 0 && (
           <li className="py-6 text-center text-[16px] text-[var(--bm-text-2)]" data-testid="gym-finder-empty">
-            Keine Halle gefunden
+            {t('Keine Halle gefunden')}
           </li>
         )}
       </ul>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope, MessageSquareText, LifeBuoy } from 'lucide-react';
+import { Settings, Zap, Check, Target, ChevronLeft, Wrench, Building2, Download, LogOut, Trash2, User, Microscope, MessageSquareText, LifeBuoy, MapPin } from 'lucide-react';
 import { CurrentUser, WallBoulder, LogbookEntry, AscentType } from '../types/boulder';
 import { getProfileData, updateProfile } from '../lib/profileService';
 import { DeleteAccountSheet } from './app/DeleteAccountSheet';
@@ -51,7 +51,7 @@ export interface MeViewProps {
   onSwitchMode: (mode: AppMode) => void;
   onProfileUpdated?: (nickname: string, avatarUrl?: string) => void;
   onLogout: () => void;
-  /** SPEC-053 F5: «Halle auf der Karte suchen» */
+  /** SPEC-053 F5 / SPEC-025 AC-12: «Halle auf der Karte suchen» */
   onOpenGymFinder?: () => void;
   /** SPEC-054: Seite «Partner werden» */
   onOpenPartnerPage?: () => void;
@@ -365,6 +365,22 @@ export const MeView: React.FC<MeViewProps> = ({
             </ListGroup>
           )}
 
+          {/* SPEC-025 AC-12: Direkteinstieg zur Hallen-Karte in den Einstellungen */}
+          {onOpenGymFinder && (
+            <ListGroup>
+              <ListRow
+                testId="settings-open-gym-map"
+                icon={<MapPin className="w-5 h-5 text-[var(--bm-accent)]" />}
+                title={t('Hallen-Karte')}
+                subtitle={t('Alle Hallen & Noch nicht dabei')}
+                onClick={() => {
+                  setIsSettingsOpen(false);
+                  onOpenGymFinder();
+                }}
+              />
+            </ListGroup>
+          )}
+
           {/* SPEC-039: Sprache */}
           <LanguageGroup />
 
@@ -539,6 +555,19 @@ export const MeView: React.FC<MeViewProps> = ({
       </div>
 
       {scopeControl}
+
+      {/* SPEC-025 AC-12: Direkteinstieg zur Hallen-Karte oben in «Ich» */}
+      {onOpenGymFinder && (
+        <ListGroup>
+          <ListRow
+            testId="me-open-gym-map"
+            icon={<MapPin className="w-5 h-5 text-[var(--bm-accent)]" />}
+            title={t('Hallen-Karte')}
+            subtitle={t('Alle Hallen & Noch nicht dabei')}
+            onClick={onOpenGymFinder}
+          />
+        </ListGroup>
+      )}
 
       {/* Hero-Zahlen */}
       <div className="grid grid-cols-3 gap-2.5" data-testid="me-kpis">

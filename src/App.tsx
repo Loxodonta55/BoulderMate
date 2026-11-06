@@ -607,6 +607,7 @@ export const App: React.FC = () => {
             if (authSession) {
               // Über das Logo geöffnet: direkt zur Wand der gewählten Halle
               setIsLandingOpen(false);
+              setAppMode('climber');
               setActiveTab('wall');
             } else {
               setIsLoginModalOpen(true);
@@ -732,7 +733,10 @@ export const App: React.FC = () => {
             activeGymId={activeGymId}
             roleInfo={roleInfo}
             onSwitchMode={handleSelectMode}
-            onOpenGymFinder={() => setIsGymFinderOpen(true)}
+            onOpenGymFinder={() => {
+              refreshGyms();
+              setIsGymFinderOpen(true);
+            }}
             onOpenPartnerPage={() => setIsPartnerPageOpen(true)}
             onProfileUpdated={(newNickname, newAvatar) => {
               if (climberId) {
@@ -799,9 +803,9 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* SPEC-025: Halle wählen (Karte + Liste) */}
+      {/* SPEC-025: Halle wählen (Karte + Liste) – in allen Bereichen verfügbar */}
       <GymFinderSheet
-        open={isGymFinderOpen && appMode === 'climber'}
+        open={isGymFinderOpen}
         onClose={() => setIsGymFinderOpen(false)}
         entries={gymFinderEntries}
         activeGymId={activeGymId}
@@ -809,6 +813,7 @@ export const App: React.FC = () => {
         onRequestLogin={() => setIsLoginModalOpen(true)}
         onSelectGym={(id) => {
           setActiveGymId(id);
+          setAppMode('climber');
           setActiveTab('wall');
           refreshGyms();
         }}

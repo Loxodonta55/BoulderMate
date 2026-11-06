@@ -15,6 +15,7 @@ import {
 import { buildQrSvgData } from '../../lib/qrSvg';
 import { showToast } from '../ui/Toast';
 import { t } from '../../lib/i18n';
+import { HallenNutzen } from './HallenNutzen';
 
 interface HalleRedenSheetProps {
   open: boolean;
@@ -155,6 +156,16 @@ export const HalleRedenSheet: React.FC<HalleRedenSheetProps> = ({ open, onClose,
           <li>{t('Am besten an die Hallenleitung, nicht ans Thekenteam.')}</li>
           <li>{t('Je mehr Wünsche, desto stärker das Argument.')}</li>
         </ul>
+
+        {/* SPEC-053 F10: Argumente für das Gespräch mit der Halle */}
+        <details className="rounded-2xl bg-[var(--bm-elevated)] p-4" data-testid="halle-reden-argumente">
+          <summary className="min-h-[44px] flex items-center text-[18px] font-bold cursor-pointer">
+            {t('Das kannst du der Halle sagen')}
+          </summary>
+          <div className="pt-3">
+            <HallenNutzen variant="kurz" testId="halle-reden-nutzen" />
+          </div>
+        </details>
 
         <section className="space-y-2">
           <h3 className="text-[17px] font-bold">{t('Fertiger Text')}</h3>

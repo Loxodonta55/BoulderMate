@@ -168,6 +168,8 @@ describe('SPEC-053 · Link, Text, Dankeschön', () => {
     expect(few).not.toContain('wünschen sich');
     expect(few).toContain(link);
     expect(buildShareText({ wishCount: 12, link })).toContain('12 Kletterer wünschen sich das schon.');
+    // SPEC-053 F10: Satz zur einfachen Routen-Erfassung vor dem Link
+    expect(few).toMatch(/mit einem Foto der Wand\. Infos für euch: https/);
   });
 
   it('Dankeschön: «Betrag folgt» ohne Gebühr, sonst 30 % in CHF', () => {

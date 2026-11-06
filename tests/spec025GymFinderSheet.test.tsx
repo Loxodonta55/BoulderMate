@@ -17,8 +17,12 @@ vi.mock('../src/components/GymMap', () => ({
 import { GymFinderSheet } from '../src/components/GymFinderSheet';
 import { GymLocationEditor } from '../src/components/GymLocationEditor';
 import { LandingPage } from '../src/components/LandingPage';
+import { AppHeader } from '../src/components/AppHeader';
+import { AdminGymSheet } from '../src/components/admin/AdminGymSheet';
+import { MeView } from '../src/components/MeView';
 import { GymFinderEntry } from '../src/lib/gymFinder';
 import { resetAllGymData, ensureInitialGymData, getGyms as getV1Gyms } from '../src/lib/gymStorage';
+import { setLang, resetLang } from '../src/lib/i18n';
 
 const ENTRIES: GymFinderEntry[] = [
   { id: 'gym-6a-plus', name: '6a plus Winterthur', city: 'Winterthur', address: 'Klosterstrasse 17', lat: 47.4895, lng: 8.7136, activeBoulders: 12, newBoulders: 3 },
@@ -95,6 +99,23 @@ describe('SPEC-025 · GymFinderSheet', () => {
     fireEvent.change(screen.getByTestId('gym-finder-search'), { target: { value: 'xyz' } });
     expect(screen.getByTestId('gym-finder-empty')).toHaveTextContent('Keine Halle gefunden');
   });
+
+  it('übersetzt alle Texte im GymFinderSheet auf Englisch (AC-14)', () => {
+    setLang('en');
+    try {
+      render(<GymFinderSheet open onClose={vi.fn()} entries={ENTRIES} activeGymId="gym-6a-plus" onSelectGym={vi.fn()} />);
+      expect(screen.getByTestId('gym-finder-sheet')).toHaveTextContent('Choose gym');
+      expect(screen.getByTestId('gym-finder-locate')).toHaveTextContent('Near me');
+      fireEvent.click(screen.getByTestId('gym-row-gym-6a-plus'));
+      expect(screen.getByTestId('gym-card-select')).toHaveTextContent('To the wall');
+      expect(screen.getByTestId('gym-card-navigate')).toHaveTextContent('Start navigation');
+      fireEvent.change(screen.getByTestId('gym-finder-search'), { target: { value: 'xyz-not-found' } });
+      expect(screen.getByTestId('gym-finder-empty')).toHaveTextContent('No gym found');
+    } finally {
+      localStorage.removeItem('boulderapp_lang_v1');
+      resetLang();
+    }
+  });
 });
 
 describe('SPEC-025 · Landing «Hallen ansehen» (AC-7)', () => {
@@ -103,6 +124,93 @@ describe('SPEC-025 · Landing «Hallen ansehen» (AC-7)', () => {
     render(<LandingPage onOpenLogin={vi.fn()} onShowGyms={onShowGyms} />);
     fireEvent.click(screen.getByTestId('landing-show-gyms'));
     expect(onShowGyms).toHaveBeenCalled();
+  });
+});
+
+describe('SPEC-025 · Karte für eingeloggte Nutzer (AC-11, AC-12, AC-13)', () => {
+  const roleInfo = {
+    isPlatformAdmin: true,
+    canAccessSetterStudio: true,
+    canAccessAdminConsole: true,
+    adminGymIds: ['gym-6a-plus'],
+    setterGymIds: ['gym-6a-plus'],
+  } as any;
+
+  const baseHeaderProps = {
+    currentUser: { id: 'user-boris', nickname: 'Boris', role: 'admin' as const, isPlatformAdmin: true },
+    gyms: [{ id: 'gym-6a-plus', name: '6a plus Winterthur' }] as any,
+    activeGymId: 'gym-6a-plus',
+    onSelectGym: vi.fn(),
+    climberId: 'user-boris',
+    selectableClimbers: [{ id: 'user-boris', nickname: 'Boris' }],
+    onSelectClimber: vi.fn(),
+    activeTab: 'wall' as const,
+    onSelectTab: vi.fn(),
+    roleInfo,
+    isLoggedIn: true,
+    onOpenRoleGateway: vi.fn(),
+    onOpenLoginModal: vi.fn(),
+    onSwitchToClimber: vi.fn(),
+    onOpenGymFinder: vi.fn(),
+  };
+
+  it('Kletterer-Kopfleiste zeigt Hallen-Umschalter (auch bei gyms=[]) und «Karte»-Pill (AC-11)', () => {
+    const onOpenGymFinder = vi.fn();
+    render(<AppHeader {...baseHeaderProps} appMode="climber" gyms={[]} activeGymId="" onOpenGymFinder={onOpenGymFinder} />);
+    expect(screen.getByTestId('header-gym-select')).toHaveTextContent('Halle wählen');
+    expect(screen.getByTestId('header-map-btn')).toHaveTextContent('Karte');
+    fireEvent.click(screen.getByTestId('header-gym-select'));
+    fireEvent.click(screen.getByTestId('header-map-btn'));
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(2);
+  });
+
+  it('Admin- und Schrauber-Kopfleiste sowie AdminGymSheet bieten «Karte»-Einstieg (AC-13)', () => {
+    const onOpenGymFinder = vi.fn();
+    const { rerender } = render(<AppHeader {...baseHeaderProps} appMode="admin" onOpenGymFinder={onOpenGymFinder} />);
+    fireEvent.click(screen.getByTestId('admin-map-btn'));
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(1);
+
+    rerender(<AppHeader {...baseHeaderProps} appMode="setter" onOpenGymFinder={onOpenGymFinder} />);
+    fireEvent.click(screen.getByTestId('studio-map-btn'));
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(2);
+
+    const onCloseSheet = vi.fn();
+    render(
+      <AdminGymSheet
+        open
+        gyms={[{ id: 'gym-6a-plus', name: '6a plus Winterthur', city: 'Winterthur' }] as any}
+        activeGymId="gym-6a-plus"
+        userId="user-boris"
+        isPlatformAdmin
+        onSelectGym={vi.fn()}
+        onClose={onCloseSheet}
+        onOpenGymFinder={onOpenGymFinder}
+      />
+    );
+    fireEvent.click(screen.getByTestId('admin-open-gym-map'));
+    expect(onCloseSheet).toHaveBeenCalled();
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(3);
+  });
+
+  it('«Ich» und «Einstellungen» zeigen «Hallen-Karte» und öffnen das Kartenblatt (AC-12)', () => {
+    const onOpenGymFinder = vi.fn();
+    render(
+      <MeView
+        currentUser={{ id: 'hans-kletterer', nickname: 'Hans', role: 'member', isPlatformAdmin: false }}
+        activeGymId="gym-6a-plus"
+        roleInfo={{ isPlatformAdmin: false, canAccessSetterStudio: false, canAccessAdminConsole: false, adminGymIds: [], setterGymIds: [] } as any}
+        onSwitchMode={vi.fn()}
+        onLogout={vi.fn()}
+        onOpenGymFinder={onOpenGymFinder}
+      />
+    );
+    fireEvent.click(screen.getByTestId('me-open-gym-map'));
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('open-settings-btn'));
+    fireEvent.click(screen.getByTestId('settings-open-gym-map'));
+    expect(onOpenGymFinder).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('settings-view')).not.toBeInTheDocument();
   });
 });
 

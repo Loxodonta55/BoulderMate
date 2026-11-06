@@ -1,16 +1,15 @@
 # SPEC-025: Halle suchen – Karte aller teilnehmenden Hallen
 
-## Status: IN PROGRESS (umgesetzt 2026-10-08, uncommitted; Admin-Einbindung mit SPEC-023 erledigt: Tab «Halle»)
+## Status: IMPLEMENTED (v4 nach 3 FeatureDefinition-Loops am 2026-10-30: Karte auch eingeloggt überall sichtbar & erreichbar)
 
-> **Owner:** Hans · **Created:** 2026-10-08 · **Baut auf:** SPEC-001 (Hallen-Verwaltung), SPEC-020 (Design System «Kreide»), SPEC-022 (Kletterer-UX, F2: Halle nur im Header wählen)
+> **Owner:** Hans · **Created:** 2026-10-08 · **Updated:** 2026-10-30 · **Baut auf:** SPEC-001 (Hallen-Verwaltung), SPEC-020 (Design System «Kreide»), SPEC-022 (Kletterer-UX), SPEC-053 («Noch nicht dabei»)
+> **Feedback-Runden (Update 2026-10-30):** `docs/feedback-runden/2026-10-30-karte-eingeloggt/` (Grill-me + 3 Runden à 30 Personen)
 >
-> Geplant nach der Grill-me-Methode. Hans hat F1–F8 am 2026-10-08 beantwortet. F9–F12 hat er nicht einzeln beantwortet; dort gilt die Empfehlung.
-
-> **Zusammenhang mit SPEC-023 (Admin-UX):** Die Admin-Konsole wird parallel umgebaut. `GymManagement.tsx`, `SectorManager.tsx` und `GradeScaleConfig.tsx` gehören diesem Umbau und wurden hier **nicht** geändert. Der Standort-Editor ist deshalb eine eigenständige Komponente `GymLocationEditor` (Props `gymId`, `userId`, `onSaved?`), die SPEC-023 in die neue Admin-Konsole einhängt. Im `AppHeader` gilt das Karten-Sheet nur für den Kletterer-Header; im Admin-Header öffnet der Hallenname laut SPEC-023 ein eigenes Sheet ohne Karte.
+> Geplant nach der Grill-me-Methode. Hans hat F1–F8 am 2026-10-08 beantwortet. Am 2026-10-30 erweitert (F4 / AC-11 bis AC-14): Die Hallen-Karte ist auch im **eingeloggten Zustand** jederzeit klar als «Karte» erkennbar und aus jedem Bereich (Kletterer-Header, «Ich», «Einstellungen», Admin-Konsole und Schrauber-Studio) direkt erreichbar.
 
 ---
 
-## 1. Ausgangslage (Code-Stand 2026-10-08)
+## 1. Ausgangslage (Code-Stand 2026-10-08 & 2026-10-30)
 
 | # | Befund | Wo |
 |---|---|---|
@@ -19,6 +18,7 @@
 | A3 | `gyms` ist öffentlich lesbar (`Public read gyms`). Eine Karte braucht also keine neue Leserechte-Regel. | `supabase/schema.sql` |
 | A4 | Es gibt **keine Kartenbibliothek** im Projekt (nur React, Supabase, lucide-react). | `package.json` |
 | A5 | Es gibt kein Merkmal «macht mit». Jede Zeile in `gyms` erscheint heute im Dropdown, auch Testhallen. | `gyms` |
+| A6 | **Nach Login (2026-10-30):** Eingeloggte Nutzer erkennen den Hallennamen im Header (`6a plus … ▾`) nicht als Karte; im Admin- und Schrauber-Modus war `GymFinderSheet` durch `appMode === 'climber'` komplett blockiert; unter «Ich» und «Einstellungen» fehlte oben ein direkter Karten-Einstieg. | `AppHeader`, `App.tsx`, `AdminGymSheet`, `MeView` |
 
 ---
 
@@ -37,9 +37,19 @@
 *Alternativen:* Google Maps (bekannte Optik, aber Schlüssel, Abrechnungskonto und Cookie-Hinweis nötig); MapLibre mit Vektorkacheln (schöner, aber größer und braucht einen Kachel-Anbieter).
 *Hinweis Datenschutz:* Beim Laden der Kacheln sieht der Kachel-Server die IP-Adresse. Das gehört in die Datenschutzerklärung.
 
-**F4 – Wo findet der Kletterer die Karte?**
-✔ *Entschieden (Hans, 2026-10-08), vorläufig wie empfohlen; kann sich nach Nutzer-Feedback ändern:* Tippen auf den Hallennamen im Header (`Hallenname ▾`) öffnet statt des Dropdowns ein Sheet **«Halle wählen»**: oben die Karte (ca. 45 % der Höhe), darunter die Liste der Hallen. Es kommt **kein** neuer Tab dazu.
-*Warum:* SPEC-022 F2 legt fest, dass die Halle nur im Header gewählt wird. Ein Ort pro Funktion; die Bottom-Nav bleibt bei zwei Tabs.
+**F4 – Wo findet der Kletterer die Karte (insbesondere wenn bereits eingeloggt)?**
+✔ *Entschieden (Hans, 2026-10-08 & Update 2026-10-30 nach 3 FeatureDefinition-Loops):*
+1. **Kletterer-Header (`AppHeader`):**
+   - Tippen auf den Hallennamen im Header (`header-gym-select`, mit vorangestelltem `MapPin`-Symbol, immer sichtbar auch wenn `gyms` leer ist) öffnet das Sheet **«Halle wählen»** (Karte oben + Liste unten).
+   - Zusätzlich steht im Kletterer-Header ein klar erkennbarer, kompakter Knopf **«Karte»** (`header-map-btn`, `MapPin`-Icon + Text «Karte» / «Map»), der ebenfalls das Sheet «Halle wählen» öffnet.
+2. **Bereich «Ich» & «Einstellungen» (`MeView`):**
+   - Oben in «Ich» direkt unter dem Umschalter «Diese Halle / Alle Hallen» (`me-scope`) steht der Knopf **«Hallen-Karte»** (`me-open-gym-map`), der sofort die Hallen-Karte öffnet.
+   - In «Ich → Einstellungen» (`settings-view`) gibt es eine eigene Zeile **«Hallen-Karte»** (`settings-open-gym-map`), die die Einstellungs-Unterseite schließt und die Karte öffnet.
+3. **Admin-Konsole & Schrauber-Studio (`AppHeader`, `AdminGymSheet`, `App.tsx`):**
+   - `GymFinderSheet` ist in **allen** App-Modi (`climber`, `admin`, `setter`) öffenbar (keine Sperre `appMode === 'climber'` mehr).
+   - Im Admin-Header (`admin-map-btn`), im Admin-Hallen-Sheet (`admin-open-gym-map`: «Alle Hallen auf der Karte») und im Schrauber-Studio-Header (`studio-map-btn`) gibt es je einen direkten Knopf zur Hallen-Karte.
+   - Schließt man die Karte mit `X`, bleibt man im aktuellen Modus (Admin/Studio/Ich); tippt man bei einer Halle auf **«Zur Wand»**, wechselt die App direkt in den Kletterer-Modus auf den Tab «Wand» der gewählten Halle.
+4. Es kommt **kein** vierter Tab in die untere Navigationsleiste (`MobileBottomNav`).
 
 **F5 – Dürfen Gäste (nicht angemeldet) die Karte sehen?**
 ✔ *Entschieden (Hans, 2026-10-08):* Ja. Zusätzlich bekommt die Landing Page einen Knopf **«Hallen ansehen»**, der dasselbe Sheet öffnet.
@@ -83,14 +93,19 @@ ALTER TABLE public.gyms
 
 Datei: `supabase/migrations/20261008_spec025_halle_suchen.sql` (Hans spielt sie im SQL-Editor ein; bis dahin schlägt nur das Speichern des Standorts nach Supabase still fehl, die App läuft weiter). Der Typ `Gym` (`src/types/boulder.ts`, `src/types/gym.ts`) hat `lat?` und `lng?`; `schema.sql` ist nachgezogen.
 
-**Umsetzung (2026-10-08):**
+**Umsetzung (2026-10-08 & 2026-10-30):**
 - `src/lib/gymFinder.ts`: Entfernung (Haversine), «3,2 km», Suche ohne Akzente, Sortierung, Navigations-Link (Apple Karten `https://maps.apple.com/?daddr=…` auf iPhone/iPad/Mac, sonst Google Maps `https://www.google.com/maps/dir/?api=1&destination=…`; ohne Koordinaten die Adresse), Adresssuche über Nominatim, Hallen-Einträge mit Boulder-Zahlen («neu» = `publishedAt` jünger als 7 Tage wie SPEC-021).
 - `src/components/GymMap.tsx`: Leaflet 1.9 mit OSM-Kacheln, große Pins (44/52 px), Fallback «Karte nicht verfügbar», Admin-Modus mit verschiebbarem Pin.
-- `src/components/GymFinderSheet.tsx`: Sheet «Halle wählen». «In meiner Nähe» liegt als Knopf oben rechts auf der Karte (neben dem Suchfeld war auf dem Handy zu wenig Platz).
+- `src/components/GymFinderSheet.tsx`: Sheet «Halle wählen». «In meiner Nähe» liegt als Knopf oben rechts auf der Karte (neben dem Suchfeld war auf dem Handy zu wenig Platz). Alle Texte laufen über `t()`.
 - `src/components/GymLocationEditor.tsx`: Standort-Editor für SPEC-023.
 - `src/lib/gymStorage.ts`: `updateGymLocation()` (nur Hallen-Admin/Plattform-Admin) und ungefähre Startkoordinaten für die Seed-Hallen 6a plus und Minimum (`SEED_GYM_LOCATIONS`), die ein Admin per «Adresse suchen» korrigiert.
 - `src/lib/syncService.ts`: liest `lat`/`lng` aus Supabase und schreibt sie beim Speichern zurück (`syncGymLocationToSupabase`).
-- `AppHeader`: Der Hallenname im Kletterer-Header ist ein Knopf (`header-gym-select`), der das Sheet öffnet. Die Landing Page hat «Hallen ansehen»; Gäste landen nach «Zur Wand» in der Anmeldung, angemeldete Nutzer (Landing über das Logo, SPEC-011 AC-8) direkt an der Wand.
+- `AppHeader` & `AdminGymSheet` & `MeView` & `App.tsx`:
+  - Kletterer-Header hat `header-gym-select` (mit `MapPin`) und `header-map-btn` («Karte»).
+  - Admin-Header hat `admin-map-btn` und in `AdminGymSheet` den Knopf `admin-open-gym-map` («Alle Hallen auf der Karte»).
+  - Studio-Header hat `studio-map-btn`.
+  - «Ich» hat oben unter dem Hallen-Umschalter `me-open-gym-map` («Hallen-Karte») und unter «Einstellungen» die Zeile `settings-open-gym-map`.
+  - Die Landing Page hat «Hallen ansehen»; Gäste landen nach «Zur Wand» in der Anmeldung, angemeldete Nutzer direkt an der Wand.
 - Neue Abhängigkeiten: `leaflet`, `@types/leaflet` (nach dem Holen einmal `npm install`).
 
 ## 4. Akzeptanzkriterien
@@ -105,25 +120,39 @@ Datei: `supabase/migrations/20261008_spec025_halle_suchen.sql` (Hans spielt sie 
 - **AC-8** Admin-Konsole, Hallen-Stammdaten: Adresse suchen (`gym-geocode-btn`), Pin auf einer kleinen Karte verschieben (`gym-location-map`), Koordinaten speichern (`gym-location-save`). Nur Hallen-Admin und Plattform-Admin dürfen speichern. Komponente: `GymLocationEditor` (`gym-location-editor`), eingehängt im Admin-Tab «Halle» (`admin-tab-gym`, SPEC-023).
 - **AC-9** Laden die Kacheln nicht, zeigt die Karte «Karte nicht verfügbar»; die Liste funktioniert weiter.
 - **AC-10** Quellenangabe «© OpenStreetMap» ist sichtbar.
+- **AC-11 (Eingeloggt – Header):** Im Kletterer-Header trägt `header-gym-select` ein `MapPin`-Symbol (auch sichtbar, wenn `gyms` leer ist), und zusätzlich öffnet der Knopf `header-map-btn` («Karte» / «Map») das Sheet `gym-finder-sheet`.
+- **AC-12 (Eingeloggt – «Ich» & «Einstellungen»):** Oben in «Ich» unter dem Hallen-Umschalter öffnet `me-open-gym-map` («Hallen-Karte») das Sheet `gym-finder-sheet`; in «Ich → Einstellungen» öffnet `settings-open-gym-map` («Hallen-Karte») ebenfalls das Sheet.
+- **AC-13 (Eingeloggt – Admin & Schrauber-Studio):** `GymFinderSheet` lässt sich auch im Admin- und Schrauber-Modus über `admin-map-btn`, `admin-open-gym-map` (im `AdminGymSheet`) und `studio-map-btn` öffnen. Schließen (`X`) behält den aktuellen Arbeitsbereich bei; «Zur Wand» (`gym-card-select`) wechselt zur gewählten Halle in die Kletterer-Wand (`appMode = 'climber'`, `activeTab = 'wall'`).
+- **AC-14 (Zweisprachigkeit DE/EN):** Alle Texte in `GymFinderSheet`, `GymMap` und den neuen Karten-Einstiegen laufen über `t()` und sind auf Englisch übersetzt.
 
 ## 5. Tests (CONSTITUTION §13)
 
 **Unit (Vitest)**
 - `tests/spec025GymFinder.utils.test.ts`: Entfernung Winterthur–Zürich, Formatierung («850 m», «3,2 km», «24 km»), Suche ohne Akzente, Sortierung nach Name/Entfernung, Koordinaten-Prüfung, Navigations-Links (Google/Apple, mit/ohne Koordinaten), Nominatim (Treffer, kein Treffer, HTTP-Fehler), Seed-Koordinaten, `updateGymLocation` nur für Admins, jede Halle steht in der Liste (F1).
-- `tests/spec025GymFinderSheet.test.tsx`: Sheet mit Liste und (gemockter) Karte, Pins nur mit Koordinaten, Hervorhebung, Pin → Hallen-Karte → «Zur Wand», «n neu», «In meiner Nähe» mit und ohne Erlaubnis, Suche, Landing-Knopf, `GymLocationEditor` (suchen → speichern, nicht gefunden, Kletterer dürfen nicht speichern), Ortsangabe ohne Doppelung.
+- `tests/spec025GymFinderSheet.test.tsx`: Sheet mit Liste und (gemockter) Karte, Pins nur mit Koordinaten, Hervorhebung, Pin → Hallen-Karte → «Zur Wand», «n neu», «In meiner Nähe» mit und ohne Erlaubnis, Suche, Landing-Knopf, `GymLocationEditor` (suchen → speichern, nicht gefunden, Kletterer dürfen nicht speichern), Ortsangabe ohne Doppelung, sowie die Einstiege für eingeloggte Nutzer (`header-map-btn`, `admin-map-btn`, `admin-open-gym-map`, `studio-map-btn`, `me-open-gym-map`, `settings-open-gym-map`) und EN-Übersetzung.
 
 **Playwright (`tests/e2e/gym-finder.spec.ts`, Desktop und Mobile Chrome)**
 - Kacheln und Nominatim werden per `route` lokal beantwortet, Supabase ist blockiert.
-- Hallenname → Sheet → 2 Pins → Pin → Hallen-Karte mit Navigations-Link → «Zur Wand» → Header zeigt Minimum.
+- Hallenname & Header-Kartenknopf (`header-map-btn`) → Sheet → 2 Pins → Pin → Hallen-Karte mit Navigations-Link → «Zur Wand» → Header zeigt Minimum.
+- Eingeloggt über «Ich» (`me-open-gym-map`), «Einstellungen» (`settings-open-gym-map`), Admin (`admin-open-gym-map` / `admin-map-btn`) und Schrauber-Studio (`studio-map-btn`) Karte öffnen.
 - «In meiner Nähe» mit `setGeolocation` (Winterthur) → 6a plus zuerst, km-Angabe, eigener Standort auf der Karte.
 - Suche «zür» → nur Minimum, 1 Pin.
 - Kacheln schlagen fehl → «Karte nicht verfügbar», Liste funktioniert.
 - Gast: Landing «Hallen ansehen» → Karte → «Zur Wand» → Anmeldung.
 - Admin: Adresse suchen → speichern → Navigations-Link mit neuen Koordinaten. Aktiv seit SPEC-023 (Weg: Bereich «Hallen-Administration» → Hallenname ▾ → 6a plus → Tab «Halle»).
 
-Stand 2026-10-08: `npm test` 394 grün, Playwright (Desktop + Mobile Chrome) 67 grün, 3 übersprungen. Mobile Safari wurde nicht getestet.
-
 ## 6. Nicht Teil dieser Spec
 - Öffnungszeiten, Eintrittspreise, Auslastung der Halle.
 - Hallen selbst eintragen lassen (Registrierung neuer Hallen durch Fremde).
 - Offline-Karten.
+
+## 7. FeatureDefinition-Verlauf (Update 2026-10-30: Karte im eingeloggten Zustand)
+
+| Loop | Datum | Top-Kritik | Änderungen (→ Version) | Verworfen (Grund) |
+|---|---|---|---|---|
+| 0 | 2026-10-30 | – | Grill-me G1–G7, Empfehlungen übernommen (→ v1) | – |
+| 1 | 2026-10-30 | **hoch:** Hallenname im Header wird nicht als Karte erkannt; **hoch:** Karte im Admin-/Studio-Modus blockiert (`appMode === 'climber'`); mittel: unter «Ich»/«Einstellungen» versteckt, EN-Übersetzung im Karten-Sheet unvollständig | `MapPin` in `header-gym-select` + expliziter Knopf `header-map-btn` («Karte»); Sperre in `App.tsx` entfernt; `admin-open-gym-map`, `admin-map-btn`, `studio-map-btn`; `me-open-gym-map` oben in «Ich» und `settings-open-gym-map` in «Einstellungen»; `t()` für alle Texte in `GymFinderSheet`/`GymMap` (→ v2) | 4. Tab in `MobileBottomNav` (überlädt); schwebendes Banner über Wandfoto |
+| 2 | 2026-10-30 | mittel: Schließen (`X`) der Karte in Admin/Studio darf Arbeitsbereich nicht verlassen; mittel: Platz auf 360–375 px im Header; niedrig: Zeilen-Details auf Englisch | Nur «Zur Wand» wechselt auf `climber`/`wall`, `X` behält Modus; kompakte Header-Abstimmung; ` · gewählt`, `Ort fehlt`, `{n} neu` auf Englisch (→ v3) | Automatisches Verlassen des Admin-Modus schon beim Öffnen der Karte |
+| 3 | 2026-10-30 | niedrig: `settings-open-gym-map` soll Einstellungs-Unterseite direkt schließen | `setIsSettingsOpen(false)` beim Öffnen der Karte aus Einstellungen (→ v4 READY) | – |
+
+**Abbruch nach Loop 3:** keine Kritik «hoch» oder «mittel» mehr → Status **READY** / **IMPLEMENTED**.

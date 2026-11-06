@@ -10,6 +10,7 @@ import {
   wishCountLabel,
 } from '../../lib/hallenVerzeichnis';
 import { copyText } from './HalleRedenSheet';
+import { HallenNutzen } from './HallenNutzen';
 import { showToast } from '../ui/Toast';
 import { t } from '../../lib/i18n';
 
@@ -90,11 +91,8 @@ export const FuerHallenPage: React.FC<FuerHallenPageProps> = ({ halleId, refCode
           )}
         </header>
 
-        <ul className="space-y-2 text-[18px] list-disc pl-6">
-          <li>{t('Routen mit Foto an der Wand – immer aktuell')}</li>
-          <li>{t('Kletterer loggen und bewerten eure Routen')}</li>
-          <li>{t('Schrauber sehen, wie ihre Routen ankommen')}</li>
-        </ul>
+        {/* SPEC-053 F10: Nutzen für die Halle + «Foto von der Wand» */}
+        <HallenNutzen />
 
         {refCode && (
           <p className="rounded-xl bg-[var(--bm-elevated)] p-4 text-[17px]" data-testid="fuer-hallen-ref-note">

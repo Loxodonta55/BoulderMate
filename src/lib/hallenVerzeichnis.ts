@@ -74,7 +74,18 @@ export const LOCAL_VERZEICHNIS_SEED: Array<VerzeichnisHalle & { demoWuensche?: n
 ];
 
 function remoteDirectory(): boolean {
-  return Boolean(supabase && isSupabaseConfigured && !isTestEnv && !(import.meta as any).env?.DEV);
+  return Boolean(supabase && isSupabaseConfigured && !isTestEnv);
+}
+
+function isDevBuild(): boolean {
+  return Boolean((import.meta as any).env?.DEV);
+}
+
+function localWishCounts(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const s of LOCAL_VERZEICHNIS_SEED) if (s.demoWuensche) out[s.id] = s.demoWuensche;
+  for (const w of readLocalWishes()) out[w.verzeichnisId] = (out[w.verzeichnisId] || 0) + 1;
+  return out;
 }
 
 function rowToHalle(r: any): VerzeichnisHalle {
@@ -109,7 +120,10 @@ export async function loadDirectory(): Promise<VerzeichnisHalle[]> {
     setStorageJson(DIRECTORY_CACHE_KEY, rows);
     return rows;
   } catch {
-    return getStorageJson<VerzeichnisHalle[]>(DIRECTORY_CACHE_KEY, []);
+    const cached = getStorageJson<VerzeichnisHalle[]>(DIRECTORY_CACHE_KEY, []);
+    // Entwicklung ohne erreichbares Supabase (z. B. Playwright): Beispiel-Hallen statt leerer Liste
+    if (!cached.length && isDevBuild()) return LOCAL_VERZEICHNIS_SEED.map(({ demoWuensche: _d, ...h }) => h);
+    return cached;
   }
 }
 
@@ -195,13 +209,10 @@ export async function loadWishCounts(): Promise<Record<string, number>> {
       for (const r of (data || []) as Array<{ verzeichnis_id: string; anzahl: number }>) out[r.verzeichnis_id] = r.anzahl;
       return out;
     } catch {
-      return {};
+      return isDevBuild() ? localWishCounts() : {};
     }
   }
-  const out: Record<string, number> = {};
-  for (const s of LOCAL_VERZEICHNIS_SEED) if (s.demoWuensche) out[s.id] = s.demoWuensche;
-  for (const w of readLocalWishes()) out[w.verzeichnisId] = (out[w.verzeichnisId] || 0) + 1;
-  return out;
+  return localWishCounts();
 }
 
 export async function loadMyWishes(userId: string | null | undefined): Promise<string[]> {
@@ -396,11 +407,15 @@ export function buildHallenLink(verzeichnisId: string, code?: string | null, bas
   return url.toString();
 }
 
+/** SPEC-053 F10: ein Satz zur einfachen Routen-Erfassung (SPEC-052), auch für Partner-Texte (SPEC-054) */
+export const routenFotoSatz = () => t('Routen erfasst ihr ganz einfach mit einem Foto der Wand.');
+
 export function buildShareText(opts: { wishCount: number; link: string }): string {
   const parts = [
     t('Hallo zusammen! Ich klettere gern bei euch und würde mich freuen, wenn ihr eure Routen in BoulderMate zeigt.'),
   ];
   if (opts.wishCount >= WUNSCH_ZAHL_AB) parts.push(t('{n} Kletterer wünschen sich das schon.', { n: opts.wishCount }));
+  parts.push(routenFotoSatz());
   parts.push(t('Infos für euch: {link}', { link: opts.link }));
   return parts.join(' ');
 }

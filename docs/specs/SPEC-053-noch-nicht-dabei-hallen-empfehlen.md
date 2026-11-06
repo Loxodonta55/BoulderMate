@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | **IMPLEMENTED** (Migration offen, Betrag der Einführungsgebühr offen, Rechtstexte vor Start prüfen lassen) |
-| Version | v4 (nach 3 FeatureDefinition-Loops) |
+| Version | v5 (nach 3 FeatureDefinition-Loops; v5 2026-10-30: F10 «Warum BoulderMate für eure Halle») |
 | Auftraggeber | Hans |
 | Datum | 2026-10-29 |
 | Hängt ab von | SPEC-025 (Halle suchen), Verzeichnis-Daten aus Thread «Kletterhallen Deutschschweiz erfassen» |
@@ -47,13 +47,14 @@ Mehr Nutzer und mehr Hallen. Kletterer finden in «Halle wählen» **alle Hallen
 ### F3 · «Mit der Halle reden»
 - Überschrift «Mit der Halle reden», direkt darunter der Kasten **«Dankeschön»**: «Eine Stufe, kein Schneeballsystem: Du bekommst nur etwas für die Halle, die du selbst vermittelst.» Betrag: ist `EINFUEHRUNGSGEBUEHR_CHF` gesetzt, «Dein Dankeschön: CHF X (30 %)», sonst «30 % der Einführungsgebühr (Betrag folgt)». Link «Teilnahmebedingungen» (`/empfehlungsprogramm.html`).
 - 3 Tipps: «Einmal freundlich fragen reicht.» · «Am besten an die Hallenleitung, nicht ans Thekenteam.» · «Je mehr Wünsche, desto stärker das Argument.»
-- **Fertiger Text** (per Du, 3 Sätze + Link), z. B.: «Hallo zusammen! Ich klettere gern bei euch und würde mich freuen, wenn ihr eure Routen in BoulderMate zeigt. 12 Kletterer wünschen sich das schon. Infos für euch: https://bouldermate.ch/?halle=…&ref=BM-…». Die Wunsch-Zahl erscheint erst ab 3.
+- **Fertiger Text** (per Du, 3 Sätze + Link), z. B.: «Hallo zusammen! Ich klettere gern bei euch und würde mich freuen, wenn ihr eure Routen in BoulderMate zeigt. 12 Kletterer wünschen sich das schon. Routen erfasst ihr ganz einfach mit einem Foto der Wand. Infos für euch: https://bouldermate.ch/?halle=…&ref=BM-…». Die Wunsch-Zahl erscheint erst ab 3.
+- Aufklappbar **«Das kannst du der Halle sagen»**: die Kurzfassung von F10 (nur Titel der 3 Gründe und der 3 Schritte), damit der Kletterer im Gespräch Argumente hat.
 - Knöpfe: **«Text teilen»** (Teilen-Menü des Geräts, sonst kopieren), **«Kopieren»**, **«QR an der Theke zeigen»** (Vollbild, weißer Grund, Ruhezone 4 Module, ≥ 260 px, Text «Scannen für die Hallenleitung»), «E-Mail an die Halle» wenn das Verzeichnis eine allgemeine Hallen-Adresse hat.
 - **Code:** Ohne Code funktioniert alles, nur ohne Dankeschön. Kasten «Dankeschön sichern»: Haken «Ich bin mindestens 18 Jahre alt und akzeptiere die Teilnahmebedingungen» → «Code erstellen». Danach steht der Code groß und gesperrt im Blatt und im Link. Gäste: «Anmelden, um ein Dankeschön zu bekommen».
 - BoulderMate schreibt die Halle nie selbst an; der Nutzer sendet.
 
 ### F4 · Seite «Für Hallen» (Link `?halle=<id>&ref=<code>`)
-- Öffnet ohne Login eine Seite über der App: Hallenname, Wunsch-Zahl (ab 3), 3 Punkte, was BoulderMate kann (Routen mit Foto an der Wand · Kletterer loggen und bewerten · Schrauber sehen, wie Routen ankommen).
+- Öffnet ohne Login eine Seite über der App: Hallenname, Wunsch-Zahl (ab 3), darunter F10 in voller Länge (Gründe für die Halle + «So einfach: Foto von der Wand»).
 - Offener Satz: «Diese Empfehlung kommt von einem eurer Kletterer. Er oder sie bekommt von BoulderMate ein Dankeschön; euch kostet das nichts extra.» (nur wenn `ref` gesetzt ist)
 - Kontakt: Adresse groß mit **Kopieren**, Empfehlungscode groß mit **Kopieren**, Knopf «E-Mail schreiben» (mailto mit Hallenname und Code vorausgefüllt).
 - Knopf **«Demo: 6a plus Zürich»** (schließt die Seite und wählt 6a plus: angemeldet direkt die Wand, als Gast die Hallen-Karte mit 6a plus).
@@ -85,8 +86,23 @@ Eigene Seite DE/EN: ab 18; ausgeschlossen sind Personen, die selbst über den Ve
 - `hallen_empfehlungen` (id, verzeichnis_id, user_id, code, status in `im_gespraech|registriert|bezahlt|ausgezahlt`, betrag_chf, notiz, created_at, updated_at). Nutzer liest eigene; schreiben nur Plattform-Admin.
 - Ohne Supabase (Tests, Test-Personen, Entwicklung): lokale Beispiel-Hallen und localStorage.
 
-### F9 · Einstieg
-Über den bestehenden Knopf «Hallen ansehen» auf der Startseite und den Hallennamen im Kopf. Keine neue Kachel, kein Banner (Startseite bleibt ein Screen, SPEC-020 AC-9.1; Hans: nie nerven).
+### F9 · Einstieg (Gast & Eingeloggt)
+- **Nicht eingeloggt (Gast):** Über den Knopf «Hallen ansehen» auf der Startseite.
+- **Bereits eingeloggt:** Über den Hallennamen (`header-gym-select` mit `MapPin`-Icon) und den expliziten Knopf «Karte» (`header-map-btn`) im Kletterer-Header, über den Knopf «Hallen-Karte» (`me-open-gym-map`) oben in «Ich» (direkt unter dem Hallen-Umschalter), über die Zeile «Hallen-Karte» (`settings-open-gym-map`) in den Einstellungen sowie aus dem Admin- und Schrauber-Bereich (`admin-map-btn`, `admin-open-gym-map`, `studio-map-btn`). Kein schwebendes Banner auf der Wand (Startseite bleibt ein Screen, SPEC-020 AC-9.1; Hans: nie nerven).
+
+### F10 · «Warum BoulderMate für eure Halle?» (Hans, 2026-10-30)
+Wer eine Halle anspricht, braucht eine kurze Erklärung, warum es sich für die Halle lohnt und wie wenig Arbeit die Routen machen. Ein Baustein `src/components/hallen/HallenNutzen.tsx`, Inhalte nur dort pflegen; wiederverwendet von SPEC-054 (Partner-Seite, Partner-Kit).
+- **Gründe für die Halle** (Symbol + Titel + ein Satz):
+  1. «Kletterer kommen öfter wieder» – «Sie sehen sofort, was neu an der Wand ist, haben Projekte und kleine Challenges.»
+  2. «Ihr wisst, wie eure Routen ankommen» – «Sterne, «zu leicht / passt / zu hart» und Tops pro Route – für Schrauber und Hallenleitung.»
+  3. «Eure Halle wird gefunden» – «Auf der BoulderMate-Karte mit allen aktuellen Routen. Für Kletterer kostenlos.»
+- **Kasten «So einfach: Foto von der Wand»** (nummerierte schwarze Felder, Rahmen):
+  1. «Foto von der Wand» – «Mit dem Handy, ein Foto pro Sektor. Beim Umschrauben einfach ein neues.»
+  2. «BoulderMate erkennt die Routen» – «Farbe oder Tape, Grad und Lage auf dem Foto – kein Abtippen Route für Route.»
+  3. «Kurz prüfen, veröffentlichen» – «Eure Schrauber haben das letzte Wort und korrigieren, wo nötig.»
+- Varianten: `voll` (Seite «Für Hallen», Partner-Seite) und `kurz` (nur Titel, im Blatt «Mit der Halle reden»).
+- Ein Satz für Teilen-Texte: `routenFotoSatz()` / `ROUTEN_FOTO_SATZ` = «Routen erfasst ihr ganz einfach mit einem Foto der Wand.» – steht im fertigen Text von F3 vor dem Link.
+- Aussagen zur Erkennung entsprechen SPEC-052: keine Prozentzahl versprechen, der Schrauber prüft immer.
 
 ## 5. Nicht in diesem Feature (verworfen oder später)
 Instagram-Bild; Italienisch/Französisch; Romandie/Tessin-Daten; Barrierefreiheit der Hallen; Klick-Zähler für geteilte Links (Datenschutz); Status «Halle hat abgelehnt»; laufende Provision; Mehrstufen-Empfehlungen; A6-PDF; Push oder Banner auf der Wand; eigene Admin-Ansicht für Empfehlungen.
@@ -103,12 +119,14 @@ Instagram-Bild; Italienisch/Französisch; Romandie/Tessin-Daten; Barrierefreihei
 - AC-9: «Ich» zeigt «Halle empfehlen» mit Code bzw. leerem Zustand und Liste «Gewünscht».
 - AC-10: Ausgeblendete, unsichere, koordinatenlose und bereits aktive Verzeichnis-Einträge erscheinen nicht.
 - AC-11: Alle Texte über `t()`, Englisch vorhanden.
+- AC-12: Seite «Für Hallen» zeigt die 3 Gründe und die 3 Schritte «Foto von der Wand»; «Mit der Halle reden» zeigt sie aufklappbar als Kurzfassung; der fertige Text enthält den Foto-Satz vor dem Link.
 
 ## 7. Tests
 - Unit: `tests/spec053HallenVerzeichnis.test.ts` (Filter, Dubletten, Sortierung, Code, Text, Link, Wünsche, Schalter), `tests/spec053NochNichtDabei.test.tsx` (Sheet, Blatt, Reden, Für-Hallen-Seite, Ich-Abschnitt).
 - E2E: `tests/e2e/spec053-noch-nicht-dabei.spec.ts`; `tests/e2e/gym-finder.spec.ts` zählt nur noch aktive Pins.
 - Stand 2026-10-29: 30 Unit-Tests und 20 E2E-Läufe (Desktop + Mobile Chrome) grün; Gesamtlauf Vitest 918/920 (die 2 roten SPEC-045-Tests prüfen android/ios-Dateien, die im Test-Container fehlten).
-- Ohne Supabase (Tests, `npm run dev`) zeigt die App Beispiel-Hallen mit «(Beispiel)» im Namen; im Live-Build nur die Tabelle.
+- Ohne Supabase (Tests) zeigt die App Beispiel-Hallen mit «(Beispiel)» im Namen. In der Entwicklung (`npm run dev`) wird die Tabelle geladen; ist Supabase nicht erreichbar und kein Zwischenstand gespeichert, kommen die Beispiel-Hallen (sonst wären die E2E-Tests leer). Im Live-Build nur die Tabelle.
+- Stand 2026-10-30 (F10): 28 E2E-Läufe (spec053, gym-finder, spec054; Desktop + Mobile Chrome) grün; Vitest 946/948 (dieselben 2 SPEC-045-Tests).
 
 ## 8. Aufgaben für Hans
 1. Migration `20261029_spec053_hallen_verzeichnis.sql` im Supabase-SQL-Editor ausführen, danach die Seed-Datei aus dem Verzeichnis-Thread.
@@ -124,5 +142,6 @@ Instagram-Bild; Italienisch/Französisch; Romandie/Tessin-Daten; Barrierefreihei
 | 1 | 2026-10-29 | **hoch:** Kunden bearbeiten Thekenpersonal für Geld; **hoch:** wirkt wie Schneeballsystem, Halle muss es wissen; mittel: graue Pins verdecken aktive, Hellgrau unlesbar, Nähe-Sortierung, Betrag fehlt, Link braucht Hallen-Seite, nach Wunsch passiert nichts | Tipps «einmal, an die Leitung»; «Dankeschön» statt Provision, «eine Stufe»; offener Satz auf der Hallen-Seite; Schalter «Nur aktive», aktive Pins obenauf; weiß-gestrichelte Pins; gemischte Liste mit Standort; Betrag konfigurierbar; Seite «Für Hallen»; «Du bist Nummer n»; Code zufällig/vorlesbar; Code erst ab 18; QR statt A6-PDF; Teilnahmebedingungen (→ v2) | Italienisch/Französisch, Barrierefreiheit, Instagram-Bild |
 | 2 | 2026-10-29 | **hoch:** Halle darf nie als «abgelehnt» erscheinen; mittel: 4 gleich große Knöpfe, Zahl 1–2 traurig, mailto am Hallen-PC, Schalter merken | kein Status «abgelehnt», ausgeblendet = keine Wünsche; Haupt-/Zweitknopf + Textlinks; Zahl ab 3; Kopier-Knöpfe; Schalter in localStorage; «Betrag folgt»; Satz oben; QR weiß mit Rand; Du-Text; leerer Zustand; Admin-Rangliste (→ v3) | Klick-Zähler (Tracking) |
 | 3 | 2026-10-29 | mittel: Suche trotz Schalter; sonst niedrig | Hinweis «+ n Hallen noch nicht dabei – zeigen»; «✓ Gewünscht»; «Demo: 6a plus Zürich»; Code löschen; eigene Bedingungen-Seite, «keine Steuerberatung» fett; Gast «Anmelden und wünschen» (→ v4) | – |
+| Nachtrag | 2026-10-30 | Hans: Kletterer brauchen eine Erklärung, warum es für die Halle cool ist und wie leicht die Erfassung ist («einfach Foto von der Wand») | F10 Baustein `HallenNutzen`, Foto-Satz im Teilen-Text, Kurzfassung im Reden-Blatt (→ v5). Kein neuer Loop: Inhalt kommt von Hans, Aussagen aus SPEC-052 übernommen | Prozentzahl der Erkennung (SPEC-052 erst ~83 %, nicht versprechen) |
 
 **Abbruch nach Loop 3:** keine Kritik «hoch» mehr, Änderungen in Loop 3 nur Feinschliff → Status **READY**, danach umgesetzt.

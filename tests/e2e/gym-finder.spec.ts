@@ -101,6 +101,41 @@ test.describe('SPEC-025: Halle suchen', () => {
     await expect(page.getByTestId('login-modal-close-btn')).toBeVisible();
   });
 
+  test('Eingeloggt: Karte über Header-Pill, «Ich», «Einstellungen» und Admin-Kopfleiste erreichbar (AC-11..AC-13)', async ({ page }) => {
+    await stubNetwork(page);
+    await page.goto('/');
+    await page.getByTestId('quick-login-boris').click();
+    await page.getByTestId('role-gateway-climber-btn').click();
+
+    // 1. Kletterer-Header «Karte»-Pill
+    await page.getByTestId('header-map-btn').click();
+    await expect(page.getByTestId('gym-finder-sheet')).toBeVisible();
+    await page.getByTestId('gym-finder-close').click();
+    await expect(page.getByTestId('gym-finder-sheet')).toHaveCount(0);
+
+    // 2. «Ich» -> «Hallen-Karte» und «Einstellungen» -> «Hallen-Karte»
+    const statsTab = page.getByTestId('tab-stats').or(page.getByTestId('mobile-tab-stats'));
+    await statsTab.first().click();
+    await page.getByTestId('me-open-gym-map').click();
+    await expect(page.getByTestId('gym-finder-sheet')).toBeVisible();
+    await page.getByTestId('gym-finder-close').click();
+
+    await page.getByTestId('open-settings-btn').click();
+    await page.getByTestId('settings-open-gym-map').click();
+    await expect(page.getByTestId('gym-finder-sheet')).toBeVisible();
+    await page.getByTestId('gym-finder-close').click();
+
+    // 3. Admin-Modus: «Karte»-Knopf öffnet Karte, «Zur Wand» wechselt zur Kletterer-Wand
+    await page.getByTestId('climber-switch-workspace-btn').click();
+    await page.getByTestId('role-gateway-admin-btn').click();
+    await page.getByTestId('admin-map-btn').click();
+    await expect(page.getByTestId('gym-finder-sheet')).toBeVisible();
+    await page.getByTestId('gym-row-gym-minimum-zh').click();
+    await page.getByTestId('gym-card-select').click();
+    await expect(page.getByTestId('climber-wall-view')).toBeVisible();
+    await expect(page.getByTestId('header-gym-select')).toContainText('Minimum');
+  });
+
   // Der Standort-Editor (GymLocationEditor) steht seit SPEC-023 im Admin-Tab «Halle».
   test('Admin: Adresse suchen → speichern → Pin erscheint an neuer Stelle', async ({ page }) => {
     await stubNetwork(page);

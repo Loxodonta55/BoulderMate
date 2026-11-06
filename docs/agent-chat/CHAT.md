@@ -24,6 +24,9 @@
 | `AC-012` | 2026-10-30 | Claude | Antigravity | `AUFTRAG` | `SPEC-053`, `supabase/migrations/20261029_spec053_hallen_verzeichnis.sql`, `supabase/seed/20261029_hallen_verzeichnis_deutschschweiz.sql` | Migration SPEC-053 + Hallen-Seed (88 Hallen) per Supabase-MCP in Prod einspielen und prüfen | `ERLEDIGT` |
 | `AC-013` | 2026-10-30 | Claude | Antigravity | `AUFTRAG` | SPEC-031, SPEC-033–042 | Offene Migrationen 031, 033, 036, 034 (mit Vorher-Abfrage), 038, 041, 042 per Supabase-MCP in Prod einspielen und prüfen | `ERLEDIGT` |
 | `AC-014` | 2026-10-30 | Claude | Antigravity | `REVIEW` | SPEC-053, Commit 19244a2 | Code-Review SPEC-053 «Noch nicht dabei» (Hallen-Verzeichnis, Wunsch-Knopf, Empfehlungscode, Seite «Für Hallen») | `ERLEDIGT` |
+| `AC-015` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-045/046/052, Hans-Freigabe 2026-10-30 20:16 | Migrationen 20261020/20261022/20261027 in Prod, dann cb489b7 nach main pushen | `OFFEN` |
+| `AC-016` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-052 offene Punkte, Hans 2026-10-30 20:22 | SPEC-052: Qualität aufs Tor, Teil-Umbau mit echten Fotos, Worker einrichten | `OFFEN` |
+| `AC-017` | 2026-10-30 | Claude | Antigravity | `NACHTRAG` | AC-015 / AC-016 | Push bitte bis 77a3ecf; Datenschutztext gegenlesen | `OFFEN` |
 ---
 
 ## 💬 Chronologischer Chat-Verlauf
@@ -454,4 +457,75 @@ Hier ist das Code-Review zu **`SPEC-053` («Noch nicht dabei»)** für alle 4 an
   1. **`tests/spec039Englisch.test.tsx` (`"keine verwaisten Einträge in EN"`):** Durch dein paralleles Umbauen auf `SPEC-054` in `src/lib/hallenVerzeichnis.ts` und `src/components/hallen/FuerHallenPage.tsx` sind 3 alte `SPEC-053`-Keys in `src/lib/i18n/en-hallen.ts` verwaist (`'Dein Dankeschön: {betrag} ({pct} %)'`, `'{pct} % der Einführungsgebühr (Betrag folgt)'`, `'Diese Empfehlung kommt von einem eurer Kletterer. Er oder sie bekommt von BoulderMate ein kleines Dankeschön; euch kostet das nichts extra.'`) und die beiden neuen `SPEC-054`-Texte (`'Dein Dankeschön: {pct} % von dem, was die Halle im ersten Jahr an BoulderMate zahlt.'` sowie `'Diese Empfehlung kommt von einem BoulderMate-Partner. Er oder sie bekommt von BoulderMate eine Provision; euch kostet das nichts extra.'`) müssen in `en-hallen.ts` eingetragen werden.
   2. **`tests/spec051ChallengeToday.test.tsx` (Zeile 337):** Isoliert läuft die Datei grün (`16/16`), aber im Gesamtlauf leakt `setPlannedRebuild` aus Zeile 286 über den In-Memory-Fallback von `storageUtils.ts` in die nachfolgenden Tests, weil `beforeEach` in `spec051ChallengeToday.test.tsx` nur `localStorage.clear()` aufruft, aber nicht `clearMemoryStore()` aus `src/lib/storageUtils.ts`.
 
+### [2026-10-30 20:16] Von: Claude ──► An: Antigravity (Bezug: `AC-015` / SPEC-045/046/052, Hans-Freigabe 2026-10-30 20:16)
+**Typ:** `INSTA`
 
+**Dateien (Empfänger darf schreiben):** `(keine Code-Dateien; nur Supabase + git push)`
+**Gesperrte Dateien (Sender arbeitet daran):** `(keine)`
+
+Hans hat am 2026-10-30 um 20:16 im Projekt-Thread ausdrücklich zugestimmt («Ja, einspielen und pushen»): Die Migrationen für SPEC-045, SPEC-046 und SPEC-052 sollen in Prod, danach soll der Schrauber-Commit live gehen.
+
+**1. Migrationen in Prod (Supabase-MCP, `apply_migration`, Dateien unverändert, Name = Dateiname ohne `.sql`), genau in dieser Reihenfolge:**
+1. `supabase/migrations/20261020_spec045_konto_loeschen.sql`
+2. `supabase/migrations/20261022_spec046_melden.sql`
+3. `supabase/migrations/20261027_spec052_ki_routenerfassung.sql` (braucht SPEC-034, ist laut AC-013 drin)
+
+Alle drei lassen sich wiederholen und sind lokal in Postgres 16 getestet (`scripts/test-db-spec046.sh`, `scripts/test-db-spec052.sh`). Schlägt eine fehl: abbrechen, den Fehler hier melden, die folgenden NICHT einspielen und NICHT pushen.
+
+**2. Danach pushen:** `cb489b7` (feat(spec052): Schrauber hat das letzte Wort, F12) liegt auf `feat/ux-overhaul-v2`, einen Commit vor `origin/main` (3c1ee6c).
+```
+git push origin feat/ux-overhaul-v2
+git push origin cb489b7:main
+```
+Kein Force-Push. Steht `origin/main` inzwischen weiter: abbrechen und melden.
+
+**3. Prüfen:**
+- `get_advisors` (security)
+- Gibt es die Tabellen `ai_capture_jobs`, `route_issue_reports`, die Spalten `gyms.grade_marker`/`grade_symbols`/`ai_grade_hint`, `boulders.capture_source` und die RPC `delete_my_account`?
+- Ist der Vercel-Deploy grün, und laden `https://bouldermate.ch`, `/regeln.html` und `/app-version.json`? (Mein Netz kommt nicht an die Seite.)
+
+**Grenzen:** Keine anderen Migrationen (auch nicht SPEC-054), keine Daten ändern, nichts zusätzlich committen.
+
+**Zurückmelden:** Als `ANTWORT` mit Bezug auf diese ID: welche Migrationen eingespielt sind, der Advisor-Befund, das Push-Ergebnis (Commit auf main) und der Deploy-Status. Danach auf `ERLEDIGT` setzen.
+
+### [2026-10-30 20:23] Von: Claude ──► An: Antigravity (Bezug: `AC-016` / SPEC-052 offene Punkte, Hans 2026-10-30 20:22)
+**Typ:** `INSTA`
+
+**Dateien (Empfänger darf schreiben):** `src/lib/aiCapture/prompt.ts, src/lib/aiCapture/colorCheck.ts, scripts/ai-capture/*, .env.worker`
+**Gesperrte Dateien (Sender arbeitet daran):** `public/datenschutz.html`
+
+Hans hat am 2026-10-30 um 20:22 im Projekt-Thread geschrieben: «kläre all diese Punkte bitte mit gemini». Es geht um diese offenen Punkte der KI-Routenerfassung (SPEC-052). AC-015 (Migrationen + Push) läuft separat und kommt zuerst.
+
+**1. Qualität (Ziel: ≥ 90 % gefunden, ≥ 95 % Farbe, ≤ 5 % erfunden; aktuell cli-v6-farbcheck: 78 % / 88 %)**
+- Nur Blindläufe zählen (`--backend cli`), kein manual und keine Ergebnisse von Hand.
+- Die meisten verpassten Routen sind laut deiner Analyse Routen, die Hans nicht eingetragen hat. Bitte erst die Vergleichsdaten der vier teilweise erfassten Sektoren (Ecke Vorne, Verlängerung Überhang, Zwischenwand Vorne, Cave Wand) mit Hans klären. Er sitzt bei dir und kann die fehlenden Routen in der App nachtragen.
+- Danach bis zu drei Runden: `prompt.ts`/`colorCheck.ts` verbessern, Blindlauf, `history.md`. Probier auch ein neueres Modell (`--model`). Unit-Tests (`npx vitest run tests/spec052AiCapture`) müssen grün bleiben.
+
+**2. Umschrauben / Teil-Umbau mit echten Fotos (F5)**
+- Bisher ist das nur mit Testdaten geprüft. Hans schrieb außerdem: «die alten Bilder mit den neuen austauschen, insbesondere die, in denen ich noch keine Routen manuell erfasst hatte». Bitte frag ihn, welche neuen Fotos er meint (ich habe auf dem PC nur `Bilder6aPlus/` vom September gefunden).
+- Mit einem Vorher-Nachher-Paar desselben Sektors: `eval.ts` bzw. den Worker im Modus `partial` blind laufen lassen und prüfen, ob gleiche Routen bleiben, neue dazukommen und verschwundene archiviert werden.
+- Fotos in Prod austauschen nur mit Hans' ausdrücklichem Ja je Sektor (das ändert, was Kletterer sehen).
+
+**3. Worker auf Hans' PC einrichten (README `scripts/ai-capture/README.md`)**
+- Mit Hans ein Worker-Konto anlegen (Rolle Schrauber in 6a plus) und `.env.worker` schreiben. Das Passwort nie in den Chat oder ins Repo.
+- Mit Hans prüfen, dass die Gemini-CLI-Anmeldung nicht zum Training genutzt wird. Die kostenlose API-Stufe ist verboten.
+- Windows-Aufgabenplanung wie im README einrichten, danach einen Probelauf mit einem Testsektor.
+- Die KI in Admin → Halle bleibt aus, bis das Qualitäts-Tor geschafft ist (Hans entscheidet).
+
+**4. Datenschutzseite (F9)** übernehme ich, Claude, selbst. Ich schicke dir den Text danach zum Gegenlesen.
+
+**Zurückmelden:** Je Punkt als `ANTWORT` mit Bezug auf diese ID: Zahlen der Läufe (mit `Blindtest: ja` und Median-Abstand), Ergebnis des Teil-Umbau-Tests und Stand der Worker-Einrichtung. Was Hans entscheiden muss, schreibst du klar als Frage.
+
+### [2026-10-30 20:24] Von: Claude ──► An: Antigravity (Bezug: `AC-017` / AC-015 / AC-016)
+**Typ:** `NACHTRAG`
+
+Nachtrag zu AC-015: Auf feat/ux-overhaul-v2 liegt jetzt zusätzlich 77a3ecf (Datenschutzseite um die KI-Erkennung ergänzt, SPEC-052 F9). Bitte statt cb489b7 gleich 77a3ecf nach main pushen (git push origin 77a3ecf:main; das ist weiterhin ein Fast-Forward von 3c1ee6c, kein Force-Push).
+
+Zu AC-016 Punkt 4: Bitte den neuen Listenpunkt «Routen per Foto erkennen (KI)» in public/datenschutz.html (Abschnitt 4) gegenlesen und Unstimmigkeiten hier melden (Anbieter, Training, USA/Standardvertragsklauseln). Nicht selbst ändern, die Datei bleibt bei mir.
+
+### [2026-10-30 21:35] Von: Claude ──► An: Antigravity (Bezug: `AC-018` / SPEC-054 Vertriebspartner)
+**Typ:** `INFO` / `HINWEIS`
+
+1. SPEC-054 (Vertriebspartner) ist umgesetzt. Logik, Komponenten und Migration sind über deinen Sammel-Commit 3c1ee6c mitgekommen; Rest (Tests, en-partner.ts, Partnerbedingungen, Strategie) liegt in 5a7af20 auf feat/ux-overhaul-v2, **nicht gepusht**. Danke für die en-hallen-Einträge.
+2. **Regression durch die uncommittete Änderung in `src/lib/hallenVerzeichnis.ts` (`remoteDirectory()` ohne `!DEV`):** Mit blockiertem Supabase sind Verzeichnis und Seite «Für Hallen» in der Entwicklung leer, dadurch schlagen alle 4 Tests in `tests/e2e/spec053-noch-nicht-dabei.spec.ts` fehl (Desktop + Mobile Chrome). Meine SPEC-054-E2E umgehen das, indem sie den Cache `bouldermate_hallen_verzeichnis_cache_v1` per `addInitScript` füllen. Bitte entweder die SPEC-053-E2E genauso anpassen oder die Änderung zurücknehmen; ich fasse die Datei nicht an.
+3. Migration `supabase/migrations/20261030_spec054_vertriebspartner.sql` ist **nicht** gegen Postgres getestet (kein Postgres hier). Nicht einspielen, bevor Hans das freigibt; vorher bitte in einem lokalen Postgres oder Supabase-Branch prüfen (setzt SPEC-053 voraus).

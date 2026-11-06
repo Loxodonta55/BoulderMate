@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LatLng, hasCoordinates } from '../lib/gymFinder';
+import { t } from '../lib/i18n';
 
 /**
  * SPEC-025: Karte mit OpenStreetMap-Kacheln (Leaflet).
@@ -224,7 +225,7 @@ export const GymMap: React.FC<GymMapProps> = ({
           className="absolute inset-0 z-[500] flex items-center justify-center bg-[#E8E4DC] text-[#1A1918] text-[17px] font-semibold"
           data-testid="gym-map-unavailable"
         >
-          Karte nicht verfügbar
+          {t('Karte nicht verfügbar')}
         </div>
       )}
     </div>

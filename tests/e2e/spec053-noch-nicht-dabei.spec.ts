@@ -73,6 +73,9 @@ test.describe('SPEC-053: Noch nicht dabei', () => {
     const sheet = page.getByTestId('halle-reden-sheet');
     await expect(sheet.getByTestId('halle-reden-dankeschoen')).toContainText('kein Schneeballsystem');
     await expect(sheet.getByTestId('halle-reden-text')).toContainText('Hallo zusammen!');
+    await expect(sheet.getByTestId('halle-reden-text')).toContainText('mit einem Foto der Wand');
+    await sheet.getByText('Das kannst du der Halle sagen').click();
+    await expect(sheet.getByTestId('halle-reden-nutzen-schritte')).toBeVisible();
     await expect(sheet.getByTestId('halle-reden-create-code')).toBeDisabled();
     await sheet.getByTestId('halle-reden-adult').check();
     await sheet.getByTestId('halle-reden-create-code').click();
@@ -104,6 +107,10 @@ test.describe('SPEC-053: Noch nicht dabei', () => {
     await expect(p.getByTestId('fuer-hallen-wishes')).toContainText('11 Kletterer');
     await expect(p.getByTestId('fuer-hallen-code')).toHaveText('BM-K7Q 4AC');
     await expect(p.getByTestId('fuer-hallen-ref-note')).toContainText('euch kostet das nichts extra');
+    // SPEC-053 F10: Warum BoulderMate + «So einfach: Foto von der Wand»
+    await expect(p.getByTestId('hallen-nutzen')).toContainText('Warum BoulderMate für eure Halle?');
+    await expect(p.getByTestId('hallen-nutzen-schritte').locator('li')).toHaveCount(3);
+    await expect(p.getByTestId('hallen-nutzen-schritte')).toContainText('Foto von der Wand');
     // Parameter verschwinden aus der Adresszeile
     await expect(page).not.toHaveURL(/halle=/);
 

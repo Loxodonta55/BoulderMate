@@ -130,6 +130,11 @@ describe('SPEC-053 · «Mit der Halle reden» (AC-7)', () => {
     expect(within(sheet).getByTestId('halle-reden-betrag')).toHaveTextContent('30 % von dem, was die Halle im ersten Jahr an BoulderMate zahlt');
     expect(within(sheet).getByTestId('halle-reden-text')).toHaveTextContent('?halle=vz-demo-winterthur');
     expect(within(sheet).getByTestId('halle-reden-text')).not.toHaveTextContent('ref=');
+    // SPEC-053 F10: Argumente für das Gespräch, kurz (nur Titel)
+    const argumente = within(sheet).getByTestId('halle-reden-argumente');
+    expect(argumente).toHaveTextContent('Das kannst du der Halle sagen');
+    expect(within(argumente).getByTestId('halle-reden-nutzen-schritte')).toHaveTextContent('BoulderMate erkennt die Routen');
+    expect(argumente).not.toHaveTextContent('kein Abtippen');
     expect(within(sheet).getByTestId('halle-reden-mail')).toHaveAttribute('href', expect.stringMatching(/^mailto:info@example\.com/));
 
     const create = within(sheet).getByTestId('halle-reden-create-code');
@@ -161,6 +166,13 @@ describe('SPEC-053 · Seite «Für Hallen» (AC-8)', () => {
     expect(screen.getByTestId('fuer-hallen-wishes')).toHaveTextContent('11 Kletterer');
     expect(screen.getByTestId('fuer-hallen-code')).toHaveTextContent('BM-K7Q 4AC');
     expect(screen.getByTestId('fuer-hallen-ref-note')).toHaveTextContent('euch kostet das nichts extra');
+    // SPEC-053 F10: Nutzen für die Halle + «Foto von der Wand» in 3 Schritten
+    expect(screen.getByTestId('hallen-nutzen-gruende')).toHaveTextContent('Kletterer kommen öfter wieder');
+    expect(screen.getByTestId('hallen-nutzen-gruende').querySelectorAll('li')).toHaveLength(3);
+    const schritte = screen.getByTestId('hallen-nutzen-schritte');
+    expect(schritte.querySelectorAll('li')).toHaveLength(3);
+    expect(schritte).toHaveTextContent('Foto von der Wand');
+    expect(schritte).toHaveTextContent('Eure Schrauber haben das letzte Wort');
     expect(screen.getByTestId('fuer-hallen-mail').getAttribute('href')).toContain(encodeURIComponent('Empfehlungscode: BM-K7Q4AC'));
     fireEvent.click(screen.getByTestId('fuer-hallen-demo'));
     expect(onDemo).toHaveBeenCalled();
