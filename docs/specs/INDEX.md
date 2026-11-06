@@ -50,6 +50,8 @@
 | [SPEC-044](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-044-schrauber-statistik-meine-routen.md) | Schrauber-Statistik «Meine Routen» – wie die eigenen Routen ankommen | IMPLEMENTED | Hans | 2026-10-10 |
 | [SPEC-045](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-045-bouldermate-app.md) | BoulderMate als App (iPhone und Android, Capacitor) | IMPLEMENTED | Hans | 2026-10-20 |
 | [SPEC-046](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-046-melden-und-ausblenden.md) | Person melden und ausblenden (Store-Pflicht für Nutzerinhalte) | IMPLEMENTED | Hans | 2026-10-22 |
+| [SPEC-047](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-047-einfuehrung-erste-nutzung.md) | Einführung beim ersten Start (Kletterer, QR-Gäste, Schrauber, Admin) | READY (nicht gebaut) | Hans | 2026-10-11 |
+| [SPEC-048](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-048-hallen-rangliste.md) | Hallen-Rangliste für Kletterer (Monat, Ligen nach Farben, Opt-in) | READY (nicht gebaut) | Hans | 2026-10-16 |
 | [SPEC-049](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-049-passwort-vergessen-und-anmelden-mit-email.md) | Passwort vergessen und Anmelden mit E-Mail (Bestätigung, abgelaufene Links) | DONE | Hans | 2026-10-20 |
 | [SPEC-050](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-050-schrauber-auswertung-admin.md) | Schrauber-Auswertung für die Hallenleitung (Zahlen → Schrauber) | IMPLEMENTED | Hans | 2026-10-20 |
 | [SPEC-051](file:///c:/Users/boris/Repos/BoulderMate/docs/specs/SPEC-051-challenge-today.md) | «Challenge Today» – deine persönliche Challenge (über deinem Grad, passt zu deinen Stärken) | IMPLEMENTED | Hans | 2026-10-20 |

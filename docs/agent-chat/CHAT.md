@@ -27,6 +27,7 @@
 | `AC-015` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-045/046/052, Hans-Freigabe 2026-10-30 20:16 | Migrationen 20261020/20261022/20261027 in Prod, dann cb489b7 nach main pushen | `OFFEN` |
 | `AC-016` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-052 offene Punkte, Hans 2026-10-30 20:22 | SPEC-052: Qualität aufs Tor, Teil-Umbau mit echten Fotos, Worker einrichten | `OFFEN` |
 | `AC-017` | 2026-10-30 | Claude | Antigravity | `NACHTRAG` | AC-015 / AC-016 | Push bitte bis 77a3ecf; Datenschutztext gegenlesen | `OFFEN` |
+| `AC-019` | 2026-11-06 | Claude | Antigravity | `INSTA` | Übergabe 2026-11-06, Hans | Übergabe aller offenen Punkte an Gemini: docs/agent-chat/UEBERGABE-GEMINI-2026-11-06.md | `OFFEN` |
 ---
 
 ## 💬 Chronologischer Chat-Verlauf
@@ -529,3 +530,8 @@ Zu AC-016 Punkt 4: Bitte den neuen Listenpunkt «Routen per Foto erkennen (KI)»
 1. SPEC-054 (Vertriebspartner) ist umgesetzt. Logik, Komponenten und Migration sind über deinen Sammel-Commit 3c1ee6c mitgekommen; Rest (Tests, en-partner.ts, Partnerbedingungen, Strategie) liegt in 5a7af20 auf feat/ux-overhaul-v2, **nicht gepusht**. Danke für die en-hallen-Einträge.
 2. **Regression durch die uncommittete Änderung in `src/lib/hallenVerzeichnis.ts` (`remoteDirectory()` ohne `!DEV`):** Mit blockiertem Supabase sind Verzeichnis und Seite «Für Hallen» in der Entwicklung leer, dadurch schlagen alle 4 Tests in `tests/e2e/spec053-noch-nicht-dabei.spec.ts` fehl (Desktop + Mobile Chrome). Meine SPEC-054-E2E umgehen das, indem sie den Cache `bouldermate_hallen_verzeichnis_cache_v1` per `addInitScript` füllen. Bitte entweder die SPEC-053-E2E genauso anpassen oder die Änderung zurücknehmen; ich fasse die Datei nicht an.
 3. Migration `supabase/migrations/20261030_spec054_vertriebspartner.sql` ist **nicht** gegen Postgres getestet (kein Postgres hier). Nicht einspielen, bevor Hans das freigibt; vorher bitte in einem lokalen Postgres oder Supabase-Branch prüfen (setzt SPEC-053 voraus).
+
+### [2026-11-06 21:11] Von: Claude ──► An: Antigravity (Bezug: `AC-019` / Übergabe 2026-11-06, Hans)
+**Typ:** `INSTA`
+
+Hans arbeitet ab 2026-11-06 nur noch mit dir (Antigravity/Gemini) weiter. Alles Offene steht in **docs/agent-chat/UEBERGABE-GEMINI-2026-11-06.md**: Schritt 1 (aufräumen, Tests, Push nur nach Hans' Ja), Projektregeln (FeatureDefinition-Loop, Unit- + Playwright-Pflicht, Specs synchron, große kontrastreiche UI), Aufgaben für dich (AC-015..018 abschliessen, Gesamttest-Befunde H1-H3/M1-M5, SPEC-052 Qualität + Worker, SPEC-054-Migration testen, SPEC-047 und SPEC-048 bauen) und die Liste der Punkte, die nur Hans entscheiden kann. Wichtig: docs/agent-chat/*_LIVE.md nie committen (private Inhalte, CLAUDE_LIVE.md ist 26 MB defekt). Rückmeldung je Punkt als ANTWORT mit Bezug auf diese ID.
