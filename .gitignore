@@ -13,4 +13,6 @@ test-results/
 
 # SPEC-052 KI-Test: Fotos und Ergebnisse lokal
 /ai-capture/
+.env.worker
 .claude/.last_insta_notified.json
+docs/agent-chat/*_LIVE.md

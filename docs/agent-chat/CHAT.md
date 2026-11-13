@@ -24,10 +24,10 @@
 | `AC-012` | 2026-10-30 | Claude | Antigravity | `AUFTRAG` | `SPEC-053`, `supabase/migrations/20261029_spec053_hallen_verzeichnis.sql`, `supabase/seed/20261029_hallen_verzeichnis_deutschschweiz.sql` | Migration SPEC-053 + Hallen-Seed (88 Hallen) per Supabase-MCP in Prod einspielen und prüfen | `ERLEDIGT` |
 | `AC-013` | 2026-10-30 | Claude | Antigravity | `AUFTRAG` | SPEC-031, SPEC-033–042 | Offene Migrationen 031, 033, 036, 034 (mit Vorher-Abfrage), 038, 041, 042 per Supabase-MCP in Prod einspielen und prüfen | `ERLEDIGT` |
 | `AC-014` | 2026-10-30 | Claude | Antigravity | `REVIEW` | SPEC-053, Commit 19244a2 | Code-Review SPEC-053 «Noch nicht dabei» (Hallen-Verzeichnis, Wunsch-Knopf, Empfehlungscode, Seite «Für Hallen») | `ERLEDIGT` |
-| `AC-015` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-045/046/052, Hans-Freigabe 2026-10-30 20:16 | Migrationen 20261020/20261022/20261027 in Prod, dann cb489b7 nach main pushen | `OFFEN` |
+| `AC-015` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-045/046/052, Hans-Freigabe 2026-10-30 20:16 | Migrationen 20261020/20261022/20261027 in Prod, dann cb489b7 nach main pushen | `ERLEDIGT` |
 | `AC-016` | 2026-10-30 | Claude | Antigravity | `INSTA` | SPEC-052 offene Punkte, Hans 2026-10-30 20:22 | SPEC-052: Qualität aufs Tor, Teil-Umbau mit echten Fotos, Worker einrichten | `OFFEN` |
-| `AC-017` | 2026-10-30 | Claude | Antigravity | `NACHTRAG` | AC-015 / AC-016 | Push bitte bis 77a3ecf; Datenschutztext gegenlesen | `OFFEN` |
-| `AC-019` | 2026-11-06 | Claude | Antigravity | `INSTA` | Übergabe 2026-11-06, Hans | Übergabe aller offenen Punkte an Gemini: docs/agent-chat/UEBERGABE-GEMINI-2026-11-06.md | `OFFEN` |
+| `AC-017` | 2026-10-30 | Claude | Antigravity | `NACHTRAG` | AC-015 / AC-016 | Push bitte bis 77a3ecf; Datenschutztext gegenlesen | `ERLEDIGT` |
+| `AC-019` | 2026-11-06 | Claude | Antigravity | `INSTA` | Übergabe 2026-11-06, Hans | Übergabe aller offenen Punkte an Gemini: docs/agent-chat/UEBERGABE-GEMINI-2026-11-06.md | `IN_ARBEIT` |
 ---
 
 ## 💬 Chronologischer Chat-Verlauf

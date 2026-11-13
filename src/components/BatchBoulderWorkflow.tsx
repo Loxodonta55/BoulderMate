@@ -27,6 +27,7 @@ import { isUserMatch } from '../lib/ratingAndAscentService';
 import { RebuildAnnounceDialog } from './RebuildAnnounceDialog';
 import { isRebuildAnnounced, formatPlannedDate } from '../lib/wallNews';
 import { useGymSectorData } from '../hooks/useGymSectorData';
+import { syncFromSupabase } from '../lib/syncService';
 import { WallPhotoCanvas } from './WallPhotoCanvas';
 import { BoulderBottomSheet } from './BoulderBottomSheet';
 import { BatchSummaryModal } from './BatchSummaryModal';
@@ -78,6 +79,7 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
     gradeScales,
     setSelectedSectorId,
     handleGymChange,
+    refreshGymData,
   } = useGymSectorData(activeGymId, onSelectGym);
 
   const [boulders, setBoulders] = useState<WallBoulder[]>([]);
@@ -149,6 +151,23 @@ export const BatchBoulderWorkflow: React.FC<BatchBoulderWorkflowProps> = ({
       setSelectedBoulder(null);
     },
   });
+
+  // Sync sectors and boulders from Supabase when Setter Studio mounts
+  useEffect(() => {
+    let isMounted = true;
+    syncFromSupabase().then(synced => {
+      if (synced && isMounted) {
+        refreshGymData();
+        if (selectedSectorId) {
+          setBoulders(getWallBoulders(selectedSectorId));
+        }
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reload boulders when sector changes
   useEffect(() => {
