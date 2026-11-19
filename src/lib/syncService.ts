@@ -509,7 +509,11 @@ export async function syncFromSupabase(): Promise<boolean> {
 
         for (const [localId, localB] of boulderMap.entries()) {
           const belongsToSector = matchingSecIds.has(localB.sectorId);
-          if (belongsToSector && localB.status === 'active' && !remoteIds.has(localId)) {
+          const isRecentLocalDraft =
+            localB.status === 'draft' &&
+            Boolean(localB.createdAt) &&
+            Date.now() - new Date(localB.createdAt).getTime() < 15 * 60 * 1000;
+          if (belongsToSector && !isRecentLocalDraft && !remoteIds.has(localId)) {
             boulderMap.delete(localId);
             v1BoulderMap.delete(localId);
           }
